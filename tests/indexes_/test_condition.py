@@ -78,7 +78,7 @@ class PartialIndexTests(TestCase):
                 {
                     "$and": [
                         {"number": {"$gte": 3}},
-                        {"$or": [{"body": {"$gt": "test1"}}, {"body": {"$in": ["A", "B"]}}]},
+                        {"$or": [{"body": {"$gt": "test1"}}, {"body": {"$in": ("A", "B")}}]},
                     ]
                 },
             )

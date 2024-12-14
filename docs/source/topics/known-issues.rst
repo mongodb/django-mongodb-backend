@@ -23,6 +23,7 @@ Model fields
   - :class:`~django.db.models.AutoField` (including
     :class:`~django.db.models.BigAutoField` and
     :class:`~django.db.models.SmallAutoField`)
+  - :class:`~django.db.models.CompositePrimaryKey`
   - :class:`~django.db.models.GeneratedField`
 
 Querying

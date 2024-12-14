@@ -1,7 +1,7 @@
 import json
 
 from django.core import checks, exceptions
-from django.db.models import DecimalField, Field, Func, IntegerField, Transform, Value
+from django.db.models import Field, Func, IntegerField, Transform, Value
 from django.db.models.fields.mixins import CheckFieldDefaultMixin
 from django.db.models.lookups import Exact, FieldGetDbPrepValueMixin, In, Lookup
 from django.utils.translation import gettext_lazy as _
@@ -127,10 +127,6 @@ class ArrayField(CheckFieldDefaultMixin, Field):
 
     def get_db_prep_value(self, value, connection, prepared=False):
         if isinstance(value, list | tuple):
-            # Workaround for https://code.djangoproject.com/ticket/35982
-            # (fixed in Django 5.2).
-            if isinstance(self.base_field, DecimalField):
-                return [self.base_field.get_db_prep_save(i, connection) for i in value]
             return [self.base_field.get_db_prep_value(i, connection, prepared=False) for i in value]
         return value
 

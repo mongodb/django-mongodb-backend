@@ -195,28 +195,6 @@ class DatabaseOperations(BaseDatabaseOperations):
             if not options.get("capped", False):
                 collection.delete_many({})
 
-    def prep_lookup_value(self, value, field, lookup):
-        """
-        Perform type-conversion on `value` before using as a filter parameter.
-        """
-        if getattr(field, "rel", None) is not None:
-            field = field.rel.get_related_field()
-        field_kind = field.get_internal_type()
-
-        if lookup in ("in", "range"):
-            return [
-                self._prep_lookup_value(subvalue, field, field_kind, lookup) for subvalue in value
-            ]
-        return self._prep_lookup_value(value, field, field_kind, lookup)
-
-    def _prep_lookup_value(self, value, field, field_kind, lookup):
-        if value is None:
-            return None
-
-        if field_kind == "DecimalField":
-            value = self.adapt_decimalfield_value(value, field.max_digits, field.decimal_places)
-        return value
-
     def explain_query_prefix(self, format=None, **options):
         # Validate options.
         validated_options = {}

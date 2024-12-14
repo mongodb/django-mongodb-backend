@@ -1,0 +1,14 @@
+============================
+Django MongoDB Backend 5.2.x
+============================
+
+5.2.0 beta 0
+============
+
+*Unreleased*
+
+Initial release from the state of :ref:`django-mongodb-backend 5.1.0 beta 2
+<django-mongodb-backend-5.1.0-beta-2>`.
+
+Regarding new features in Django 5.2,
+:class:`~django.db.models.CompositePrimaryKey` isn't supported.

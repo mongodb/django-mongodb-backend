@@ -16,9 +16,9 @@ https://django-mongodb-backend.readthedocs.io/en/latest/.
 ## Install
 
 Use the version of `django-mongodb-backend` that corresponds to your version of
-Django. For example, to get the latest compatible release for Django 5.1.x:
+Django. For example, to get the latest compatible release for Django 5.2.x:
 ```bash
-pip install --pre django-mongodb-backend==5.1.*
+pip install --pre django-mongodb-backend==5.2.*
 ```
 (Until the package is out of beta, you must use pip's `--pre` option.)
 
@@ -36,11 +36,11 @@ You can check what version of Django you're using with:
 django-admin --version
 ```
 
-The snippet below specifies `5.1.x.zip` at the end of
-the template url to get the template for any Django version matching 5.1:
+The snippet below specifies `5.2.x.zip` at the end of
+the template url to get the template for any Django version matching 5.2:
 
 ```bash
-django-admin startproject example --template https://github.com/mongodb-labs/django-mongodb-project/archive/refs/heads/5.1.x.zip
+django-admin startproject example --template https://github.com/mongodb-labs/django-mongodb-project/archive/refs/heads/5.2.x.zip
 ```
 
 

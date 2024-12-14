@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'mongodb-forks/django'
-          ref: 'mongodb-5.1.x'
+          ref: 'mongodb-5.2.x'
           path: 'django_repo'
           persist-credentials: false
       - name: Install system packages for Django's Python test dependencies

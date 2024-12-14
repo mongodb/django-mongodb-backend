@@ -44,10 +44,7 @@ def process_rhs(node, compiler, connection):
             value = value[0]
     if hasattr(node, "prep_lookup_value_mongo"):
         value = node.prep_lookup_value_mongo(value)
-    # No need to prepare expressions like F() objects.
-    if hasattr(rhs, "resolve_expression"):
-        return value
-    return connection.ops.prep_lookup_value(value, node.lhs.output_field, node.lookup_name)
+    return value
 
 
 def regex_match(field, regex_vals, insensitive=False):

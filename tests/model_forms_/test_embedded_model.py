@@ -182,9 +182,9 @@ class NestedFormTests(TestCase):
                 required id="id_title">
             </div>
             <div>
-              <fieldset>
+              <fieldset aria-describedby="id_publisher_error">
                 <legend>Publisher:</legend>
-                <ul class="errorlist">
+                <ul class="errorlist" id="id_publisher_error">
                   <li>Enter all required values.</li>
                 </ul>
                 <div>
@@ -252,9 +252,9 @@ class NestedFormTests(TestCase):
                 maxlength="50" required id="id_title">
             </div>
             <div>
-              <fieldset>
+              <fieldset aria-describedby="id_publisher_error">
                 <legend>Publisher:</legend>
-                <ul class="errorlist">
+                <ul class="errorlist" id="id_publisher_error">
                   <li>Ensure this value has at most 2 characters (it has 8).</li>
                 </ul>
                 <div>

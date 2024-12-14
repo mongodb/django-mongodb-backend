@@ -10,6 +10,7 @@ from django.db.models.expressions import (
     Col,
     CombinedExpression,
     Exists,
+    ExpressionList,
     ExpressionWrapper,
     F,
     NegatedExpression,
@@ -23,6 +24,8 @@ from django.db.models.expressions import (
     When,
 )
 from django.db.models.sql import Query
+
+from .query_utils import process_lhs
 
 
 def case(self, compiler, connection):
@@ -202,6 +205,7 @@ def register_expressions():
     Col.as_mql = col
     CombinedExpression.as_mql = combined_expression
     Exists.as_mql = exists
+    ExpressionList.as_mql = process_lhs
     ExpressionWrapper.as_mql = expression_wrapper
     F.as_mql = f
     NegatedExpression.as_mql = negated_expression
