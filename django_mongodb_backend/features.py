@@ -88,6 +88,31 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         # of $setIsSubset must be arrays. Second argument is of type: null"
         # https://jira.mongodb.org/browse/SERVER-99186
         "model_fields_.test_arrayfield.QueryingTests.test_contained_by_subquery",
+        # Broken by https://github.com/django/django/commit/65ad4ade74dc9208b9d686a451cd6045df0c9c3a
+        "aggregation.tests.AggregateTestCase.test_even_more_aggregate",
+        "aggregation.tests.AggregateTestCase.test_grouped_annotation_in_group_by",
+        "aggregation.tests.AggregateTestCase.test_non_grouped_annotation_not_in_group_by",
+        "aggregation_regress.tests.AggregationTests.test_aggregate_fexpr",
+        "aggregation_regress.tests.AggregationTests.test_values_list_annotation_args_ordering",
+        "annotations.tests.NonAggregateAnnotationTestCase.test_annotation_subquery_and_aggregate_values_chaining",
+        "annotations.tests.NonAggregateAnnotationTestCase.test_values_fields_annotations_order",
+        "queries.test_qs_combinators.QuerySetSetOperationTests.test_union_multiple_models_with_values_and_datetime_annotations",
+        "queries.test_qs_combinators.QuerySetSetOperationTests.test_union_multiple_models_with_values_list_and_datetime_annotations",
+        "queries.test_qs_combinators.QuerySetSetOperationTests.test_union_multiple_models_with_values_list_and_annotations",
+        "queries.test_qs_combinators.QuerySetSetOperationTests.test_union_with_field_and_annotation_values",
+        "queries.test_qs_combinators.QuerySetSetOperationTests.test_union_with_two_annotated_values_list",
+        "queries.tests.Queries1Tests.test_union_values_subquery",
+        # JSONArray not implemented.
+        "db_functions.json.test_json_array.JSONArrayTests",
+        # Some usage of prefetch_related() raises "ColPairs is not supported."
+        "known_related_objects.tests.ExistingRelatedInstancesTests.test_one_to_one_multi_prefetch_related",
+        "known_related_objects.tests.ExistingRelatedInstancesTests.test_one_to_one_prefetch_related",
+        "prefetch_related.tests.DeprecationTests.test_prefetch_one_level_fallback",
+        "prefetch_related.tests.MultiDbTests.test_using_is_honored_fkey",
+        "prefetch_related.tests.MultiDbTests.test_using_is_honored_inheritance",
+        "prefetch_related.tests.NestedPrefetchTests.test_nested_prefetch_is_not_overwritten_by_related_object",
+        "prefetch_related.tests.NullableTest.test_prefetch_nullable",
+        "prefetch_related.tests.Ticket19607Tests.test_bug",
     }
     # $bitAnd, #bitOr, and $bitXor are new in MongoDB 6.3.
     _django_test_expected_failures_bitwise = {
@@ -112,6 +137,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             # bson.errors.InvalidDocument: cannot encode object:
             # <django.db.models.expressions.DatabaseDefault
             "basic.tests.ModelInstanceCreationTests.test_save_primary_with_db_default",
+            "basic.tests.ModelInstanceCreationTests.test_save_primary_with_falsey_db_default",
             "constraints.tests.UniqueConstraintTests.test_database_default",
             "field_defaults.tests.DefaultTests",
             "migrations.test_operations.OperationTests.test_add_field_both_defaults",
@@ -194,9 +220,13 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             "prefetch_related.tests.Ticket21410Tests",
             "queryset_pickle.tests.PickleabilityTestCase.test_pickle_prefetch_related_with_m2m_and_objects_deletion",
             "serializers.test_json.JsonSerializerTestCase.test_serialize_prefetch_related_m2m",
+            "serializers.test_json.JsonSerializerTestCase.test_serialize_prefetch_related_m2m_with_natural_keys",
             "serializers.test_jsonl.JsonlSerializerTestCase.test_serialize_prefetch_related_m2m",
+            "serializers.test_jsonl.JsonlSerializerTestCase.test_serialize_prefetch_related_m2m_with_natural_keys",
             "serializers.test_xml.XmlSerializerTestCase.test_serialize_prefetch_related_m2m",
+            "serializers.test_xml.XmlSerializerTestCase.test_serialize_prefetch_related_m2m_with_natural_keys",
             "serializers.test_yaml.YamlSerializerTestCase.test_serialize_prefetch_related_m2m",
+            "serializers.test_yaml.YamlSerializerTestCase.test_serialize_prefetch_related_m2m_with_natural_keys",
         },
         "AutoField not supported.": {
             "bulk_create.tests.BulkCreateTests.test_bulk_insert_nullable_fields",
@@ -598,6 +628,13 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             "foreign_object.test_empty_join.RestrictedConditionsTests",
             "foreign_object.tests.MultiColumnFKTests",
             "foreign_object.tests.TestExtraJoinFilterQ",
+        },
+        "Tuple lookups are not supported.": {
+            "foreign_object.test_tuple_lookups.TupleLookupsTests",
+        },
+        "ColPairs is not supported.": {
+            # 'ColPairs' object has no attribute 'as_mql'
+            "auth_tests.test_views.CustomUserCompositePrimaryKeyPasswordResetTest",
         },
         "Custom lookups are not supported.": {
             "custom_lookups.tests.BilateralTransformTests",
