@@ -38,8 +38,8 @@ exclude_patterns = []
 
 intersphinx_mapping = {
     "django": (
-        "https://docs.djangoproject.com/en/5.1/",
-        "https://docs.djangoproject.com/en/5.1/_objects/",
+        "https://docs.djangoproject.com/en/5.2/",
+        "https://docs.djangoproject.com/en/5.2/_objects/",
     ),
     "mongodb": ("https://www.mongodb.com/docs/languages/python/django-mongodb/v5.1/", None),
     "pymongo": ("https://pymongo.readthedocs.io/en/stable/", None),

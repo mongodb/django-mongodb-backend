@@ -3,11 +3,11 @@ Installing Django MongoDB Backend
 =================================
 
 Use the version of ``django-mongodb-backend`` that corresponds to your version
-of Django. For example, to get the latest compatible release for Django 5.1.x:
+of Django. For example, to get the latest compatible release for Django 5.2.x:
 
 .. code-block:: bash
 
-    $ pip install --pre django-mongodb-backend==5.1.*
+    $ pip install --pre django-mongodb-backend==5.2.*
 
 (Until the package is out of beta, you must use pip's ``--pre`` option.)
 
