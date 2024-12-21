@@ -87,20 +87,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         # of $setIsSubset must be arrays. Second argument is of type: null"
         # https://jira.mongodb.org/browse/SERVER-99186
         "model_fields_.test_arrayfield.QueryingTests.test_contained_by_subquery",
-        # Broken by https://github.com/django/django/commit/65ad4ade74dc9208b9d686a451cd6045df0c9c3a
-        "aggregation.tests.AggregateTestCase.test_even_more_aggregate",
-        "aggregation.tests.AggregateTestCase.test_grouped_annotation_in_group_by",
-        "aggregation.tests.AggregateTestCase.test_non_grouped_annotation_not_in_group_by",
-        "aggregation_regress.tests.AggregationTests.test_aggregate_fexpr",
-        "aggregation_regress.tests.AggregationTests.test_values_list_annotation_args_ordering",
-        "annotations.tests.NonAggregateAnnotationTestCase.test_annotation_subquery_and_aggregate_values_chaining",
-        "annotations.tests.NonAggregateAnnotationTestCase.test_values_fields_annotations_order",
-        "queries.test_qs_combinators.QuerySetSetOperationTests.test_union_multiple_models_with_values_and_datetime_annotations",
-        "queries.test_qs_combinators.QuerySetSetOperationTests.test_union_multiple_models_with_values_list_and_datetime_annotations",
-        "queries.test_qs_combinators.QuerySetSetOperationTests.test_union_multiple_models_with_values_list_and_annotations",
-        "queries.test_qs_combinators.QuerySetSetOperationTests.test_union_with_field_and_annotation_values",
-        "queries.test_qs_combinators.QuerySetSetOperationTests.test_union_with_two_annotated_values_list",
-        "queries.tests.Queries1Tests.test_union_values_subquery",
         # JSONArray not implemented.
         "db_functions.json.test_json_array.JSONArrayTests",
         # Some usage of prefetch_related() raises "ColPairs is not supported."

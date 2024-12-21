@@ -150,7 +150,11 @@ def ref(self, compiler, connection):  # noqa: ARG001
         if isinstance(self.source, Col) and self.source.alias != compiler.collection_name
         else ""
     )
-    return f"${prefix}{self.refs}"
+    if hasattr(self, "ordinal"):
+        refs, _ = compiler.columns[self.ordinal - 1]
+    else:
+        refs = self.refs
+    return f"${prefix}{refs}"
 
 
 def star(self, compiler, connection):  # noqa: ARG001
