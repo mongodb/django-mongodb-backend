@@ -17,7 +17,6 @@ from django.db.models.sql.datastructures import BaseTable
 from django.utils.functional import cached_property
 from pymongo import ASCENDING, DESCENDING
 
-from .base import Cursor
 from .query import MongoQuery, wrap_database_errors
 
 
@@ -705,15 +704,12 @@ class SQLInsertCompiler(SQLCompiler):
 
 class SQLDeleteCompiler(compiler.SQLDeleteCompiler, SQLCompiler):
     def execute_sql(self, result_type=MULTI):
-        cursor = Cursor()
         try:
             query = self.build_query()
         except EmptyResultSet:
-            rowcount = 0
+            return 0
         else:
-            rowcount = query.delete()
-        cursor.rowcount = rowcount
-        return cursor
+            return query.delete()
 
     def check_query(self):
         super().check_query()
