@@ -206,6 +206,15 @@ class Restoration(EmbeddedModel):
         return f"Restored by {self.restored_by} on {self.date}"
 
 
+# An audit of a section in the museum.
+class Audit(models.Model):
+    section_number = models.IntegerField()
+    reviewed = models.BooleanField()
+
+    def __str__(self):
+        return f"Section {self.section_number} audit"
+
+
 # ForeignKey to a model with EmbeddedModelArrayField.
 class Tour(models.Model):
     guide = models.CharField(max_length=100)

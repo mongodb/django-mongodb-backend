@@ -1,14 +1,17 @@
+import unittest
 from datetime import date
+from operator import attrgetter
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db import connection, models
+from django.db.models.expressions import Value
 from django.test import SimpleTestCase, TestCase
 from django.test.utils import CaptureQueriesContext, isolate_apps
 
-from django_mongodb_backend.fields import EmbeddedModelArrayField
+from django_mongodb_backend.fields import ArrayField, EmbeddedModelArrayField
 from django_mongodb_backend.models import EmbeddedModel
 
-from .models import Artifact, Exhibit, Movie, Restoration, Review, Section, Tour
+from .models import Artifact, Audit, Exhibit, Movie, Restoration, Review, Section, Tour
 
 
 class MethodTests(SimpleTestCase):
@@ -116,6 +119,7 @@ class QueryingTests(TestCase):
                     ],
                 )
             ],
+            main_section=Section(number=2),
         )
         cls.lost_empires = Exhibit.objects.create(
             name="Lost Empires",
@@ -146,6 +150,9 @@ class QueryingTests(TestCase):
         cls.egypt_tour = Tour.objects.create(guide="Amira", exhibit=cls.egypt)
         cls.wonders_tour = Tour.objects.create(guide="Carlos", exhibit=cls.wonders)
         cls.lost_tour = Tour.objects.create(guide="Yelena", exhibit=cls.lost_empires)
+        cls.audit_1 = Audit.objects.create(section_number=1, reviewed=True)
+        cls.audit_2 = Audit.objects.create(section_number=2, reviewed=True)
+        cls.audit_3 = Audit.objects.create(section_number=5, reviewed=False)
 
     def test_exact(self):
         self.assertCountEqual(
@@ -283,6 +290,71 @@ class QueryingTests(TestCase):
     def test_foreign_field_with_slice(self):
         qs = Tour.objects.filter(exhibit__sections__0_2__number__in=[1, 2])
         self.assertCountEqual(qs, [self.wonders_tour, self.egypt_tour])
+
+    def test_subquery_numeric_lookups(self):
+        subquery = Audit.objects.filter(
+            section_number__in=models.OuterRef("sections__number")
+        ).values("section_number")[:1]
+        tests = [
+            ("exact", [self.egypt, self.new_descoveries, self.wonders]),
+            ("lt", []),
+            ("lte", [self.egypt, self.new_descoveries, self.wonders]),
+            ("gt", [self.wonders]),
+            ("gte", [self.egypt, self.new_descoveries, self.wonders]),
+        ]
+        for lookup, expected in tests:
+            with self.subTest(lookup=lookup):
+                kwargs = {f"sections__number__{lookup}": subquery}
+                self.assertCountEqual(Exhibit.objects.filter(**kwargs), expected)
+
+    def test_subquery_in_lookup(self):
+        subquery = Audit.objects.filter(reviewed=True).values_list("section_number", flat=True)
+        result = Exhibit.objects.filter(sections__number__in=subquery)
+        self.assertCountEqual(result, [self.wonders, self.new_descoveries, self.egypt])
+
+    def test_array_as_rhs(self):
+        result = Exhibit.objects.filter(main_section__number__in=models.F("sections__number"))
+        self.assertCountEqual(result, [self.new_descoveries])
+
+    def test_array_annotation_lookup(self):
+        result = Exhibit.objects.annotate(section_numbers=models.F("main_section__number")).filter(
+            section_numbers__in=models.F("sections__number")
+        )
+        self.assertCountEqual(result, [self.new_descoveries])
+
+    def test_array_as_rhs_for_arrayfield_lookups(self):
+        tests = [
+            ("exact", [self.wonders]),
+            ("lt", [self.new_descoveries]),
+            ("lte", [self.wonders, self.new_descoveries]),
+            ("gt", [self.egypt, self.lost_empires]),
+            ("gte", [self.egypt, self.wonders, self.lost_empires]),
+            ("overlap", [self.egypt, self.wonders, self.new_descoveries]),
+            ("contained_by", [self.wonders]),
+            ("contains", [self.egypt, self.wonders, self.new_descoveries, self.lost_empires]),
+        ]
+        for lookup, expected in tests:
+            with self.subTest(lookup=lookup):
+                kwargs = {f"section_numbers__{lookup}": models.F("sections__number")}
+                result = Exhibit.objects.annotate(
+                    section_numbers=Value(
+                        [1, 2], output_field=ArrayField(base_field=models.IntegerField())
+                    )
+                ).filter(**kwargs)
+                self.assertCountEqual(result, expected)
+
+    @unittest.expectedFailure
+    def test_array_annotation_index(self):
+        # Slicing and indexing over an annotated EmbeddedModelArrayField would
+        # require a refactor of annotation handling.
+        result = Exhibit.objects.annotate(section_numbers=models.F("sections__number")).filter(
+            section_numbers__0=1
+        )
+        self.assertCountEqual(result, [self.new_descoveries, self.egypt])
+
+    def test_array_annotation(self):
+        qs = Exhibit.objects.annotate(section_numbers=models.F("sections__number")).order_by("name")
+        self.assertQuerySetEqual(qs, [[1], [], [2], [1, 2]], attrgetter("section_numbers"))
 
 
 @isolate_apps("model_fields_")
