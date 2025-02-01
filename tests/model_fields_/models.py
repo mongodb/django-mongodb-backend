@@ -2,7 +2,12 @@ import enum
 
 from django.db import models
 
-from django_mongodb_backend.fields import ArrayField, EmbeddedModelField, ObjectIdField
+from django_mongodb_backend.fields import (
+    ArrayField,
+    EmbeddedModelArrayField,
+    EmbeddedModelField,
+    ObjectIdField,
+)
 from django_mongodb_backend.models import EmbeddedModel
 
 
@@ -143,3 +148,20 @@ class Library(models.Model):
 
     def __str__(self):
         return self.name
+
+
+# EmbeddedModelArrayField
+class Review(EmbeddedModel):
+    title = models.CharField(max_length=255)
+    rating = models.DecimalField(max_digits=6, decimal_places=1)
+
+    def __str__(self):
+        return self.title
+
+
+class Movie(models.Model):
+    title = models.CharField(max_length=255)
+    reviews = EmbeddedModelArrayField(Review, null=True)
+
+    def __str__(self):
+        return self.title
