@@ -1,4 +1,5 @@
 from .fields import (
+    EmbeddedModelArrayField,
     EmbeddedModelField,
     ObjectIdField,
     SimpleArrayField,
@@ -7,6 +8,7 @@ from .fields import (
 )
 
 __all__ = [
+    "EmbeddedModelArrayField",
     "EmbeddedModelField",
     "SimpleArrayField",
     "SplitArrayField",

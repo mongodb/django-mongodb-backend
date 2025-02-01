@@ -23,6 +23,36 @@ Some MongoDB-specific fields are available in ``django_mongodb_backend.forms``.
         in this field's subform will have so that the names don't collide with
         fields in the main form.
 
+``EmbeddedModelArrayField``
+---------------------------
+
+.. class:: EmbeddedModelArrayField(model, *, prefix, max_num=None, extra_forms=3, **kwargs)
+
+    .. versionadded:: 5.2.0b1
+
+    A field which maps to a list of model instances. The field will render as a
+    :class:`ModelFormSet <django.forms.models.BaseModelFormSet>`.
+
+    .. attribute:: model
+
+        This is a required argument that specifies the model class.
+
+    .. attribute:: prefix
+
+        This is a required argument that specifies the prefix that all fields
+        in this field's formset will have so that the names don't collide with
+        fields in the main form.
+
+    .. attribute:: max_num
+
+        This is an optional argument which specifies the maximum number of
+        model instances that can be created.
+
+    .. attribute:: extra_forms
+
+        This argument specifies the number of blank forms that will be
+        rendered by the formset.
+
 ``ObjectIdField``
 -----------------
 
