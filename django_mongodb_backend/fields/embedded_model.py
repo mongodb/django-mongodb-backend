@@ -186,8 +186,9 @@ class KeyTransform(Transform):
             key_transforms.insert(0, previous.key_name)
             previous = previous.lhs
         mql = previous.as_mql(compiler, connection)
-        transforms = ".".join(key_transforms)
-        return f"{mql}.{transforms}"
+        for key in key_transforms:
+            mql = {"$getField": {"input": mql, "field": key}}
+        return mql
 
     @property
     def output_field(self):

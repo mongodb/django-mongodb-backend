@@ -338,7 +338,7 @@ class ArrayLenTransform(Transform):
 
     def as_mql(self, compiler, connection):
         lhs_mql = process_lhs(self, compiler, connection)
-        return {"$cond": {"if": {"$eq": [lhs_mql, None]}, "then": None, "else": {"$size": lhs_mql}}}
+        return {"$cond": {"if": {"$isArray": lhs_mql}, "then": {"$size": lhs_mql}, "else": None}}
 
 
 @ArrayField.register_lookup

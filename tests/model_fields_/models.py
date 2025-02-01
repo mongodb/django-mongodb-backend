@@ -165,3 +165,51 @@ class Review(EmbeddedModel):
 
     def __str__(self):
         return self.title
+
+
+# An exhibit in the museum, composed of multiple sections.
+class Exhibit(models.Model):
+    exhibit_name = models.CharField(max_length=255)
+    sections = EmbeddedModelArrayField("Section", null=True)
+    main_section = EmbeddedModelField("Section", null=True)
+
+    def __str__(self):
+        return self.exhibit_name
+
+
+# A section within an exhibit, containing multiple artifacts.
+class Section(EmbeddedModel):
+    section_number = models.IntegerField()
+    artifacts = EmbeddedModelArrayField("Artifact", null=True)
+
+    def __str__(self):
+        return "Section %d" % self.section_number
+
+
+# Details about a specific artifact.
+class Artifact(EmbeddedModel):
+    name = models.CharField(max_length=255)
+    metadata = models.JSONField()
+    restorations = EmbeddedModelArrayField("Restoration", null=True)
+    last_restoration = EmbeddedModelField("Restoration", null=True)
+
+    def __str__(self):
+        return self.name
+
+
+# Details about when an artifact was restored.
+class Restoration(EmbeddedModel):
+    date = models.DateField()
+    restored_by = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"Restored by {self.restored_by} on {self.date}"
+
+
+# ForeignKey to a model with EmbeddedModelArrayField.
+class Tour(models.Model):
+    guide = models.CharField(max_length=100)
+    exhibit = models.ForeignKey(Exhibit, models.CASCADE)
+
+    def __str__(self):
+        return f"Tour by {self.guide}"

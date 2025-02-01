@@ -1,11 +1,14 @@
-from django.db import models
+from datetime import date
+
+from django.core.exceptions import FieldDoesNotExist
+from django.db import connection, models
 from django.test import SimpleTestCase, TestCase
-from django.test.utils import isolate_apps
+from django.test.utils import CaptureQueriesContext, isolate_apps
 
 from django_mongodb_backend.fields import EmbeddedModelArrayField
 from django_mongodb_backend.models import EmbeddedModel
 
-from .models import Movie, Review
+from .models import Artifact, Exhibit, Movie, Restoration, Review, Section, Tour
 
 
 class MethodTests(SimpleTestCase):
@@ -53,6 +56,233 @@ class ModelTests(TestCase):
         movie = Movie.objects.create(title="Lion King")
         movie = Movie.objects.get(title="Lion King")
         self.assertIsNone(movie.reviews)
+
+
+class QueryingTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.egypt = Exhibit.objects.create(
+            exhibit_name="Ancient Egypt",
+            sections=[
+                Section(
+                    section_number=1,
+                    artifacts=[
+                        Artifact(
+                            name="Ptolemaic Crown",
+                            metadata={
+                                "origin": "Egypt",
+                            },
+                        )
+                    ],
+                )
+            ],
+        )
+        cls.wonders = Exhibit.objects.create(
+            exhibit_name="Wonders of the Ancient World",
+            sections=[
+                Section(
+                    section_number=1,
+                    artifacts=[
+                        Artifact(
+                            name="Statue of Zeus",
+                            metadata={"location": "Olympia", "height_m": 12},
+                        ),
+                        Artifact(
+                            name="Hanging Gardens",
+                        ),
+                    ],
+                ),
+                Section(
+                    section_number=2,
+                    artifacts=[
+                        Artifact(
+                            name="Lighthouse of Alexandria",
+                            metadata={"height_m": 100, "built": "3rd century BC"},
+                        )
+                    ],
+                ),
+            ],
+        )
+        cls.new_descoveries = Exhibit.objects.create(
+            exhibit_name="New Discoveries",
+            sections=[
+                Section(
+                    section_number=2,
+                    artifacts=[
+                        Artifact(
+                            name="Lighthouse of Alexandria",
+                            metadata={"height_m": 100, "built": "3rd century BC"},
+                        )
+                    ],
+                )
+            ],
+        )
+        cls.lost_empires = Exhibit.objects.create(
+            exhibit_name="Lost Empires",
+            main_section=Section(
+                section_number=3,
+                artifacts=[
+                    Artifact(
+                        name="Bronze Statue",
+                        metadata={"origin": "Pergamon"},
+                        restorations=[
+                            Restoration(
+                                date=date(1998, 4, 15),
+                                restored_by="Zacarias",
+                            ),
+                            Restoration(
+                                date=date(2010, 7, 22),
+                                restored_by="Vicente",
+                            ),
+                        ],
+                        last_restoration=Restoration(
+                            date=date(2010, 7, 22),
+                            restored_by="Monzon",
+                        ),
+                    )
+                ],
+            ),
+        )
+        cls.egypt_tour = Tour.objects.create(guide="Amira", exhibit=cls.egypt)
+        cls.wonders_tour = Tour.objects.create(guide="Carlos", exhibit=cls.wonders)
+        cls.lost_tour = Tour.objects.create(guide="Yelena", exhibit=cls.lost_empires)
+
+    def test_exact(self):
+        self.assertCountEqual(
+            Exhibit.objects.filter(sections__section_number=1), [self.egypt, self.wonders]
+        )
+
+    def test_array_index(self):
+        self.assertCountEqual(
+            Exhibit.objects.filter(sections__0__section_number=1),
+            [self.egypt, self.wonders],
+        )
+
+    def test_nested_array_index(self):
+        self.assertCountEqual(
+            Exhibit.objects.filter(
+                main_section__artifacts__restorations__0__restored_by="Zacarias"
+            ),
+            [self.lost_empires],
+        )
+
+    def test_array_slice(self):
+        self.assertSequenceEqual(
+            Exhibit.objects.filter(sections__0_1__section_number=2), [self.new_descoveries]
+        )
+
+    def test_filter_unsupported_lookups_in_json(self):
+        """Unsupported lookups can be used as keys in a JSONField."""
+        for lookup in ["contains", "range"]:
+            kwargs = {f"main_section__artifacts__metadata__origin__{lookup}": ["Pergamon", "Egypt"]}
+            with CaptureQueriesContext(connection) as captured_queries:
+                self.assertCountEqual(Exhibit.objects.filter(**kwargs), [])
+                self.assertIn(f"'field': '{lookup}'", captured_queries[0]["sql"])
+
+    def test_len(self):
+        self.assertCountEqual(Exhibit.objects.filter(sections__len=10), [])
+        self.assertCountEqual(
+            Exhibit.objects.filter(sections__len=1),
+            [self.egypt, self.new_descoveries],
+        )
+        # Nested EMF
+        self.assertCountEqual(
+            Exhibit.objects.filter(main_section__artifacts__len=1), [self.lost_empires]
+        )
+        self.assertCountEqual(Exhibit.objects.filter(main_section__artifacts__len=2), [])
+        # Nested Indexed Array
+        self.assertCountEqual(Exhibit.objects.filter(sections__0__artifacts__len=2), [self.wonders])
+        self.assertCountEqual(Exhibit.objects.filter(sections__0__artifacts__len=0), [])
+        self.assertCountEqual(Exhibit.objects.filter(sections__1__artifacts__len=1), [self.wonders])
+
+    def test_in(self):
+        self.assertCountEqual(Exhibit.objects.filter(sections__section_number__in=[10]), [])
+        self.assertCountEqual(
+            Exhibit.objects.filter(sections__section_number__in=[1]),
+            [self.egypt, self.wonders],
+        )
+        self.assertCountEqual(
+            Exhibit.objects.filter(sections__section_number__in=[2]),
+            [self.new_descoveries, self.wonders],
+        )
+        self.assertCountEqual(Exhibit.objects.filter(sections__section_number__in=[3]), [])
+
+    def test_iexact(self):
+        self.assertCountEqual(
+            Exhibit.objects.filter(sections__artifacts__0__name__iexact="lightHOuse of aLexandriA"),
+            [self.new_descoveries, self.wonders],
+        )
+
+    def test_gt(self):
+        self.assertCountEqual(
+            Exhibit.objects.filter(sections__section_number__gt=1),
+            [self.new_descoveries, self.wonders],
+        )
+
+    def test_gte(self):
+        self.assertCountEqual(
+            Exhibit.objects.filter(sections__section_number__gte=1),
+            [self.egypt, self.new_descoveries, self.wonders],
+        )
+
+    def test_lt(self):
+        self.assertCountEqual(
+            Exhibit.objects.filter(sections__section_number__lt=2), [self.egypt, self.wonders]
+        )
+
+    def test_lte(self):
+        self.assertCountEqual(
+            Exhibit.objects.filter(sections__section_number__lte=2),
+            [self.egypt, self.wonders, self.new_descoveries],
+        )
+
+    def test_querying_array_not_allowed(self):
+        msg = (
+            "Lookups aren't supported on EmbeddedModelArrayField. "
+            "Try querying one of its embedded fields instead."
+        )
+        with self.assertRaisesMessage(ValueError, msg):
+            Exhibit.objects.filter(sections=10).first()
+
+        with self.assertRaisesMessage(ValueError, msg):
+            Exhibit.objects.filter(sections__0_1=10).first()
+
+    def test_invalid_field(self):
+        msg = "Section has no field named 'section'"
+        with self.assertRaisesMessage(FieldDoesNotExist, msg):
+            Exhibit.objects.filter(sections__section__in=[10]).first()
+
+    def test_invalid_lookup(self):
+        msg = "Unsupported lookup 'return' for EmbeddedModelArrayField of 'IntegerField'"
+        with self.assertRaisesMessage(FieldDoesNotExist, msg):
+            Exhibit.objects.filter(sections__section_number__return=3)
+
+    def test_invalid_operation(self):
+        msg = "Unsupported lookup 'rage' for EmbeddedModelArrayField of 'IntegerField'"
+        with self.assertRaisesMessage(FieldDoesNotExist, msg):
+            Exhibit.objects.filter(sections__section_number__rage=[10])
+
+    def test_missing_lookup_suggestions(self):
+        msg = (
+            "Unsupported lookup 'ltee' for EmbeddedModelArrayField of 'IntegerField', "
+            "perhaps you meant lte or lt?"
+        )
+        with self.assertRaisesMessage(FieldDoesNotExist, msg):
+            Exhibit.objects.filter(sections__section_number__ltee=3)
+
+    def test_nested_lookup(self):
+        msg = "Cannot perform multiple levels of array traversal in a query."
+        with self.assertRaisesMessage(ValueError, msg):
+            Exhibit.objects.filter(sections__artifacts__name="")
+
+    def test_foreign_field_exact(self):
+        """Querying from a foreign key to an EmbeddedModelArrayField."""
+        qs = Tour.objects.filter(exhibit__sections__section_number=1)
+        self.assertCountEqual(qs, [self.egypt_tour, self.wonders_tour])
+
+    def test_foreign_field_with_slice(self):
+        qs = Tour.objects.filter(exhibit__sections__0_2__section_number__in=[1, 2])
+        self.assertCountEqual(qs, [self.wonders_tour, self.egypt_tour])
 
 
 @isolate_apps("model_fields_")
