@@ -165,3 +165,35 @@ class Movie(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class RestorationRecord(EmbeddedModel):
+    date = models.DateField()
+    restored_by = models.CharField(max_length=255)
+
+
+class ArtifactDetail(EmbeddedModel):
+    """Details about a specific artifact."""
+
+    name = models.CharField(max_length=255)
+    metadata = models.JSONField()
+    restorations = EmbeddedModelArrayField(RestorationRecord, null=True)
+    last_restoration = EmbeddedModelField(RestorationRecord, null=True)
+
+
+class ExhibitSection(EmbeddedModel):
+    """A section within an exhibit, containing multiple artifacts."""
+
+    section_number = models.IntegerField()
+    artifacts = EmbeddedModelArrayField(ArtifactDetail, null=True)
+
+
+class MuseumExhibit(models.Model):
+    """An exhibit in the museum, composed of multiple sections."""
+
+    exhibit_name = models.CharField(max_length=255)
+    sections = EmbeddedModelArrayField(ExhibitSection, null=True)
+    main_section = EmbeddedModelField(ExhibitSection, null=True)
+
+    def __str__(self):
+        return self.exhibit_name
