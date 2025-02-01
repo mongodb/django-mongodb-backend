@@ -17,14 +17,22 @@ from django.test.utils import isolate_apps
 from django_mongodb_backend.fields import EmbeddedModelField
 from django_mongodb_backend.models import EmbeddedModel
 
+
 from .models import (
+    A,
     Address,
     Author,
+    B,
     Book,
+    C,
+    D,
     Data,
+    E,
     Holder,
     Library,
+    Movie,
     NestedData,
+    Review,
 )
 from .utils import truncate_ms
 
@@ -94,6 +102,63 @@ class ModelTests(TestCase):
         obj.save()
         self.assertEqual(obj.data.auto_now_add, auto_now_add)
         self.assertGreater(obj.data.auto_now, auto_now_two)
+
+
+class EmbeddedArrayTests(TestCase):
+    def test_save_load(self):
+        reviews = [
+            Review(title="The best", rating=10),
+            Review(title="Mediocre", rating=5),
+            Review(title="Horrible", rating=1),
+        ]
+        Movie.objects.create(title="Lion King", reviews=reviews)
+        movie = Movie.objects.get(title="Lion King")
+        self.assertEqual(movie.reviews[0].title, "The best")
+        self.assertEqual(movie.reviews[0].rating, 10)
+        self.assertEqual(movie.reviews[1].title, "Mediocre")
+        self.assertEqual(movie.reviews[1].rating, 5)
+        self.assertEqual(movie.reviews[2].title, "Horrible")
+        self.assertEqual(movie.reviews[2].rating, 1)
+        self.assertEqual(len(movie.reviews), 3)
+
+    def test_save_load_null(self):
+        movie = Movie.objects.create(title="Lion King")
+        movie = Movie.objects.get(title="Lion King")
+        self.assertIsNone(movie.reviews)
+
+
+class EmbeddedArrayQueryingTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        reviews = [
+            Review(title="The best", rating=10),
+            Review(title="Mediocre", rating=5),
+            Review(title="Horrible", rating=1),
+        ]
+        cls.clouds = Movie.objects.create(title="Clouds", reviews=reviews)
+        reviews = [
+            Review(title="Super", rating=9),
+            Review(title="Meh", rating=5),
+            Review(title="Horrible", rating=2),
+        ]
+        cls.frozen = Movie.objects.create(title="Frozen", reviews=reviews)
+        reviews = [
+            Review(title="Excellent", rating=9),
+            Review(title="Wow", rating=8),
+            Review(title="Classic", rating=7),
+        ]
+        cls.bears = Movie.objects.create(title="Bears", reviews=reviews)
+
+    def test_filter_with_field(self):
+        self.assertCountEqual(
+            Movie.objects.filter(reviews__title="Horrible"), [self.clouds, self.frozen]
+        )
+
+    def test_filter_with_model(self):
+        self.assertCountEqual(
+            Movie.objects.filter(reviews=Review(title="Horrible", rating=2)),
+            [self.clouds, self.frozen],
+        )
 
 
 class QueryingTests(TestCase):
