@@ -160,3 +160,20 @@ class D(EmbeddedModel):
 class E(EmbeddedModel):
     name = models.CharField(max_length=100)
     value = models.IntegerField()
+
+
+# ArrayField + EmbeddedModelField
+class Review(EmbeddedModel):
+    title = models.CharField(max_length=255)
+    rating = models.IntegerField()
+
+    def __str__(self):
+        return self.title
+
+
+class Movie(models.Model):
+    title = models.CharField(max_length=255)
+    reviews = ArrayField(EmbeddedModelField(Review), null=True)
+
+    def __str__(self):
+        return self.title
