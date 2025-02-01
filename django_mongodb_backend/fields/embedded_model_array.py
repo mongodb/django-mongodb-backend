@@ -143,7 +143,50 @@ class EmbeddedModelArrayFieldBuiltinLookup(Lookup):
 
 @_EmbeddedModelArrayOutputField.register_lookup
 class EmbeddedModelArrayFieldIn(EmbeddedModelArrayFieldBuiltinLookup, lookups.In):
-    pass
+    def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr):
+        # This pipeline is adapted from that of ArrayField, because the
+        # structure of EmbeddedModelArrayField on the RHS behaves similar to
+        # ArrayField.
+        return [
+            {
+                "$facet": {
+                    "gathered_data": [
+                        {"$project": {"tmp_name": expr.as_mql(compiler, connection)}},
+                        # To concatenate all the values from the RHS subquery,
+                        # use an $unwind followed by a $group.
+                        {
+                            "$unwind": "$tmp_name",
+                        },
+                        # The $group stage collects values into an array using
+                        # $addToSet. The use of {_id: null} results in a
+                        # single grouped array. However, because arrays from
+                        # multiple documents are aggregated, the result is a
+                        # list of lists.
+                        {
+                            "$group": {
+                                "_id": None,
+                                "tmp_name": {"$addToSet": "$tmp_name"},
+                            }
+                        },
+                    ]
+                }
+            },
+            {
+                "$project": {
+                    field_name: {
+                        "$ifNull": [
+                            {
+                                "$getField": {
+                                    "input": {"$arrayElemAt": ["$gathered_data", 0]},
+                                    "field": "tmp_name",
+                                }
+                            },
+                            [],
+                        ]
+                    }
+                }
+            },
+        ]
 
 
 @_EmbeddedModelArrayOutputField.register_lookup
