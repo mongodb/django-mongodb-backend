@@ -8,7 +8,7 @@ from django.test.utils import CaptureQueriesContext, isolate_apps
 from django_mongodb_backend.fields import EmbeddedModelArrayField
 from django_mongodb_backend.models import EmbeddedModel
 
-from .models import Artifact, Exhibit, Movie, Restoration, Review, Section, Tour
+from .models import Artifact, Audit, Exhibit, Movie, Restoration, Review, Section, Tour
 
 
 class MethodTests(SimpleTestCase):
@@ -116,6 +116,7 @@ class QueryingTests(TestCase):
                     ],
                 )
             ],
+            main_section=Section(section_number=2),
         )
         cls.lost_empires = Exhibit.objects.create(
             exhibit_name="Lost Empires",
@@ -146,6 +147,9 @@ class QueryingTests(TestCase):
         cls.egypt_tour = Tour.objects.create(guide="Amira", exhibit=cls.egypt)
         cls.wonders_tour = Tour.objects.create(guide="Carlos", exhibit=cls.wonders)
         cls.lost_tour = Tour.objects.create(guide="Yelena", exhibit=cls.lost_empires)
+        cls.audit_1 = Audit.objects.create(related_section_number=1, reviewed=True)
+        cls.audit_2 = Audit.objects.create(related_section_number=2, reviewed=True)
+        cls.audit_3 = Audit.objects.create(related_section_number=5, reviewed=False)
 
     def test_exact(self):
         self.assertCountEqual(
@@ -283,6 +287,28 @@ class QueryingTests(TestCase):
     def test_foreign_field_with_slice(self):
         qs = Tour.objects.filter(exhibit__sections__0_2__section_number__in=[1, 2])
         self.assertCountEqual(qs, [self.wonders_tour, self.egypt_tour])
+
+    def test_subquery_section_number_lt(self):
+        subq = Audit.objects.filter(
+            related_section_number__in=models.OuterRef("sections__section_number")
+        ).values("related_section_number")[:1]
+        self.assertCountEqual(
+            Exhibit.objects.filter(sections__section_number=subq),
+            [self.egypt, self.wonders, self.new_descoveries],
+        )
+
+    def test_check_in_subquery(self):
+        subquery = Audit.objects.filter(reviewed=True).values_list(
+            "related_section_number", flat=True
+        )
+        result = Exhibit.objects.filter(sections__section_number__in=subquery)
+        self.assertCountEqual(result, [self.wonders, self.egypt, self.new_descoveries])
+
+    def test_array_as_rhs(self):
+        result = Exhibit.objects.filter(
+            main_section__section_number__in=models.F("sections__section_number")
+        )
+        self.assertCountEqual(result, [self.new_descoveries])
 
 
 @isolate_apps("model_fields_")
