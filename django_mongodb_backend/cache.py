@@ -13,10 +13,7 @@ class MongoSerializer:
     def dumps(self, obj):
         if isinstance(obj, int):
             return obj
-        try:
-            return pickle.dumps(obj, self.protocol)
-        except pickle.PickleError as ex:
-            raise ValueError("Object cannot be pickled") from ex
+        return pickle.dumps(obj, self.protocol)
 
     def loads(self, data):
         try:
@@ -60,19 +57,58 @@ class BaseDatabaseCache(BaseCache):
 class MongoDBCache(BaseDatabaseCache):
     def __init__(self, *args, **options):
         super().__init__(*args, **options)
+        # don't know If I can set the capped collection here.
+        coll_info = self.collection.options()
+        collections = set(self._db.database.list_collection_names())
+        coll_exists = self._collection_name in collections
+        if coll_exists and not coll_info.get("capped", False):
+            self._db.database.command(
+                "convertToCapped", self._collection_name, size=self._max_entries
+            )
+        elif coll_exists and coll_info.get("size") != self._max_entries:
+            new_coll = self._copy_collection()
+            self.collection.drop()
+            new_coll.rename(self._collection_name)
+            self.create_indexes()
+
+    def create_indexes(self):
+        self.collection.create_index("expire_at", expireAfterSeconds=0)
+        self.collection.create_index("key", unique=True)
+
+    def _copy_collection(self):
+        collection_name = self._get_tmp_collection_name()
+        self.collection.aggregate([{"$out": collection_name}])
+        return self._db.get_collection(collection_name)
+
+    def _get_tmp_collection_name(self):
+        collections = set(self._db.database.list_collection_names())
+        template_collection_name = "tmp__collection__{num}"
+        num = 0
+        while True:
+            tmp_collection_name = template_collection_name.format(num=num)
+            if tmp_collection_name not in collections:
+                break
+            num += 1
+        return tmp_collection_name
 
     @cached_property
     def serializer(self):
         return MongoSerializer()
 
-    @cached_property
+    @property
+    def _db(self):
+        return connections[router.db_for_read(self.cache_model_class)]
+
+    @property
     def collection(self):
-        db = router.db_for_read(self.cache_model_class)
-        return connections[db].get_collection(self._collection_name)
+        return self._db.get_collection(self._collection_name)
 
     def get(self, key, default=None, version=None):
         key = self.make_and_validate_key(key, version=version)
-        return self.collection.find_one({"key": key}) or default
+        result = self.collection.find_one({"key": key})
+        if result is not None:
+            return self.serializer.loads(result["value"])
+        return default
 
     def get_many(self, keys, version=None):
         if not keys:
@@ -86,8 +122,14 @@ class MongoDBCache(BaseDatabaseCache):
         serialized_data = self.serializer.dumps(value)
         return self.collection.update_one(
             {"key": key},
-            {"key": key, "value": serialized_data, "expire_at": self._get_expiration_time(timeout)},
-            {"upsert": True},
+            {
+                "$set": {
+                    "key": key,
+                    "value": serialized_data,
+                    "expire_at": self._get_expiration_time(timeout),
+                }
+            },
+            True,
         )
 
     def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
@@ -130,7 +172,7 @@ class MongoDBCache(BaseDatabaseCache):
 
     def has_key(self, key, version=None):
         key = self.make_and_validate_key(key, version=version)
-        return self.collection.count({"key": key}) > 0
+        return self.collection.count_documents({"key": key}) > 0
 
     def clear(self):
         self.collection.delete_many({})

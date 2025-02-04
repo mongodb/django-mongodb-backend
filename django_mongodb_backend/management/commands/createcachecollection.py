@@ -7,7 +7,7 @@ from django.db import (
     router,
 )
 
-from django_mongodb_backend.cache import BaseDatabaseCache
+from django_mongodb_backend.cache import BaseDatabaseCache, MongoDBCache
 
 
 class Command(BaseCommand):
@@ -53,7 +53,7 @@ class Command(BaseCommand):
                     self.check_collection(db, cache._collection_name)
 
     def check_collection(self, database, collection_name):
-        cache = BaseDatabaseCache(collection_name, {})
+        cache = MongoDBCache(collection_name, {})
         if not router.allow_migrate_model(database, cache.cache_model_class):
             return
         connection = connections[database]
@@ -62,6 +62,4 @@ class Command(BaseCommand):
             if self.verbosity > 0:
                 self.stdout.write("Cache table '%s' already exists." % collection_name)
             return
-        mongo_col = connection.get_collection(self.collection_name)
-        mongo_col.create_index("expire_at", expireAfterSeconds=0)
-        mongo_col.create_index("key", unique=True)
+        cache.create_indexes()

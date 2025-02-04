@@ -72,7 +72,7 @@ _caches_setting_base = {
     "prefix": {"KEY_PREFIX": f"cacheprefix{os.getpid()}"},
     "v2": {"VERSION": 2},
     "custom_key": {"KEY_FUNCTION": custom_key_func},
-    "custom_key2": {"KEY_FUNCTION": "cache.tests.custom_key_func"},
+    "custom_key2": {"KEY_FUNCTION": "cache_.tests.custom_key_func"},
     "cull": {"OPTIONS": {"MAX_ENTRIES": 30}},
     "zero_cull": {"OPTIONS": {"CULL_FREQUENCY": 0, "MAX_ENTRIES": 30}},
 }
@@ -939,7 +939,10 @@ class DBCacheTests(BaseCacheTests, TestCase):
         # The super calls needs to happen first for the settings override.
         super().setUp()
         self.create_table()
-        self.addCleanup(self.drop_table)
+        self.addCleanup(self.drop_collection)
+
+    def drop_collection(self):
+        cache.collection.drop()
 
     def create_table(self):
         management.call_command("createcachecollection", verbosity=0)
