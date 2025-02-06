@@ -538,7 +538,7 @@ class BaseCacheTests:
         # memcached limits key length to 250.
         key = ("a" * 250) + "清"
         expected_warning = (
-            "Cache key will cause errors if used with memcached: " f"{key} (longer than {250})"
+            "Cache key will cause errors if used with memcached: " f"'{key}' (longer than 250)"
         )
         self._perform_invalid_key_test(key, expected_warning)
 
@@ -938,11 +938,11 @@ class DBCacheTests(BaseCacheTests, TestCase):
     def setUp(self):
         # The super calls needs to happen first for the settings override.
         super().setUp()
-        self.create_table()
+        self.create_cache_collection()
         self.addCleanup(self.drop_collection)
 
     def drop_collection(self):
         cache.collection.drop()
 
-    def create_table(self):
+    def create_cache_collection(self):
         management.call_command("createcachecollection", verbosity=0)
