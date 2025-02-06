@@ -1,9 +1,11 @@
 import pickle
 from datetime import datetime, timezone
 
+from bson import SON
 from django.core.cache.backends.base import DEFAULT_TIMEOUT, BaseCache
 from django.db import connections, router
 from django.utils.functional import cached_property
+from pymongo.errors import DuplicateKeyError
 
 
 class MongoSerializer:
@@ -58,38 +60,10 @@ class MongoDBCache(BaseDatabaseCache):
     def __init__(self, *args, **options):
         super().__init__(*args, **options)
         # don't know If I can set the capped collection here.
-        coll_info = self.collection.options()
-        collections = set(self._db.database.list_collection_names())
-        coll_exists = self._collection_name in collections
-        if coll_exists and not coll_info.get("capped", False):
-            self._db.database.command(
-                "convertToCapped", self._collection_name, size=self._max_entries
-            )
-        elif coll_exists and coll_info.get("size") != self._max_entries:
-            new_coll = self._copy_collection()
-            self.collection.drop()
-            new_coll.rename(self._collection_name)
-            self.create_indexes()
 
     def create_indexes(self):
-        self.collection.create_index("expire_at", expireAfterSeconds=0)
+        self.collection.create_index("expires_at", expireAfterSeconds=0)
         self.collection.create_index("key", unique=True)
-
-    def _copy_collection(self):
-        collection_name = self._get_tmp_collection_name()
-        self.collection.aggregate([{"$out": collection_name}])
-        return self._db.get_collection(collection_name)
-
-    def _get_tmp_collection_name(self):
-        collections = set(self._db.database.list_collection_names())
-        template_collection_name = "tmp__collection__{num}"
-        num = 0
-        while True:
-            tmp_collection_name = template_collection_name.format(num=num)
-            if tmp_collection_name not in collections:
-                break
-            num += 1
-        return tmp_collection_name
 
     @cached_property
     def serializer(self):
@@ -104,29 +78,38 @@ class MongoDBCache(BaseDatabaseCache):
         return self._db.get_collection(self._collection_name)
 
     def get(self, key, default=None, version=None):
-        key = self.make_and_validate_key(key, version=version)
-        result = self.collection.find_one({"key": key})
-        if result is not None:
-            return self.serializer.loads(result["value"])
+        result = self.get_many([key], version)
+        if result:
+            return result[key]
         return default
+
+    def _filter_expired(self, expired=False):
+        not_expired_filter = [{"expires_at": {"$gte": datetime.utcnow()}}, {"expires_at": None}]
+        operator = "$nor" if expired else "$or"
+        return {operator: not_expired_filter}
 
     def get_many(self, keys, version=None):
         if not keys:
             return {}
         keys_map = {self.make_and_validate_key(key, version=version): key for key in keys}
-        with self.collection.find({"key": {"$in": tuple(keys_map)}}) as cursor:
-            return {keys_map[row["key"]]: row["value"] for row in cursor}
+        with self.collection.find(
+            {"key": {"$in": tuple(keys_map)}, **self._filter_expired(expired=False)}
+        ) as cursor:
+            return {keys_map[row["key"]]: self.serializer.loads(row["value"]) for row in cursor}
 
     def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
         key = self.make_and_validate_key(key, version=version)
         serialized_data = self.serializer.dumps(value)
+        num = self.collection.count_documents({})
+        if num > self._max_entries:
+            self._cull(num)
         return self.collection.update_one(
             {"key": key},
             {
                 "$set": {
                     "key": key,
                     "value": serialized_data,
-                    "expire_at": self._get_expiration_time(timeout),
+                    "expires_at": self._get_expiration_time(timeout),
                 }
             },
             True,
@@ -135,24 +118,54 @@ class MongoDBCache(BaseDatabaseCache):
     def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
         key = self.make_and_validate_key(key, version=version)
         serialized_data = self.serializer.dumps(value)
+        num = self.collection.count_documents({})
+        if num > self._max_entries:
+            self._cull(num)
         try:
-            self.collection.insert_one(
+            self.collection.update_one(
+                {"key": key, **self._filter_expired(expired=True)},
                 {
-                    "key": key,
-                    "value": serialized_data,
-                    "expire_at": self._get_expiration_time(timeout),
-                }
+                    "$set": {
+                        "key": key,
+                        "value": serialized_data,
+                        "expires_at": self._get_expiration_time(timeout),
+                    }
+                },
+                True,
             )
-        except Exception:
-            # check the exception name to catch when the key exists
+        except DuplicateKeyError:
+            # Check the exception name to catch when the key exists.
             return False
         return True
 
+    def _cull(self, num):
+        if self._cull_frequency == 0:
+            self.clear()
+        else:
+            cull_num = num // self._cull_frequency
+            try:
+                # Delete the first expiration date.
+                deleted_from = next(
+                    self.collection.aggregate(
+                        [
+                            {"$sort": SON([("expired_at", 1), ("key", 1)])},
+                            {"$skip": cull_num},
+                            {"$limit": 1},
+                            {"$project": {"key": 1}},
+                        ]
+                    )
+                )
+            except StopIteration:
+                pass
+            else:
+                self.collection.delete_many({"key": {"$lt": deleted_from["key"]}})
+
     def touch(self, key, timeout=DEFAULT_TIMEOUT, version=None):
         key = self.make_and_validate_key(key, version=version)
-        return self.collection.update_one(
-            {"key": key}, {"$set": {"expire_at": self._get_expiration_time(timeout)}}
+        res = self.collection.update_one(
+            {"key": key}, {"$set": {"expires_at": self._get_expiration_time(timeout)}}
         )
+        return res.matched_count > 0
 
     def _get_expiration_time(self, timeout=None):
         timestamp = self.get_backend_timeout(timeout)
@@ -162,9 +175,12 @@ class MongoDBCache(BaseDatabaseCache):
         return datetime.fromtimestamp(timestamp, tz=timezone.utc)
 
     def delete(self, key, version=None):
-        return self.delete_many([key], version)
+        return self._delete_many([key], version)
 
     def delete_many(self, keys, version=None):
+        self._delete_many(keys, version)
+
+    def _delete_many(self, keys, version=None):
         if not keys:
             return False
         keys = [self.make_and_validate_key(key, version=version) for key in keys]
@@ -172,7 +188,9 @@ class MongoDBCache(BaseDatabaseCache):
 
     def has_key(self, key, version=None):
         key = self.make_and_validate_key(key, version=version)
-        return self.collection.count_documents({"key": key}) > 0
+        return (
+            self.collection.count_documents({"key": key, **self._filter_expired(expired=False)}) > 0
+        )
 
     def clear(self):
         self.collection.delete_many({})
