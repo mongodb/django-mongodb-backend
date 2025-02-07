@@ -4,6 +4,7 @@ import time
 from functools import wraps
 from unittest import mock
 
+from bson import SON
 from django.conf import settings
 from django.core import management
 from django.core.cache import DEFAULT_CACHE_ALIAS, CacheKeyWarning, cache, caches
@@ -919,11 +920,26 @@ class BaseCacheTests:
         self.assertIsNone(cache.get("brian", version=3))
 
     def test_get_or_set_racing(self):
-        with mock.patch(f"{settings.CACHES["default"]["BACKEND"]}.add") as cache_add:
+        with mock.patch(f"{settings.CACHES['default']['BACKEND']}.add") as cache_add:
             # Simulate cache.add() failing to add a value. In that case, the
             # default value should be returned.
             cache_add.return_value = False
             self.assertEqual(cache.get_or_set("key", "default"), "default")
+
+    def test_collection_has_indexes(self):
+        indexes = list(cache.collection.list_indexes())
+        self.assertTrue(
+            any(
+                index["key"] == SON([("expires_at", 1)]) and index.get("expireAfterSeconds") == 0
+                for index in indexes
+            )
+        )
+        self.assertTrue(
+            any(
+                index["key"] == SON([("key", 1)]) and index.get("unique") is True
+                for index in indexes
+            )
+        )
 
 
 @override_settings(
