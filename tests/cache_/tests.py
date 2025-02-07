@@ -476,7 +476,7 @@ class BaseCacheTests:
         self._perform_cull_test("cull", 50, 29)
 
     def test_zero_cull(self):
-        self._perform_cull_test("zero_cull", 50, 18)
+        self._perform_cull_test("zero_cull", 50, 19)
 
     def test_cull_delete_when_store_empty(self):
         try:

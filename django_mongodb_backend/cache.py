@@ -97,7 +97,7 @@ class MongoDBCache(BaseDatabaseCache):
         key = self.make_and_validate_key(key, version=version)
         serialized_data = self.serializer.dumps(value)
         num = self.collection.count_documents({})
-        if num > self._max_entries:
+        if num >= self._max_entries:
             self._cull(num)
         return self.collection.update_one(
             {"key": key},
@@ -115,7 +115,7 @@ class MongoDBCache(BaseDatabaseCache):
         key = self.make_and_validate_key(key, version=version)
         serialized_data = self.serializer.dumps(value)
         num = self.collection.count_documents({})
-        if num > self._max_entries:
+        if num >= self._max_entries:
             self._cull(num)
         try:
             self.collection.update_one(
