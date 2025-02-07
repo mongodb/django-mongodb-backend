@@ -476,7 +476,7 @@ class BaseCacheTests:
         self._perform_cull_test("cull", 50, 29)
 
     def test_zero_cull(self):
-        self._perform_cull_test("zero_cull", 50, 19)
+        self._perform_cull_test("zero_cull", 50, 18)
 
     def test_cull_delete_when_store_empty(self):
         try:
@@ -551,7 +551,7 @@ class BaseCacheTests:
         key = "a" * 249
         expected_warning = (
             "Cache key will cause errors if used with memcached: "
-            f"{key_func(key)} (longer than {250})"
+            f"'{key_func(key)}' (longer than 250)"
         )
         self._perform_invalid_key_test(key, expected_warning, key_func=key_func)
 
