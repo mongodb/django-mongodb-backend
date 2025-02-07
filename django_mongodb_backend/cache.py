@@ -57,10 +57,6 @@ class BaseDatabaseCache(BaseCache):
 
 
 class MongoDBCache(BaseDatabaseCache):
-    def __init__(self, *args, **options):
-        super().__init__(*args, **options)
-        # don't know If I can set the capped collection here.
-
     def create_indexes(self):
         self.collection.create_index("expires_at", expireAfterSeconds=0)
         self.collection.create_index("key", unique=True)
