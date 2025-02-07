@@ -138,23 +138,35 @@ class MongoDBCache(BaseDatabaseCache):
         if self._cull_frequency == 0:
             self.clear()
         else:
-            cull_num = num // self._cull_frequency
+            keep_num = num - num // self._cull_frequency
             try:
                 # Delete the first expiration date.
                 deleted_from = next(
                     self.collection.aggregate(
                         [
-                            {"$sort": SON([("expired_at", 1), ("key", 1)])},
-                            {"$skip": cull_num},
+                            {"$sort": SON([("expires_at", -1), ("key", 1)])},
+                            {"$skip": keep_num},
                             {"$limit": 1},
-                            {"$project": {"key": 1}},
+                            {"$project": {"key": 1, "expires_at": 1}},
                         ]
                     )
                 )
             except StopIteration:
                 pass
             else:
-                self.collection.delete_many({"key": {"$lt": deleted_from["key"]}})
+                self.collection.delete_many(
+                    {
+                        "$or": [
+                            {"expires_at": {"$lt": deleted_from["expires_at"]}},
+                            {
+                                "$and": [
+                                    {"expires_at": deleted_from["expires_at"]},
+                                    {"key": {"$gte": deleted_from["key"]}},
+                                ]
+                            },
+                        ]
+                    }
+                )
 
     def touch(self, key, timeout=DEFAULT_TIMEOUT, version=None):
         key = self.make_and_validate_key(key, version=version)
