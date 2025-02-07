@@ -946,3 +946,8 @@ class DBCacheTests(BaseCacheTests, TestCase):
 
     def create_cache_collection(self):
         management.call_command("createcachecollection", verbosity=0)
+
+
+@override_settings(USE_TZ=True)
+class DBCacheWithTimeZoneTests(DBCacheTests):
+    pass
