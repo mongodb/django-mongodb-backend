@@ -6,7 +6,6 @@ from unittest import mock
 
 from bson import SON
 from django.conf import settings
-from django.core import management
 from django.core.cache import DEFAULT_CACHE_ALIAS, CacheKeyWarning, cache, caches
 from django.core.cache.backends.base import InvalidCacheBackendError
 from django.http import (
@@ -16,7 +15,9 @@ from django.middleware.cache import (
     FetchFromCacheMiddleware,
     UpdateCacheMiddleware,
 )
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import RequestFactory, TestCase, modify_settings, override_settings
+
+from django_mongodb_backend.cache import MongoDBCache
 
 from .models import Poll, expensive_calculation
 
@@ -848,7 +849,9 @@ class BaseCacheTests:
 
     @override_settings(
         CACHE_MIDDLEWARE_ALIAS=DEFAULT_CACHE_ALIAS,
-        INSTALLED_APPS=settings.INSTALLED_APPS + ["django_mongodb_backend"],  # noqa: RUF005
+    )
+    @modify_settings(
+        INSTALLED_APPS={"prepend": "django_mongodb_backend"},
     )
     def test_cache_write_unpicklable_object(self):
         fetch_middleware = FetchFromCacheMiddleware(empty_response)
@@ -948,7 +951,9 @@ class BaseCacheTests:
         # Spaces are used in the table name to ensure quoting/escaping is working
         LOCATION="test cache table",
     ),
-    INSTALLED_APPS=settings.INSTALLED_APPS + ["django_mongodb_backend"],  # noqa: RUF005
+)
+@modify_settings(
+    INSTALLED_APPS={"prepend": "django_mongodb_backend"},
 )
 class DBCacheTests(BaseCacheTests, TestCase):
     def setUp(self):
@@ -961,7 +966,13 @@ class DBCacheTests(BaseCacheTests, TestCase):
         cache.collection.drop()
 
     def create_cache_collection(self):
-        management.call_command("createcachecollection", verbosity=0)
+        for cache_alias in settings.CACHES:
+            cache = caches[cache_alias]
+            connection = cache._db
+            if cache._collection_name in connection.introspection.table_names():
+                return
+            cache = MongoDBCache(cache._collection_name, {})
+            cache.create_indexes()
 
 
 @override_settings(USE_TZ=True)
