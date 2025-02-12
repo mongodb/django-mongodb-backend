@@ -32,16 +32,9 @@ class Command(BaseCommand):
             'installed. Defaults to the "default" database.',
         )
 
-        # parser.add_argument(
-        #     "--dry-run",
-        #     action="store_true",
-        #     help="Does not create the table, just prints the SQL that would be run.",
-        # )
-
     def handle(self, *collection_names, **options):
         db = options["database"]
         self.verbosity = options["verbosity"]
-        # dry_run = options["dry_run"]
         if collection_names:
             # Legacy behavior, collection_name specified as argument
             for collection_name in collection_names:
