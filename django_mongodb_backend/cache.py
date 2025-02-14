@@ -179,7 +179,6 @@ class MongoDBCache(BaseDatabaseCache):
         timestamp = self.get_backend_timeout(timeout)
         if timeout is None:
             return None
-        # do I need to truncate? i don't think so.
         return datetime.fromtimestamp(timestamp, tz=timezone.utc)
 
     def delete(self, key, version=None):
@@ -191,8 +190,8 @@ class MongoDBCache(BaseDatabaseCache):
     def _delete_many(self, keys, version=None):
         if not keys:
             return False
-        keys = [self.make_and_validate_key(key, version=version) for key in keys]
-        return bool(self.collection.delete_many({"key": {"$in": tuple(keys)}}).deleted_count)
+        keys = tuple(self.make_and_validate_key(key, version=version) for key in keys)
+        return bool(self.collection.delete_many({"key": {"$in": keys}}).deleted_count)
 
     def has_key(self, key, version=None):
         key = self.make_and_validate_key(key, version=version)
