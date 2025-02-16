@@ -101,6 +101,46 @@ def where_node_idx(self, compiler, connection):
     return mql
 
 
+def create_mongodb_index(self, model, schema_editor, field=None, unique=False, column_prefix=""):
+    from collections import defaultdict
+
+    if self.contains_expressions:
+        return None
+    kwargs = {}
+    filter_expression = defaultdict(dict)
+    if self.condition:
+        filter_expression.update(self._get_condition_mql(model, schema_editor))
+    if unique:
+        kwargs["unique"] = True
+        # Indexing on $type matches the value of most SQL databases by
+        # allowing multiple null values for the unique constraint.
+        if field:
+            column = column_prefix + field.column
+            filter_expression[column].update({"$type": field.db_type(schema_editor.connection)})
+        else:
+            for field_name, _ in self.fields_orders:
+                field_ = model._meta.get_field(field_name)
+                filter_expression[field_.column].update(
+                    {"$type": field_.db_type(schema_editor.connection)}
+                )
+    if filter_expression:
+        kwargs["partialFilterExpression"] = filter_expression
+    index_orders = (
+        [(column_prefix + field.column, ASCENDING)]
+        if field
+        else [
+            # order is "" if ASCENDING or "DESC" if DESCENDING (see
+            # django.db.models.indexes.Index.fields_orders).
+            (
+                column_prefix + model._meta.get_field(field_name).column,
+                ASCENDING if order == "" else DESCENDING,
+            )
+            for field_name, order in self.fields_orders
+        ]
+    )
+    return IndexModel(index_orders, name=self.name, **kwargs)
+
+
 def register_indexes():
     BuiltinLookup.as_mql_idx = builtin_lookup_idx
     Index._get_condition_mql = _get_condition_mql
