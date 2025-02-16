@@ -1,9 +1,5 @@
-from collections import defaultdict
-
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
-from pymongo import ASCENDING, DESCENDING
-from pymongo.operations import IndexModel
 
 from .fields import EmbeddedModelField
 from .query import wrap_database_errors
@@ -264,43 +260,12 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     def add_index(
         self, model, index, *, field=None, unique=False, column_prefix="", parent_model=None
     ):
-        if index.contains_expressions:
-            return
-        kwargs = {}
-        filter_expression = defaultdict(dict)
-        if index.condition:
-            filter_expression.update(index._get_condition_mql(model, self))
-        if unique:
-            kwargs["unique"] = True
-            # Indexing on $type matches the value of most SQL databases by
-            # allowing multiple null values for the unique constraint.
-            if field:
-                column = column_prefix + field.column
-                filter_expression[column].update({"$type": field.db_type(self.connection)})
-            else:
-                for field_name, _ in index.fields_orders:
-                    field_ = model._meta.get_field(field_name)
-                    filter_expression[field_.column].update(
-                        {"$type": field_.db_type(self.connection)}
-                    )
-        if filter_expression:
-            kwargs["partialFilterExpression"] = filter_expression
-        index_orders = (
-            [(column_prefix + field.column, ASCENDING)]
-            if field
-            else [
-                # order is "" if ASCENDING or "DESC" if DESCENDING (see
-                # django.db.models.indexes.Index.fields_orders).
-                (
-                    column_prefix + model._meta.get_field(field_name).column,
-                    ASCENDING if order == "" else DESCENDING,
-                )
-                for field_name, order in index.fields_orders
-            ]
+        idx = index.create_mongodb_index(
+            model, self, field=field, unique=unique, column_prefix=column_prefix
         )
-        idx = IndexModel(index_orders, name=index.name, **kwargs)
-        model = parent_model or model
-        self.get_collection(model._meta.db_table).create_indexes([idx])
+        if idx:
+            model = parent_model or model
+            self.get_collection(model._meta.db_table).create_indexes([idx])
 
     def _add_composed_index(self, model, field_names, column_prefix="", parent_model=None):
         """Add an index on the given list of field_names."""
