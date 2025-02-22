@@ -4,7 +4,7 @@ from django.db.models.lookups import BuiltinLookup
 from django.db.models.sql.query import Query
 from django.db.models.sql.where import AND, XOR, WhereNode
 from pymongo import ASCENDING, DESCENDING
-from pymongo.operations import IndexModel
+from pymongo.operations import IndexModel, SearchIndexModel
 
 from .query_utils import process_rhs
 
@@ -98,6 +98,18 @@ def create_mongodb_index(self, model, schema_editor, field=None, unique=False, c
         ]
     )
     return IndexModel(index_orders, name=self.name, **kwargs)
+
+
+class AtlasSearchIndex(Index):
+    def __init__(self, *expressions, **kwargs):
+        super().__init__(*expressions, **kwargs)
+
+    def create_mongodb_index(
+        self, model, schema_editor, field=None, unique=False, column_prefix=""
+    ):
+        return SearchIndexModel(
+            definitions={},
+        )
 
 
 def register_indexes():
