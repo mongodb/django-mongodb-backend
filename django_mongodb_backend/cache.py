@@ -57,13 +57,17 @@ class BaseDatabaseCache(BaseCache):
 
 
 class MongoDBCache(BaseDatabaseCache):
+    # This class uses collection provided by the database connection.
+
+    pickle_protocol = pickle.HIGHEST_PROTOCOL
+
     def create_indexes(self):
         self.collection.create_index("expires_at", expireAfterSeconds=0)
         self.collection.create_index("key", unique=True)
 
     @cached_property
     def serializer(self):
-        return MongoSerializer()
+        return MongoSerializer(self.pickle_protocol)
 
     @property
     def _db(self):
@@ -176,9 +180,9 @@ class MongoDBCache(BaseDatabaseCache):
         return res.matched_count > 0
 
     def _get_expiration_time(self, timeout=None):
-        timestamp = self.get_backend_timeout(timeout)
         if timeout is None:
             return None
+        timestamp = self.get_backend_timeout(timeout)
         return datetime.fromtimestamp(timestamp, tz=timezone.utc)
 
     def delete(self, key, version=None):
