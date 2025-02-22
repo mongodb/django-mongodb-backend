@@ -186,6 +186,12 @@ def when(self, compiler, connection):
 
 def value(self, compiler, connection):  # noqa: ARG001
     value = self.value
+    output_field = self._output_field_or_none
+    if output_field is not None:
+        if self.for_save:
+            value = output_field.get_db_prep_save(value, connection=connection)
+        else:
+            value = output_field.get_db_prep_value(value, connection=connection)
     if isinstance(value, int):
         # Wrap numbers in $literal to prevent ambiguity when Value appears in
         # $project.
