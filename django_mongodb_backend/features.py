@@ -98,6 +98,8 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "prefetch_related.tests.NestedPrefetchTests.test_nested_prefetch_is_not_overwritten_by_related_object",
         "prefetch_related.tests.NullableTest.test_prefetch_nullable",
         "prefetch_related.tests.Ticket19607Tests.test_bug",
+        # {'$project': {'name': Decimal128('1')} is broken? (gives None)
+        "expressions.tests.ValueTests.test_output_field_decimalfield",
     }
     # $bitAnd, #bitOr, and $bitXor are new in MongoDB 6.3.
     _django_test_expected_failures_bitwise = {
