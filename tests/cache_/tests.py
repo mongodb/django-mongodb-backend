@@ -6,6 +6,7 @@ from unittest import mock
 
 from bson import SON
 from django.conf import settings
+from django.core import management
 from django.core.cache import DEFAULT_CACHE_ALIAS, CacheKeyWarning, cache, caches
 from django.core.cache.backends.base import InvalidCacheBackendError
 from django.http import (
@@ -16,8 +17,6 @@ from django.middleware.cache import (
     UpdateCacheMiddleware,
 )
 from django.test import RequestFactory, TestCase, modify_settings, override_settings
-
-from django_mongodb_backend.cache import MongoDBCache
 
 from .models import Poll, expensive_calculation
 
@@ -966,13 +965,7 @@ class DBCacheTests(BaseCacheTests, TestCase):
         cache.collection.drop()
 
     def create_cache_collection(self):
-        for cache_alias in settings.CACHES:
-            cache = caches[cache_alias]
-            connection = cache._db
-            if cache._collection_name in connection.introspection.table_names():
-                return
-            cache = MongoDBCache(cache._collection_name, {})
-            cache.create_indexes()
+        management.call_command("createcachecollection", verbosity=0)
 
 
 @override_settings(USE_TZ=True)
