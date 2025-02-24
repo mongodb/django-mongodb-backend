@@ -175,7 +175,12 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     @async_unsafe
     def get_new_connection(self, conn_params):
-        return MongoClient(**conn_params, driver=self._driver_info())
+        # import ipdb
+        # ipdb.set_trace()
+        return MongoClient(
+            "mongodb://127.0.0.1:27017/?directConnection=true", driver=self._driver_info()
+        )
+        # return MongoClient(**conn_params, driver=self._driver_info())
 
     def _driver_info(self):
         if not os.environ.get("RUNNING_DJANGOS_TEST_SUITE"):
