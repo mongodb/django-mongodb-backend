@@ -127,6 +127,38 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         "iregex": lambda a, b: regex_match(a, b, insensitive=True),
     }
 
+    mongo_data_types = {
+        "AutoField": "number",
+        "BigAutoField": "number",
+        "BinaryField": "string",
+        "BooleanField": "boolean",
+        "CharField": "string",
+        "DateField": "date",
+        "DateTimeField": "date",
+        "DecimalField": "number",
+        "DurationField": "number",
+        "FileField": "string",
+        "FilePathField": "string",
+        "FloatField": "double",
+        "IntegerField": "number",
+        "BigIntegerField": "number",
+        "GenericIPAddressField": "string",
+        "JSONField": "document",
+        "OneToOneField": "number",
+        "PositiveBigIntegerField": "number",
+        "PositiveIntegerField": "number",
+        "PositiveSmallIntegerField": "number",
+        "SlugField": "string",
+        "SmallAutoField": "number",
+        "SmallIntegerField": "number",
+        "TextField": "string",
+        "TimeField": "date",
+        "UUIDField": "uuid",
+        "ObjectIdAutoField": ["objectId", "number"],
+        "ObjectIdField": ["objectId"],
+        "EmbeddedModelField": "embeddedDocuments",
+    }
+
     display_name = "MongoDB"
     vendor = "mongodb"
     Database = Database
@@ -175,12 +207,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     @async_unsafe
     def get_new_connection(self, conn_params):
-        # import ipdb
-        # ipdb.set_trace()
-        return MongoClient(
-            "mongodb://127.0.0.1:27017/?directConnection=true", driver=self._driver_info()
-        )
-        # return MongoClient(**conn_params, driver=self._driver_info())
+        return MongoClient(**conn_params, directConnection=True, driver=self._driver_info())
 
     def _driver_info(self):
         if not os.environ.get("RUNNING_DJANGOS_TEST_SUITE"):
