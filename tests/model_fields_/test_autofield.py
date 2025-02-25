@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase
 
 from django_mongodb_backend.fields import ObjectIdAutoField
@@ -15,6 +16,8 @@ class MethodTests(SimpleTestCase):
         f = ObjectIdAutoField()
         self.assertEqual(f.get_internal_type(), "ObjectIdAutoField")
 
-    def test_to_python(self):
+    def test_to_python_invalid_value(self):
         f = ObjectIdAutoField()
-        self.assertEqual(f.to_python("1"), 1)
+        msg = "“1” is not a valid Object Id."
+        with self.assertRaisesMessage(ValidationError, msg):
+            f.to_python("1")

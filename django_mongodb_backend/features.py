@@ -34,7 +34,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     supports_temporal_subtraction = True
     # MongoDB stores datetimes in UTC.
     supports_timezones = False
-    # Not implemented: https://github.com/mongodb-labs/django-mongodb-backend/issues/7
+    # Not implemented: https://github.com/mongodb/django-mongodb-backend/issues/7
     supports_transactions = False
     supports_unspecified_pk = True
     uses_savepoints = False
@@ -197,6 +197,8 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             "lookup.tests.LookupTests.test_in_ignore_none_with_unhashable_items",
             "m2m_through_regress.tests.ThroughLoadDataTestCase.test_sequence_creation",
             "many_to_many.tests.ManyToManyTests.test_add_remove_invalid_type",
+            "many_to_one.tests.ManyToOneTests.test_fk_to_smallautofield",
+            "many_to_one.tests.ManyToOneTests.test_fk_to_bigautofield",
             "migrations.test_operations.OperationTests.test_autofield__bigautofield_foreignfield_growth",
             "migrations.test_operations.OperationTests.test_model_with_bigautofield",
             "migrations.test_operations.OperationTests.test_smallfield_autofield_foreignfield_growth",
@@ -205,6 +207,8 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             "model_fields.test_autofield.BigAutoFieldTests",
             "model_fields.test_autofield.SmallAutoFieldTests",
             "queries.tests.TestInvalidValuesRelation.test_invalid_values",
+            "schema.tests.SchemaTests.test_alter_autofield_pk_to_bigautofield_pk",
+            "schema.tests.SchemaTests.test_alter_autofield_pk_to_smallautofield_pk",
         },
         "Converters aren't run on returning fields from insert.": {
             # Unsure this is needed for this backend. Can implement by request.
@@ -223,6 +227,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             "queries.test_qs_combinators.QuerySetSetOperationTests.test_order_raises_on_non_selected_column",
             "queries.tests.RelatedLookupTypeTests.test_values_queryset_lookup",
             "queries.tests.ValuesSubqueryTests.test_values_in_subquery",
+            "sites_tests.tests.CreateDefaultSiteTests.test_no_site_id",
         },
         "Cannot use QuerySet.delete() when querying across multiple collections on MongoDB.": {
             "admin_changelist.tests.ChangeListTests.test_distinct_for_many_to_many_at_second_level_in_search_fields",
@@ -562,7 +567,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             "cache.tests.DBCacheWithTimeZoneTests",
         },
         "FilteredRelation not supported.": {
-            # https://github.com/mongodb-labs/django-mongodb-backend/issues/157
+            # https://github.com/mongodb/django-mongodb-backend/issues/157
             "filtered_relation.tests.FilteredRelationAggregationTests",
             "filtered_relation.tests.FilteredRelationAnalyticalAggregationTests",
             "filtered_relation.tests.FilteredRelationTests",

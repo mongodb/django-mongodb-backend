@@ -248,7 +248,7 @@ Stores a model of type ``embedded_model``.
             class Book(models.Model):
                 author = EmbeddedModelField(Author)
 
-See :doc:`embedded-models` for more details and examples.
+See :doc:`/topics/embedded-models` for more details and examples.
 
 .. admonition:: Migrations support is limited
 
@@ -259,6 +259,14 @@ See :doc:`embedded-models` for more details and examples.
     embedded model will be made. Using the models above as an example, if you
     created these models and then added an indexed field to ``Address``,
     the index created in the nested ``Book`` embed is not created.
+
+``ObjectIdAutoField``
+---------------------
+
+.. class:: ObjectIdAutoField
+
+This field is typically the default primary key field for all models stored in
+MongoDB. See :ref:`specifying the-default-pk-field`.
 
 ``ObjectIdField``
 -----------------

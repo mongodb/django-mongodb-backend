@@ -1,5 +1,3 @@
-from bson import ObjectId, errors
-from django.core import exceptions
 from django.db.models.fields import AutoField
 from django.utils.functional import cached_property
 
@@ -22,38 +20,12 @@ class ObjectIdAutoField(ObjectIdMixin, AutoField):
         return name, path, args, kwargs
 
     def get_prep_value(self, value):
-        if value is None:
-            return None
-        # Accept int for compatibility with Django's test suite which has many
-        # instances of manually assigned integer IDs, as well as for things
-        # like settings.SITE_ID which has a system check requiring an integer.
-        if isinstance(value, (ObjectId | int)):
-            return value
-        try:
-            return ObjectId(value)
-        except errors.InvalidId as e:
-            # A manually assigned integer ID?
-            if isinstance(value, str) and value.isdigit():
-                return int(value)
-            raise ValueError(f"Field '{self.name}' expected an ObjectId but got {value!r}.") from e
+        # Override to omit super() which would call AutoField/IntegerField's
+        # implementation that requires value to be an integer.
+        return self.to_python(value)
 
     def get_internal_type(self):
         return "ObjectIdAutoField"
-
-    def to_python(self, value):
-        if value is None or isinstance(value, int):
-            return value
-        try:
-            return ObjectId(value)
-        except errors.InvalidId:
-            try:
-                return int(value)
-            except ValueError:
-                raise exceptions.ValidationError(
-                    self.error_messages["invalid"],
-                    code="invalid",
-                    params={"value": value},
-                ) from None
 
     @cached_property
     def validators(self):

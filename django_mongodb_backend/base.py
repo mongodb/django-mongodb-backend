@@ -3,6 +3,7 @@ import os
 
 from django.core.exceptions import ImproperlyConfigured
 from django.db.backends.base.base import BaseDatabaseWrapper
+from django.utils.asyncio import async_unsafe
 from pymongo.collection import Collection
 from pymongo.driver_info import DriverInfo
 from pymongo.mongo_client import MongoClient
@@ -172,6 +173,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             **settings_dict["OPTIONS"],
         }
 
+    @async_unsafe
     def get_new_connection(self, conn_params):
         return MongoClient(**conn_params, driver=self._driver_info())
 
@@ -187,13 +189,15 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         pass
 
     def set_autocommit(self, autocommit, force_begin_transaction_with_broken_autocommit=False):
-        pass
+        self.autocommit = autocommit
 
+    @async_unsafe
     def close(self):
         super().close()
         with contextlib.suppress(AttributeError):
             del self.database
 
+    @async_unsafe
     def cursor(self):
         return Cursor()
 

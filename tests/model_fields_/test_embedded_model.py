@@ -1,4 +1,5 @@
 import operator
+from datetime import timedelta
 
 from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import models
@@ -74,7 +75,9 @@ class ModelTests(TestCase):
         obj = Holder.objects.create(data=Data())
         auto_now = truncate_ms(obj.data.auto_now)
         auto_now_add = truncate_ms(obj.data.auto_now_add)
-        self.assertEqual(auto_now, auto_now_add)
+        # auto_now and auto_now_add may differ by a millisecond since they
+        # aren't generated simultaneously.
+        self.assertAlmostEqual(auto_now, auto_now_add, delta=timedelta(microseconds=1000))
         # save() updates auto_now but not auto_now_add.
         obj.save()
         self.assertEqual(truncate_ms(obj.data.auto_now_add), auto_now_add)
@@ -253,7 +256,8 @@ class CheckTests(SimpleTestCase):
 
 
 class SubqueryExistsTests(TestCase):
-    def setUpTestData(self):
+    @classmethod
+    def setUpTestData(cls):
         address1 = Address(city="New York", state="NY", zip_code=10001)
         address2 = Address(city="Boston", state="MA", zip_code=20002)
         author1 = Author(name="Alice", age=30, address=address1)

@@ -34,7 +34,7 @@ class PartialIndexTests(TestCase):
             Index(
                 name="test",
                 fields=["headline"],
-                condition=~Q(pk=True),
+                condition=~Q(pk__isnull=True),
             )._get_condition_mql(Article, schema_editor=editor)
 
     def test_xor_not_supported(self):
@@ -43,7 +43,7 @@ class PartialIndexTests(TestCase):
             Index(
                 name="test",
                 fields=["headline"],
-                condition=Q(pk=True) ^ Q(pk=False),
+                condition=Q(pk__isnull=True) ^ Q(pk__isnull=False),
             )._get_condition_mql(Article, schema_editor=editor)
 
     def test_operations(self):

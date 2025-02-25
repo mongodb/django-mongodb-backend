@@ -38,8 +38,8 @@ docs = [ "sphinx>=7"]
 [project.urls]
 Homepage = "https://www.mongodb.org"
 Documentation = "https://django-mongodb-backend.readthedocs.io"
-Source = "https://github.com/mongodb-labs/django-mongodb-backend"
-Tracker = "https://github.com/mongodb-labs/django-mongodb-backend/issues"
+Source = "https://github.com/mongodb/django-mongodb-backend"
+Tracker = "https://github.com/mongodb/django-mongodb-backend/issues"
 
 [tool.hatch.version]
 path = "django_mongodb_backend/__init__.py"
@@ -119,3 +119,6 @@ partial_branches = ["if (.*and +)*not _use_c( and.*)*:"]
 
 [tool.coverage.html]
 directory = "htmlcov"
+
+[tool.rstcheck]
+report_level = "WARNING"
