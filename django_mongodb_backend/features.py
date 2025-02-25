@@ -12,6 +12,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     greatest_least_ignores_nulls = True
     has_json_object_function = False
     has_native_json_field = True
+    rounds_to_even = True
     supports_boolean_expr_in_select_clause = True
     supports_collation_on_charfield = False
     supports_column_check_constraints = False
@@ -56,8 +57,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         # Pattern lookups that use regexMatch don't work on JSONField:
         # Unsupported conversion from array to string in $convert
         "model_fields.test_jsonfield.TestQuerying.test_icontains",
-        # MongoDB gives ROUND(365, -1)=360 instead of 370 like other databases.
-        "db_functions.math.test_round.RoundTests.test_integer_with_negative_precision",
         # Truncating in another timezone doesn't work becauase MongoDB converts
         # the result back to UTC.
         "db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests.test_trunc_func_with_timezone",
@@ -88,6 +87,19 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         # of $setIsSubset must be arrays. Second argument is of type: null"
         # https://jira.mongodb.org/browse/SERVER-99186
         "model_fields_.test_arrayfield.QueryingTests.test_contained_by_subquery",
+        # JSONArray not implemented.
+        "db_functions.json.test_json_array.JSONArrayTests",
+        # Some usage of prefetch_related() raises "ColPairs is not supported."
+        "known_related_objects.tests.ExistingRelatedInstancesTests.test_one_to_one_multi_prefetch_related",
+        "known_related_objects.tests.ExistingRelatedInstancesTests.test_one_to_one_prefetch_related",
+        "prefetch_related.tests.DeprecationTests.test_prefetch_one_level_fallback",
+        "prefetch_related.tests.MultiDbTests.test_using_is_honored_fkey",
+        "prefetch_related.tests.MultiDbTests.test_using_is_honored_inheritance",
+        "prefetch_related.tests.NestedPrefetchTests.test_nested_prefetch_is_not_overwritten_by_related_object",
+        "prefetch_related.tests.NullableTest.test_prefetch_nullable",
+        "prefetch_related.tests.Ticket19607Tests.test_bug",
+        # {'$project': {'name': Decimal128('1')} is broken? (gives None)
+        "expressions.tests.ValueTests.test_output_field_decimalfield",
     }
     # $bitAnd, #bitOr, and $bitXor are new in MongoDB 6.3.
     _django_test_expected_failures_bitwise = {
@@ -112,6 +124,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             # bson.errors.InvalidDocument: cannot encode object:
             # <django.db.models.expressions.DatabaseDefault
             "basic.tests.ModelInstanceCreationTests.test_save_primary_with_db_default",
+            "basic.tests.ModelInstanceCreationTests.test_save_primary_with_falsey_db_default",
             "constraints.tests.UniqueConstraintTests.test_database_default",
             "field_defaults.tests.DefaultTests",
             "migrations.test_operations.OperationTests.test_add_field_both_defaults",
@@ -194,9 +207,13 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             "prefetch_related.tests.Ticket21410Tests",
             "queryset_pickle.tests.PickleabilityTestCase.test_pickle_prefetch_related_with_m2m_and_objects_deletion",
             "serializers.test_json.JsonSerializerTestCase.test_serialize_prefetch_related_m2m",
+            "serializers.test_json.JsonSerializerTestCase.test_serialize_prefetch_related_m2m_with_natural_keys",
             "serializers.test_jsonl.JsonlSerializerTestCase.test_serialize_prefetch_related_m2m",
+            "serializers.test_jsonl.JsonlSerializerTestCase.test_serialize_prefetch_related_m2m_with_natural_keys",
             "serializers.test_xml.XmlSerializerTestCase.test_serialize_prefetch_related_m2m",
+            "serializers.test_xml.XmlSerializerTestCase.test_serialize_prefetch_related_m2m_with_natural_keys",
             "serializers.test_yaml.YamlSerializerTestCase.test_serialize_prefetch_related_m2m",
+            "serializers.test_yaml.YamlSerializerTestCase.test_serialize_prefetch_related_m2m_with_natural_keys",
         },
         "AutoField not supported.": {
             "bulk_create.tests.BulkCreateTests.test_bulk_insert_nullable_fields",
@@ -598,6 +615,13 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             "foreign_object.test_empty_join.RestrictedConditionsTests",
             "foreign_object.tests.MultiColumnFKTests",
             "foreign_object.tests.TestExtraJoinFilterQ",
+        },
+        "Tuple lookups are not supported.": {
+            "foreign_object.test_tuple_lookups.TupleLookupsTests",
+        },
+        "ColPairs is not supported.": {
+            # 'ColPairs' object has no attribute 'as_mql'
+            "auth_tests.test_views.CustomUserCompositePrimaryKeyPasswordResetTest",
         },
         "Custom lookups are not supported.": {
             "custom_lookups.tests.BilateralTransformTests",
