@@ -1,7 +1,6 @@
 import pickle
 from datetime import datetime, timezone
 
-from bson import SON
 from django.core.cache.backends.base import DEFAULT_TIMEOUT, BaseCache
 from django.db import connections, router
 from django.utils.functional import cached_property
@@ -148,7 +147,7 @@ class MongoDBCache(BaseDatabaseCache):
                 deleted_from = next(
                     self.collection.aggregate(
                         [
-                            {"$sort": SON([("expires_at", -1), ("key", 1)])},
+                            {"$sort": {"expires_at": -1, "key": 1}},
                             {"$skip": keep_num},
                             {"$limit": 1},
                             {"$project": {"key": 1, "expires_at": 1}},
