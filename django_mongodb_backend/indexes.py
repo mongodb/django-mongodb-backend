@@ -60,7 +60,16 @@ def where_node_idx(self, compiler, connection):
     return mql
 
 
-def create_mongodb_index(self, model, schema_editor, *, field=None, unique=False, column_prefix=""):
+def create_mongodb_index(
+    self,
+    model,
+    schema_editor,
+    *,
+    connection=None,  # noqa: ARG001
+    field=None,
+    unique=False,
+    column_prefix="",
+):
     from collections import defaultdict
 
     if self.contains_expressions:
@@ -101,6 +110,8 @@ def create_mongodb_index(self, model, schema_editor, *, field=None, unique=False
 
 
 class AtlasSearchIndex(Index):
+    suffix = "atlas_search"
+
     def __init__(self, *expressions, **kwargs):
         super().__init__(*expressions, **kwargs)
 
@@ -110,9 +121,10 @@ class AtlasSearchIndex(Index):
         fields = {}
         for field_name, _ in self.fields_orders:
             field_ = model._meta.get_field(field_name)
-            fields[field_name] = {"type": field_.db_type(connection)}
+            type_ = connection.mongo_data_types[field_.get_internal_type()]
+            fields[field_name] = {"type": type_}
         return SearchIndexModel(
-            definition={"mappings": {"dynamic": False}, "fields": fields}, name=self.name
+            definition={"mappings": {"dynamic": False, "fields": fields}}, name=self.name
         )
 
 
