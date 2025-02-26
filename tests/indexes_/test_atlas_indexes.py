@@ -1,3 +1,4 @@
+from django.core.exceptions import FieldDoesNotExist
 from django.db import connection
 from django.test import TestCase
 
@@ -21,6 +22,13 @@ class PartialIndexTests(TestCase):
             ),
         )
         editor.remove_index(index=index, model=model)
+        self.assertNotIn(
+            index.name,
+            connection.introspection.get_constraints(
+                cursor=None,
+                table_name=model._meta.db_table,
+            ),
+        )
 
     def test_simple_atlas_index(self):
         with connection.schema_editor() as editor:
@@ -37,7 +45,6 @@ class PartialIndexTests(TestCase):
                 name="recent_article_idx",
                 fields=["headline", "number", "body", "data", "embedded", "auto_now"],
             )
-            # editor.remove_index(index=index, model=Article)
             editor.add_index(index=index, model=Article)
             index_info = connection.introspection.get_constraints(
                 cursor=None,
@@ -71,6 +78,16 @@ class PartialIndexTests(TestCase):
             }
             self.assertCountEqual(index_info[index.name]["columns"], index.fields)
             self.assertEqual(index_info[index.name]["options"], expected_options)
-
-            self.assertEqual(index_info, {})
             self.assertAddRemoveIndex(editor, Article, index)
+
+    def test_field_not_exists(self):
+        index = AtlasSearchIndex(
+            name="recent_article_idx",
+            fields=["headline", "number1"],
+        )
+        with connection.schema_editor() as editor:
+            msg = "Article has no field named 'number1'"
+            with self.assertRaisesMessage(
+                FieldDoesNotExist, msg
+            ), connection.schema_editor() as editor:
+                editor.add_index(index=index, model=Article)
