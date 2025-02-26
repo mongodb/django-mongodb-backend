@@ -28,7 +28,7 @@ def check_django_compatability():
         )
 
 
-def parse_uri(uri, conn_max_age=0, test=None):
+def parse_uri(uri, *, db_name=None, conn_max_age=0, test=None):
     """
     Convert the given uri into a dictionary suitable for Django's DATABASES
     setting.
@@ -45,9 +45,12 @@ def parse_uri(uri, conn_max_age=0, test=None):
             host, port = nodelist[0]
         elif len(nodelist) > 1:
             host = ",".join([f"{host}:{port}" for host, port in nodelist])
+    db_name = db_name or uri["database"]
+    if not db_name:
+        raise ImproperlyConfigured("You must provide the db_name parameter.")
     settings_dict = {
         "ENGINE": "django_mongodb_backend",
-        "NAME": uri["database"],
+        "NAME": db_name,
         "HOST": host,
         "PORT": port,
         "USER": uri.get("username"),
@@ -55,6 +58,8 @@ def parse_uri(uri, conn_max_age=0, test=None):
         "OPTIONS": uri.get("options"),
         "CONN_MAX_AGE": conn_max_age,
     }
+    if "authSource" not in settings_dict["OPTIONS"] and uri["database"]:
+        settings_dict["OPTIONS"]["authSource"] = uri["database"]
     if test:
         settings_dict["TEST"] = test
     return settings_dict

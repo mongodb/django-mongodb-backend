@@ -68,7 +68,7 @@ tasks:
       - func: "run unit tests"
 
 buildvariants:
-  - name: tests-5-noauth-nossl
+  - name: tests-6-noauth-nossl
     display_name: Run Tests 6.0 NoAuth NoSSL
     run_on: rhel87-small
     expansions:
@@ -79,7 +79,7 @@ buildvariants:
     tasks:
       - name: run-tests
 
-  - name: tests-5-auth-ssl
+  - name: tests-6-auth-ssl
     display_name: Run Tests 6.0 Auth SSL
     run_on: rhel87-small
     expansions:

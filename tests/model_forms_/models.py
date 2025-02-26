@@ -16,3 +16,13 @@ class Author(models.Model):
     age = models.IntegerField()
     address = EmbeddedModelField(Address)
     billing_address = EmbeddedModelField(Address, blank=True, null=True)
+
+
+class Publisher(EmbeddedModel):
+    name = models.CharField(max_length=50)
+    address = EmbeddedModelField(Address)
+
+
+class Book(models.Model):
+    title = models.CharField(max_length=50)
+    publisher = EmbeddedModelField(Publisher)

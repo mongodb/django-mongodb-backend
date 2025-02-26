@@ -16,8 +16,8 @@ from pathlib import Path
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.append(str((Path(__file__).parent / "_ext").resolve()))
 
-project = "django_mongodb_backend"
-copyright = "2024, The MongoDB Python Team"
+project = "Django MongoDB Backend"
+copyright = "2025, The MongoDB Python Team"
 author = "The MongoDB Python Team"
 release = _version("django_mongodb_backend")
 
@@ -39,11 +39,14 @@ exclude_patterns = []
 intersphinx_mapping = {
     "django": (
         "https://docs.djangoproject.com/en/5.0/",
-        "http://docs.djangoproject.com/en/5.0/_objects/",
+        "https://docs.djangoproject.com/en/5.0/_objects/",
     ),
+    "mongodb": ("https://www.mongodb.com/docs/languages/python/django-mongodb/v5.0/", None),
     "pymongo": ("https://pymongo.readthedocs.io/en/stable/", None),
     "python": ("https://docs.python.org/3/", None),
 }
+
+root_doc = "contents"
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

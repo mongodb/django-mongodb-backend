@@ -3,7 +3,7 @@ import os
 from django_mongodb_backend import parse_uri
 
 if mongodb_uri := os.getenv("MONGODB_URI"):
-    db_settings = parse_uri(mongodb_uri)
+    db_settings = parse_uri(mongodb_uri, db_name="dummy")
 
     # Workaround for https://github.com/mongodb-labs/mongo-orchestration/issues/268
     if db_settings["USER"] and db_settings["PASSWORD"]:
