@@ -1,13 +1,15 @@
+import datetime
+
 from django.core.exceptions import FieldDoesNotExist
 from django.db import connection
 from django.test import TestCase
 
 from django_mongodb_backend.indexes import AtlasSearchIndex
 
-from .models import Article
+from .models import Article, Data
 
 
-class PartialIndexTests(TestCase):
+class AtlasIndexTests(TestCase):
     # Schema editor is used to  create the index to test that it works.
     # available_apps = ["indexes"]
     available_apps = None
@@ -91,3 +93,20 @@ class PartialIndexTests(TestCase):
                 FieldDoesNotExist, msg
             ), connection.schema_editor() as editor:
                 editor.add_index(index=index, model=Article)
+
+
+class AtlasIndexTestsWithData(AtlasIndexTests):
+    @classmethod
+    def setUpTestData(cls):
+        articles = [
+            Article(
+                headline=f"Title {i}",
+                number=i,
+                body=f"body {i}",
+                data="{json: i}",
+                embedded=Data(integer=i),
+                auto_now=datetime.datetime.now(),
+            )
+            for i in range(5)
+        ]
+        cls.objs = Article.objects.bulk_create(articles)
