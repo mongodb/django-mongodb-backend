@@ -2,6 +2,7 @@ import pickle
 from datetime import datetime, timezone
 
 from django.core.cache.backends.base import DEFAULT_TIMEOUT, BaseCache
+from django.core.cache.backends.db import Options
 from django.db import connections, router
 from django.utils.functional import cached_property
 from pymongo.errors import DuplicateKeyError
@@ -25,26 +26,11 @@ class MongoSerializer:
             return pickle.loads(data)  # noqa: S301
 
 
-class Options:
-    """A class that will quack like a Django model _meta class.
+class MongoDBCache(BaseCache):
+    # This class uses collection provided by the database connection.
 
-    This allows cache operations to be controlled by the router
-    """
+    pickle_protocol = pickle.HIGHEST_PROTOCOL
 
-    def __init__(self, collection_name):
-        self.collection_name = collection_name
-        self.app_label = "django_cache"
-        self.model_name = "cacheentry"
-        self.verbose_name = "cache entry"
-        self.verbose_name_plural = "cache entries"
-        self.object_name = "CacheEntry"
-        self.abstract = False
-        self.managed = True
-        self.proxy = False
-        self.swapped = False
-
-
-class BaseDatabaseCache(BaseCache):
     def __init__(self, collection_name, params):
         super().__init__(params)
         self._collection_name = collection_name
@@ -53,12 +39,6 @@ class BaseDatabaseCache(BaseCache):
             _meta = Options(collection_name)
 
         self.cache_model_class = CacheEntry
-
-
-class MongoDBCache(BaseDatabaseCache):
-    # This class uses collection provided by the database connection.
-
-    pickle_protocol = pickle.HIGHEST_PROTOCOL
 
     def create_indexes(self):
         self.collection.create_index("expires_at", expireAfterSeconds=0)

@@ -7,7 +7,7 @@ from django.db import (
     router,
 )
 
-from django_mongodb_backend.cache import BaseDatabaseCache, MongoDBCache
+from django_mongodb_backend.cache import MongoDBCache
 
 
 class Command(BaseCommand):
@@ -42,7 +42,7 @@ class Command(BaseCommand):
         else:
             for cache_alias in settings.CACHES:
                 cache = caches[cache_alias]
-                if isinstance(cache, BaseDatabaseCache):
+                if isinstance(cache, MongoDBCache):
                     self.check_collection(db, cache._collection_name)
 
     def check_collection(self, database, collection_name):
