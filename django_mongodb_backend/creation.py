@@ -1,6 +1,8 @@
 from django.conf import settings
-from django.core.management import call_command
+from django.core.cache import caches
 from django.db.backends.base.creation import BaseDatabaseCreation
+
+from django_mongodb_backend.cache import MongoDBCache
 
 
 class DatabaseCreation(BaseDatabaseCreation):
@@ -20,5 +22,12 @@ class DatabaseCreation(BaseDatabaseCreation):
 
     def create_test_db(self, *args, **kwargs):
         test_database_name = super().create_test_db(*args, **kwargs)
-        call_command("createcachecollection", database=self.connection.alias)
+        # Create cache collections
+        for cache_alias in settings.CACHES:
+            cache = caches[cache_alias]
+            connection = cache._db
+            if cache._collection_name in connection.introspection.table_names():
+                continue
+            cache = MongoDBCache(cache._collection_name, {})
+            cache.create_indexes()
         return test_database_name

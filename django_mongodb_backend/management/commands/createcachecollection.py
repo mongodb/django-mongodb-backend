@@ -50,7 +50,6 @@ class Command(BaseCommand):
         if not router.allow_migrate_model(database, cache.cache_model_class):
             return
         connection = connections[database]
-
         if collection_name in connection.introspection.table_names():
             if self.verbosity > 0:
                 self.stdout.write("Cache collection '%s' already exists." % collection_name)

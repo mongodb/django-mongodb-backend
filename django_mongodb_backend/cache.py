@@ -113,7 +113,6 @@ class MongoDBCache(BaseCache):
                 True,
             )
         except DuplicateKeyError:
-            # Check the exception name to catch when the key exists.
             return False
         return True
 
