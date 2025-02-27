@@ -22,7 +22,7 @@ class MongoSerializer:
         except (ValueError, TypeError):
             if not isinstance(data, bytes):
                 raise ValueError("Invalid data type for unpickling") from None
-            return pickle.loads(data, fix_imports=False)  # noqa: S301
+            return pickle.loads(data)  # noqa: S301
 
 
 class Options:

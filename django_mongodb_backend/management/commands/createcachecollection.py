@@ -53,6 +53,6 @@ class Command(BaseCommand):
 
         if collection_name in connection.introspection.table_names():
             if self.verbosity > 0:
-                self.stdout.write("Cache table '%s' already exists." % collection_name)
+                self.stdout.write("Cache collection '%s' already exists." % collection_name)
             return
         cache.create_indexes()
