@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.management import call_command
 from django.db.backends.base.creation import BaseDatabaseCreation
 
 
@@ -16,3 +17,8 @@ class DatabaseCreation(BaseDatabaseCreation):
         for collection in self.connection.introspection.table_names():
             if not collection.startswith("system."):
                 self.connection.database.drop_collection(collection)
+
+    def create_test_db(self, *args, **kwargs):
+        test_database_name = super().create_test_db(*args, **kwargs)
+        call_command("createcachecollection", database=self.connection.alias)
+        return test_database_name
