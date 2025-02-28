@@ -14,6 +14,7 @@ class MongoSerializer:
         self.protocol = pickle.HIGHEST_PROTOCOL if protocol is None else protocol
 
     def dumps(self, obj):
+        # Integers do not need serialization.
         if isinstance(obj, int):
             return obj
         return pickle.dumps(obj, self.protocol)
