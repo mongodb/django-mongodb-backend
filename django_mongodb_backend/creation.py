@@ -25,9 +25,9 @@ class DatabaseCreation(BaseDatabaseCreation):
         # Create cache collections
         for cache_alias in settings.CACHES:
             cache = caches[cache_alias]
-            connection = cache._db
-            if cache._collection_name in connection.introspection.table_names():
-                continue
-            cache = MongoDBCache(cache._collection_name, {})
-            cache.create_indexes()
+            if isinstance(cache, MongoDBCache):
+                connection = cache._db_to_write
+                if cache._collection_name in connection.introspection.table_names():
+                    continue
+                cache.create_indexes()
         return test_database_name

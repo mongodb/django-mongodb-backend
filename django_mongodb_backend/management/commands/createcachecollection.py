@@ -43,15 +43,14 @@ class Command(BaseCommand):
             for cache_alias in settings.CACHES:
                 cache = caches[cache_alias]
                 if isinstance(cache, MongoDBCache):
-                    self.check_collection(db, cache._collection_name)
+                    self.check_collection(db, cache)
 
-    def check_collection(self, database, collection_name):
-        cache = MongoDBCache(collection_name, {})
+    def check_collection(self, database, cache):
         if not router.allow_migrate_model(database, cache.cache_model_class):
             return
         connection = connections[database]
-        if collection_name in connection.introspection.table_names():
+        if cache._collection_name in connection.introspection.table_names():
             if self.verbosity > 0:
-                self.stdout.write("Cache collection '%s' already exists." % collection_name)
+                self.stdout.write("Cache collection '%s' already exists." % cache._collection_name)
             return
         cache.create_indexes()

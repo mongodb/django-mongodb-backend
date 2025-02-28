@@ -929,7 +929,7 @@ class BaseCacheTests:
             self.assertEqual(cache.get_or_set("key", "default"), "default")
 
     def test_collection_has_indexes(self):
-        indexes = list(cache.collection.list_indexes())
+        indexes = list(cache.collection_to_read.list_indexes())
         self.assertTrue(
             any(
                 index["key"] == SON([("expires_at", 1)]) and index.get("expireAfterSeconds") == 0
@@ -962,7 +962,7 @@ class DBCacheTests(BaseCacheTests, TestCase):
         self.addCleanup(self.drop_collection)
 
     def drop_collection(self):
-        cache.collection.drop()
+        cache.collection_to_write.drop()
 
     def create_cache_collection(self):
         management.call_command("createcachecollection", verbosity=0)
@@ -971,3 +971,49 @@ class DBCacheTests(BaseCacheTests, TestCase):
 @override_settings(USE_TZ=True)
 class DBCacheWithTimeZoneTests(DBCacheTests):
     pass
+
+
+class DBCacheRouter:
+    """A router that puts the cache table on the 'other' database."""
+
+    def db_for_read(self, model, **hints):
+        if model._meta.app_label == "django_cache":
+            return "other"
+        return None
+
+    def db_for_write(self, model, **hints):
+        if model._meta.app_label == "django_cache":
+            return "other"
+        return None
+
+    def allow_migrate(self, db, app_label, **hints):
+        if app_label == "django_cache":
+            return db == "other"
+        return None
+
+
+@override_settings(
+    CACHES={
+        "default": {
+            "BACKEND": "django_mongodb_backend.cache.MongoDBCache",
+            "LOCATION": "my_cache_table",
+        },
+    },
+)
+@modify_settings(
+    INSTALLED_APPS={"prepend": "django_mongodb_backend"},
+)
+class CreateCacheTableForDBCacheTests(TestCase):
+    databases = {"default", "other"}
+
+    @override_settings(DATABASE_ROUTERS=[DBCacheRouter()])
+    def test_createcachetable_observes_database_router(self):
+        # cache table should not be created on 'default'
+        with self.assertNumQueries(0, using="default"):
+            management.call_command("createcachecollection", database="default", verbosity=0)
+        # cache table should be created on 'other'
+        # Queries:
+        #   1: Create indexes
+        num = 1
+        with self.assertNumQueries(num, using="other"):
+            management.call_command("createcachecollection", database="other", verbosity=0)
