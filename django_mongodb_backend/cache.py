@@ -89,7 +89,7 @@ class MongoDBCache(BaseCache):
     def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
         key = self.make_and_validate_key(key, version=version)
         serialized_data = self.serializer.dumps(value)
-        num = self.collection_to_write.count_documents({})
+        num = self.collection_to_write.count_documents({}, hint="_id_")
         if num >= self._max_entries:
             self._cull(num)
         return self.collection_to_write.update_one(
@@ -107,7 +107,7 @@ class MongoDBCache(BaseCache):
     def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
         key = self.make_and_validate_key(key, version=version)
         serialized_data = self.serializer.dumps(value)
-        num = self.collection_to_write.count_documents({})
+        num = self.collection_to_write.count_documents({}, hint="_id_")
         if num >= self._max_entries:
             self._cull(num)
         try:
