@@ -1,0 +1,4 @@
+p.admonition-title::after {
+    /* Remove colon after admonition titles. */
+    content: none;
+}
