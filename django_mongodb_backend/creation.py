@@ -1,5 +1,8 @@
 from django.conf import settings
+from django.core.cache import caches
 from django.db.backends.base.creation import BaseDatabaseCreation
+
+from django_mongodb_backend.cache import MongoDBCache
 
 
 class DatabaseCreation(BaseDatabaseCreation):
@@ -16,3 +19,15 @@ class DatabaseCreation(BaseDatabaseCreation):
         for collection in self.connection.introspection.table_names():
             if not collection.startswith("system."):
                 self.connection.database.drop_collection(collection)
+
+    def create_test_db(self, *args, **kwargs):
+        test_database_name = super().create_test_db(*args, **kwargs)
+        # Create cache collections
+        for cache_alias in settings.CACHES:
+            cache = caches[cache_alias]
+            if isinstance(cache, MongoDBCache):
+                connection = cache._db_to_write
+                if cache._collection_name in connection.introspection.table_names():
+                    continue
+                cache.create_indexes()
+        return test_database_name
