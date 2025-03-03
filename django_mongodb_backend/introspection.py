@@ -2,7 +2,7 @@ from django.db.backends.base.introspection import BaseDatabaseIntrospection
 from django.db.models import Index
 from pymongo import ASCENDING, DESCENDING
 
-from django_mongodb_backend.indexes import AtlasSearchIndex
+from django_mongodb_backend.indexes import AtlasSearchIndex, AtlasVectorSearchIndex
 
 
 class DatabaseIntrospection(BaseDatabaseIntrospection):
@@ -37,7 +37,14 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         constraints = {}
         indexes = self.connection.get_collection(table_name).list_search_indexes()
         for details in indexes:
-            columns = list(details["latestDefinition"]["mappings"].get("fields", {}).keys())
+            if details["type"] == "vectorSearch":
+                columns = [field["path"] for field in details["latestDefinition"]["fields"]]
+                type_ = AtlasVectorSearchIndex.suffix
+                options = details
+            else:
+                columns = list(details["latestDefinition"]["mappings"].get("fields", {}).keys())
+                options = details["latestDefinition"]["mappings"]
+                type_ = AtlasSearchIndex.suffix
             constraints[details["name"]] = {
                 "check": False,
                 "columns": columns,
@@ -46,9 +53,9 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                 "index": True,
                 "orders": [],
                 "primary_key": False,
-                "type": AtlasSearchIndex.suffix,
+                "type": type_,
                 "unique": False,
-                "options": details["latestDefinition"]["mappings"],
+                "options": options,
             }
         return constraints
 

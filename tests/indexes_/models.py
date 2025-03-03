@@ -1,6 +1,6 @@
 from django.db import models
 
-from django_mongodb_backend.fields import EmbeddedModelField
+from django_mongodb_backend.fields import ArrayField, EmbeddedModelField
 from django_mongodb_backend.models import EmbeddedModel
 
 
@@ -15,3 +15,7 @@ class Article(models.Model):
     data = models.JSONField()
     embedded = EmbeddedModelField(Data)
     auto_now = models.DateTimeField(auto_now=True)
+    title_embedded = ArrayField(models.FloatField(), size=10)
+    description_embedded = ArrayField(models.FloatField(), size=10)
+    number_list = ArrayField(models.FloatField())
+    name_list = ArrayField(models.CharField(max_length=30), size=10)
