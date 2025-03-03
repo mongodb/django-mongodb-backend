@@ -1,10 +1,25 @@
+import itertools
+
 from django.db import NotSupportedError
-from django.db.models import Index
+from django.db.models import (
+    BooleanField,
+    CharField,
+    DateField,
+    DateTimeField,
+    DecimalField,
+    FloatField,
+    Index,
+    IntegerField,
+    TextField,
+    UUIDField,
+)
 from django.db.models.lookups import BuiltinLookup
 from django.db.models.sql.query import Query
 from django.db.models.sql.where import AND, XOR, WhereNode
 from pymongo import ASCENDING, DESCENDING
 from pymongo.operations import IndexModel, SearchIndexModel
+
+from django_mongodb_backend.fields import ArrayField, ObjectIdAutoField, ObjectIdField
 
 from .query_utils import process_rhs
 
@@ -122,10 +137,79 @@ class AtlasSearchIndex(Index):
         for field_name, _ in self.fields_orders:
             field_ = model._meta.get_field(field_name)
             type_ = connection.mongo_data_types[field_.get_internal_type()]
-            fields[field_name] = {"type": type_}
+            field_path = column_prefix + model._meta.get_field(field_name).column
+            fields[field_path] = {"type": type_}
         return SearchIndexModel(
             definition={"mappings": {"dynamic": False, "fields": fields}}, name=self.name
         )
+
+
+class AtlasVectorSearchIndex(Index):
+    suffix = "atlas_vector_search"
+    ALLOWED_SIMILARITY_FUNCTIONS = ("euclidean", "cosine", "dotProduct")
+
+    def __init__(self, *expressions, similarities="cosine", **kwargs):
+        super().__init__(*expressions, **kwargs)
+        # validate the similarities types
+        if isinstance(similarities, str):
+            self._check_similarity_functions([similarities])
+        else:
+            self._check_similarity_functions(similarities)
+        self.similarities = similarities
+
+    def _check_similarity_functions(self, similarities):
+        for func in similarities:
+            if func not in self.ALLOWED_SIMILARITY_FUNCTIONS:
+                raise ValueError(
+                    f"{func} isn't a valid similarity function, options "
+                    f"'are {','.join(self.ALLOWED_SIMILARITY_FUNCTIONS)}"
+                )
+
+    def create_mongodb_index(
+        self, model, schema_editor, connection=None, field=None, unique=False, column_prefix=""
+    ):
+        similarities = (
+            itertools.cycle([self.similarities])
+            if isinstance(self.similarities, str)
+            else iter(self.similarities)
+        )
+        fields = []
+        for field_name, _ in self.fields_orders:
+            field_ = model._meta.get_field(field_name)
+            field_path = column_prefix + model._meta.get_field(field_name).column
+            mappings = {"path": field_path}
+            if isinstance(field_, ArrayField):
+                try:
+                    vector_size = int(field_.size)
+                except (ValueError, TypeError) as err:
+                    raise ValueError("Atlas vector search requires fixed size.") from err
+                if not isinstance(field_.base_field, FloatField | DecimalField):
+                    raise ValueError("Base type must be Float or Decimal.")
+                mappings.update(
+                    {
+                        "type": "vector",
+                        "numDimensions": vector_size,
+                        "similarity": next(similarities),
+                    }
+                )
+            elif isinstance(
+                field_,
+                BooleanField
+                | IntegerField
+                | DateField
+                | DateTimeField
+                | CharField
+                | TextField
+                | UUIDField
+                | ObjectIdField
+                | ObjectIdAutoField,
+            ):
+                mappings["type"] = "filter"
+            else:
+                field_type = field_.get_internal_type()
+                raise ValueError(f"Unsupported filter of type {field_type}.")
+            fields.append(mappings)
+        return SearchIndexModel(definition={"fields": fields}, name=self.name, type="vectorSearch")
 
 
 def register_indexes():

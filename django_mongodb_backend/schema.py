@@ -4,7 +4,7 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
 from pymongo.operations import IndexModel, SearchIndexModel
 
-from django_mongodb_backend.indexes import AtlasSearchIndex
+from django_mongodb_backend.indexes import AtlasSearchIndex, AtlasVectorSearchIndex
 
 from .fields import EmbeddedModelField
 from .query import wrap_database_errors
@@ -310,7 +310,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         return self.get_collection(model._meta.db_table).drop_index(index.name)
 
     @_remove_index.register
-    def _(self, index: AtlasSearchIndex, model):
+    def _(self, index: AtlasSearchIndex | AtlasVectorSearchIndex, model):
         return self.get_collection(model._meta.db_table).drop_search_index(index.name)
 
     @ignore_embedded_models
