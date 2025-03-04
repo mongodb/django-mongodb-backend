@@ -127,6 +127,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         "iregex": lambda a, b: regex_match(a, b, insensitive=True),
     }
 
+    # Maps Django internal type to atlas search index type.
     mongo_data_types = {
         "AutoField": "number",
         "BigAutoField": "number",
@@ -154,8 +155,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         "TextField": "string",
         "TimeField": "date",
         "UUIDField": "uuid",
-        "ObjectIdAutoField": ["objectId", "number"],
-        "ObjectIdField": ["objectId"],
+        "ObjectIdAutoField": "objectId",
+        "ObjectIdField": "objectId",
         "EmbeddedModelField": "embeddedDocuments",
     }
 
