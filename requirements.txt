@@ -1,2 +1,2 @@
 django>=5.1,<5.2
-pymongo>=4.11,<5.0
+pymongo>=4.7,<5.0
