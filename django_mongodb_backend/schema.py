@@ -1,5 +1,3 @@
-from functools import singledispatchmethod
-
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
 from pymongo.operations import IndexModel, SearchIndexModel
@@ -261,17 +259,12 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 model, constraint, parent_model=parent_model, column_prefix=column_prefix
             )
 
-    @singledispatchmethod
     def _add_index(self, index, model):
+        if isinstance(index, SearchIndexModel):
+            return self.get_collection(model._meta.db_table).create_search_index(index)
+        if isinstance(index, IndexModel):
+            return self.get_collection(model._meta.db_table).create_indexes([index])
         raise ValueError(f"{type(index)} isn't a supported index type")
-
-    @_add_index.register
-    def _(self, index: IndexModel, model):
-        return self.get_collection(model._meta.db_table).create_indexes([index])
-
-    @_add_index.register
-    def _(self, index: SearchIndexModel, model):
-        return self.get_collection(model._meta.db_table).create_search_index(index)
 
     @ignore_embedded_models
     def add_index(
@@ -301,17 +294,12 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         index.name = self._create_index_name(model._meta.db_table, [column_prefix + field.column])
         self.add_index(model, index, field=field, column_prefix=column_prefix)
 
-    @singledispatchmethod
     def _remove_index(self, index, model):
+        if isinstance(index, AtlasSearchIndex | AtlasVectorSearchIndex):
+            return self.get_collection(model._meta.db_table).drop_search_index(index.name)
+        if isinstance(index, Index):
+            return self.get_collection(model._meta.db_table).drop_index(index.name)
         raise ValueError(f"{type(index)} isn't a supported index type")
-
-    @_remove_index.register
-    def _(self, index: Index, model):
-        return self.get_collection(model._meta.db_table).drop_index(index.name)
-
-    @_remove_index.register
-    def _(self, index: AtlasSearchIndex | AtlasVectorSearchIndex, model):
-        return self.get_collection(model._meta.db_table).drop_search_index(index.name)
 
     @ignore_embedded_models
     def remove_index(self, model, index):
