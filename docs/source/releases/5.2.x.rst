@@ -20,6 +20,7 @@ New features
 
 - Added :class:`.SearchIndex` and :class:`.VectorSearchIndex` for use on
   a model's :attr:`Meta.indexes <django.db.models.Options.indexes>`.
+- Allowed ``EmbeddedModelField``’s ``exact`` lookup to use a model instance.
 
 Backwards incompatible changes
 ------------------------------
