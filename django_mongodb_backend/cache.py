@@ -5,8 +5,8 @@ from django.core.cache.backends.base import DEFAULT_TIMEOUT, BaseCache
 from django.core.cache.backends.db import Options
 from django.db import connections, router
 from django.utils.functional import cached_property
-from pymongo import IndexModel
-from pymongo.errors import DuplicateKeyError
+from pymongo import IndexModel, ReturnDocument
+from pymongo.errors import DuplicateKeyError, OperationFailure
 
 
 class MongoSerializer:
@@ -14,8 +14,9 @@ class MongoSerializer:
         self.protocol = pickle.HIGHEST_PROTOCOL if protocol is None else protocol
 
     def dumps(self, obj):
-        # Integers do not need serialization.
-        if isinstance(obj, int):
+        # Only skip pickling for integers, a int subclasses as bool should be
+        # pickled.
+        if type(obj) is int:  # noqa: E721
             return obj
         return pickle.dumps(obj, self.protocol)
 
@@ -83,7 +84,7 @@ class MongoDBCache(BaseCache):
         num = self.collection_for_write.count_documents({}, hint="_id_")
         if num >= self._max_entries:
             self._cull(num)
-        return self.collection_for_write.update_one(
+        self.collection_for_write.update_one(
             {"key": key},
             {
                 "$set": {
@@ -157,6 +158,24 @@ class MongoDBCache(BaseCache):
             {"key": key}, {"$set": {"expires_at": self._get_expiration_time(timeout)}}
         )
         return res.matched_count > 0
+
+    def incr(self, key, delta=1, version=None):
+        serialized_key = self.make_and_validate_key(key, version=version)
+
+        try:
+            updated = self.collection_for_write.find_one_and_update(
+                {"key": serialized_key, **self._filter_expired(expired=False)},
+                {
+                    "$inc": {"value": delta},
+                },
+                return_document=ReturnDocument.AFTER,
+            )
+        except OperationFailure as ex:
+            raise TypeError("Cannot apply incr to a value of non-numeric type") from ex
+        # Not exists
+        if updated is None:
+            raise ValueError(f"Key '{key}' not found.") from None
+        return updated["value"]
 
     def _get_expiration_time(self, timeout=None):
         if timeout is None:
