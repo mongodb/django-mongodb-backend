@@ -3,10 +3,13 @@ import difflib
 from django.core import checks
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models
+from django.db.models import lookups
+from django.db.models.expressions import Col
 from django.db.models.fields.related import lazy_related_operation
 from django.db.models.lookups import Transform
 
 from .. import forms
+from ..query_utils import process_lhs, process_rhs
 
 
 class EmbeddedModelField(models.Field):
@@ -149,6 +152,67 @@ class EmbeddedModelField(models.Field):
                 **kwargs,
             }
         )
+
+
+@EmbeddedModelField.register_lookup
+class EMFExact(lookups.Exact):
+    def model_to_dict(self, instance, connection):
+        """
+        Return a dict containing the data in a model instance, as well as a
+        dict containing the data for any embedded model fields.
+        """
+        data = {}
+        emf_data = {}
+        for f in instance._meta.concrete_fields:
+            value = f.get_db_prep_value(f.value_from_object(instance), connection)
+            if isinstance(f, EmbeddedModelField):
+                emf_data[f.name] = (
+                    self.model_to_dict(value, connection) if value is not None else (None, {})
+                )
+                continue
+            # Unless explicitly set, primary keys aren't included in embedded
+            # models.
+            if f.primary_key and value is None:
+                continue
+            data[f.name] = value
+        return data, emf_data
+
+    def get_conditions(self, emf_data, prefix=None):
+        """
+        Recursively transform a dictionary of {"field_name": {<model_to_dict>}}
+        lookups into MQL. `prefix` tracks the string that must be appended to
+        nested fields.
+        """
+        conditions = []
+        for k, v in emf_data.items():
+            v, emf_data = v
+            subprefix = f"{prefix}.{k}" if prefix else k
+            conditions += self.get_conditions(emf_data, subprefix)
+            if v is not None:
+                # Match all fields of the EmbeddedModelField.
+                conditions += [{"$eq": [f"{subprefix}.{x}", y]} for x, y in v.items()]
+            else:
+                # Match a null EmbeddedModelField.
+                conditions += [{"$eq": [f"{subprefix}", None]}]
+        return conditions
+
+    def as_mql(self, compiler, connection):
+        lhs_mql = process_lhs(self, compiler, connection)
+        value = process_rhs(self, compiler, connection)
+        if isinstance(self.lhs, Col) or (
+            isinstance(self.lhs, KeyTransform)
+            and isinstance(self.lhs.ref_field, EmbeddedModelField)
+        ):
+            if isinstance(value, models.Model):
+                value, emf_data = self.model_to_dict(value, connection)
+                # Get conditions for any nested EmbeddedModelFields.
+                conditions = self.get_conditions({lhs_mql: (value, emf_data)})
+                return {"$and": conditions}
+            raise TypeError(
+                "An EmbeddedModelField must be queried using a model instance, got %s."
+                % type(value)
+            )
+        return connection.mongo_operators[self.lookup_name](lhs_mql, value)
 
 
 class KeyTransform(Transform):
