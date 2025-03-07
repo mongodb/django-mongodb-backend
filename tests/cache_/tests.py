@@ -1,3 +1,4 @@
+"""These tests are forked from Django's tests/cache/tests.py."""
 import os
 import pickle
 import time
@@ -9,13 +10,8 @@ from django.conf import settings
 from django.core import management
 from django.core.cache import DEFAULT_CACHE_ALIAS, CacheKeyWarning, cache, caches
 from django.core.cache.backends.base import InvalidCacheBackendError
-from django.http import (
-    HttpResponse,
-)
-from django.middleware.cache import (
-    FetchFromCacheMiddleware,
-    UpdateCacheMiddleware,
-)
+from django.http import HttpResponse
+from django.middleware.cache import FetchFromCacheMiddleware, UpdateCacheMiddleware
 from django.test import RequestFactory, TestCase, modify_settings, override_settings
 
 from .models import Poll, expensive_calculation
@@ -97,12 +93,8 @@ def caches_setting_for_tests(base=None, exclude=None, **params):
 
 
 class BaseCacheTests:
-    # A common set of tests to apply to all cache backends
     factory = RequestFactory()
-
-    # Some clients raise custom exceptions when .incr() or .decr() are called
-    # with a non-integer value.
-    incr_decr_type_error = TypeError
+    incr_decr_type_error_msg = "Cannot apply %s() to a value of non-numeric type."
 
     def tearDown(self):
         cache.clear()
@@ -186,12 +178,12 @@ class BaseCacheTests:
         self.assertEqual(cache.incr("answer", 10), 52)
         self.assertEqual(cache.get("answer"), 52)
         self.assertEqual(cache.incr("answer", -10), 42)
-        with self.assertRaises(ValueError):
+        with self.assertRaisesMessage(ValueError, "Key 'does_not_exist' not found."):
             cache.incr("does_not_exist")
-        with self.assertRaises(ValueError):
+        with self.assertRaisesMessage(ValueError, "Key 'does_not_exist' not found."):
             cache.incr("does_not_exist", -1)
         cache.set("null", None)
-        with self.assertRaises(self.incr_decr_type_error):
+        with self.assertRaisesMessage(TypeError, self.incr_decr_type_error_msg % "incr"):
             cache.incr("null")
 
     def test_decr(self):
@@ -202,12 +194,12 @@ class BaseCacheTests:
         self.assertEqual(cache.decr("answer", 10), 32)
         self.assertEqual(cache.get("answer"), 32)
         self.assertEqual(cache.decr("answer", -10), 42)
-        with self.assertRaises(ValueError):
+        with self.assertRaisesMessage(ValueError, "Key 'does_not_exist' not found."):
             cache.decr("does_not_exist")
-        with self.assertRaises(ValueError):
+        with self.assertRaisesMessage(ValueError, "Key 'does_not_exist' not found."):
             cache.incr("does_not_exist", -1)
         cache.set("null", None)
-        with self.assertRaises(self.incr_decr_type_error):
+        with self.assertRaisesMessage(TypeError, self.incr_decr_type_error_msg % "decr"):
             cache.decr("null")
 
     def test_close(self):
@@ -846,12 +838,7 @@ class BaseCacheTests:
         self.assertEqual(caches["custom_key"].get("answer2"), 42)
         self.assertEqual(caches["custom_key2"].get("answer2"), 42)
 
-    @override_settings(
-        CACHE_MIDDLEWARE_ALIAS=DEFAULT_CACHE_ALIAS,
-    )
-    @modify_settings(
-        INSTALLED_APPS={"prepend": "django_mongodb_backend"},
-    )
+    @override_settings(CACHE_MIDDLEWARE_ALIAS=DEFAULT_CACHE_ALIAS)
     def test_cache_write_unpicklable_object(self):
         fetch_middleware = FetchFromCacheMiddleware(empty_response)
 
@@ -1003,7 +990,7 @@ class DBCacheRouter:
 @modify_settings(
     INSTALLED_APPS={"prepend": "django_mongodb_backend"},
 )
-class CreateCacheTableForDBCacheTests(TestCase):
+class CreateCacheCollectionTests(TestCase):
     databases = {"default", "other"}
 
     @override_settings(DATABASE_ROUTERS=[DBCacheRouter()])

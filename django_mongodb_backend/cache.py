@@ -14,8 +14,9 @@ class MongoSerializer:
         self.protocol = pickle.HIGHEST_PROTOCOL if protocol is None else protocol
 
     def dumps(self, obj):
-        # Only skip pickling for integers, a int subclasses as bool should be
-        # pickled.
+        # For better incr() and decr() atomicity, don't pickle integers.
+        # Using type() rather than isinstance() matches only integers and not
+        # subclasses like bool.
         if type(obj) is int:  # noqa: E721
             return obj
         return pickle.dumps(obj, self.protocol)
@@ -59,10 +60,7 @@ class MongoDBCache(BaseCache):
         return connections[db].get_collection(self._collection_name)
 
     def get(self, key, default=None, version=None):
-        result = self.get_many([key], version)
-        if result:
-            return result[key]
-        return default
+        return self.get_many([key], version).get(key, default)
 
     def _filter_expired(self, expired=False):
         not_expired_filter = [{"expires_at": {"$gte": datetime.utcnow()}}, {"expires_at": None}]
@@ -80,7 +78,6 @@ class MongoDBCache(BaseCache):
 
     def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
         key = self.make_and_validate_key(key, version=version)
-        serialized_data = self.serializer.dumps(value)
         num = self.collection_for_write.count_documents({}, hint="_id_")
         if num >= self._max_entries:
             self._cull(num)
@@ -89,16 +86,15 @@ class MongoDBCache(BaseCache):
             {
                 "$set": {
                     "key": key,
-                    "value": serialized_data,
+                    "value": self.serializer.dumps(value),
                     "expires_at": self._get_expiration_time(timeout),
                 }
             },
-            True,
+            upsert=True,
         )
 
     def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
         key = self.make_and_validate_key(key, version=version)
-        serialized_data = self.serializer.dumps(value)
         num = self.collection_for_write.count_documents({}, hint="_id_")
         if num >= self._max_entries:
             self._cull(num)
@@ -108,11 +104,11 @@ class MongoDBCache(BaseCache):
                 {
                     "$set": {
                         "key": key,
-                        "value": serialized_data,
+                        "value": self.serializer.dumps(value),
                         "expires_at": self._get_expiration_time(timeout),
                     }
                 },
-                True,
+                upsert=True,
             )
         except DuplicateKeyError:
             return False
@@ -171,7 +167,8 @@ class MongoDBCache(BaseCache):
                 return_document=ReturnDocument.AFTER,
             )
         except OperationFailure as ex:
-            raise TypeError("Cannot apply incr to a value of non-numeric type") from ex
+            method_name = "incr" if delta >= 1 else "decr"
+            raise TypeError(f"Cannot apply {method_name}() to a value of non-numeric type.") from ex
         # Not exists
         if updated is None:
             raise ValueError(f"Key '{key}' not found.") from None
