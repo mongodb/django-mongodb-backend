@@ -2,6 +2,13 @@
 Django MongoDB Backend 5.1.x
 ============================
 
+5.1.0 beta 2
+============
+
+*Unreleased*
+
+- Added support for :doc:`database caching </topics/cache>`.
+
 5.1.0 beta 1
 ============
 
