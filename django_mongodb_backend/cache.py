@@ -5,7 +5,7 @@ from django.core.cache.backends.base import DEFAULT_TIMEOUT, BaseCache
 from django.core.cache.backends.db import Options
 from django.db import connections, router
 from django.utils.functional import cached_property
-from pymongo import IndexModel, ReturnDocument
+from pymongo import ASCENDING, DESCENDING, IndexModel, ReturnDocument
 from pymongo.errors import DuplicateKeyError, OperationFailure
 
 
@@ -129,7 +129,7 @@ class MongoDBCache(BaseCache):
                 deleted_from = next(
                     self.collection_for_write.aggregate(
                         [
-                            {"$sort": {"expires_at": -1, "key": 1}},
+                            {"$sort": {"expires_at": DESCENDING, "key": ASCENDING}},
                             {"$skip": keep_num},
                             {"$limit": 1},
                             {"$project": {"key": 1, "expires_at": 1}},
