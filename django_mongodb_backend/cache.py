@@ -186,7 +186,7 @@ class MongoDBCache(BaseCache):
 
     def _get_expiration_time(self, timeout=None):
         if timeout is None:
-            return None
+            return datetime.max
         timestamp = self.get_backend_timeout(timeout)
         return datetime.fromtimestamp(timestamp, tz=timezone.utc)
 
