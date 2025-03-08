@@ -63,6 +63,11 @@ class MongoDBCache(BaseCache):
         return self.get_many([key], version).get(key, default)
 
     def _filter_expired(self, expired=False):
+        """
+        Create a filter to exclude expired data by default
+        or include only expired data if `expired` is True.
+        """
+        # The data isn't expired if expires_at > now or is null.
         not_expired_filter = [{"expires_at": {"$gte": datetime.utcnow()}}, {"expires_at": None}]
         operator = "$nor" if expired else "$or"
         return {operator: not_expired_filter}
@@ -120,7 +125,7 @@ class MongoDBCache(BaseCache):
         else:
             keep_num = num - num // self._cull_frequency
             try:
-                # Delete the first expiration date.
+                # Delete from the first expiration date.
                 deleted_from = next(
                     self.collection_for_write.aggregate(
                         [
@@ -132,8 +137,10 @@ class MongoDBCache(BaseCache):
                     )
                 )
             except StopIteration:
+                # Empty result, nothing to delete.
                 pass
             else:
+                # Remove from key.
                 self.collection_for_write.delete_many(
                     {
                         "$or": [
