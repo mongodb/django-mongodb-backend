@@ -125,7 +125,8 @@ class MongoDBCache(BaseCache):
         else:
             keep_num = num - num // self._cull_frequency
             try:
-                # Delete from the first expiration date.
+                # Find the first entry beyond the retention limit,
+                # prioritizing earlier expiration dates.
                 deleted_from = next(
                     self.collection_for_write.aggregate(
                         [
@@ -137,10 +138,12 @@ class MongoDBCache(BaseCache):
                     )
                 )
             except StopIteration:
-                # Empty result, nothing to delete.
+                # No entries found beyond the retention limit, nothing to delete.
                 pass
             else:
-                # Remove from key.
+                # Delete all entries with an earlier expiration date.
+                # If multiple entries share the same expiration date,
+                # delete those with a greater or equal key.
                 self.collection_for_write.delete_many(
                     {
                         "$or": [
