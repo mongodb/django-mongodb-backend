@@ -54,3 +54,12 @@ as relational fields. For example, to retrieve all customers who have an
 address with the city "New York"::
 
     >>> Customer.objects.filter(address__city="New York")
+
+You can also query using a model instance. Unlike a normal relational lookup
+which does the lookup by primary key, since embedded models typically don't
+have a primary key set, the query requires that every field match. For example,
+this query gives customers with addresses with the city "New York" and all
+other fields of the address equal to their default (:attr:`Field.default
+<django.db.models.Field.default>`, ``None``, or an empty string).
+
+    >>> Customer.objects.filter(address=Address(city="New York"))

@@ -2,6 +2,14 @@
 Django MongoDB Backend 5.1.x
 ============================
 
+5.1.0 beta 2
+============
+
+*Unreleased*
+
+- Added support to ``EmbeddedModelField`` for the ``QuerySet`` ``exact`` lookup
+  using a model instance.
+
 5.1.0 beta 1
 ============
 

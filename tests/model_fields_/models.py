@@ -130,3 +130,31 @@ class Library(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class A(models.Model):
+    b = EmbeddedModelField("B")
+
+
+class B(EmbeddedModel):
+    c = EmbeddedModelField("C")
+    name = models.CharField(max_length=100)
+    value = models.IntegerField()
+
+
+class C(EmbeddedModel):
+    d = EmbeddedModelField("D")
+    name = models.CharField(max_length=100)
+    value = models.IntegerField()
+
+
+class D(EmbeddedModel):
+    e = EmbeddedModelField("E")
+    nullable_e = EmbeddedModelField("E", null=True, blank=True)
+    name = models.CharField(max_length=100)
+    value = models.IntegerField()
+
+
+class E(EmbeddedModel):
+    name = models.CharField(max_length=100)
+    value = models.IntegerField()

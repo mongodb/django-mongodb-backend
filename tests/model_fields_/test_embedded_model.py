@@ -2,7 +2,7 @@ import operator
 from datetime import timedelta
 
 from django.core.exceptions import FieldDoesNotExist, ValidationError
-from django.db import models
+from django.db import connection, models
 from django.db.models import (
     Exists,
     ExpressionWrapper,
@@ -17,14 +17,7 @@ from django.test.utils import isolate_apps
 from django_mongodb_backend.fields import EmbeddedModelField
 from django_mongodb_backend.models import EmbeddedModel
 
-from .models import (
-    Address,
-    Author,
-    Book,
-    Data,
-    Holder,
-    Library,
-)
+from .models import A, Address, Author, B, Book, C, D, Data, E, Holder, Library
 from .utils import truncate_ms
 
 
@@ -116,6 +109,55 @@ class QueryingTests(TestCase):
     def test_order_by_embedded_field(self):
         qs = Holder.objects.filter(data__integer__gt=3).order_by("-data__integer")
         self.assertSequenceEqual(qs, list(reversed(self.objs[4:])))
+
+    def test_exact_with_model(self):
+        data = Holder.objects.first().data
+        self.assertEqual(
+            Holder.objects.filter(data=data).get().data.integer, self.objs[0].data.integer
+        )
+
+    def test_exact_with_model_ignores_key_order(self):
+        # Due to the possibility of schema changes or the reordering of a
+        # model's fields, a lookup must work if an embedded document has its
+        # keys in a different order than what's declared on the embedded model.
+        connection.get_collection("model_fields__holder").insert_one(
+            {
+                "data": {
+                    "auto_now": None,
+                    "auto_now_add": None,
+                    "json_value": None,
+                    "integer": 100,
+                }
+            }
+        )
+        self.assertEqual(Holder.objects.filter(data=Data(integer=100)).get().data.integer, 100)
+
+    def test_exact_with_nested_model(self):
+        address = Address(city="NYC", state="NY")
+        author = Author(name="Shakespeare", age=55, address=address)
+        obj = Book.objects.create(author=author)
+        self.assertCountEqual(Book.objects.filter(author=author), [obj])
+        self.assertCountEqual(Book.objects.filter(author__address=address), [obj])
+
+    def test_exact_with_deeply_nested_models(self):
+        e1 = E(name="E1", value=5)
+        d1 = D(name="D1", value=4, e=e1)
+        c1 = C(name="C1", value=3, d=d1)
+        b1 = B(name="B1", value=2, c=c1)
+        a1 = A.objects.create(b=b1)
+        e2 = E(name="E2", value=6)
+        d2 = D(name="D2", value=4, e=e1, nullable_e=e2)
+        c2 = C(name="C2", value=3, d=d2)
+        b2 = B(name="B2", value=2, c=c2)
+        a2 = A.objects.create(b=b2)
+        self.assertCountEqual(A.objects.filter(b=b1), [a1])
+        self.assertCountEqual(A.objects.filter(b__c=c1), [a1])
+        self.assertCountEqual(A.objects.filter(b__c__d=d1), [a1])
+        self.assertCountEqual(A.objects.filter(b__c__d__e=e1), [a1, a2])
+        self.assertCountEqual(A.objects.filter(b=b2), [a2])
+        self.assertCountEqual(A.objects.filter(b__c=c2), [a2])
+        self.assertCountEqual(A.objects.filter(b__c__d=d2), [a2])
+        self.assertCountEqual(A.objects.filter(b__c__d__nullable_e=e2), [a2])
 
     def test_embedded_json_field_lookups(self):
         objs = [
