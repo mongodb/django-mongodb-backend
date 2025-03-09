@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from ..forms import SimpleArrayField
 from ..query_utils import process_lhs, process_rhs
 from ..utils import prefix_validation_error
+from .validators import LengthValidator
 
 __all__ = ["ArrayField"]
 
@@ -27,13 +28,22 @@ class ArrayField(CheckFieldDefaultMixin, Field):
     }
     _default_hint = ("list", "[]")
 
-    def __init__(self, base_field, size=None, **kwargs):
+    def __init__(self, base_field, size=None, fixed_size=None, **kwargs):
         self.base_field = base_field
         self.size = size
+        self.fixed_size = fixed_size
+        if fixed_size and size:
+            raise ValueError("Cannot define both, size and fixed_size")
+
         if self.size:
             self.default_validators = [
                 *self.default_validators,
                 ArrayMaxLengthValidator(self.size),
+            ]
+        if self.fixed_size:
+            self.default_validators = [
+                *self.default_validators,
+                LengthValidator(self.fixed_size),
             ]
         # For performance, only add a from_db_value() method if the base field
         # implements it.
