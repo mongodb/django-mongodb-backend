@@ -180,7 +180,7 @@ class AtlasVectorSearchIndex(Index):
             mappings = {"path": field_path}
             if isinstance(field_, ArrayField):
                 try:
-                    vector_size = int(field_.size)
+                    vector_size = int(field_.fixed_size)
                 except (ValueError, TypeError) as err:
                     raise ValueError("Atlas vector search requires fixed size.") from err
                 if not isinstance(field_.base_field, FloatField | DecimalField):
