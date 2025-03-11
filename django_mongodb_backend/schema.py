@@ -2,7 +2,7 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
 from pymongo.operations import IndexModel, SearchIndexModel
 
-from django_mongodb_backend.indexes import AtlasSearchIndex, AtlasVectorSearchIndex
+from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 
 from .fields import EmbeddedModelField
 from .query import wrap_database_errors
@@ -259,13 +259,6 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 model, constraint, parent_model=parent_model, column_prefix=column_prefix
             )
 
-    def _add_index(self, index, model):
-        if isinstance(index, SearchIndexModel):
-            return self.get_collection(model._meta.db_table).create_search_index(index)
-        if isinstance(index, IndexModel):
-            return self.get_collection(model._meta.db_table).create_indexes([index])
-        raise ValueError(f"{type(index)} isn't a supported index type")
-
     @ignore_embedded_models
     def add_index(
         self, model, index, *, field=None, unique=False, column_prefix="", parent_model=None
@@ -280,7 +273,12 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         )
         if idx:
             model = parent_model or model
-            self._add_index(idx, model)
+            if isinstance(idx, SearchIndexModel):
+                self.get_collection(model._meta.db_table).create_search_index(idx)
+            elif isinstance(idx, IndexModel):
+                self.get_collection(model._meta.db_table).create_indexes([idx])
+            else:
+                raise ValueError(f"{type(idx)} isn't a supported index type")
 
     def _add_composed_index(self, model, field_names, column_prefix="", parent_model=None):
         """Add an index on the given list of field_names."""
@@ -294,18 +292,16 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         index.name = self._create_index_name(model._meta.db_table, [column_prefix + field.column])
         self.add_index(model, index, field=field, column_prefix=column_prefix)
 
-    def _remove_index(self, index, model):
-        if isinstance(index, AtlasSearchIndex | AtlasVectorSearchIndex):
-            return self.get_collection(model._meta.db_table).drop_search_index(index.name)
-        if isinstance(index, Index):
-            return self.get_collection(model._meta.db_table).drop_index(index.name)
-        raise ValueError(f"{type(index)} isn't a supported index type")
-
     @ignore_embedded_models
     def remove_index(self, model, index):
         if index.contains_expressions:
             return
-        self._remove_index(index, model)
+        if isinstance(index, SearchIndex | VectorSearchIndex):
+            self.get_collection(model._meta.db_table).drop_search_index(index.name)
+        elif isinstance(index, Index):
+            self.get_collection(model._meta.db_table).drop_index(index.name)
+        else:
+            raise ValueError(f"{type(index)} isn't a supported index type")
 
     def _remove_composed_index(
         self, model, field_names, constraint_kwargs, column_prefix="", parent_model=None

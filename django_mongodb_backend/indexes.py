@@ -124,8 +124,8 @@ def create_mongodb_index(
     return IndexModel(index_orders, name=self.name, **kwargs)
 
 
-class AtlasSearchIndex(Index):
-    suffix = "atlas_search"
+class SearchIndex(Index):
+    suffix = "search"
 
     def __init__(self, *expressions, **kwargs):
         super().__init__(*expressions, **kwargs)
@@ -144,8 +144,8 @@ class AtlasSearchIndex(Index):
         )
 
 
-class AtlasVectorSearchIndex(Index):
-    suffix = "atlas_vector_search"
+class VectorSearchIndex(Index):
+    suffix = "vector_search"
     ALLOWED_SIMILARITY_FUNCTIONS = ("euclidean", "cosine", "dotProduct")
 
     def __init__(self, *expressions, similarities="cosine", **kwargs):
