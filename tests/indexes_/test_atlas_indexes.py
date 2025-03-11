@@ -4,7 +4,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db import connection
 from django.test import TestCase
 
-from django_mongodb_backend.indexes import AtlasSearchIndex, AtlasVectorSearchIndex
+from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 
 from .models import Article, Data
 
@@ -34,7 +34,7 @@ class AtlasIndexTests(TestCase):
 
     def test_simple(self):
         with connection.schema_editor() as editor:
-            index = AtlasSearchIndex(
+            index = SearchIndex(
                 name="recent_article_idx",
                 fields=["number"],
             )
@@ -43,7 +43,7 @@ class AtlasIndexTests(TestCase):
 
     def test_multiple_fields(self):
         with connection.schema_editor() as editor:
-            index = AtlasSearchIndex(
+            index = SearchIndex(
                 name="recent_article_idx",
                 fields=["headline", "number", "body", "data", "embedded", "auto_now"],
             )
@@ -83,7 +83,7 @@ class AtlasIndexTests(TestCase):
             self.assertAddRemoveIndex(editor, Article, index)
 
     def test_field_not_exists(self):
-        index = AtlasSearchIndex(
+        index = SearchIndex(
             name="recent_article_idx",
             fields=["headline", "non_existing_name"],
         )
@@ -137,7 +137,7 @@ class AtlasIndexTestsWithData(TestCase):
 
     def test_simple(self):
         with connection.schema_editor() as editor:
-            index = AtlasSearchIndex(
+            index = SearchIndex(
                 name="recent_article_idx",
                 fields=["number"],
             )
@@ -146,7 +146,7 @@ class AtlasIndexTestsWithData(TestCase):
 
     def test_multiple_fields(self):
         with connection.schema_editor() as editor:
-            index = AtlasSearchIndex(
+            index = SearchIndex(
                 name="recent_article_idx",
                 fields=["headline", "number", "body", "data", "embedded", "auto_now"],
             )
@@ -186,7 +186,7 @@ class AtlasIndexTestsWithData(TestCase):
             self.assertAddRemoveIndex(editor, Article, index)
 
 
-class AtlasSearchIndexTests(TestCase):
+class SearchIndexTests(TestCase):
     # Schema editor is used to  create the index to test that it works.
     # available_apps = ["indexes"]
     available_apps = None  # could be removed?
@@ -209,9 +209,9 @@ class AtlasSearchIndexTests(TestCase):
             ),
         )
 
-    def test_simple_atlas_vector_search(self):
+    def test_simple_vector_search(self):
         with connection.schema_editor() as editor:
-            index = AtlasVectorSearchIndex(
+            index = VectorSearchIndex(
                 name="recent_article_idx",
                 fields=["number"],
             )
@@ -220,7 +220,7 @@ class AtlasSearchIndexTests(TestCase):
 
     def test_multiple_fields(self):
         with connection.schema_editor() as editor:
-            index = AtlasVectorSearchIndex(
+            index = VectorSearchIndex(
                 name="recent_article_idx",
                 fields=["headline", "number", "body", "description_embedded"],
             )
@@ -255,7 +255,7 @@ class AtlasSearchIndexTests(TestCase):
             self.assertAddRemoveIndex(editor, Article, index)
 
     def test_field_not_exists(self):
-        index = AtlasVectorSearchIndex(
+        index = VectorSearchIndex(
             name="recent_article_idx",
             fields=["headline", "non_existing_name", "title_embedded"],
         )
@@ -267,7 +267,7 @@ class AtlasSearchIndexTests(TestCase):
                 editor.add_index(index=index, model=Article)
 
 
-class AtlasSearchIndexTestsWithData(TestCase):
+class SearchIndexTestsWithData(TestCase):
     available_apps = None  # could be removed?
 
     @classmethod
@@ -307,9 +307,9 @@ class AtlasSearchIndexTestsWithData(TestCase):
             ),
         )
 
-    def test_simple_atlas_vector_search(self):
+    def test_simple_vector_search(self):
         with connection.schema_editor() as editor:
-            index = AtlasVectorSearchIndex(
+            index = VectorSearchIndex(
                 name="recent_article_idx",
                 fields=["number"],
             )
@@ -318,7 +318,7 @@ class AtlasSearchIndexTestsWithData(TestCase):
 
     def test_multiple_fields(self):
         with connection.schema_editor() as editor:
-            index = AtlasVectorSearchIndex(
+            index = VectorSearchIndex(
                 name="recent_article_idx",
                 fields=["headline", "number", "body", "description_embedded"],
             )
@@ -367,7 +367,7 @@ class AtlasSearchIndexTestsWithData(TestCase):
                 number_list=[2] * 22,
                 name_list=[f"name_{2}"] * 7,
             )
-            index = AtlasVectorSearchIndex(
+            index = VectorSearchIndex(
                 name="recent_article_idx",
                 fields=["headline", "number", "body", "description_embedded"],
             )
