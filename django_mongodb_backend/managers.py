@@ -1,11 +1,16 @@
 from django.db import NotSupportedError
 from django.db.models.manager import BaseManager
 
-from .queryset import MongoQuerySet
+from .queryset import MongoQuerySet, MultiMongoQuerySet
 
 
 class MongoManager(BaseManager.from_queryset(MongoQuerySet)):
     pass
+
+
+class MultiMongoManager(BaseManager.from_queryset(MultiMongoQuerySet)):
+    def get_queryset(self):
+        return super().get_queryset().filter(_t__in=self.model.subclasses())
 
 
 class EmbeddedModelManager(BaseManager):
