@@ -2,7 +2,7 @@ from django.db.backends.base.introspection import BaseDatabaseIntrospection
 from django.db.models import Index
 from pymongo import ASCENDING, DESCENDING
 
-from django_mongodb_backend.indexes import AtlasSearchIndex, AtlasVectorSearchIndex
+from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 
 
 class DatabaseIntrospection(BaseDatabaseIntrospection):
@@ -33,18 +33,18 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
             }
         return constraints
 
-    def _get_atlas_index_info(self, table_name):
+    def _get_search_index_info(self, table_name):
         constraints = {}
         indexes = self.connection.get_collection(table_name).list_search_indexes()
         for details in indexes:
             if details["type"] == "vectorSearch":
                 columns = [field["path"] for field in details["latestDefinition"]["fields"]]
-                type_ = AtlasVectorSearchIndex.suffix
+                type_ = VectorSearchIndex.suffix
                 options = details
             else:
                 columns = list(details["latestDefinition"]["mappings"].get("fields", {}).keys())
                 options = details["latestDefinition"]["mappings"]
-                type_ = AtlasSearchIndex.suffix
+                type_ = SearchIndex.suffix
             constraints[details["name"]] = {
                 "check": False,
                 "columns": columns,
@@ -60,4 +60,4 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         return constraints
 
     def get_constraints(self, cursor, table_name):
-        return {**self._get_index_info(table_name), **self._get_atlas_index_info(table_name)}
+        return {**self._get_index_info(table_name), **self._get_search_index_info(table_name)}
