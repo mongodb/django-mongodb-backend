@@ -269,7 +269,6 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             field=field,
             unique=unique,
             column_prefix=column_prefix,
-            connection=self.connection,
         )
         if idx:
             model = parent_model or model

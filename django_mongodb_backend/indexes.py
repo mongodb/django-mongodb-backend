@@ -80,7 +80,6 @@ def create_mongodb_index(
     model,
     schema_editor,
     *,
-    connection=None,  # noqa: ARG001
     field=None,
     unique=False,
     column_prefix="",
@@ -126,17 +125,49 @@ def create_mongodb_index(
 
 class SearchIndex(Index):
     suffix = "search"
+    # Maps Django internal type to atlas search index type.
+    mongo_data_types = {
+        "AutoField": "number",
+        "BigAutoField": "number",
+        "BinaryField": "string",
+        "BooleanField": "boolean",
+        "CharField": "string",
+        "DateField": "date",
+        "DateTimeField": "date",
+        "DecimalField": "number",
+        "DurationField": "number",
+        "FileField": "string",
+        "FilePathField": "string",
+        "FloatField": "double",
+        "IntegerField": "number",
+        "BigIntegerField": "number",
+        "GenericIPAddressField": "string",
+        "JSONField": "document",
+        "OneToOneField": "number",
+        "PositiveBigIntegerField": "number",
+        "PositiveIntegerField": "number",
+        "PositiveSmallIntegerField": "number",
+        "SlugField": "string",
+        "SmallAutoField": "number",
+        "SmallIntegerField": "number",
+        "TextField": "string",
+        "TimeField": "date",
+        "UUIDField": "uuid",
+        "ObjectIdAutoField": "objectId",
+        "ObjectIdField": "objectId",
+        "EmbeddedModelField": "embeddedDocuments",
+    }
 
     def __init__(self, *expressions, **kwargs):
         super().__init__(*expressions, **kwargs)
 
     def create_mongodb_index(
-        self, model, schema_editor, connection=None, field=None, unique=False, column_prefix=""
+        self, model, schema_editor, field=None, unique=False, column_prefix=""
     ):
         fields = {}
         for field_name, _ in self.fields_orders:
             field_ = model._meta.get_field(field_name)
-            type_ = connection.mongo_data_types[field_.get_internal_type()]
+            type_ = self.mongo_data_types[field_.get_internal_type()]
             field_path = column_prefix + model._meta.get_field(field_name).column
             fields[field_path] = {"type": type_}
         return SearchIndexModel(
@@ -166,7 +197,7 @@ class VectorSearchIndex(Index):
                 )
 
     def create_mongodb_index(
-        self, model, schema_editor, connection=None, field=None, unique=False, column_prefix=""
+        self, model, schema_editor, field=None, unique=False, column_prefix=""
     ):
         similarities = (
             itertools.cycle([self.similarities])
