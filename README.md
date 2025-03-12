@@ -18,7 +18,7 @@ https://django-mongodb-backend.readthedocs.io/en/latest/.
 Use the version of `django-mongodb-backend` that corresponds to your version of
 Django. For example, to get the latest compatible release for Django 5.1.x:
 ```bash
-$ pip install --pre django-mongodb-backend==5.1.*
+pip install --pre django-mongodb-backend==5.1.*
 ```
 (Until the package is out of beta, you must use pip's `--pre` option.)
 
@@ -33,14 +33,14 @@ at the end of the template link corresponds to your version of Django.
 
 You can check what version of Django you're using with:
 ```bash
-$ django-admin --version
+django-admin --version
 ```
 
 The snippet below specifies `5.1.x.zip` at the end of
 the template url to get the template for any Django version matching 5.1:
 
 ```bash
-$ django-admin startproject example --template https://github.com/mongodb-labs/django-mongodb-project/archive/refs/heads/5.1.x.zip
+django-admin startproject example --template https://github.com/mongodb-labs/django-mongodb-project/archive/refs/heads/5.1.x.zip
 ```
 
 
@@ -60,7 +60,7 @@ DATABASES = {
 ### Run the server
 To verify that you installed Django MongoDB Backend and correctly configured your project, run the following command from your project root:
 ```bash
-$ python manage.py runserver
+python manage.py runserver
 ```
 Then, visit http://127.0.0.1:8000/. This page displays a "Congratulations!" message and an image of a rocket.
 
