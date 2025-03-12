@@ -127,39 +127,6 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         "iregex": lambda a, b: regex_match(a, b, insensitive=True),
     }
 
-    # Maps Django internal type to atlas search index type.
-    mongo_data_types = {
-        "AutoField": "number",
-        "BigAutoField": "number",
-        "BinaryField": "string",
-        "BooleanField": "boolean",
-        "CharField": "string",
-        "DateField": "date",
-        "DateTimeField": "date",
-        "DecimalField": "number",
-        "DurationField": "number",
-        "FileField": "string",
-        "FilePathField": "string",
-        "FloatField": "double",
-        "IntegerField": "number",
-        "BigIntegerField": "number",
-        "GenericIPAddressField": "string",
-        "JSONField": "document",
-        "OneToOneField": "number",
-        "PositiveBigIntegerField": "number",
-        "PositiveIntegerField": "number",
-        "PositiveSmallIntegerField": "number",
-        "SlugField": "string",
-        "SmallAutoField": "number",
-        "SmallIntegerField": "number",
-        "TextField": "string",
-        "TimeField": "date",
-        "UUIDField": "uuid",
-        "ObjectIdAutoField": "objectId",
-        "ObjectIdField": "objectId",
-        "EmbeddedModelField": "embeddedDocuments",
-    }
-
     display_name = "MongoDB"
     vendor = "mongodb"
     Database = Database
