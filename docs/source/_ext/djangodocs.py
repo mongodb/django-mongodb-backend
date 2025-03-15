@@ -1,3 +1,6 @@
+from sphinx.domains.std import Cmdoption
+
+
 def setup(app):
     app.add_object_type(
         directivename="django-admin",
@@ -14,3 +17,4 @@ def setup(app):
         rolename="setting",
         indextemplate="pair: %s; setting",
     )
+    app.add_directive("django-admin-option", Cmdoption)

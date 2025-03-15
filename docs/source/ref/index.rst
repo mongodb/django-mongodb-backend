@@ -7,4 +7,5 @@ API reference
 
    models/index
    forms
+   django-admin
    utils
