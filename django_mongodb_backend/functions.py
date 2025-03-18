@@ -1,5 +1,6 @@
 from django.db import NotSupportedError
 from django.db.models.expressions import Func
+from django.db.models.functions import JSONArray
 from django.db.models.functions.comparison import Cast, Coalesce, Greatest, Least, NullIf
 from django.db.models.functions.datetime import (
     Extract,
@@ -240,6 +241,7 @@ def register_functions():
     Cot.as_mql = cot
     Extract.as_mql = extract
     Func.as_mql = func
+    JSONArray.as_mql = process_lhs
     Left.as_mql = left
     Length.as_mql = length
     Log.as_mql = log
