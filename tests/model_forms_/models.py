@@ -1,6 +1,6 @@
 from django.db import models
 
-from django_mongodb_backend.fields import EmbeddedModelField
+from django_mongodb_backend.fields import EmbeddedModelField, MultipleEmbeddedModelField
 from django_mongodb_backend.models import EmbeddedModel
 
 
@@ -26,3 +26,19 @@ class Publisher(EmbeddedModel):
 class Book(models.Model):
     title = models.CharField(max_length=50)
     publisher = EmbeddedModelField(Publisher)
+
+
+class Review(EmbeddedModel):
+    title = models.CharField(max_length=255)
+    rating = models.IntegerField()
+
+    def __str__(self):
+        return self.title
+
+
+class Movie(models.Model):
+    title = models.CharField(max_length=255)
+    reviews = MultipleEmbeddedModelField(Review, null=True)
+
+    def __str__(self):
+        return self.title
