@@ -88,8 +88,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         # of $setIsSubset must be arrays. Second argument is of type: null"
         # https://jira.mongodb.org/browse/SERVER-99186
         "model_fields_.test_arrayfield.QueryingTests.test_contained_by_subquery",
-        # JSONArray not implemented.
-        "db_functions.json.test_json_array.JSONArrayTests",
         # Value.as_mql() doesn't call output_field.get_db_prep_save():
         # https://github.com/mongodb/django-mongodb-backend/issues/282
         "model_fields.test_jsonfield.TestSaveLoad.test_bulk_update_custom_get_prep_value",
