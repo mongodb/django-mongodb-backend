@@ -87,8 +87,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         # of $setIsSubset must be arrays. Second argument is of type: null"
         # https://jira.mongodb.org/browse/SERVER-99186
         "model_fields_.test_arrayfield.QueryingTests.test_contained_by_subquery",
-        # JSONArray not implemented.
-        "db_functions.json.test_json_array.JSONArrayTests",
         # Some usage of prefetch_related() raises "ColPairs is not supported."
         "known_related_objects.tests.ExistingRelatedInstancesTests.test_one_to_one_multi_prefetch_related",
         "known_related_objects.tests.ExistingRelatedInstancesTests.test_one_to_one_prefetch_related",
