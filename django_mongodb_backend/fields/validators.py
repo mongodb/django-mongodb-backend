@@ -13,7 +13,7 @@ class LengthValidator(BaseValidator):
     code = "length"
 
     def compare(self, a, b):
-        return a == b
+        return a != b
 
     def clean(self, x):
         return len(x)

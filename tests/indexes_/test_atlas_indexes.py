@@ -7,9 +7,8 @@ from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 from .models import Article
 
 
-class AtlasIndexTests(TestCase):
-    # Schema editor is used to  create the index to test that it works.
-    # available_apps = ["indexes"]
+class SearchIndexTests(TestCase):
+    # Tests for creating, validating, and removing search indexes using Django's schema editor.
     available_apps = None
 
     def assertAddRemoveIndex(self, editor, model, index):
@@ -93,10 +92,10 @@ class AtlasIndexTests(TestCase):
                 editor.add_index(index=index, model=Article)
 
 
-class SearchIndexTests(TestCase):
-    # Schema editor is used to  create the index to test that it works.
-    # available_apps = ["indexes"]
-    available_apps = None  # could be removed?
+class VectorSearchIndexTests(TestCase):
+    # Tests for creating, validating, and removing vector search indexes
+    # using Django's schema editor.
+    available_apps = None
 
     def assertAddRemoveIndex(self, editor, model, index):
         editor.add_index(index=index, model=model)
