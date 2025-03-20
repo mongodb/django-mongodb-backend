@@ -126,7 +126,7 @@ def create_mongodb_index(
 class SearchIndex(Index):
     suffix = "search"
     # Maps Django internal type to atlas search index type.
-    mongo_data_types = {
+    search_index_data_types = {
         "AutoField": "number",
         "BigAutoField": "number",
         "BinaryField": "string",
@@ -167,7 +167,7 @@ class SearchIndex(Index):
         fields = {}
         for field_name, _ in self.fields_orders:
             field_ = model._meta.get_field(field_name)
-            type_ = self.mongo_data_types[field_.get_internal_type()]
+            type_ = self.search_index_data_types[field_.get_internal_type()]
             field_path = column_prefix + model._meta.get_field(field_name).column
             fields[field_path] = {"type": type_}
         return SearchIndexModel(
