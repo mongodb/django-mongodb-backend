@@ -53,6 +53,6 @@ jobs:
         uses: wavev/mongodb-github-action@atlas
         with:
           mongodb-image: mongodb/mongodb-atlas-local
-          mongodb-version: 7.0.4
+          mongodb-version: 7.0.15
       - name: Run tests
         run: python3 django_repo/tests/runtests_.py
