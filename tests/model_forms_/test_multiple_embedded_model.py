@@ -32,6 +32,28 @@ class ModelFormTests(TestCase):
         self.assertEqual(review.title, "Not so great")
         self.assertEqual(review.rating, 1)
 
+    def test_no_change(self):
+        movie = Movie.objects.create(
+            title="Lion King",
+            reviews=[Review(title="Great!", rating=10)],
+        )
+        data = {
+            "title": "Lion King",
+            "reviews-0-title": "Great!",
+            "reviews-0-rating": "10",
+            "reviews-TOTAL_FORMS": 2,
+            "reviews-INITIAL_FORMS": 1,
+        }
+        form = MovieForm(data, instance=movie)
+        self.assertTrue(form.is_valid())
+        form.save()
+        self.assertEqual(form.changed_data, [])
+        movie.refresh_from_db()
+        self.assertEqual(len(movie.reviews), 1)
+        review = movie.reviews[0]
+        self.assertEqual(review.title, "Great!")
+        self.assertEqual(review.rating, 10)
+
     def test_update(self):
         movie = Movie.objects.create(
             title="Lion King",
@@ -47,6 +69,7 @@ class ModelFormTests(TestCase):
         form = MovieForm(data, instance=movie)
         self.assertTrue(form.is_valid())
         form.save()
+        self.assertEqual(form.changed_data, ["reviews"])
         movie.refresh_from_db()
         self.assertEqual(len(movie.reviews), 1)
         review = movie.reviews[0]
@@ -149,34 +172,38 @@ class ModelFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertEqual(form.errors["reviews"], ["This field cannot be blank."])
 
-    #    def test_nullable_field(self):
-    #        """A nullable EmbeddedModelField is removed if all fields are empty."""
-    #        author = Author.objects.create(
-    #            name="Bob",
-    #            age=50,
-    #            address=Address(city="NYC", state="NY", zip_code="10001"),
-    #            billing_address=Address(city="NYC", state="NY", zip_code="10001"),
-    #        )
-    #        data = {
-    #            "name": "Bob",
-    #            "age": 51,
-    #            "address-po_box": "",
-    #            "address-city": "New York City",
-    #            "address-state": "NY",
-    #            "address-zip_code": "10001",
-    #            "billing_address-po_box": "",
-    #            "billing_address-city": "",
-    #            "billing_address-state": "",
-    #            "billing_address-zip_code": "",
-    #        }
-    #        form = AuthorForm(data, instance=author)
-    #        self.assertTrue(form.is_valid())
-    #        form.save()
-    #        author.refresh_from_db()
-    #        self.assertIsNone(author.billing_address)
+    def test_nullable_field(self):
+        """A nullable field is emptied if all rows are deleted."""
+        movie = Movie.objects.create(
+            title="Lion King",
+            reviews=[Review(title="Great!", rating=10)],
+            featured_reviews=[Review(title="Okay", rating=5)],
+        )
+        data = {
+            "title": "Lion King",
+            "reviews-0-title": "Not so great",
+            "reviews-0-rating": "1",
+            "reviews-0-DELETE": "",
+            "reviews-TOTAL_FORMS": 2,
+            "reviews-INITIAL_FORMS": 1,
+            "featured-reviews-0-title": "Okay",
+            "featured-reviews-0-rating": "5",
+            "featured-reviews-0-DELETE": "1",
+            "featured-reviews-TOTAL_FORMS": 2,
+            "featured-reviews-INITIAL_FORMS": 1,
+        }
+        form = MovieForm(data, instance=movie)
+        self.assertTrue(form.is_valid())
+        form.save()
+        movie.refresh_from_db()
+        self.assertEqual(len(movie.featured_reviews), 0)
 
     def test_rendering(self):
         form = MovieForm()
+        self.assertHTMLEqual(
+            str(form.fields["reviews"].get_bound_field(form, "reviews").label_tag()),
+            '<label for="id_reviews">Reviews:</label>',
+        )
         self.assertHTMLEqual(
             str(form.fields["reviews"].get_bound_field(form, "reviews")),
             """
@@ -203,6 +230,64 @@ class ModelFormTests(TestCase):
             <input type="hidden" name="reviews-TOTAL_FORMS" value="1"
                 id="id_reviews-TOTAL_FORMS"><input type="hidden"
                 name="reviews-INITIAL_FORMS" value="0"
+                id="id_reviews-INITIAL_FORMS">
+            <input type="hidden" name="reviews-MIN_NUM_FORMS" value="0"
+                id="id_reviews-MIN_NUM_FORMS"><input type="hidden"
+                name="reviews-MAX_NUM_FORMS" value="1000" id="id_reviews-MAX_NUM_FORMS">""",
+        )
+
+    def test_rendering_initial(self):
+        movie = Movie.objects.create(
+            title="Lion King",
+            reviews=[Review(title="Great!", rating=10)],
+        )
+        form = MovieForm(instance=movie)
+        self.assertHTMLEqual(
+            str(form.fields["reviews"].get_bound_field(form, "reviews")),
+            """
+            <table>
+            <tbody><tr>
+                <th><label for="id_reviews-0-title">Title:</label></th>
+                <td>
+                  <input type="text" name="reviews-0-title" maxlength="255"
+                    id="id_reviews-0-title" value="Great!">
+                </td>
+              </tr>
+              <tr>
+                <th><label for="id_reviews-0-rating">Rating:</label></th>
+                <td>
+                  <input type="number" name="reviews-0-rating"
+                    id="id_reviews-0-rating" value="10">
+                </td>
+              </tr>
+              <tr>
+                <th><label for="id_reviews-0-DELETE">Delete:</label></th>
+                <td>
+                  <input type="checkbox" name="reviews-0-DELETE" id="id_reviews-0-DELETE">
+                </td>
+              </tr></tbody>
+            <tbody><tr>
+                <th><label for="id_reviews-1-title">Title:</label></th>
+                <td>
+                  <input type="text" name="reviews-1-title" maxlength="255" id="id_reviews-1-title">
+                </td>
+              </tr>
+              <tr>
+                <th><label for="id_reviews-1-rating">Rating:</label></th>
+                <td>
+                  <input type="number" name="reviews-1-rating" id="id_reviews-1-rating">
+                </td>
+              </tr>
+              <tr>
+                <th><label for="id_reviews-1-DELETE">Delete:</label></th>
+                <td>
+                  <input type="checkbox" name="reviews-1-DELETE" id="id_reviews-1-DELETE">
+                </td>
+              </tr></tbody>
+            </table>
+            <input type="hidden" name="reviews-TOTAL_FORMS" value="2"
+                id="id_reviews-TOTAL_FORMS"><input type="hidden"
+                name="reviews-INITIAL_FORMS" value="1"
                 id="id_reviews-INITIAL_FORMS">
             <input type="hidden" name="reviews-MIN_NUM_FORMS" value="0"
                 id="id_reviews-MIN_NUM_FORMS"><input type="hidden"

@@ -38,7 +38,8 @@ class Review(EmbeddedModel):
 
 class Movie(models.Model):
     title = models.CharField(max_length=255)
-    reviews = MultipleEmbeddedModelField(Review, null=True)
+    reviews = MultipleEmbeddedModelField(Review)
+    featured_reviews = MultipleEmbeddedModelField(Review, null=True, blank=True)
 
     def __str__(self):
         return self.title
