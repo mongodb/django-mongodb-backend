@@ -211,9 +211,9 @@ class VectorSearchIndex(Index):
             mappings = {"path": field_path}
             if isinstance(field_, ArrayField):
                 try:
-                    vector_size = int(field_.fixed_size)
+                    vector_size = int(field_.size)
                 except (ValueError, TypeError) as err:
-                    raise ValueError("Atlas vector search requires fixed size.") from err
+                    raise ValueError("Atlas vector search requires size.") from err
                 if not isinstance(field_.base_field, FloatField | DecimalField):
                     raise ValueError("Base type must be Float or Decimal.")
                 mappings.update(
