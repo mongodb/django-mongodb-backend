@@ -216,7 +216,7 @@ class SearchIndex(Index):
 
 class VectorSearchIndex(Index):
     suffix = "vector_search"
-    ALLOWED_SIMILARITY_FUNCTIONS = ("euclidean", "cosine", "dotProduct")
+    ALLOWED_SIMILARITY_FUNCTIONS = frozenset(("euclidean", "cosine", "dotProduct"))
 
     def __init__(self, *expressions, similarities="cosine", **kwargs):
         super().__init__(*expressions, **kwargs)
