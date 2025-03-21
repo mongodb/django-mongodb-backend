@@ -260,7 +260,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     def add_index(
         self, model, index, *, field=None, unique=False, column_prefix="", parent_model=None
     ):
-        idx = index.create_mongodb_index(
+        idx = index.get_pymongo_index_model(
             model, self, field=field, unique=unique, column_prefix=column_prefix
         )
         if idx:

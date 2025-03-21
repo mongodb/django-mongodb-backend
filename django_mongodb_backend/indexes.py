@@ -60,7 +60,7 @@ def where_node_idx(self, compiler, connection):
     return mql
 
 
-def create_mongodb_index(self, model, schema_editor, field=None, unique=False, column_prefix=""):
+def get_pymongo_index_model(self, model, schema_editor, field=None, unique=False, column_prefix=""):
     from collections import defaultdict
 
     if self.contains_expressions:
@@ -103,5 +103,5 @@ def create_mongodb_index(self, model, schema_editor, field=None, unique=False, c
 def register_indexes():
     BuiltinLookup.as_mql_idx = builtin_lookup_idx
     Index._get_condition_mql = _get_condition_mql
-    Index.create_mongodb_index = create_mongodb_index
+    Index.get_pymongo_index_model = get_pymongo_index_model
     WhereNode.as_mql_idx = where_node_idx
