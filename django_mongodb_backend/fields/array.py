@@ -41,16 +41,12 @@ class ArrayField(CheckFieldDefaultMixin, Field):
                 *self.default_validators,
                 LengthValidator(self.size),
             ]
-        if self.fixed_size:
-            self.default_validators = [
-                *self.default_validators,
-                LengthValidator(self.fixed_size),
-            ]
         # For performance, only add a from_db_value() method if the base field
         # implements it.
         if hasattr(self.base_field, "from_db_value"):
             self.from_db_value = self._from_db_value
         super().__init__(**kwargs)
+
 
     @property
     def model(self):
