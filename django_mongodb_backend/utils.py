@@ -107,6 +107,7 @@ class OperationDebugWrapper:
         "aggregate",
         "create_collection",
         "create_indexes",
+        "create_search_index",
         "drop",
         "index_information",
         "insert_many",
