@@ -1,4 +1,5 @@
 import itertools
+from collections import defaultdict
 
 from django.db import NotSupportedError
 from django.db.models import (
@@ -84,8 +85,6 @@ def create_mongodb_index(
     unique=False,
     column_prefix="",
 ):
-    from collections import defaultdict
-
     if self.contains_expressions:
         return None
     kwargs = {}
