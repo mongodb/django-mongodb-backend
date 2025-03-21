@@ -1,6 +1,6 @@
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
-from pymongo.operations import IndexModel, SearchIndexModel
+from pymongo.operations import SearchIndexModel
 
 from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 
@@ -270,10 +270,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             model = parent_model or model
             if isinstance(idx, SearchIndexModel):
                 self.get_collection(model._meta.db_table).create_search_index(idx)
-            elif isinstance(idx, IndexModel):
-                self.get_collection(model._meta.db_table).create_indexes([idx])
             else:
-                raise ValueError(f"{type(idx)} isn't a supported index type")
+                self.get_collection(model._meta.db_table).create_indexes([idx])
 
     def _add_composed_index(self, model, field_names, column_prefix="", parent_model=None):
         """Add an index on the given list of field_names."""
