@@ -261,7 +261,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         self, model, index, *, field=None, unique=False, column_prefix="", parent_model=None
     ):
         idx = index.get_pymongo_index_model(
-            model, self, field=field, unique=unique, column_prefix=column_prefix
+            model, schema_editor=self, field=field, unique=unique, column_prefix=column_prefix
         )
         if idx:
             model = parent_model or model

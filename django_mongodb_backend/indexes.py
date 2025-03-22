@@ -40,28 +40,6 @@ def builtin_lookup_idx(self, compiler, connection):
     return {lhs_mql: {operator: value}}
 
 
-def where_node_idx(self, compiler, connection):
-    if self.connector == AND:
-        operator = "$and"
-    elif self.connector == XOR:
-        raise NotSupportedError("MongoDB does not support the '^' operator lookup in indexes.")
-    else:
-        operator = "$or"
-    if self.negated:
-        raise NotSupportedError("MongoDB does not support the '~' operator in indexes.")
-    children_mql = []
-    for child in self.children:
-        mql = child.as_mql_idx(compiler, connection)
-        children_mql.append(mql)
-    if len(children_mql) == 1:
-        mql = children_mql[0]
-    elif len(children_mql) > 1:
-        mql = {operator: children_mql}
-    else:
-        mql = {}
-    return mql
-
-
 def get_pymongo_index_model(self, model, schema_editor, field=None, unique=False, column_prefix=""):
     """Return a pymongo IndexModel for this Django Index."""
     if self.contains_expressions:
@@ -99,6 +77,28 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, unique=False
         ]
     )
     return IndexModel(index_orders, name=self.name, **kwargs)
+
+
+def where_node_idx(self, compiler, connection):
+    if self.connector == AND:
+        operator = "$and"
+    elif self.connector == XOR:
+        raise NotSupportedError("MongoDB does not support the '^' operator lookup in indexes.")
+    else:
+        operator = "$or"
+    if self.negated:
+        raise NotSupportedError("MongoDB does not support the '~' operator in indexes.")
+    children_mql = []
+    for child in self.children:
+        mql = child.as_mql_idx(compiler, connection)
+        children_mql.append(mql)
+    if len(children_mql) == 1:
+        mql = children_mql[0]
+    elif len(children_mql) > 1:
+        mql = {operator: children_mql}
+    else:
+        mql = {}
+    return mql
 
 
 def register_indexes():
