@@ -291,10 +291,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             return
         if isinstance(index, SearchIndex | VectorSearchIndex):
             self.get_collection(model._meta.db_table).drop_search_index(index.name)
-        elif isinstance(index, Index):
-            self.get_collection(model._meta.db_table).drop_index(index.name)
         else:
-            raise ValueError(f"{type(index)} isn't a supported index type")
+            self.get_collection(model._meta.db_table).drop_index(index.name)
 
     def _remove_composed_index(
         self, model, field_names, constraint_kwargs, column_prefix="", parent_model=None
