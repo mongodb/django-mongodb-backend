@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.db import NotSupportedError
 from django.db.models import Index
 from django.db.models.lookups import BuiltinLookup
@@ -61,8 +63,7 @@ def where_node_idx(self, compiler, connection):
 
 
 def get_pymongo_index_model(self, model, schema_editor, field=None, unique=False, column_prefix=""):
-    from collections import defaultdict
-
+    """Return a pymongo IndexModel for this Django Index."""
     if self.contains_expressions:
         return None
     kwargs = {}
