@@ -47,7 +47,6 @@ class ArrayField(CheckFieldDefaultMixin, Field):
             self.from_db_value = self._from_db_value
         super().__init__(**kwargs)
 
-
     @property
     def model(self):
         try:
