@@ -34,7 +34,6 @@ class ArrayField(CheckFieldDefaultMixin, Field):
         self.size = size
         if size and max_size:
             raise ValueError("Cannot define both, size and max_size")
-
         if self.max_size:
             self.default_validators = [
                 *self.default_validators,
