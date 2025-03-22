@@ -4,16 +4,9 @@ from collections import defaultdict
 
 from django.db import NotSupportedError
 from django.db.models import (
-    BooleanField,
-    CharField,
-    DateField,
-    DateTimeField,
     DecimalField,
     FloatField,
     Index,
-    IntegerField,
-    TextField,
-    UUIDField,
 )
 from django.db.models.lookups import BuiltinLookup
 from django.db.models.sql.query import Query
@@ -21,7 +14,7 @@ from django.db.models.sql.where import AND, XOR, WhereNode
 from pymongo import ASCENDING, DESCENDING
 from pymongo.operations import IndexModel, SearchIndexModel
 
-from django_mongodb_backend.fields import ArrayField, ObjectIdAutoField, ObjectIdField
+from django_mongodb_backend.fields import ArrayField
 
 from .query_utils import process_rhs
 
@@ -116,7 +109,7 @@ def where_node_idx(self, compiler, connection):
     return mql
 
 
-def create_mongodb_index(
+def get_pymongo_index_model(
     self,
     model,
     schema_editor,
@@ -164,49 +157,33 @@ def create_mongodb_index(
 
 class SearchIndex(Index):
     suffix = "search"
+
     # Maps Django internal type to atlas search index type.
-    search_index_data_types = {
-        "AutoField": "number",
-        "BigAutoField": "number",
-        "BinaryField": "string",
-        "BooleanField": "boolean",
-        "CharField": "string",
-        "DateField": "date",
-        "DateTimeField": "date",
-        "DecimalField": "number",
-        "DurationField": "number",
-        "FileField": "string",
-        "FilePathField": "string",
-        "FloatField": "double",
-        "IntegerField": "number",
-        "BigIntegerField": "number",
-        "GenericIPAddressField": "string",
-        "JSONField": "document",
-        "OneToOneField": "number",
-        "PositiveBigIntegerField": "number",
-        "PositiveIntegerField": "number",
-        "PositiveSmallIntegerField": "number",
-        "SlugField": "string",
-        "SmallAutoField": "number",
-        "SmallIntegerField": "number",
-        "TextField": "string",
-        "TimeField": "date",
-        "UUIDField": "uuid",
-        "ObjectIdAutoField": "objectId",
-        "ObjectIdField": "objectId",
-        "EmbeddedModelField": "embeddedDocuments",
-    }
+    # Reference: https://www.mongodb.com/docs/atlas/atlas-search/define-field-mappings/#data-types
+    def search_index_data_types(self, field, db_type):
+        if field.get_internal_type() == "UUIDField":
+            return "uuid"
+        if field.get_internal_type() in ("ObjectIdAutoField", "ObjectIdField"):
+            return "ObjectId"
+        if field.get_internal_type() == "EmbeddedModelField":
+            return "embeddedDocuments"
+        if db_type in ("int", "long"):
+            return "number"
+        if db_type == "binData":
+            return "string"
+        if db_type == "bool":
+            return "boolean"
+        if db_type == "object":
+            return "document"
+        return db_type
 
-    def __init__(self, *expressions, **kwargs):
-        super().__init__(*expressions, **kwargs)
-
-    def create_mongodb_index(
+    def get_pymongo_index_model(
         self, model, schema_editor, field=None, unique=False, column_prefix=""
     ):
         fields = {}
         for field_name, _ in self.fields_orders:
             field_ = model._meta.get_field(field_name)
-            type_ = self.search_index_data_types[field_.get_internal_type()]
+            type_ = self.search_index_data_types(field_, field_.db_type(schema_editor.connection))
             field_path = column_prefix + model._meta.get_field(field_name).column
             fields[field_path] = {"type": type_}
         return SearchIndexModel(
@@ -214,7 +191,7 @@ class SearchIndex(Index):
         )
 
 
-class VectorSearchIndex(Index):
+class VectorSearchIndex(SearchIndex):
     suffix = "vector_search"
     ALLOWED_SIMILARITY_FUNCTIONS = frozenset(("euclidean", "cosine", "dotProduct"))
 
@@ -235,7 +212,7 @@ class VectorSearchIndex(Index):
                     f"'are {','.join(self.ALLOWED_SIMILARITY_FUNCTIONS)}"
                 )
 
-    def create_mongodb_index(
+    def get_pymongo_index_model(
         self, model, schema_editor, field=None, unique=False, column_prefix=""
     ):
         similarities = (
@@ -262,22 +239,17 @@ class VectorSearchIndex(Index):
                         "similarity": next(similarities),
                     }
                 )
-            elif isinstance(
-                field_,
-                BooleanField
-                | IntegerField
-                | DateField
-                | DateTimeField
-                | CharField
-                | TextField
-                | UUIDField
-                | ObjectIdField
-                | ObjectIdAutoField,
-            ):
-                mappings["type"] = "filter"
             else:
-                field_type = field_.get_internal_type()
-                raise ValueError(f"Unsupported filter of type {field_type}.")
+                field_type = field_.db_type(schema_editor.connection)
+                search_type = self.search_index_data_types(field_, field_type)
+                # filter - for fields that contain boolean, date, objectId, numeric,
+                # string, or UUID values. Reference:
+                # https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-type/#atlas-vector-search-index-fields
+                if search_type in ("number", "string", "boolean", "objectId", "uuid", "date"):
+                    mappings["type"] = "filter"
+                else:
+                    field_type = field_.get_internal_type()
+                    raise ValueError(f"Unsupported filter of type {field_type}.")
             fields.append(mappings)
         return SearchIndexModel(definition={"fields": fields}, name=self.name, type="vectorSearch")
 
