@@ -30,10 +30,10 @@ class ArrayField(CheckFieldDefaultMixin, Field):
 
     def __init__(self, base_field, max_size=None, size=None, **kwargs):
         self.base_field = base_field
-        self.size = max_size
-        self.fixed_size = size
+        self.max_size = max_size
+        self.size = size
         if size and max_size:
-            raise ValueError("Cannot define both, size and fixed_size")
+            raise ValueError("Cannot define both, size and max_size")
 
         if self.max_size:
             self.default_validators = [
