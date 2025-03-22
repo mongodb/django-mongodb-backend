@@ -165,9 +165,43 @@ class VectorSearchIndexTests(TestCase):
             name="recent_article_idx",
             fields=["headline", "non_existing_name", "title_embedded"],
         )
-        with connection.schema_editor() as editor:
-            msg = "Article has no field named 'non_existing_name'"
-            with self.assertRaisesMessage(
-                FieldDoesNotExist, msg
-            ), connection.schema_editor() as editor:
-                editor.add_index(index=index, model=Article)
+        msg = "Article has no field named 'non_existing_name'"
+        with self.assertRaisesMessage(FieldDoesNotExist, msg), connection.schema_editor() as editor:
+            editor.add_index(index=index, model=Article)
+
+    def test_field_size_required(self):
+        index = VectorSearchIndex(
+            name="recent_article_idx",
+            fields=["number_list"],
+        )
+        msg = "Atlas vector search requires size."
+        with self.assertRaisesMessage(ValueError, msg), connection.schema_editor() as editor:
+            editor.add_index(index=index, model=Article)
+
+    def test_field_type_mismatch(self):
+        index = VectorSearchIndex(
+            name="recent_article_idx",
+            fields=["name_list"],
+        )
+        msg = "Base type must be Float or Decimal."
+        with self.assertRaisesMessage(ValueError, msg), connection.schema_editor() as editor:
+            editor.add_index(index=index, model=Article)
+
+    def test_field_unsuported_type(self):
+        index = VectorSearchIndex(
+            name="recent_article_idx",
+            fields=["data"],
+        )
+        msg = "Unsupported filter of type JSONField."
+        with self.assertRaisesMessage(ValueError, msg), connection.schema_editor() as editor:
+            editor.add_index(index=index, model=Article)
+
+    def test_field_unsuported_similarity_function(self):
+        msg = (
+            "cross_product isn't a valid similarity function, options"
+            f" 'are {','.join(VectorSearchIndex.ALLOWED_SIMILARITY_FUNCTIONS)}"
+        )
+        with self.assertRaisesMessage(ValueError, msg):
+            VectorSearchIndex(
+                name="recent_article_idx", fields=["data"], similarities="cross_product"
+            )
