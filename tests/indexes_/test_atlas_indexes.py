@@ -84,12 +84,9 @@ class SearchIndexTests(TestCase):
             name="recent_article_idx",
             fields=["headline", "non_existing_name"],
         )
-        with connection.schema_editor() as editor:
-            msg = "Article has no field named 'non_existing_name'"
-            with self.assertRaisesMessage(
-                FieldDoesNotExist, msg
-            ), connection.schema_editor() as editor:
-                editor.add_index(index=index, model=Article)
+        msg = "Article has no field named 'non_existing_name'"
+        with self.assertRaisesMessage(FieldDoesNotExist, msg), connection.schema_editor() as editor:
+            editor.add_index(index=index, model=Article)
 
 
 class VectorSearchIndexTests(TestCase):
