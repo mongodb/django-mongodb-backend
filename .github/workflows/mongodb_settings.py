@@ -17,10 +17,12 @@ else:
         "default": {
             "ENGINE": "django_mongodb_backend",
             "NAME": "djangotests",
+            "OPTIONS": {"directConnection": True},
         },
         "other": {
             "ENGINE": "django_mongodb_backend",
             "NAME": "djangotests-other",
+            "OPTIONS": {"directConnection": True},
         },
     }
 
