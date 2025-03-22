@@ -113,6 +113,8 @@ class OperationDebugWrapper:
         "insert_many",
         "delete_many",
         "drop_index",
+        "drop_search_index",
+        "list_search_indexes",
         "rename",
         "update_many",
     }
