@@ -8,13 +8,13 @@ Some MongoDB-specific fields are available in ``django_mongodb_backend.fields``.
 ``ArrayField``
 --------------
 
-.. class:: ArrayField(base_field, size=None, **options)
+.. class:: ArrayField(base_field, max_size=None, **options)
 
     A field for storing lists of data. Most field types can be used, and you
     pass another field instance as the :attr:`base_field
-    <ArrayField.base_field>`. You may also specify a :attr:`size
-    <ArrayField.size>`. ``ArrayField`` can be nested to store multi-dimensional
-    arrays.
+    <ArrayField.base_field>`. You may also specify a :attr:`max_size
+    <ArrayField.max_size>`. ``ArrayField`` can be nested to store
+    multi-dimensional arrays.
 
     If you give the field a :attr:`~django.db.models.Field.default`, ensure
     it's a callable such as ``list`` (for an empty default) or a callable that
@@ -50,16 +50,16 @@ Some MongoDB-specific fields are available in ``django_mongodb_backend.fields``.
                 board = ArrayField(
                     ArrayField(
                         models.CharField(max_length=10, blank=True),
-                        size=8,
+                        max_size=8,
                     ),
-                    size=8,
+                    max_size=8,
                 )
 
         Transformation of values between the database and the model, validation
         of data and configuration, and serialization are all delegated to the
         underlying base field.
 
-    .. attribute:: size
+    .. attribute:: max_size
 
         This is an optional argument.
 
@@ -168,8 +168,8 @@ Index transforms
 ^^^^^^^^^^^^^^^^
 
 Index transforms index into the array. Any non-negative integer can be used.
-There are no errors if it exceeds the :attr:`size <ArrayField.size>` of the
-array. The lookups available after the transform are those from the
+There are no errors if it exceeds the :attr:`max_size <ArrayField.max_size>` of
+the array. The lookups available after the transform are those from the
 :attr:`base_field <ArrayField.base_field>`. For example:
 
 .. code-block:: pycon

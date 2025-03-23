@@ -90,11 +90,11 @@ class BasicTests(SimpleTestCase):
         self.assertEqual(type(new.base_field), type(field.base_field))
         self.assertIsNot(new.base_field, field.base_field)
 
-    def test_deconstruct_with_size(self):
-        field = ArrayField(models.IntegerField(), size=3)
+    def test_deconstruct_with_max_size(self):
+        field = ArrayField(models.IntegerField(), max_size=3)
         name, path, args, kwargs = field.deconstruct()
         new = ArrayField(*args, **kwargs)
-        self.assertEqual(new.size, field.size)
+        self.assertEqual(new.max_size, field.max_size)
 
     def test_deconstruct_args(self):
         field = ArrayField(models.CharField(max_length=20))
@@ -801,8 +801,8 @@ class ValidationTests(SimpleTestCase):
         # This should not raise a validation error
         field.clean([1, None], None)
 
-    def test_with_size(self):
-        field = ArrayField(models.IntegerField(), size=3)
+    def test_with_max_size(self):
+        field = ArrayField(models.IntegerField(), max_size=3)
         field.clean([1, 2, 3], None)
         with self.assertRaises(exceptions.ValidationError) as cm:
             field.clean([1, 2, 3, 4], None)
@@ -811,8 +811,8 @@ class ValidationTests(SimpleTestCase):
             "List contains 4 items, it should contain no more than 3.",
         )
 
-    def test_with_size_singular(self):
-        field = ArrayField(models.IntegerField(), size=1)
+    def test_with_max_size_singular(self):
+        field = ArrayField(models.IntegerField(), max_size=1)
         field.clean([1], None)
         msg = "List contains 2 items, it should contain no more than 1."
         with self.assertRaisesMessage(exceptions.ValidationError, msg):

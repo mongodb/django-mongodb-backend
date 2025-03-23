@@ -7,6 +7,8 @@ Django MongoDB Backend 5.1.x
 
 *Unreleased*
 
+- Backward-incompatible: :class:`~django_mongodb_backend.fields.ArrayField`\'s
+  ``size`` argument is renamed to ``max_size``.
 - Added support for :doc:`database caching </topics/cache>`.
 - Fixed ``QuerySet.raw_aggregate()`` field initialization when the document key
   order doesn't match the order of the model's fields.

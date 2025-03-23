@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
                 (
                     "char",
                     django_mongodb_backend.fields.ArrayField(
-                        models.CharField(max_length=10), db_index=True, size=100
+                        models.CharField(max_length=10), db_index=True, max_size=100
                     ),
                 ),
                 ("char2", models.CharField(max_length=11, db_index=True)),

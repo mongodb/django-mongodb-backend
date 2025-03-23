@@ -27,13 +27,13 @@ class ArrayField(CheckFieldDefaultMixin, Field):
     }
     _default_hint = ("list", "[]")
 
-    def __init__(self, base_field, size=None, **kwargs):
+    def __init__(self, base_field, max_size=None, **kwargs):
         self.base_field = base_field
-        self.size = size
-        if self.size:
+        self.max_size = max_size
+        if self.max_size:
             self.default_validators = [
                 *self.default_validators,
-                ArrayMaxLengthValidator(self.size),
+                ArrayMaxLengthValidator(self.max_size),
             ]
         # For performance, only add a from_db_value() method if the base field
         # implements it.
@@ -125,8 +125,8 @@ class ArrayField(CheckFieldDefaultMixin, Field):
         if path == "django_mongodb_backend.fields.array.ArrayField":
             path = "django_mongodb_backend.fields.ArrayField"
         kwargs["base_field"] = self.base_field.clone()
-        if self.size is not None:
-            kwargs["size"] = self.size
+        if self.max_size is not None:
+            kwargs["max_size"] = self.max_size
         return name, path, args, kwargs
 
     def to_python(self, value):
@@ -210,7 +210,7 @@ class ArrayField(CheckFieldDefaultMixin, Field):
             **{
                 "form_class": SimpleArrayField,
                 "base_field": self.base_field.formfield(),
-                "max_length": self.size,
+                "max_length": self.max_size,
                 **kwargs,
             }
         )
