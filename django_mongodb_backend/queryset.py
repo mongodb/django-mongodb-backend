@@ -93,4 +93,4 @@ class RawModelIterable(BaseRawModelIterable):
         of __iter__().
         """
         for result in query:
-            yield tuple(result.values())
+            yield tuple(result.get(key) for key in self.queryset.columns)

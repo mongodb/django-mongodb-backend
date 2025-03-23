@@ -2,9 +2,10 @@
 These tests are adapted from Django's tests/raw_query/tests.py.
 """
 
-from datetime import date
+from datetime import date, datetime
 
 from django.core.exceptions import FieldDoesNotExist
+from django.db import connection
 from django.test import TestCase
 
 from django_mongodb_backend.queryset import RawQuerySet
@@ -169,6 +170,23 @@ class RawAggregateTests(TestCase):
             query = [{"$project": select}]
             authors = Author.objects.all()
             self.assertSuccessfulRawQuery(Author, query, authors)
+
+    def test_different_db_key_order(self):
+        """
+        A raw query correctly associates document keys to model fields when the
+        document key order is different than the order of model fields.
+        """
+        author = Author(first_name="Out of", last_name="Order", dob=datetime(1950, 9, 20))
+        # Insert a document with the keys reversed.
+        connection.database.get_collection(Author._meta.db_table).insert_one(
+            {
+                field.name: getattr(author, field.name)
+                for field in reversed(Author._meta.concrete_fields)
+            }
+        )
+        query = []
+        authors = Author.objects.all()
+        self.assertSuccessfulRawQuery(Author, query, authors)
 
     def test_query_representation(self):
         """Test representation of raw query."""
