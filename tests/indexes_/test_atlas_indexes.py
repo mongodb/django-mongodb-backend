@@ -112,6 +112,25 @@ class VectorSearchIndexTests(TestCase):
             ),
         )
 
+    def test_deconstruct_default_similarity(self):
+        index = VectorSearchIndex(
+            name="recent_article_idx",
+            fields=["number"],
+        )
+        name, args, kwargs = index.deconstruct()
+        new = VectorSearchIndex(*args, **kwargs)
+        self.assertEqual(new.similarities, index.similarities)
+
+    def test_deconstruct_with_similarities(self):
+        index = VectorSearchIndex(
+            name="recent_article_idx",
+            fields=["number", "number"],
+            similarities=["cosine", "dotProduct"],
+        )
+        path, args, kwargs = index.deconstruct()
+        new = VectorSearchIndex(*args, **kwargs)
+        self.assertEqual(new.similarities, index.similarities)
+
     def test_simple_vector_search(self):
         with connection.schema_editor() as editor:
             index = VectorSearchIndex(
