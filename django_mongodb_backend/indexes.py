@@ -212,6 +212,11 @@ class VectorSearchIndex(SearchIndex):
                     f"'are {','.join(self.ALLOWED_SIMILARITY_FUNCTIONS)}"
                 )
 
+    def deconstruct(self):
+        path, args, kwargs = super().deconstruct()
+        kwargs["similarities"] = self.similarities
+        return path, args, kwargs
+
     def get_pymongo_index_model(
         self, model, schema_editor, field=None, unique=False, column_prefix=""
     ):
