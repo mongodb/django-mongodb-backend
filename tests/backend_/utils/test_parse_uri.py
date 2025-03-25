@@ -91,7 +91,7 @@ class ParseURITests(SimpleTestCase):
         self.assertEqual(settings_dict["TEST"], {"NAME": "test_db"})
 
     def test_invalid_credentials(self):
-        msg = "The empty string is not valid username."
+        msg = "The empty string is not valid username"
         with self.assertRaisesMessage(pymongo.errors.InvalidURI, msg):
             parse_uri("mongodb://:@localhost")
 
