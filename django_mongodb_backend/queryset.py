@@ -53,37 +53,36 @@ class RawModelIterable(BaseRawModelIterable):
         compiler = connection.ops.compiler("SQLCompiler")(query, connection, db)
         query_iterator = iter(query)
         try:
-            # Get the columns from the first result.
-            try:
-                first_result = next(query_iterator)
-            except StopIteration:
-                # No results.
-                return
-            self.queryset.columns = list(first_result.keys())
-            # Reset the iterator to include the first item.
-            query_iterator = self._make_result(chain([first_result], query_iterator))
-            (
-                model_init_names,
-                model_init_pos,
-                annotation_fields,
-            ) = self.queryset.resolve_model_init_order()
-            model_cls = self.queryset.model
-            if model_cls._meta.pk.attname not in model_init_names:
-                raise FieldDoesNotExist("Raw query must include the primary key")
-            fields = [self.queryset.model_fields.get(c) for c in self.queryset.columns]
-            converters = compiler.get_converters(
-                [f.get_col(f.model._meta.db_table) if f else None for f in fields]
-            )
-            if converters:
-                query_iterator = compiler.apply_converters(query_iterator, converters)
-            for values in query_iterator:
+            # Get the columns for each result
+            for result in query_iterator:
                 # Associate fields to values
-                model_init_values = [values[pos] for pos in model_init_pos]
-                instance = model_cls.from_db(db, model_init_names, model_init_values)
-                if annotation_fields:
-                    for column, pos in annotation_fields:
-                        setattr(instance, column, values[pos])
-                yield instance
+                self.queryset.columns = list(result.keys())
+                # Use the new columns to define the new model_init_order.
+                (
+                    model_init_names,
+                    model_init_pos,
+                    annotation_fields,
+                ) = self.queryset.resolve_model_init_order()
+                model_cls = self.queryset.model
+                if model_cls._meta.pk.attname not in model_init_names:
+                    raise FieldDoesNotExist("Raw query must include the primary key")
+                fields = [self.queryset.model_fields.get(c) for c in self.queryset.columns]
+                converters = compiler.get_converters(
+                    [f.get_col(f.model._meta.db_table) if f else None for f in fields]
+                )
+                # Make an iterator from the singular result
+                result_iter = self._make_result([result])
+                if converters:
+                    result_iter = compiler.apply_converters(result_iter, converters)
+
+                # Iterate once to generate a model object based solely on the result
+                for values in result_iter:
+                    model_init_values = [values[pos] for pos in model_init_pos]
+                    instance = model_cls.from_db(db, model_init_names, model_init_values)
+                    if annotation_fields:
+                        for column, pos in annotation_fields:
+                            setattr(instance, column, values[pos])
+                    yield instance
         finally:
             query.cursor.close()
 
@@ -93,4 +92,5 @@ class RawModelIterable(BaseRawModelIterable):
         of __iter__().
         """
         for result in query:
-            yield tuple(result.values())
+            # Create a tuple of values strictly from the outlined result columns
+            yield tuple(result.get(key, None) for key in self.queryset.columns)

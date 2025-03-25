@@ -4,6 +4,7 @@ These tests are adapted from Django's tests/raw_query/tests.py.
 
 from datetime import date
 
+from django.db import connection
 from django.core.exceptions import FieldDoesNotExist
 from django.test import TestCase
 
@@ -169,6 +170,30 @@ class RawAggregateTests(TestCase):
             query = [{"$project": select}]
             authors = Author.objects.all()
             self.assertSuccessfulRawQuery(Author, query, authors)
+
+    def test_different_ordered_in_database(self):
+        """Documents in MongoDB are not required to maintain key order as
+        a means to improve write efficiency. Documents can be returned
+        to Django out of order. This can lead to incorrect information being placed
+        in a RawQueryset object.
+        """
+        database = connection["<TEST_DATABASE>"].database
+        raw_insert = Author(first_name="Out of", last_name="Order", dob=date(1950, 9, 20))
+        try:
+            # Insert a document into the database in reverse
+            database[Author._meta.db_table].insert_one(
+                {
+                    field.name: getattr(field.name, raw_insert)
+                    for field in reversed(Author._meta.get_fields())
+                }
+            )
+            query = []
+            authors = Author.objects.all()
+            self.assertSuccessfulRawQuery(Author, query, authors)
+        finally:
+            database[Author._meta.db_table].delete_one(
+                {"first_name": raw_insert.first_name, "last_name": raw_insert.last_name}
+            )
 
     def test_query_representation(self):
         """Test representation of raw query."""
