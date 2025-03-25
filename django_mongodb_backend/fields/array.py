@@ -124,12 +124,9 @@ class ArrayField(CheckFieldDefaultMixin, Field):
         name, path, args, kwargs = super().deconstruct()
         if path == "django_mongodb_backend.fields.array.ArrayField":
             path = "django_mongodb_backend.fields.ArrayField"
-        kwargs.update(
-            {
-                "base_field": self.base_field.clone(),
-                "size": self.size,
-            }
-        )
+        kwargs["base_field"] = self.base_field.clone()
+        if self.size is not None:
+            kwargs["size"] = self.size
         return name, path, args, kwargs
 
     def to_python(self, value):

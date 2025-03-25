@@ -85,6 +85,7 @@ class BasicTests(SimpleTestCase):
     def test_deconstruct(self):
         field = ArrayField(models.IntegerField())
         name, path, args, kwargs = field.deconstruct()
+        self.assertEqual(kwargs.keys(), {"base_field"})
         new = ArrayField(*args, **kwargs)
         self.assertEqual(type(new.base_field), type(field.base_field))
         self.assertIsNot(new.base_field, field.base_field)
@@ -722,7 +723,7 @@ class MigrationsTests(TransactionTestCase):
     )
     def test_adding_field_with_default(self):
         class IntegerArrayDefaultModel(models.Model):
-            field = ArrayField(models.IntegerField(), size=None)
+            field = ArrayField(models.IntegerField())
 
         table_name = "model_fields__integerarraydefaultmodel"
         self.assertNotIn(table_name, connection.introspection.table_names(None))
@@ -734,8 +735,8 @@ class MigrationsTests(TransactionTestCase):
         call_command("migrate", "model_fields_", "0002", verbosity=0)
 
         class UpdatedIntegerArrayDefaultModel(models.Model):
-            field = ArrayField(models.IntegerField(), size=None)
-            field_2 = ArrayField(models.IntegerField(), default=[], size=None)
+            field = ArrayField(models.IntegerField())
+            field_2 = ArrayField(models.IntegerField(), default=[])
 
             class Meta:
                 db_table = "model_fields__integerarraydefaultmodel"
