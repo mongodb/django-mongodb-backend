@@ -64,7 +64,7 @@ Some MongoDB-specific fields are available in ``django_mongodb_backend.fields``.
         This is an optional argument.
 
         If passed, the array will have a maximum size as specified, validated
-        only by forms.
+        by forms and model validation, but not enforced by the database.
 
 Querying ``ArrayField``
 ~~~~~~~~~~~~~~~~~~~~~~~
