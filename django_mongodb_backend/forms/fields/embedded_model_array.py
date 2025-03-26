@@ -13,7 +13,7 @@ def models_to_dicts(models):
     return [model_to_dict(model) for model in models or []]
 
 
-class MultipleEmbeddedModelFormField(forms.Field):
+class EmbeddedModelArrayFormField(forms.Field):
     def __init__(self, model, prefix, max_length=None, *args, **kwargs):
         kwargs.pop("base_field")
         self.model = model
@@ -68,7 +68,7 @@ class MultipleEmbeddedModelBoundField(forms.BoundField):
 
 class MultipleEmbeddedModelWidget(forms.Widget):
     """
-    This widget extracts the data for MultipleEmbeddedModelFormField's formset.
+    This widget extracts the data for EmbeddedModelArrayFormField's formset.
     It is never rendered.
     """
 

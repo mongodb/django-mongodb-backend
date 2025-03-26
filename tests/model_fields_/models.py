@@ -2,7 +2,12 @@ import enum
 
 from django.db import models
 
-from django_mongodb_backend.fields import ArrayField, EmbeddedModelField, ObjectIdField
+from django_mongodb_backend.fields import (
+    ArrayField,
+    EmbeddedModelArrayField,
+    EmbeddedModelField,
+    ObjectIdField,
+)
 from django_mongodb_backend.models import EmbeddedModel
 
 
@@ -173,7 +178,7 @@ class Review(EmbeddedModel):
 
 class Movie(models.Model):
     title = models.CharField(max_length=255)
-    reviews = ArrayField(EmbeddedModelField(Review), null=True)
+    reviews = EmbeddedModelArrayField(Review, null=True)
 
     def __str__(self):
         return self.title
