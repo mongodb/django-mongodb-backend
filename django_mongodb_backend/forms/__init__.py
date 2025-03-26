@@ -1,6 +1,6 @@
 from .fields import (
+    EmbeddedModelArrayFormField,
     EmbeddedModelField,
-    MultipleEmbeddedModelFormField,
     ObjectIdField,
     SimpleArrayField,
     SplitArrayField,
@@ -8,8 +8,8 @@ from .fields import (
 )
 
 __all__ = [
+    "EmbeddedModelArrayFormField",
     "EmbeddedModelField",
-    "MultipleEmbeddedModelFormField",
     "SimpleArrayField",
     "SplitArrayField",
     "SplitArrayWidget",

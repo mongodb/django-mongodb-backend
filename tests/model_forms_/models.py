@@ -1,6 +1,6 @@
 from django.db import models
 
-from django_mongodb_backend.fields import EmbeddedModelField, MultipleEmbeddedModelField
+from django_mongodb_backend.fields import EmbeddedModelArrayField, EmbeddedModelField
 from django_mongodb_backend.models import EmbeddedModel
 
 
@@ -38,8 +38,8 @@ class Review(EmbeddedModel):
 
 class Movie(models.Model):
     title = models.CharField(max_length=255)
-    reviews = MultipleEmbeddedModelField(Review)
-    featured_reviews = MultipleEmbeddedModelField(Review, null=True, blank=True)
+    reviews = EmbeddedModelArrayField(Review)
+    featured_reviews = EmbeddedModelArrayField(Review, null=True, blank=True)
 
     def __str__(self):
         return self.title
