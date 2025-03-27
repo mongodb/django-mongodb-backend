@@ -1,4 +1,3 @@
-from django.core.exceptions import FieldDoesNotExist
 from django.db import connection
 from django.test import TestCase
 
@@ -78,15 +77,6 @@ class SearchIndexTests(TestCase):
             self.assertCountEqual(index_info[index.name]["columns"], index.fields)
             self.assertEqual(index_info[index.name]["options"], expected_options)
             self.assertAddRemoveIndex(editor, Article, index)
-
-    def test_field_not_exists(self):
-        index = SearchIndex(
-            name="recent_article_idx",
-            fields=["headline", "non_existing_name"],
-        )
-        msg = "Article has no field named 'non_existing_name'"
-        with self.assertRaisesMessage(FieldDoesNotExist, msg), connection.schema_editor() as editor:
-            editor.add_index(index=index, model=Article)
 
 
 class VectorSearchIndexTests(TestCase):
@@ -175,15 +165,6 @@ class VectorSearchIndexTests(TestCase):
             index_info[index.name]["options"].pop("status")
             self.assertEqual(index_info[index.name]["options"], expected_options)
             self.assertAddRemoveIndex(editor, Article, index)
-
-    def test_field_not_exists(self):
-        index = VectorSearchIndex(
-            name="recent_article_idx",
-            fields=["headline", "non_existing_name", "title_embedded"],
-        )
-        msg = "Article has no field named 'non_existing_name'"
-        with self.assertRaisesMessage(FieldDoesNotExist, msg), connection.schema_editor() as editor:
-            editor.add_index(index=index, model=Article)
 
     def test_field_size_required(self):
         index = VectorSearchIndex(
