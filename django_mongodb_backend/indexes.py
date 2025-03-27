@@ -109,7 +109,7 @@ def where_node_idx(self, compiler, connection):
 
 
 class SearchIndex(Index):
-    suffix = "search"
+    suffix = "six"
 
     # Maps Django internal type to atlas search index type.
     # Reference: https://www.mongodb.com/docs/atlas/atlas-search/define-field-mappings/#data-types
@@ -145,7 +145,7 @@ class SearchIndex(Index):
 
 
 class VectorSearchIndex(SearchIndex):
-    suffix = "vector_search"
+    suffix = "vsi"
     ALLOWED_SIMILARITY_FUNCTIONS = frozenset(("euclidean", "cosine", "dotProduct"))
 
     def __init__(self, *expressions, similarities="cosine", **kwargs):
