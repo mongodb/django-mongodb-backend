@@ -42,8 +42,8 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                 type_ = VectorSearchIndex.suffix
                 options = details
             else:
-                columns = list(details["latestDefinition"]["mappings"].get("fields", {}).keys())
                 options = details["latestDefinition"]["mappings"]
+                columns = list(options.get("fields", {}).keys())
                 type_ = SearchIndex.suffix
             constraints[details["name"]] = {
                 "check": False,
