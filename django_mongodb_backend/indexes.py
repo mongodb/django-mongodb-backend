@@ -154,7 +154,7 @@ class VectorSearchIndex(SearchIndex):
         errors = []
         error_id_prefix = "django_mongodb_backend.indexes.VectorSearchIndex"
         similarities = (
-            self.similarity if isinstance(self.similarities, list) else [self.similarities]
+            self.similarities if isinstance(self.similarities, list) else [self.similarities]
         )
         for func in similarities:
             if func not in self.ALLOWED_SIMILARITY_FUNCTIONS:
