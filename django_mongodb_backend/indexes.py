@@ -3,11 +3,7 @@ from collections import defaultdict
 
 from django.core.checks import Error
 from django.db import NotSupportedError
-from django.db.models import (
-    DecimalField,
-    FloatField,
-    Index,
-)
+from django.db.models import DecimalField, FloatField, Index
 from django.db.models.lookups import BuiltinLookup
 from django.db.models.sql.query import Query
 from django.db.models.sql.where import AND, XOR, WhereNode
