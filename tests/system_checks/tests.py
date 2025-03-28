@@ -99,6 +99,37 @@ class InvalidSearchIndexesTest(SimpleTestCase):
             ],
         )
 
+    def test_vectorsearch_invalid_similarities_function(self):
+        class Article(models.Model):
+            vector_data = ArrayField(models.DecimalField(), size=10)
+
+            class Meta:
+                indexes = [
+                    VectorSearchIndex(
+                        fields=["vector_data", "vector_data", "vector_data"],
+                        similarities=["sum", "dotProduct", "tangh"],
+                    ),
+                ]
+
+        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
+        self.assertEqual(
+            errors,
+            [
+                checks.Error(
+                    "sum isn't a valid similarity function, "
+                    "options are cosine, dotProduct, euclidean",
+                    id="django_mongodb_backend.indexes.VectorSearchIndex.E004",
+                    obj=Article._meta.indexes[0],
+                ),
+                checks.Error(
+                    "tangh isn't a valid similarity function, "
+                    "options are cosine, dotProduct, euclidean",
+                    id="django_mongodb_backend.indexes.VectorSearchIndex.E004",
+                    obj=Article._meta.indexes[0],
+                ),
+            ],
+        )
+
     def test_vectorsearch(self):
         class Article(models.Model):
             vector_data = ArrayField(models.DecimalField(), size=10)
