@@ -800,8 +800,8 @@ class ValidationTests(SimpleTestCase):
         # This should not raise a validation error
         field.clean([1, None], None)
 
-    def test_with_size(self):
-        field = ArrayField(models.IntegerField(), size=3)
+    def test_with_max_size(self):
+        field = ArrayField(models.IntegerField(), max_size=3)
         field.clean([1, 2, 3], None)
         with self.assertRaises(exceptions.ValidationError) as cm:
             field.clean([1, 2, 3, 4], None)
@@ -810,12 +810,29 @@ class ValidationTests(SimpleTestCase):
             "List contains 4 items, it should contain no more than 3.",
         )
 
-    def test_with_size_singular(self):
-        field = ArrayField(models.IntegerField(), size=1)
+    def test_with_max_size_singular(self):
+        field = ArrayField(models.IntegerField(), max_size=1)
         field.clean([1], None)
         msg = "List contains 2 items, it should contain no more than 1."
         with self.assertRaisesMessage(exceptions.ValidationError, msg):
             field.clean([1, 2], None)
+
+    def test_with_size(self):
+        field = ArrayField(models.IntegerField(), size=3)
+        field.clean([1, 2, 3], None)
+        with self.assertRaises(exceptions.ValidationError) as cm:
+            field.clean([1, 2, 3, 4], None)
+        self.assertEqual(
+            cm.exception.messages[0],
+            "List contains 4 items, it should contain 3.",
+        )
+
+    def test_with_size_singular(self):
+        field = ArrayField(models.IntegerField(), size=2)
+        field.clean([1, 2], None)
+        msg = "List contains 1 item, it should contain 2."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
+            field.clean([1], None)
 
     def test_nested_array_mismatch(self):
         field = ArrayField(ArrayField(models.IntegerField()))
