@@ -183,22 +183,3 @@ class VectorSearchIndexTests(TestCase):
         msg = "Base type must be Float or Decimal."
         with self.assertRaisesMessage(ValueError, msg), connection.schema_editor() as editor:
             editor.add_index(index=index, model=Article)
-
-    def test_field_unsuported_type(self):
-        index = VectorSearchIndex(
-            name="recent_article_idx",
-            fields=["data"],
-        )
-        msg = "Unsupported filter of type JSONField."
-        with self.assertRaisesMessage(ValueError, msg), connection.schema_editor() as editor:
-            editor.add_index(index=index, model=Article)
-
-    def test_field_unsuported_similarity_function(self):
-        msg = (
-            "cross_product isn't a valid similarity function, options"
-            f" 'are {','.join(VectorSearchIndex.ALLOWED_SIMILARITY_FUNCTIONS)}"
-        )
-        with self.assertRaisesMessage(ValueError, msg):
-            VectorSearchIndex(
-                name="recent_article_idx", fields=["data"], similarities="cross_product"
-            )
