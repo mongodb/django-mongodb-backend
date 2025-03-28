@@ -4,16 +4,9 @@ from collections import defaultdict
 from django.core.checks import Error
 from django.db import NotSupportedError
 from django.db.models import (
-    BooleanField,
-    CharField,
-    DateField,
-    DateTimeField,
     DecimalField,
     FloatField,
     Index,
-    IntegerField,
-    TextField,
-    UUIDField,
 )
 from django.db.models.lookups import BuiltinLookup
 from django.db.models.sql.query import Query
@@ -21,7 +14,7 @@ from django.db.models.sql.where import AND, XOR, WhereNode
 from pymongo import ASCENDING, DESCENDING
 from pymongo.operations import IndexModel, SearchIndexModel
 
-from django_mongodb_backend.fields import ArrayField, ObjectIdAutoField, ObjectIdField
+from django_mongodb_backend.fields import ArrayField
 
 from .query_utils import process_rhs
 
@@ -161,7 +154,7 @@ class VectorSearchIndex(SearchIndex):
         # validate the similarities types
         self.similarities = similarities
 
-    def check(self, model):
+    def check(self, model, connection):
         errors = []
         error_id_prefix = "django_mongodb_backend.indexes.VectorSearchIndex"
         similarities = (
@@ -196,28 +189,20 @@ class VectorSearchIndex(SearchIndex):
                             id=f"{error_id_prefix}.E002",
                         )
                     )
-            # filter - for fields that contain boolean, date, objectId,
-            # numeric, string, or UUID values. Reference:
-            # https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-type/#atlas-vector-search-index-fields
-            elif not isinstance(
-                field_,
-                BooleanField
-                | IntegerField
-                | DateField
-                | DateTimeField
-                | CharField
-                | TextField
-                | UUIDField
-                | ObjectIdField
-                | ObjectIdAutoField,
-            ):
-                errors.append(
-                    Error(
-                        f"Unsupported filter of type {field_.get_internal_type()}.",
-                        obj=self,
-                        id="django_mongodb_backend.indexes.VectorSearchIndex.E003",
+            else:
+                field_type = field_.db_type(connection)
+                search_type = self.search_index_data_types(field_, field_type)
+                # filter - for fields that contain boolean, date, objectId,
+                # numeric, string, or UUID values. Reference:
+                # https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-type/#atlas-vector-search-index-fields
+                if search_type not in ("number", "string", "boolean", "objectId", "uuid", "date"):
+                    errors.append(
+                        Error(
+                            f"Unsupported filter of type {field_.get_internal_type()}.",
+                            obj=self,
+                            id="django_mongodb_backend.indexes.VectorSearchIndex.E003",
+                        )
                     )
-                )
         return errors
 
     def deconstruct(self):
