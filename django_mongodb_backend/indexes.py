@@ -159,10 +159,12 @@ class VectorSearchIndex(SearchIndex):
         for func in similarities:
             if func not in self.ALLOWED_SIMILARITY_FUNCTIONS:
                 errors.append(
-                    f"{func} isn't a valid similarity function, options "
-                    f"'are {','.join(self.ALLOWED_SIMILARITY_FUNCTIONS)}",
-                    obj=self,
-                    id=f"{error_id_prefix}.E003",
+                    Error(
+                        f"{func} isn't a valid similarity function, options "
+                        f"are {', '.join(sorted(self.ALLOWED_SIMILARITY_FUNCTIONS))}",
+                        obj=self,
+                        id=f"{error_id_prefix}.E004",
+                    )
                 )
         for field_name, _ in self.fields_orders:
             field_ = model._meta.get_field(field_name)
