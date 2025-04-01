@@ -9,6 +9,7 @@ from django_mongodb_backend.indexes import VectorSearchIndex
 
 @register(Tags.models)
 def check_vector_search_indexes(app_configs, databases=None, **kwargs):  # noqa: ARG001
+    # Validate vector search indexes for models.
     errors = []
     if app_configs is None:
         models = apps.get_models()
