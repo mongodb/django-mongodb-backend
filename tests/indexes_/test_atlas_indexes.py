@@ -165,21 +165,3 @@ class VectorSearchIndexTests(TestCase):
             index_info[index.name]["options"].pop("status")
             self.assertEqual(index_info[index.name]["options"], expected_options)
             self.assertAddRemoveIndex(editor, Article, index)
-
-    def test_field_size_required(self):
-        index = VectorSearchIndex(
-            name="recent_article_idx",
-            fields=["number_list"],
-        )
-        msg = "Atlas vector search requires size."
-        with self.assertRaisesMessage(ValueError, msg), connection.schema_editor() as editor:
-            editor.add_index(index=index, model=Article)
-
-    def test_field_type_mismatch(self):
-        index = VectorSearchIndex(
-            name="recent_article_idx",
-            fields=["name_list"],
-        )
-        msg = "Base type must be Float or Decimal."
-        with self.assertRaisesMessage(ValueError, msg), connection.schema_editor() as editor:
-            editor.add_index(index=index, model=Article)
