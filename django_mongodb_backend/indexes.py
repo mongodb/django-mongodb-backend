@@ -222,16 +222,10 @@ class VectorSearchIndex(SearchIndex):
             field_path = column_prefix + model._meta.get_field(field_name).column
             mappings = {"path": field_path}
             if isinstance(field_, ArrayField):
-                try:
-                    vector_size = int(field_.size)
-                except (ValueError, TypeError) as err:
-                    raise ValueError("Atlas vector search requires size.") from err
-                if not isinstance(field_.base_field, FloatField | DecimalField):
-                    raise ValueError("Base type must be Float or Decimal.")
                 mappings.update(
                     {
                         "type": "vector",
-                        "numDimensions": vector_size,
+                        "numDimensions": int(field_.size),
                         "similarity": next(similarities),
                     }
                 )
