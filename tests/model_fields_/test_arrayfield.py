@@ -788,13 +788,10 @@ class SerializationTests(SimpleTestCase):
 class ValidationTests(SimpleTestCase):
     def test_unbounded(self):
         field = ArrayField(models.IntegerField())
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        msg = "Item 2 in the array did not validate: This field cannot be null."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg) as cm:
             field.clean([1, None], None)
         self.assertEqual(cm.exception.code, "item_invalid")
-        self.assertEqual(
-            cm.exception.message % cm.exception.params,
-            "Item 2 in the array did not validate: This field cannot be null.",
-        )
 
     def test_blank_true(self):
         field = ArrayField(models.IntegerField(blank=True, null=True))
@@ -804,12 +801,9 @@ class ValidationTests(SimpleTestCase):
     def test_with_max_size(self):
         field = ArrayField(models.IntegerField(), max_size=3)
         field.clean([1, 2, 3], None)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        msg = "List contains 4 items, it should contain no more than 3."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
             field.clean([1, 2, 3, 4], None)
-        self.assertEqual(
-            cm.exception.messages[0],
-            "List contains 4 items, it should contain no more than 3.",
-        )
 
     def test_with_max_size_singular(self):
         field = ArrayField(models.IntegerField(), max_size=1)
@@ -821,10 +815,10 @@ class ValidationTests(SimpleTestCase):
     def test_nested_array_mismatch(self):
         field = ArrayField(ArrayField(models.IntegerField()))
         field.clean([[1, 2], [3, 4]], None)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        msg = "Nested arrays must have the same length."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg) as cm:
             field.clean([[1, 2], [3, 4, 5]], None)
         self.assertEqual(cm.exception.code, "nested_array_mismatch")
-        self.assertEqual(cm.exception.messages[0], "Nested arrays must have the same length.")
 
     def test_with_base_field_error_params(self):
         field = ArrayField(models.CharField(max_length=2))

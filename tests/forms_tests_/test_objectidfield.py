@@ -23,9 +23,8 @@ class ObjectIdFieldTests(SimpleTestCase):
 
     def test_clean_invalid(self):
         field = ObjectIdField()
-        with self.assertRaises(ValidationError) as cm:
+        with self.assertRaisesMessage(ValidationError, "Enter a valid Object Id."):
             field.clean("invalid")
-        self.assertEqual(cm.exception.messages[0], "Enter a valid Object Id.")
 
     def test_prepare_value(self):
         field = ObjectIdField()
