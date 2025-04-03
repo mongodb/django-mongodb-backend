@@ -117,12 +117,10 @@ class SerializationTests(TestCase):
 class ValidationTests(TestCase):
     def test_invalid_objectid(self):
         field = ObjectIdField()
-        with self.assertRaises(ValidationError) as cm:
+        msg = "“550e8400” is not a valid Object Id."
+        with self.assertRaisesMessage(ValidationError, msg) as cm:
             field.clean("550e8400", None)
         self.assertEqual(cm.exception.code, "invalid")
-        self.assertEqual(
-            cm.exception.message % cm.exception.params, "“550e8400” is not a valid Object Id."
-        )
 
     def test_objectid_instance_ok(self):
         value = ObjectId()
