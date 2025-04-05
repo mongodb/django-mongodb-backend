@@ -45,6 +45,9 @@ Querying
   :meth:`~django.db.models.query.QuerySet.update` do not support queries that
   span multiple collections.
 
+- The :class:`~django.db.models.StringAgg` aggregation function isn't
+  supported.
+
 - When querying :class:`~django.db.models.JSONField`:
 
   - There is no way to distinguish between a JSON ``"null"`` (represented by

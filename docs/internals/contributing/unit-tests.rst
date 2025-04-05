@@ -35,13 +35,13 @@ Third, clone your fork and install it:
 
 Next, get and install a copy of MongoDB's Django fork. This fork has some
 test suite adaptions for Django MongoDB Backend. There is a branch for each
-feature release of Django (e.g. ``mongodb-5.2.x`` below).
+feature release of Django (e.g. ``mongodb-6.0.x`` below).
 
 .. code-block:: bash
 
    $ git clone https://github.com/mongodb-forks/django.git django-repo
    $ cd django-repo
-   $ git checkout -t origin/mongodb-5.2.x
+   $ git checkout -t origin/mongodb-6.0.x
    $ python -m pip install -e .
    $ python -m pip install -r tests/requirements/py3.txt
 

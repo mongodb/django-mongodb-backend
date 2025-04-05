@@ -1,0 +1,20 @@
+============================
+Django MongoDB Backend 6.0.x
+============================
+
+6.0.0
+=====
+
+*Unreleased*
+
+Initial release from the state of :ref:`django-mongodb-backend 5.2.3
+<django-mongodb-backend-5.2.3>`.
+
+Regarding new features in Django 6.0, the :class:`django.db.models.StringAgg`
+function isn't supported.
+
+Backwards incompatible changes
+------------------------------
+
+- ``django_mongodb_backend.utils.parse_uri()`` is removed as per the
+  :ref:`deprecation timeline <parse-uri-deprecation>`.

@@ -17,21 +17,21 @@ https://django-mongodb-backend.readthedocs.io/en/latest/.
 ### Install
 
 Use the version of `django-mongodb-backend` that corresponds to your version of
-Django. For example, to get the latest compatible release for Django 5.2.x:
+Django. For example, to get the latest compatible release for Django 6.0.x:
 
 ```bash
-pip install django-mongodb-backend==5.2.*
+pip install django-mongodb-backend==6.0.*
 ```
 
 ### Create a project
 
 From your shell, run the following command to create a new Django project
 called `example` using our project template. Make sure the end of the template
-URL corresponds to your version of Django (e.g. `5.2.x.zip` for any Django
-5.2.x version).
+URL corresponds to your version of Django (e.g. `6.0.x.zip` for any Django
+6.0.x version).
 
 ```bash
-django-admin startproject example --template https://github.com/mongodb-labs/django-mongodb-project/archive/refs/heads/5.2.x.zip
+django-admin startproject example --template https://github.com/mongodb-labs/django-mongodb-project/archive/refs/heads/6.0.x.zip
 ```
 
 You can check what version of Django you're using with:

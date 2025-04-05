@@ -23,6 +23,8 @@ Performance improvements
 - Improved ``QuerySet`` join (``$lookup``) performance by pushing complex
   conditions from the ``WHERE`` (``$match``) clause to the ``$lookup`` stage.
 
+.. _django-mongodb-backend-5.2.3:
+
 5.2.3
 =====
 
