@@ -1,0 +1,28 @@
+============================
+Django MongoDB Backend 6.0.x
+============================
+
+6.0.0
+=====
+
+*Unreleased*
+
+Initial release from the state of :ref:`django-mongodb-backend 5.2.4
+<django-mongodb-backend-5.2.4>`.
+
+Regarding new features in Django 6.0, ...
+
+New features
+------------
+
+- ...
+
+Backwards incompatible changes
+------------------------------
+
+- ...
+
+Bug fixes
+---------
+
+- ...

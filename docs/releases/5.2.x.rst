@@ -2,6 +2,8 @@
 Django MongoDB Backend 5.2.x
 ============================
 
+.. _django-mongodb-backend-5.2.4:
+
 5.2.4
 =====
 
