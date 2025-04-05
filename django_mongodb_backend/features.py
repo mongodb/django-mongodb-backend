@@ -204,6 +204,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "prefetch_related.tests.LookupOrderingTest.test_order",
             "prefetch_related.tests.MultiDbTests.test_using_is_honored_m2m",
             "prefetch_related.tests.MultiTableInheritanceTest",
+            "prefetch_related.tests.PrefetchRelatedMTICacheTests",
             "prefetch_related.tests.PrefetchRelatedTests",
             "prefetch_related.tests.ReadPrefetchedObjectsCacheTests",
             "prefetch_related.tests.Ticket21410Tests",
@@ -566,6 +567,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "Custom lookups are not supported.": {
             "custom_lookups.tests.BilateralTransformTests",
             "custom_lookups.tests.LookupTests.test_basic_lookup",
+            "custom_lookups.tests.LookupTests.test_custom_lookup_with_subquery",
             "custom_lookups.tests.LookupTests.test_custom_name_lookup",
             "custom_lookups.tests.LookupTests.test_div3_extract",
             "custom_lookups.tests.SubqueryTransformTests.test_subquery_usage",
@@ -582,6 +584,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "test_utils.tests.DisallowedDatabaseQueriesTests.test_disallowed_database_chunked_cursor_queries",
             "test_utils.tests.DisallowedDatabaseQueriesTests.test_disallowed_database_queries",
             "test_utils.tests.DisallowedDatabaseQueriesTests.test_disallowed_thread_database_connection",
+        },
+        "search lookup not supported on non-Atlas.": {
+            "expressions.tests.BasicExpressionsTests.test_lookups_subquery",
         },
     }
 
