@@ -102,6 +102,12 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "model_fields.test_jsonfield.TestSaveLoad.test_bulk_update_custom_get_prep_value",
         # To debug: https://github.com/mongodb/django-mongodb-backend/issues/362
         "constraints.tests.UniqueConstraintTests.test_validate_case_when",
+        # StringAgg is not supported.
+        "aggregation.tests.AggregateTestCase.test_distinct_on_stringagg",
+        "aggregation.tests.AggregateTestCase.test_string_agg_escapes_delimiter",
+        "aggregation.tests.AggregateTestCase.test_string_agg_filter",
+        "aggregation.tests.AggregateTestCase.test_string_agg_filter_in_subquery",
+        "aggregation.tests.AggregateTestCase.test_stringagg_default_value",
     }
     # $bitAnd, #bitOr, and $bitXor are new in MongoDB 6.3.
     _django_test_expected_failures_bitwise = {
