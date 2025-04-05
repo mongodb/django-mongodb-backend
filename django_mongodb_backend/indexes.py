@@ -1,12 +1,16 @@
+import itertools
 from collections import defaultdict
 
+from django.core.checks import Error
 from django.db import NotSupportedError
-from django.db.models import Index
+from django.db.models import DecimalField, FloatField, Index
 from django.db.models.lookups import BuiltinLookup
 from django.db.models.sql.query import Query
 from django.db.models.sql.where import AND, XOR, WhereNode
 from pymongo import ASCENDING, DESCENDING
-from pymongo.operations import IndexModel
+from pymongo.operations import IndexModel, SearchIndexModel
+
+from django_mongodb_backend.fields import ArrayField
 
 from .query_utils import process_rhs
 
@@ -99,6 +103,136 @@ def where_node_idx(self, compiler, connection):
     else:
         mql = {}
     return mql
+
+
+class SearchIndex(Index):
+    suffix = "six"
+
+    # Maps Django internal type to atlas search index type.
+    # Reference: https://www.mongodb.com/docs/atlas/atlas-search/define-field-mappings/#data-types
+    def search_index_data_types(self, field, db_type):
+        if field.get_internal_type() == "UUIDField":
+            return "uuid"
+        if field.get_internal_type() in ("ObjectIdAutoField", "ObjectIdField"):
+            return "ObjectId"
+        if field.get_internal_type() == "EmbeddedModelField":
+            return "embeddedDocuments"
+        if db_type in ("int", "long"):
+            return "number"
+        if db_type == "binData":
+            return "string"
+        if db_type == "bool":
+            return "boolean"
+        if db_type == "object":
+            return "document"
+        return db_type
+
+    def get_pymongo_index_model(
+        self, model, schema_editor, field=None, unique=False, column_prefix=""
+    ):
+        fields = {}
+        for field_name, _ in self.fields_orders:
+            field_ = model._meta.get_field(field_name)
+            type_ = self.search_index_data_types(field_, field_.db_type(schema_editor.connection))
+            field_path = column_prefix + model._meta.get_field(field_name).column
+            fields[field_path] = {"type": type_}
+        return SearchIndexModel(
+            definition={"mappings": {"dynamic": False, "fields": fields}}, name=self.name
+        )
+
+
+class VectorSearchIndex(SearchIndex):
+    suffix = "vsi"
+    ALLOWED_SIMILARITY_FUNCTIONS = frozenset(("euclidean", "cosine", "dotProduct"))
+
+    def __init__(self, *expressions, similarities="cosine", **kwargs):
+        super().__init__(*expressions, **kwargs)
+        # validate the similarities types
+        self.similarities = similarities
+
+    def check(self, model, connection):
+        errors = []
+        error_id_prefix = "django_mongodb_backend.indexes.VectorSearchIndex"
+        similarities = (
+            self.similarities if isinstance(self.similarities, list) else [self.similarities]
+        )
+        for func in similarities:
+            if func not in self.ALLOWED_SIMILARITY_FUNCTIONS:
+                errors.append(
+                    Error(
+                        f"{func} isn't a valid similarity function, options "
+                        f"are {', '.join(sorted(self.ALLOWED_SIMILARITY_FUNCTIONS))}",
+                        obj=self,
+                        id=f"{error_id_prefix}.E004",
+                    )
+                )
+        for field_name, _ in self.fields_orders:
+            field_ = model._meta.get_field(field_name)
+            if isinstance(field_, ArrayField):
+                try:
+                    int(field_.size)
+                except (ValueError, TypeError):
+                    errors.append(
+                        Error(
+                            "Atlas vector search requires size.",
+                            obj=self,
+                            id=f"{error_id_prefix}.E001",
+                        )
+                    )
+                if not isinstance(field_.base_field, FloatField | DecimalField):
+                    errors.append(
+                        Error(
+                            "Base type must be Float or Decimal.",
+                            obj=self,
+                            id=f"{error_id_prefix}.E002",
+                        )
+                    )
+            else:
+                field_type = field_.db_type(connection)
+                search_type = self.search_index_data_types(field_, field_type)
+                # filter - for fields that contain boolean, date, objectId,
+                # numeric, string, or UUID values. Reference:
+                # https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-type/#atlas-vector-search-index-fields
+                if search_type not in ("number", "string", "boolean", "objectId", "uuid", "date"):
+                    errors.append(
+                        Error(
+                            f"Unsupported filter of type {field_.get_internal_type()}.",
+                            obj=self,
+                            id="django_mongodb_backend.indexes.VectorSearchIndex.E003",
+                        )
+                    )
+        return errors
+
+    def deconstruct(self):
+        path, args, kwargs = super().deconstruct()
+        kwargs["similarities"] = self.similarities
+        return path, args, kwargs
+
+    def get_pymongo_index_model(
+        self, model, schema_editor, field=None, unique=False, column_prefix=""
+    ):
+        similarities = (
+            itertools.cycle([self.similarities])
+            if isinstance(self.similarities, str)
+            else iter(self.similarities)
+        )
+        fields = []
+        for field_name, _ in self.fields_orders:
+            field_ = model._meta.get_field(field_name)
+            field_path = column_prefix + model._meta.get_field(field_name).column
+            mappings = {"path": field_path}
+            if isinstance(field_, ArrayField):
+                mappings.update(
+                    {
+                        "type": "vector",
+                        "numDimensions": int(field_.size),
+                        "similarity": next(similarities),
+                    }
+                )
+            else:
+                mappings["type"] = "filter"
+            fields.append(mappings)
+        return SearchIndexModel(definition={"fields": fields}, name=self.name, type="vectorSearch")
 
 
 def register_indexes():
