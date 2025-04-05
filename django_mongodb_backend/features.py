@@ -92,7 +92,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         # Some usage of prefetch_related() raises "ColPairs is not supported."
         "known_related_objects.tests.ExistingRelatedInstancesTests.test_one_to_one_multi_prefetch_related",
         "known_related_objects.tests.ExistingRelatedInstancesTests.test_one_to_one_prefetch_related",
-        "prefetch_related.tests.DeprecationTests.test_prefetch_one_level_fallback",
         "prefetch_related.tests.MultiDbTests.test_using_is_honored_fkey",
         "prefetch_related.tests.MultiDbTests.test_using_is_honored_inheritance",
         "prefetch_related.tests.NestedPrefetchTests.test_nested_prefetch_is_not_overwritten_by_related_object",
@@ -100,6 +99,11 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "prefetch_related.tests.Ticket19607Tests.test_bug",
         # {'$project': {'name': Decimal128('1')} is broken? (gives None)
         "expressions.tests.ValueTests.test_output_field_decimalfield",
+        # This backend overrides DatabaseCreation.create_test_db() so the
+        # deprecation warnings stacklevel points to the wrong file.
+        "backends.base.test_creation.TestDbCreationTests.test_serialize_deprecation",
+        # This backend has a custom format_debug_sql().
+        "backends.tests.LastExecutedQueryTest.test_debug_sql",
     }
     # $bitAnd, #bitOr, and $bitXor are new in MongoDB 6.3.
     _django_test_expected_failures_bitwise = {
