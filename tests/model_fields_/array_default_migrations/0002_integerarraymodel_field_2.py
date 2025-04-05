@@ -12,9 +12,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="integerarraydefaultmodel",
             name="field_2",
-            field=django_mongodb_backend.fields.ArrayField(
-                models.IntegerField(), default=[], size=None
-            ),
+            field=django_mongodb_backend.fields.ArrayField(models.IntegerField(), default=[]),
             preserve_default=False,
         ),
     ]

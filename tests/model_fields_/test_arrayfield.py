@@ -85,15 +85,16 @@ class BasicTests(SimpleTestCase):
     def test_deconstruct(self):
         field = ArrayField(models.IntegerField())
         name, path, args, kwargs = field.deconstruct()
+        self.assertEqual(kwargs.keys(), {"base_field"})
         new = ArrayField(*args, **kwargs)
         self.assertEqual(type(new.base_field), type(field.base_field))
         self.assertIsNot(new.base_field, field.base_field)
 
-    def test_deconstruct_with_size(self):
-        field = ArrayField(models.IntegerField(), size=3)
+    def test_deconstruct_with_max_size(self):
+        field = ArrayField(models.IntegerField(), max_size=3)
         name, path, args, kwargs = field.deconstruct()
         new = ArrayField(*args, **kwargs)
-        self.assertEqual(new.size, field.size)
+        self.assertEqual(new.max_size, field.max_size)
 
     def test_deconstruct_args(self):
         field = ArrayField(models.CharField(max_length=20))
@@ -645,6 +646,15 @@ class CheckTests(SimpleTestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].id, "django_mongodb_backend.array.E002")
 
+    def test_both_size_and_max_size(self):
+        class MyModel(models.Model):
+            field = ArrayField(models.CharField(max_length=3), size=3, max_size=4)
+
+        model = MyModel()
+        errors = model.check()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].id, "django_mongodb_backend.array.E003")
+
     def test_invalid_default(self):
         class MyModel(models.Model):
             field = ArrayField(models.IntegerField(), default=[])
@@ -722,7 +732,7 @@ class MigrationsTests(TransactionTestCase):
     )
     def test_adding_field_with_default(self):
         class IntegerArrayDefaultModel(models.Model):
-            field = ArrayField(models.IntegerField(), size=None)
+            field = ArrayField(models.IntegerField())
 
         table_name = "model_fields__integerarraydefaultmodel"
         self.assertNotIn(table_name, connection.introspection.table_names(None))
@@ -734,8 +744,8 @@ class MigrationsTests(TransactionTestCase):
         call_command("migrate", "model_fields_", "0002", verbosity=0)
 
         class UpdatedIntegerArrayDefaultModel(models.Model):
-            field = ArrayField(models.IntegerField(), size=None)
-            field_2 = ArrayField(models.IntegerField(), default=[], size=None)
+            field = ArrayField(models.IntegerField())
+            field_2 = ArrayField(models.IntegerField(), default=[])
 
             class Meta:
                 db_table = "model_fields__integerarraydefaultmodel"
@@ -787,43 +797,51 @@ class SerializationTests(SimpleTestCase):
 class ValidationTests(SimpleTestCase):
     def test_unbounded(self):
         field = ArrayField(models.IntegerField())
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        msg = "Item 2 in the array did not validate: This field cannot be null."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg) as cm:
             field.clean([1, None], None)
         self.assertEqual(cm.exception.code, "item_invalid")
-        self.assertEqual(
-            cm.exception.message % cm.exception.params,
-            "Item 2 in the array did not validate: This field cannot be null.",
-        )
 
     def test_blank_true(self):
         field = ArrayField(models.IntegerField(blank=True, null=True))
         # This should not raise a validation error
         field.clean([1, None], None)
 
-    def test_with_size(self):
-        field = ArrayField(models.IntegerField(), size=3)
+    def test_with_max_size(self):
+        field = ArrayField(models.IntegerField(), max_size=3)
         field.clean([1, 2, 3], None)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        msg = "List contains 4 items, it should contain no more than 3."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
             field.clean([1, 2, 3, 4], None)
-        self.assertEqual(
-            cm.exception.messages[0],
-            "List contains 4 items, it should contain no more than 3.",
-        )
 
-    def test_with_size_singular(self):
-        field = ArrayField(models.IntegerField(), size=1)
+    def test_with_max_size_singular(self):
+        field = ArrayField(models.IntegerField(), max_size=1)
         field.clean([1], None)
         msg = "List contains 2 items, it should contain no more than 1."
         with self.assertRaisesMessage(exceptions.ValidationError, msg):
             field.clean([1, 2], None)
 
+    def test_with_size(self):
+        field = ArrayField(models.IntegerField(), size=3)
+        field.clean([1, 2, 3], None)
+        msg = "List contains 4 items, it should contain 3."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
+            field.clean([1, 2, 3, 4], None)
+
+    def test_with_size_singular(self):
+        field = ArrayField(models.IntegerField(), size=2)
+        field.clean([1, 2], None)
+        msg = "List contains 1 item, it should contain 2."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
+            field.clean([1], None)
+
     def test_nested_array_mismatch(self):
         field = ArrayField(ArrayField(models.IntegerField()))
         field.clean([[1, 2], [3, 4]], None)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        msg = "Nested arrays must have the same length."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg) as cm:
             field.clean([[1, 2], [3, 4, 5]], None)
         self.assertEqual(cm.exception.code, "nested_array_mismatch")
-        self.assertEqual(cm.exception.messages[0], "Nested arrays must have the same length.")
 
     def test_with_base_field_error_params(self):
         field = ArrayField(models.CharField(max_length=2))

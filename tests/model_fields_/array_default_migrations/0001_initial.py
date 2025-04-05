@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "field",
-                    django_mongodb_backend.fields.ArrayField(models.IntegerField(), size=None),
+                    django_mongodb_backend.fields.ArrayField(models.IntegerField()),
                 ),
             ],
             options={},

@@ -21,21 +21,15 @@ class SimpleArrayFieldTests(SimpleTestCase):
 
     def test_to_python_fail(self):
         field = SimpleArrayField(forms.IntegerField())
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        msg = "Item 1 in the array did not validate: Enter a whole number."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
             field.clean("a,b,9")
-        self.assertEqual(
-            cm.exception.messages[0],
-            "Item 1 in the array did not validate: Enter a whole number.",
-        )
 
     def test_validate_fail(self):
         field = SimpleArrayField(forms.CharField(required=True))
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        msg = "Item 3 in the array did not validate: This field is required."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
             field.clean("a,b,")
-        self.assertEqual(
-            cm.exception.messages[0],
-            "Item 3 in the array did not validate: This field is required.",
-        )
 
     def test_validate_fail_base_field_error_params(self):
         field = SimpleArrayField(forms.CharField(max_length=2))
@@ -68,12 +62,9 @@ class SimpleArrayFieldTests(SimpleTestCase):
 
     def test_validators_fail(self):
         field = SimpleArrayField(forms.RegexField("[a-e]{2}"))
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        msg = "Item 1 in the array did not validate: Enter a valid value."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
             field.clean("a,bc,de")
-        self.assertEqual(
-            cm.exception.messages[0],
-            "Item 1 in the array did not validate: Enter a valid value.",
-        )
 
     def test_delimiter(self):
         field = SimpleArrayField(forms.CharField(), delimiter="|")
@@ -92,21 +83,15 @@ class SimpleArrayFieldTests(SimpleTestCase):
 
     def test_max_length(self):
         field = SimpleArrayField(forms.CharField(), max_length=2)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        msg = "List contains 3 items, it should contain no more than 2."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
             field.clean("a,b,c")
-        self.assertEqual(
-            cm.exception.messages[0],
-            "List contains 3 items, it should contain no more than 2.",
-        )
 
     def test_min_length(self):
         field = SimpleArrayField(forms.CharField(), min_length=4)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        msg = "List contains 3 items, it should contain no fewer than 4."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
             field.clean("a,b,c")
-        self.assertEqual(
-            cm.exception.messages[0],
-            "List contains 3 items, it should contain no fewer than 4.",
-        )
 
     def test_min_length_singular(self):
         field = SimpleArrayField(forms.IntegerField(), min_length=2)
@@ -115,11 +100,34 @@ class SimpleArrayFieldTests(SimpleTestCase):
         with self.assertRaisesMessage(exceptions.ValidationError, msg):
             field.clean([1])
 
+    def test_size_length(self):
+        field = SimpleArrayField(forms.CharField(max_length=27), length=4)
+        msg = "List contains 3 items, it should contain 4."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
+            field.clean(["a", "b", "c"])
+        msg = "List contains 5 items, it should contain 4."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
+            field.clean(["a", "b", "c", "d", "e"])
+
+    def test_size_length_singular(self):
+        field = SimpleArrayField(forms.CharField(max_length=27), length=4)
+        msg = "List contains 1 item, it should contain 4."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
+            field.clean(["a"])
+
     def test_required(self):
         field = SimpleArrayField(forms.CharField(), required=True)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        msg = "This field is required."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
             field.clean("")
-        self.assertEqual(cm.exception.messages[0], "This field is required.")
+
+    def test_length_and_max_min_length(self):
+        msg = "The length and max_length parameters are mutually exclusive."
+        with self.assertRaisesMessage(exceptions.ImproperlyConfigured, msg):
+            SimpleArrayField(forms.CharField(), max_length=3, length=2)
+        msg = "The length and min_length parameters are mutually exclusive."
+        with self.assertRaisesMessage(exceptions.ImproperlyConfigured, msg):
+            SimpleArrayField(forms.CharField(), min_length=3, length=2)
 
     def test_model_field_formfield(self):
         model_field = ArrayField(models.CharField(max_length=27))
@@ -128,11 +136,17 @@ class SimpleArrayFieldTests(SimpleTestCase):
         self.assertIsInstance(form_field.base_field, forms.CharField)
         self.assertEqual(form_field.base_field.max_length, 27)
 
+    def test_model_field_formfield_max_size(self):
+        model_field = ArrayField(models.CharField(max_length=27), max_size=4)
+        form_field = model_field.formfield()
+        self.assertIsInstance(form_field, SimpleArrayField)
+        self.assertEqual(form_field.max_length, 4)
+
     def test_model_field_formfield_size(self):
         model_field = ArrayField(models.CharField(max_length=27), size=4)
         form_field = model_field.formfield()
         self.assertIsInstance(form_field, SimpleArrayField)
-        self.assertEqual(form_field.max_length, 4)
+        self.assertEqual(form_field.length, 4)
 
     def test_model_field_choices(self):
         model_field = ArrayField(models.IntegerField(choices=((1, "A"), (2, "B"))))

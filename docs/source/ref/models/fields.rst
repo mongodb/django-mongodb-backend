@@ -8,13 +8,12 @@ Some MongoDB-specific fields are available in ``django_mongodb_backend.fields``.
 ``ArrayField``
 --------------
 
-.. class:: ArrayField(base_field, size=None, **options)
+.. class:: ArrayField(base_field, max_size=None, size=None, **options)
 
     A field for storing lists of data. Most field types can be used, and you
-    pass another field instance as the :attr:`base_field
-    <ArrayField.base_field>`. You may also specify a :attr:`size
-    <ArrayField.size>`. ``ArrayField`` can be nested to store multi-dimensional
-    arrays.
+    pass another field instance as the :attr:`~ArrayField.base_field`. You may
+    also specify a :attr:`~ArrayField.size` or :attr:`~ArrayField.max_size`.
+    ``ArrayField`` can be nested to store multi-dimensional arrays.
 
     If you give the field a :attr:`~django.db.models.Field.default`, ensure
     it's a callable such as ``list`` (for an empty default) or a callable that
@@ -59,12 +58,21 @@ Some MongoDB-specific fields are available in ``django_mongodb_backend.fields``.
         of data and configuration, and serialization are all delegated to the
         underlying base field.
 
-    .. attribute:: size
+    .. attribute:: max_size
 
         This is an optional argument.
 
         If passed, the array will have a maximum size as specified, validated
-        only by forms.
+        by forms and model validation, but not enforced by the database.
+
+        The ``max_size`` and ``size`` options are mutually exclusive.
+
+    .. attribute:: size
+
+        This is an optional argument.
+
+        If passed, the array will have size as specified, validated by forms
+        and model validation, but not enforced by the database.
 
 Querying ``ArrayField``
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -168,8 +176,8 @@ Index transforms
 ^^^^^^^^^^^^^^^^
 
 Index transforms index into the array. Any non-negative integer can be used.
-There are no errors if it exceeds the :attr:`size <ArrayField.size>` of the
-array. The lookups available after the transform are those from the
+There are no errors if it exceeds the :attr:`max_size <ArrayField.max_size>` of
+the array. The lookups available after the transform are those from the
 :attr:`base_field <ArrayField.base_field>`. For example:
 
 .. code-block:: pycon
