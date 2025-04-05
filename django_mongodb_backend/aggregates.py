@@ -1,4 +1,11 @@
-from django.db.models.aggregates import Aggregate, Count, StdDev, Variance
+from django.db.models.aggregates import (
+    Aggregate,
+    AggregateFilter,
+    Count,
+    StdDev,
+    StringAgg,
+    Variance,
+)
 from django.db.models.expressions import Case, Value, When
 from django.db.models.lookups import IsNull
 
@@ -29,6 +36,10 @@ def aggregate(
         return lhs_mql
     operator = operator or MONGO_AGGREGATIONS.get(self.__class__, self.function.lower())
     return {f"${operator}": lhs_mql}
+
+
+def aggregate_filter(self, compiler, connection, **extra_context):
+    return self.condition.as_mql(compiler, connection, **extra_context)
 
 
 def count(self, compiler, connection, resolve_inner_expression=False, **extra_context):  # noqa: ARG001
@@ -72,8 +83,16 @@ def stddev_variance(self, compiler, connection, **extra_context):
     return aggregate(self, compiler, connection, operator=operator, **extra_context)
 
 
+def string_agg(self, compiler, connection, **extra_context):  # # noqa: ARG001
+    from django.db import NotSupportedError
+
+    raise NotSupportedError("StringAgg is not supported.")
+
+
 def register_aggregates():
     Aggregate.as_mql = aggregate
+    AggregateFilter.as_mql = aggregate_filter
     Count.as_mql = count
     StdDev.as_mql = stddev_variance
+    StringAgg.as_mql = string_agg
     Variance.as_mql = stddev_variance
