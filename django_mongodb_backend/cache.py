@@ -1,5 +1,5 @@
 import pickle
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from django.core.cache.backends.base import DEFAULT_TIMEOUT, BaseCache
 from django.core.cache.backends.db import Options
@@ -72,7 +72,7 @@ class MongoDBCache(BaseCache):
         if timeout is None:
             return datetime.max
         timestamp = super().get_backend_timeout(timeout)
-        return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        return datetime.fromtimestamp(timestamp, tz=UTC)
 
     def get(self, key, default=None, version=None):
         return self.get_many([key], version).get(key, default)
