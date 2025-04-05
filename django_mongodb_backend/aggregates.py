@@ -1,5 +1,13 @@
-from django.db.models.aggregates import Aggregate, Count, StdDev, Variance
-from django.db.models.expressions import Case, Value, When
+from django.db import NotSupportedError
+from django.db.models.aggregates import (
+    Aggregate,
+    AggregateFilter,
+    Count,
+    StdDev,
+    StringAgg,
+    Variance,
+)
+from django.db.models.expressions import Case, Col, Value, When
 from django.db.models.lookups import IsNull
 
 from .query_utils import process_lhs
@@ -9,7 +17,11 @@ MONGO_AGGREGATIONS = {Count: "sum"}
 
 
 def aggregate(self, compiler, connection, operator=None, resolve_inner_expression=False):
-    if self.filter:
+    # TODO: isinstance(self.filter, Col) works around failure of
+    # aggregation.tests.AggregateTestCase.test_distinct_on_aggregate. Is this
+    # correct?
+    if self.filter is not None and not isinstance(self.filter, Col):
+        # Generate a CASE statement for this aggregate.
         node = self.copy()
         node.filter = None
         source_expressions = node.get_source_expressions()
@@ -22,6 +34,10 @@ def aggregate(self, compiler, connection, operator=None, resolve_inner_expressio
         return lhs_mql
     operator = operator or MONGO_AGGREGATIONS.get(self.__class__, self.function.lower())
     return {f"${operator}": lhs_mql}
+
+
+def aggregate_filter(self, compiler, connection):
+    return self.condition.as_mql(compiler, connection, as_expr=True)
 
 
 def count(self, compiler, connection, resolve_inner_expression=False):
@@ -65,8 +81,14 @@ def stddev_variance(self, compiler, connection):
     return aggregate(self, compiler, connection, operator=operator)
 
 
+def string_agg(self, compiler, connection):  # noqa: ARG001
+    raise NotSupportedError("StringAgg is not supported.")
+
+
 def register_aggregates():
     Aggregate.as_mql_expr = aggregate
+    AggregateFilter.as_mql_expr = aggregate_filter
     Count.as_mql_expr = count
     StdDev.as_mql_expr = stddev_variance
+    StringAgg.as_mql_expr = string_agg
     Variance.as_mql_expr = stddev_variance
