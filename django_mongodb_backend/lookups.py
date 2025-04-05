@@ -1,5 +1,6 @@
 from django.db import NotSupportedError
-from django.db.models.fields.related_lookups import In, MultiColSource, RelatedIn
+from django.db.models.expressions import ColPairs
+from django.db.models.fields.related_lookups import In, RelatedIn
 from django.db.models.lookups import (
     BuiltinLookup,
     FieldGetDbPrepValueIterableMixin,
@@ -34,8 +35,8 @@ def field_resolve_expression_parameter(self, compiler, connection, sql, param):
 
 
 def in_(self, compiler, connection):
-    if isinstance(self.lhs, MultiColSource):
-        raise NotImplementedError("MultiColSource is not supported.")
+    if isinstance(self.lhs, ColPairs):
+        raise NotImplementedError("ColPairs is not supported.")
     db_rhs = getattr(self.rhs, "_db", None)
     if db_rhs is not None and db_rhs != connection.alias:
         raise ValueError(
