@@ -104,6 +104,12 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "backends.base.test_creation.TestDbCreationTests.test_serialize_deprecation",
         # This backend has a custom format_debug_sql().
         "backends.tests.LastExecutedQueryTest.test_debug_sql",
+        # StringAgg is not supported.
+        "aggregation.tests.AggregateTestCase.test_distinct_on_stringagg",
+        "aggregation.tests.AggregateTestCase.test_string_agg_escapes_delimiter",
+        "aggregation.tests.AggregateTestCase.test_string_agg_filter",
+        "aggregation.tests.AggregateTestCase.test_string_agg_filter_in_subquery",
+        "aggregation.tests.AggregateTestCase.test_stringagg_default_value",
     }
     # $bitAnd, #bitOr, and $bitXor are new in MongoDB 6.3.
     _django_test_expected_failures_bitwise = {
