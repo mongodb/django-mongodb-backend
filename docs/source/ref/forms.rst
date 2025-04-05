@@ -33,7 +33,7 @@ Stores an :class:`~bson.objectid.ObjectId`.
 ``SimpleArrayField``
 --------------------
 
-.. class:: SimpleArrayField(base_field, delimiter=',', max_length=None, min_length=None)
+.. class:: SimpleArrayField(base_field, delimiter=',', length=None, max_length=None, min_length=None)
 
     A field which maps to an array. It is represented by an HTML ``<input>``.
 
@@ -90,6 +90,14 @@ Stores an :class:`~bson.objectid.ObjectId`.
             The field does not support escaping of the delimiter, so be careful
             in cases where the delimiter is a valid character in the underlying
             field. The delimiter does not need to be only one character.
+
+    .. attribute:: length
+
+        This is an optional argument which validates that the array contains
+        the stated number of items.
+
+        ``length`` may not be specified along with ``max_length`` or
+        ``min_length``.
 
     .. attribute:: max_length
 

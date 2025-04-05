@@ -2,11 +2,11 @@ import copy
 from itertools import chain
 
 from django import forms
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from ...utils import prefix_validation_error
-from ...validators import ArrayMaxLengthValidator, ArrayMinLengthValidator
+from ...validators import ArrayMaxLengthValidator, ArrayMinLengthValidator, LengthValidator
 
 
 class SimpleArrayField(forms.CharField):
@@ -14,16 +14,26 @@ class SimpleArrayField(forms.CharField):
         "item_invalid": _("Item %(nth)s in the array did not validate:"),
     }
 
-    def __init__(self, base_field, *, delimiter=",", max_length=None, min_length=None, **kwargs):
+    def __init__(
+        self, base_field, *, delimiter=",", max_length=None, min_length=None, length=None, **kwargs
+    ):
         self.base_field = base_field
         self.delimiter = delimiter
         super().__init__(**kwargs)
+        if (min_length is not None or max_length is not None) and length is not None:
+            invalid_param = "max_length" if max_length is not None else "min_length"
+            raise ImproperlyConfigured(
+                f"The length and {invalid_param} parameters are mutually exclusive."
+            )
         if min_length is not None:
             self.min_length = min_length
             self.validators.append(ArrayMinLengthValidator(int(min_length)))
         if max_length is not None:
             self.max_length = max_length
             self.validators.append(ArrayMaxLengthValidator(int(max_length)))
+        if length is not None:
+            self.length = length
+            self.validators.append(LengthValidator(int(length)))
 
     def clean(self, value):
         value = super().clean(value)

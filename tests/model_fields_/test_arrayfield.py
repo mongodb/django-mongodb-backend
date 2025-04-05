@@ -646,6 +646,16 @@ class CheckTests(SimpleTestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].id, "django_mongodb_backend.array.E002")
 
+    def test_both_size_and_max_size(self):
+        class MyModel(models.Model):
+            field = ArrayField(models.CharField(max_length=3), size=3, max_size=4)
+
+        model = MyModel()
+        errors = model.check()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].id, "django_mongodb_backend.array.E003")
+        self.assertEqual(errors[0].msg, "ArrayField cannot have both size and max_size.")
+
     def test_invalid_default(self):
         class MyModel(models.Model):
             field = ArrayField(models.IntegerField(), default=[])
@@ -811,6 +821,20 @@ class ValidationTests(SimpleTestCase):
         msg = "List contains 2 items, it should contain no more than 1."
         with self.assertRaisesMessage(exceptions.ValidationError, msg):
             field.clean([1, 2], None)
+
+    def test_with_size(self):
+        field = ArrayField(models.IntegerField(), size=3)
+        field.clean([1, 2, 3], None)
+        msg = "List contains 4 items, it should contain 3."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
+            field.clean([1, 2, 3, 4], None)
+
+    def test_with_size_singular(self):
+        field = ArrayField(models.IntegerField(), size=2)
+        field.clean([1, 2], None)
+        msg = "List contains 1 item, it should contain 2."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
+            field.clean([1], None)
 
     def test_nested_array_mismatch(self):
         field = ArrayField(ArrayField(models.IntegerField()))
