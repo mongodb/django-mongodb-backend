@@ -803,12 +803,9 @@ class ValidationTests(SimpleTestCase):
     def test_with_max_size(self):
         field = ArrayField(models.IntegerField(), max_size=3)
         field.clean([1, 2, 3], None)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        msg = "List contains 4 items, it should contain no more than 3."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
             field.clean([1, 2, 3, 4], None)
-        self.assertEqual(
-            cm.exception.messages[0],
-            "List contains 4 items, it should contain no more than 3.",
-        )
 
     def test_with_max_size_singular(self):
         field = ArrayField(models.IntegerField(), max_size=1)
@@ -820,12 +817,9 @@ class ValidationTests(SimpleTestCase):
     def test_with_size(self):
         field = ArrayField(models.IntegerField(), size=3)
         field.clean([1, 2, 3], None)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        msg = "List contains 4 items, it should contain 3."
+        with self.assertRaisesMessage(exceptions.ValidationError, msg):
             field.clean([1, 2, 3, 4], None)
-        self.assertEqual(
-            cm.exception.messages[0],
-            "List contains 4 items, it should contain 3.",
-        )
 
     def test_with_size_singular(self):
         field = ArrayField(models.IntegerField(), size=2)
