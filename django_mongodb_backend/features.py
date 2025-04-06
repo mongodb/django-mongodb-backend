@@ -90,15 +90,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "model_fields_.test_arrayfield.QueryingTests.test_contained_by_subquery",
         # JSONArray not implemented.
         "db_functions.json.test_json_array.JSONArrayTests",
-        # Some usage of prefetch_related() raises "ColPairs is not supported."
-        "known_related_objects.tests.ExistingRelatedInstancesTests.test_one_to_one_multi_prefetch_related",
-        "known_related_objects.tests.ExistingRelatedInstancesTests.test_one_to_one_prefetch_related",
-        "prefetch_related.tests.DeprecationTests.test_prefetch_one_level_fallback",
-        "prefetch_related.tests.MultiDbTests.test_using_is_honored_fkey",
-        "prefetch_related.tests.MultiDbTests.test_using_is_honored_inheritance",
-        "prefetch_related.tests.NestedPrefetchTests.test_nested_prefetch_is_not_overwritten_by_related_object",
-        "prefetch_related.tests.NullableTest.test_prefetch_nullable",
-        "prefetch_related.tests.Ticket19607Tests.test_bug",
         # Value.as_mql() doesn't call output_field.get_db_prep_save():
         # https://github.com/mongodb/django-mongodb-backend/issues/282
         "model_fields.test_jsonfield.TestSaveLoad.test_bulk_update_custom_get_prep_value",

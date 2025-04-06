@@ -8,6 +8,7 @@ from django.db import NotSupportedError
 from django.db.models.expressions import (
     Case,
     Col,
+    ColPairs,
     CombinedExpression,
     Exists,
     ExpressionList,
@@ -72,6 +73,13 @@ def col(self, compiler, connection):  # noqa: ARG001
     has_alias = self.alias and self.alias != compiler.collection_name
     prefix = f"{self.alias}." if has_alias else ""
     return f"${prefix}{self.target.column}"
+
+
+def col_pairs(self, compiler, connection):
+    cols = self.get_cols()
+    if len(cols) > 1:
+        raise NotSupportedError("ColPairs is not supported.")
+    return cols[0].as_mql(compiler, connection)
 
 
 def combined_expression(self, compiler, connection):
@@ -207,6 +215,7 @@ def value(self, compiler, connection):  # noqa: ARG001
 def register_expressions():
     Case.as_mql = case
     Col.as_mql = col
+    ColPairs.as_mql = col_pairs
     CombinedExpression.as_mql = combined_expression
     Exists.as_mql = exists
     ExpressionList.as_mql = process_lhs
