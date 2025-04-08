@@ -33,7 +33,6 @@ Querying
   - :meth:`bulk_update() <django.db.models.query.QuerySet.bulk_update>`
   - :meth:`dates() <django.db.models.query.QuerySet.dates>`
   - :meth:`datetimes() <django.db.models.query.QuerySet.datetimes>`
-  - :meth:`distinct() <django.db.models.query.QuerySet.distinct>`
   - :meth:`extra() <django.db.models.query.QuerySet.extra>`
   - :meth:`prefetch_related() <django.db.models.query.QuerySet.prefetch_related>`
 
