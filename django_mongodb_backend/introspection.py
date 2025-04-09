@@ -34,6 +34,8 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         return constraints
 
     def _get_search_index_info(self, table_name):
+        if not self.connection.features.supports_search_indexes:
+            return {}
         constraints = {}
         indexes = self.connection.get_collection(table_name).list_search_indexes()
         for details in indexes:
