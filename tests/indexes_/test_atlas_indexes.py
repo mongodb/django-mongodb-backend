@@ -42,7 +42,7 @@ class SearchIndexTests(TestCase):
         with connection.schema_editor() as editor:
             index = SearchIndex(
                 name="recent_article_idx",
-                fields=["headline", "number", "body", "data", "embedded", "auto_now"],
+                fields=["headline", "number", "body", "data", "embedded", "created_at"],
             )
             editor.add_index(index=index, model=Article)
             index_info = connection.introspection.get_constraints(
@@ -52,7 +52,7 @@ class SearchIndexTests(TestCase):
             expected_options = {
                 "dynamic": False,
                 "fields": {
-                    "auto_now": {"type": "date"},
+                    "created_at": {"type": "date"},
                     "body": {
                         "indexOptions": "offsets",
                         "norms": "include",

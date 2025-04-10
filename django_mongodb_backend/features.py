@@ -616,8 +616,10 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     @cached_property
     def supports_search_indexes(self):
         try:
+            # Try to execute an search indexes operation.
             self.connection.get_collection("__null").list_search_indexes()
         except OperationFailure:
+            # Operation fails then search indexes isn't supported
             return False
         else:
             return True
