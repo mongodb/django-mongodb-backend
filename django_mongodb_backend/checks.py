@@ -4,8 +4,6 @@ from django.apps import apps
 from django.core.checks import Tags, register
 from django.db import connections, router
 
-from django_mongodb_backend.indexes import VectorSearchIndex
-
 
 @register(Tags.models)
 def check_vector_search_indexes(app_configs, databases=None, **kwargs):  # noqa: ARG001
@@ -21,7 +19,6 @@ def check_vector_search_indexes(app_configs, databases=None, **kwargs):  # noqa:
                 continue
             connection = connections[db]
             for model_index in model._meta.indexes:
-                if not isinstance(model_index, VectorSearchIndex):
-                    continue
-                errors.extend(model_index.check(model, connection))
+                if hasattr(model_index, "check"):
+                    errors.extend(model_index.check(model, connection))
     return errors

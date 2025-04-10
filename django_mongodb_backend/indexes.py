@@ -147,7 +147,6 @@ class VectorSearchIndex(SearchIndex):
 
     def __init__(self, *expressions, similarities="cosine", **kwargs):
         super().__init__(*expressions, **kwargs)
-        # validate the similarities types
         self.similarities = similarities
 
     def check(self, model, connection):
