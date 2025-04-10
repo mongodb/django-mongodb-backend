@@ -1,5 +1,6 @@
 from django.db.backends.base.features import BaseDatabaseFeatures
 from django.utils.functional import cached_property
+from pymongo.errors import OperationFailure
 
 
 class DatabaseFeatures(BaseDatabaseFeatures):
@@ -611,3 +612,14 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     @cached_property
     def is_mongodb_6_3(self):
         return self.connection.get_database_version() >= (6, 3)
+
+    @property
+    def supports_search_indexes(self):
+        try:
+            # Try to execute an search indexes operation.
+            self.connection.get_collection("__null").list_search_indexes()
+        except OperationFailure:
+            # Operation fails then search indexes isn't supported
+            return False
+        else:
+            return True
