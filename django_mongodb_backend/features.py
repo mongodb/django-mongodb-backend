@@ -613,7 +613,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     def is_mongodb_6_3(self):
         return self.connection.get_database_version() >= (6, 3)
 
-    @cached_property
+    @property
     def supports_search_indexes(self):
         try:
             # Try to execute an search indexes operation.
