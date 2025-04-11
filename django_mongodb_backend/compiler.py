@@ -332,15 +332,6 @@ class SQLCompiler(compiler.SQLCompiler):
 
     def check_query(self):
         """Check if the current query is supported by the database."""
-        if self.query.distinct:
-            # This is a heuristic to detect QuerySet.datetimes() and dates().
-            # "datetimefield" and "datefield" are the names of the annotations
-            # the methods use. A user could annotate with the same names which
-            # would give an incorrect error message.
-            if "datetimefield" in self.query.annotations:
-                raise NotSupportedError("QuerySet.datetimes() is not supported on MongoDB.")
-            if "datefield" in self.query.annotations:
-                raise NotSupportedError("QuerySet.dates() is not supported on MongoDB.")
         if self.query.extra:
             if any(key.startswith("_prefetch_related_") for key in self.query.extra):
                 raise NotSupportedError("QuerySet.prefetch_related() is not supported on MongoDB.")
