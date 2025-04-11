@@ -21,3 +21,4 @@ Bug fixes
   ``contained__by``, ``len``, etc.
 - Fixed the results of queries that use the ``tzinfo`` parameter of the
   ``Trunc`` database functions.
+- Added support for ``QuerySet.dates()`` and ``datetimes()``.
