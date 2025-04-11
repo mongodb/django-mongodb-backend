@@ -8,8 +8,10 @@ from django.db import NotSupportedError
 from django.db.models.expressions import (
     Case,
     Col,
+    ColPairs,
     CombinedExpression,
     Exists,
+    ExpressionList,
     ExpressionWrapper,
     F,
     NegatedExpression,
@@ -23,6 +25,8 @@ from django.db.models.expressions import (
     When,
 )
 from django.db.models.sql import Query
+
+from .query_utils import process_lhs
 
 
 def case(self, compiler, connection):
@@ -71,6 +75,13 @@ def col(self, compiler, connection):  # noqa: ARG001
     return f"${prefix}{self.target.column}"
 
 
+def col_pairs(self, compiler, connection):
+    cols = self.get_cols()
+    if len(cols) > 1:
+        raise NotSupportedError("ColPairs is not supported.")
+    return cols[0].as_mql(compiler, connection)
+
+
 def combined_expression(self, compiler, connection):
     expressions = [
         self.lhs.as_mql(compiler, connection),
@@ -81,6 +92,10 @@ def combined_expression(self, compiler, connection):
 
 def expression_wrapper(self, compiler, connection):
     return self.expression.as_mql(compiler, connection)
+
+
+def expression_list(self, compiler, connection):
+    return process_lhs(self, compiler, connection)
 
 
 def f(self, compiler, connection):  # noqa: ARG001
@@ -150,7 +165,11 @@ def ref(self, compiler, connection):  # noqa: ARG001
         if isinstance(self.source, Col) and self.source.alias != compiler.collection_name
         else ""
     )
-    return f"${prefix}{self.refs}"
+    if hasattr(self, "ordinal"):
+        refs, _ = compiler.columns[self.ordinal - 1]
+    else:
+        refs = self.refs
+    return f"${prefix}{refs}"
 
 
 def star(self, compiler, connection):  # noqa: ARG001
@@ -200,8 +219,10 @@ def value(self, compiler, connection):  # noqa: ARG001
 def register_expressions():
     Case.as_mql = case
     Col.as_mql = col
+    ColPairs.as_mql = col_pairs
     CombinedExpression.as_mql = combined_expression
     Exists.as_mql = exists
+    ExpressionList.as_mql = expression_list
     ExpressionWrapper.as_mql = expression_wrapper
     F.as_mql = f
     NegatedExpression.as_mql = negated_expression
