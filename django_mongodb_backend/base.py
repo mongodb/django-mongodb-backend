@@ -165,6 +165,10 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         settings_dict = self.settings_dict
         if not settings_dict["NAME"]:
             raise ImproperlyConfigured('settings.DATABASES is missing the "NAME" value.')
+        # Use persistent connections by default, even if the user specifies
+        # CONN_MAX_AGE=0. (This code has no way to distinguish that case.)
+        if settings_dict["CONN_MAX_AGE"] == 0:
+            settings_dict["CONN_MAX_AGE"] = None
         return {
             "host": settings_dict["HOST"] or None,
             "port": int(settings_dict["PORT"] or 27017),
