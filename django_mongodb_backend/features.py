@@ -60,10 +60,8 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "db_functions.math.test_round.RoundTests.test_integer_with_negative_precision",
         # Truncating in another timezone doesn't work becauase MongoDB converts
         # the result back to UTC.
-        "datetimes.tests.DateTimesTests.test_21432",
         "db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests.test_trunc_func_with_timezone",
         "db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests.test_trunc_timezone_applied_before_truncation",
-        "timezones.tests.NewDatabaseTests.test_query_datetimes",
         # Unexpected alias_refcount in alias_map.
         "queries.tests.Queries1Tests.test_order_by_tables",
         # The $sum aggregation returns 0 instead of None for null.
