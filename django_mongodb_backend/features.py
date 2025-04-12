@@ -1,6 +1,6 @@
 from django.db.backends.base.features import BaseDatabaseFeatures
 from django.utils.functional import cached_property
-from pymongo.errors import OperationFailure
+from pymongo.errors import CollectionInvalid, OperationFailure
 
 
 class DatabaseFeatures(BaseDatabaseFeatures):
@@ -613,13 +613,21 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     def is_mongodb_6_3(self):
         return self.connection.get_database_version() >= (6, 3)
 
-    @property
+    @cached_property
     def supports_search_indexes(self):
+        dummy_collection = "__null"
         try:
-            # Try to execute an search indexes operation.
-            self.connection.get_collection("__null").list_search_indexes()
+            # Try to execute an search indexes operation over an existing collection.
+            try:
+                collection = self.connection.database.create_collection(dummy_collection)
+            except CollectionInvalid:
+                # If the collection exists, it will be removed after this operation.
+                collection = self.connection.get_collection(dummy_collection)
+            collection.list_search_indexes()
         except OperationFailure:
-            # Operation fails then search indexes isn't supported
+            # Operation fails then search indexes isn't supported.
             return False
         else:
             return True
+        finally:
+            collection.drop()
