@@ -617,15 +617,14 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     def supports_search_indexes(self):
         dummy_collection = "__null"
         try:
-            # Try to execute an search indexes operation over an existing collection.
+            # Create or get dummy collection.
             try:
                 collection = self.connection.database.create_collection(dummy_collection)
             except CollectionInvalid:
-                # If the collection exists, it will be removed after this operation.
                 collection = self.connection.get_collection(dummy_collection)
+            # Check search indexes support (raises if unsupported).
             collection.list_search_indexes()
         except OperationFailure:
-            # Operation fails then search indexes isn't supported.
             return False
         else:
             return True
