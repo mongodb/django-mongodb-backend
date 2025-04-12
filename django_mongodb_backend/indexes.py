@@ -1,7 +1,7 @@
 import itertools
 from collections import defaultdict
 
-from django.core.checks import Error
+from django.core.checks import Error, Warning
 from django.db import NotSupportedError
 from django.db.models import DecimalField, FloatField, Index
 from django.db.models.lookups import BuiltinLookup
@@ -107,6 +107,23 @@ def where_node_idx(self, compiler, connection):
 
 class SearchIndex(Index):
     suffix = "six"
+    _error_id_prefix = "django_mongodb_backend.indexes.SearchIndex"
+
+    def check(self, model, connection):
+        errors = []
+        if not connection.features.supports_search_indexes:
+            errors.append(
+                Warning(
+                    "This version of MongoDB does not support search indexes.",
+                    hint=(
+                        "The index won't be created. Silence this warning if you "
+                        "don't care about it."
+                    ),
+                    obj=self,
+                    id=f"{self._error_id_prefix}.W001",
+                )
+            )
+        return errors
 
     # Maps Django internal type to atlas search index type.
     # Reference: https://www.mongodb.com/docs/atlas/atlas-search/define-field-mappings/#data-types
@@ -144,14 +161,14 @@ class SearchIndex(Index):
 class VectorSearchIndex(SearchIndex):
     suffix = "vsi"
     ALLOWED_SIMILARITY_FUNCTIONS = frozenset(("euclidean", "cosine", "dotProduct"))
+    _error_id_prefix = "django_mongodb_backend.indexes.VectorSearchIndex"
 
     def __init__(self, *expressions, similarities="cosine", **kwargs):
         super().__init__(*expressions, **kwargs)
         self.similarities = similarities
 
     def check(self, model, connection):
-        errors = []
-        error_id_prefix = "django_mongodb_backend.indexes.VectorSearchIndex"
+        errors = super().check(model, connection)
         similarities = (
             self.similarities if isinstance(self.similarities, list) else [self.similarities]
         )
@@ -162,7 +179,7 @@ class VectorSearchIndex(SearchIndex):
                         f"{func} isn't a valid similarity function, options "
                         f"are {', '.join(sorted(self.ALLOWED_SIMILARITY_FUNCTIONS))}",
                         obj=self,
-                        id=f"{error_id_prefix}.E004",
+                        id=f"{self._error_id_prefix}.E004",
                     )
                 )
         for field_name, _ in self.fields_orders:
@@ -175,7 +192,7 @@ class VectorSearchIndex(SearchIndex):
                         Error(
                             "Atlas vector search requires size.",
                             obj=self,
-                            id=f"{error_id_prefix}.E001",
+                            id=f"{self._error_id_prefix}.E001",
                         )
                     )
                 if not isinstance(field_.base_field, FloatField | DecimalField):
@@ -183,7 +200,7 @@ class VectorSearchIndex(SearchIndex):
                         Error(
                             "Base type must be Float or Decimal.",
                             obj=self,
-                            id=f"{error_id_prefix}.E002",
+                            id=f"{self._error_id_prefix}.E002",
                         )
                     )
             else:
@@ -197,7 +214,7 @@ class VectorSearchIndex(SearchIndex):
                         Error(
                             f"Unsupported filter of type {field_.get_internal_type()}.",
                             obj=self,
-                            id="django_mongodb_backend.indexes.VectorSearchIndex.E003",
+                            id=f"{self._error_id_prefix}.E003",
                         )
                     )
         return errors

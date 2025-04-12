@@ -1,6 +1,6 @@
 from django.core import checks
 from django.db import models
-from django.test import SimpleTestCase
+from django.test import TestCase, skipIfDBFeature, skipUnlessDBFeature
 from django.test.utils import (
     isolate_apps,
     override_system_checks,
@@ -8,12 +8,43 @@ from django.test.utils import (
 
 from django_mongodb_backend.checks import check_vector_search_indexes
 from django_mongodb_backend.fields import ArrayField
-from django_mongodb_backend.indexes import VectorSearchIndex
+from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 
 
+@skipIfDBFeature("supports_search_indexes")
 @isolate_apps("system_checks", attr_name="apps")
 @override_system_checks([check_vector_search_indexes])
-class InvalidSearchIndexesTest(SimpleTestCase):
+class InvalidSearchIndexesTest(TestCase):
+    def test_search_requires_search_index_support(self):
+        class Article(models.Model):
+            title = models.CharField(max_length=10)
+
+            class Meta:
+                indexes = [
+                    SearchIndex(fields=["title"]),
+                ]
+
+        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
+        self.assertEqual(
+            errors,
+            [
+                checks.Warning(
+                    "This version of MongoDB does not support search indexes.",
+                    hint=(
+                        "The index won't be created. Silence this warning if you "
+                        "don't care about it."
+                    ),
+                    obj=Article._meta.indexes[0],
+                    id="django_mongodb_backend.indexes.SearchIndex.W001",
+                )
+            ],
+        )
+
+
+@skipUnlessDBFeature("supports_search_indexes")
+@isolate_apps("system_checks", attr_name="apps")
+@override_system_checks([check_vector_search_indexes])
+class InvalidVectorSearchIndexesTest(TestCase):
     def test_vectorsearch_requires_size(self):
         class Article(models.Model):
             title_embedded = ArrayField(models.FloatField())
