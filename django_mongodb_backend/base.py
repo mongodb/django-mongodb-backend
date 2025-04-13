@@ -4,6 +4,7 @@ import os
 from django.core.exceptions import ImproperlyConfigured
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.utils.asyncio import async_unsafe
+from django.utils.functional import cached_property
 from pymongo.collection import Collection
 from pymongo.driver_info import DriverInfo
 from pymongo.mongo_client import MongoClient
@@ -149,13 +150,13 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             return OperationDebugWrapper(self)
         return self.database
 
-    def __getattr__(self, attr):
-        """Connect to the database the first time `database` is accessed."""
-        if attr == "database":
-            if self.connection is None:
-                self.connect()
-            return getattr(self, attr)
-        raise AttributeError(attr)
+    @cached_property
+    def database(self):
+        """Connect to the database the first time it's accessed."""
+        if self.connection is None:
+            self.connect()
+        # Cache the database attribute set by init_connection_state()
+        return self.database
 
     def init_connection_state(self):
         self.database = self.connection[self.settings_dict["NAME"]]
