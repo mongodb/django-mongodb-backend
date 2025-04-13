@@ -52,7 +52,7 @@ jobs:
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@315db7fe45ac2880b7758f1933e6e5d59afd5e94 # 1.12.1
         with:
-          mongodb-version: 6.0
+          mongodb-version: 7.0
       - name: Run tests
         run: python3 django_repo/tests/runtests_.py
     permissions:
