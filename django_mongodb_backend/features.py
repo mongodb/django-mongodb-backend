@@ -1,9 +1,8 @@
 from django.db.backends.base.features import BaseDatabaseFeatures
-from django.utils.functional import cached_property
 
 
 class DatabaseFeatures(BaseDatabaseFeatures):
-    minimum_database_version = (6, 0)
+    minimum_database_version = (7, 0)
     allow_sliced_subqueries_with_in = False
     allows_multiple_constraints_on_same_fields = False
     can_create_inline_fk = False
@@ -39,7 +38,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     supports_unspecified_pk = True
     uses_savepoints = False
 
-    _django_test_expected_failures = {
+    django_test_expected_failures = {
         # $concat only supports strings, not int
         "db_functions.text.test_concat.ConcatTests.test_concat_non_str",
         # QuerySet.order_by() with annotation transform doesn't work:
@@ -89,23 +88,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         # https://jira.mongodb.org/browse/SERVER-99186
         "model_fields_.test_arrayfield.QueryingTests.test_contained_by_subquery",
     }
-    # $bitAnd, #bitOr, and $bitXor are new in MongoDB 6.3.
-    _django_test_expected_failures_bitwise = {
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_and",
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_or",
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_xor",
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_xor_null",
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_xor_right_null",
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_transformed_field_bitwise_or",
-    }
-
-    @cached_property
-    def django_test_expected_failures(self):
-        expected_failures = super().django_test_expected_failures
-        expected_failures.update(self._django_test_expected_failures)
-        if not self.is_mongodb_6_3:
-            expected_failures.update(self._django_test_expected_failures_bitwise)
-        return expected_failures
 
     django_test_skips = {
         "Database defaults aren't supported by MongoDB.": {
@@ -607,7 +589,3 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             "custom_lookups.tests.SubqueryTransformTests.test_subquery_usage",
         },
     }
-
-    @cached_property
-    def is_mongodb_6_3(self):
-        return self.connection.get_database_version() >= (6, 3)

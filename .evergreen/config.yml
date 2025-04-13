@@ -68,22 +68,22 @@ tasks:
       - func: "run unit tests"
 
 buildvariants:
-  - name: tests-6-noauth-nossl
-    display_name: Run Tests 6.0 NoAuth NoSSL
+  - name: tests-7-noauth-nossl
+    display_name: Run Tests 7.0 NoAuth NoSSL
     run_on: rhel87-small
     expansions:
-      MONGODB_VERSION: "6.0"
+      MONGODB_VERSION: "7.0"
       TOPOLOGY: server
       AUTH: "noauth"
       SSL: "nossl"
     tasks:
       - name: run-tests
 
-  - name: tests-6-auth-ssl
-    display_name: Run Tests 6.0 Auth SSL
+  - name: tests-7-auth-ssl
+    display_name: Run Tests 7.0 Auth SSL
     run_on: rhel87-small
     expansions:
-      MONGODB_VERSION: "6.0"
+      MONGODB_VERSION: "7.0"
       TOPOLOGY: server
       AUTH: "auth"
       SSL: "ssl"
