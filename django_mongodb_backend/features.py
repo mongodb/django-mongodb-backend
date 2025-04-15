@@ -628,5 +628,3 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             return False
         else:
             return True
-        finally:
-            collection.drop()
