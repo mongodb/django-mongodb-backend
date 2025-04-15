@@ -114,7 +114,7 @@ class SearchIndex(Index):
         if not connection.features.supports_atlas_search:
             errors.append(
                 Warning(
-                    "This version of MongoDB does not support search indexes.",
+                    "This MongoDB server does not support search indexes.",
                     hint=(
                         "The index won't be created. Silence this warning if you "
                         "don't care about it."
