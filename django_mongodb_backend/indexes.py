@@ -111,7 +111,7 @@ class SearchIndex(Index):
 
     def check(self, model, connection):
         errors = []
-        if not connection.features.supports_search_indexes:
+        if not connection.features.supports_atlas_search:
             errors.append(
                 Warning(
                     "This version of MongoDB does not support search indexes.",

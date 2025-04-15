@@ -614,7 +614,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         return self.connection.get_database_version() >= (6, 3)
 
     @cached_property
-    def supports_search_indexes(self):
+    def supports_atlas_search(self):
         dummy_collection = "__null"
         try:
             # Create or get dummy collection.

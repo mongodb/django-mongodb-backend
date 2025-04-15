@@ -11,7 +11,7 @@ from django_mongodb_backend.fields import ArrayField
 from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 
 
-@skipIfDBFeature("supports_search_indexes")
+@skipIfDBFeature("supports_atlas_search")
 @isolate_apps("system_checks", attr_name="apps")
 @override_system_checks([check_vector_search_indexes])
 class InvalidSearchIndexesTest(TestCase):
@@ -41,7 +41,7 @@ class InvalidSearchIndexesTest(TestCase):
         )
 
 
-@skipUnlessDBFeature("supports_search_indexes")
+@skipUnlessDBFeature("supports_atlas_search")
 @isolate_apps("system_checks", attr_name="apps")
 @override_system_checks([check_vector_search_indexes])
 class InvalidVectorSearchIndexesTest(TestCase):

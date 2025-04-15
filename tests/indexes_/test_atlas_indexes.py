@@ -6,7 +6,7 @@ from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 from .models import Article
 
 
-@skipUnlessDBFeature("supports_search_indexes")
+@skipUnlessDBFeature("supports_atlas_search")
 class SearchIndexTests(TestCase):
     # Tests for creating, validating, and removing search indexes using Django's schema editor.
     available_apps = None
@@ -80,7 +80,7 @@ class SearchIndexTests(TestCase):
             self.assertAddRemoveIndex(editor, Article, index)
 
 
-@skipUnlessDBFeature("supports_search_indexes")
+@skipUnlessDBFeature("supports_atlas_search")
 class VectorSearchIndexTests(TestCase):
     # Tests for creating, validating, and removing vector search indexes
     # using Django's schema editor.
