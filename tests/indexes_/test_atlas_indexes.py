@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.db import connection
 from django.test import TestCase, skipIfDBFeature, skipUnlessDBFeature
 
@@ -37,6 +39,17 @@ class SearchIndexTests(TestCase):
             )
             editor.add_index(index=index, model=Article)
             self.assertAddRemoveIndex(editor, Article, index)
+
+    def test_drop_non_existing_index(self):
+        with connection.schema_editor() as editor:
+            index = SearchIndex(
+                name="recent_article_idx",
+                fields=["number"],
+            )
+            editor.get_collection = mock.MagicMock()
+            editor.remove_index(index=index, model=Article)
+            # Verify that the collection was not accessed
+            editor.get_collection.assert_not_called()
 
     @skipIfDBFeature("supports_atlas_search")
     def test_index_not_created(self):
@@ -119,6 +132,17 @@ class VectorSearchIndexTests(TestCase):
                 table_name=model._meta.db_table,
             ),
         )
+
+    def test_drop_non_existing_index(self):
+        with connection.schema_editor() as editor:
+            index = SearchIndex(
+                name="recent_article_idx",
+                fields=["number"],
+            )
+            editor.get_collection = mock.MagicMock()
+            editor.remove_index(index=index, model=Article)
+            # Verify that the collection was not accessed
+            editor.get_collection.assert_not_called()
 
     @skipUnlessDBFeature("supports_atlas_search")
     def test_deconstruct_default_similarity(self):
