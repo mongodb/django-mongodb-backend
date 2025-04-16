@@ -1,6 +1,6 @@
 from django.db.backends.base.features import BaseDatabaseFeatures
 from django.utils.functional import cached_property
-from pymongo.errors import CollectionInvalid, OperationFailure
+from pymongo.errors import OperationFailure
 
 
 class DatabaseFeatures(BaseDatabaseFeatures):
@@ -615,15 +615,9 @@ class DatabaseFeatures(BaseDatabaseFeatures):
 
     @cached_property
     def supports_atlas_search(self):
-        dummy_collection = "__null"
         try:
-            # Create or get dummy collection.
-            try:
-                collection = self.connection.database.create_collection(dummy_collection)
-            except CollectionInvalid:
-                collection = self.connection.get_collection(dummy_collection)
             # Check search indexes support (raises if unsupported).
-            collection.list_search_indexes()
+            self.connection.get_collection("django_migrations").list_search_indexes()
         except OperationFailure:
             return False
         else:
