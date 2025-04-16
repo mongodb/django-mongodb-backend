@@ -147,6 +147,9 @@ class SearchIndex(Index):
     def get_pymongo_index_model(
         self, model, schema_editor, field=None, unique=False, column_prefix=""
     ):
+        errors = self.check(model, schema_editor.connection)
+        if errors:
+            return None
         fields = {}
         for field_name, _ in self.fields_orders:
             field_ = model._meta.get_field(field_name)
@@ -227,6 +230,9 @@ class VectorSearchIndex(SearchIndex):
     def get_pymongo_index_model(
         self, model, schema_editor, field=None, unique=False, column_prefix=""
     ):
+        errors = self.check(model, schema_editor.connection)
+        if errors:
+            return None
         similarities = (
             itertools.cycle([self.similarities])
             if isinstance(self.similarities, str)

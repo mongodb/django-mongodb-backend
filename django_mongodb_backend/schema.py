@@ -263,6 +263,9 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     def add_index(
         self, model, index, *, field=None, unique=False, column_prefix="", parent_model=None
     ):
+        # Check if the index can be created.
+        if hasattr(index, "check") and index.check(model, self.connection):
+            return
         idx = index.get_pymongo_index_model(
             model, schema_editor=self, field=field, unique=unique, column_prefix=column_prefix
         )

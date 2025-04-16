@@ -1,12 +1,11 @@
 from django.db import connection
-from django.test import TestCase, skipUnlessDBFeature
+from django.test import TestCase, skipIfDBFeature, skipUnlessDBFeature
 
 from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 
 from .models import Article
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 class SearchIndexTests(TestCase):
     # Tests for creating, validating, and removing search indexes using Django's schema editor.
     available_apps = None
@@ -29,6 +28,7 @@ class SearchIndexTests(TestCase):
             ),
         )
 
+    @skipUnlessDBFeature("supports_atlas_search")
     def test_simple(self):
         with connection.schema_editor() as editor:
             index = SearchIndex(
@@ -38,6 +38,23 @@ class SearchIndexTests(TestCase):
             editor.add_index(index=index, model=Article)
             self.assertAddRemoveIndex(editor, Article, index)
 
+    @skipIfDBFeature("supports_atlas_search")
+    def test_index_not_created(self):
+        with connection.schema_editor() as editor:
+            index = SearchIndex(
+                name="recent_article_idx",
+                fields=["number"],
+            )
+            editor.add_index(index=index, model=Article)
+            self.assertNotIn(
+                index.name,
+                connection.introspection.get_constraints(
+                    cursor=None,
+                    table_name=Article._meta.db_table,
+                ),
+            )
+
+    @skipUnlessDBFeature("supports_atlas_search")
     def test_multiple_fields(self):
         with connection.schema_editor() as editor:
             index = SearchIndex(
@@ -80,7 +97,6 @@ class SearchIndexTests(TestCase):
             self.assertAddRemoveIndex(editor, Article, index)
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 class VectorSearchIndexTests(TestCase):
     # Tests for creating, validating, and removing vector search indexes
     # using Django's schema editor.
@@ -104,6 +120,7 @@ class VectorSearchIndexTests(TestCase):
             ),
         )
 
+    @skipUnlessDBFeature("supports_atlas_search")
     def test_deconstruct_default_similarity(self):
         index = VectorSearchIndex(
             name="recent_article_idx",
@@ -113,6 +130,23 @@ class VectorSearchIndexTests(TestCase):
         new = VectorSearchIndex(*args, **kwargs)
         self.assertEqual(new.similarities, index.similarities)
 
+    @skipIfDBFeature("supports_atlas_search")
+    def test_index_not_created(self):
+        with connection.schema_editor() as editor:
+            index = VectorSearchIndex(
+                name="recent_article_idx",
+                fields=["number"],
+            )
+            editor.add_index(index=index, model=Article)
+            self.assertNotIn(
+                index.name,
+                connection.introspection.get_constraints(
+                    cursor=None,
+                    table_name=Article._meta.db_table,
+                ),
+            )
+
+    @skipUnlessDBFeature("supports_atlas_search")
     def test_deconstruct_with_similarities(self):
         index = VectorSearchIndex(
             name="recent_article_idx",
@@ -123,6 +157,7 @@ class VectorSearchIndexTests(TestCase):
         new = VectorSearchIndex(*args, **kwargs)
         self.assertEqual(new.similarities, index.similarities)
 
+    @skipUnlessDBFeature("supports_atlas_search")
     def test_simple_vector_search(self):
         with connection.schema_editor() as editor:
             index = VectorSearchIndex(
@@ -132,6 +167,7 @@ class VectorSearchIndexTests(TestCase):
             editor.add_index(index=index, model=Article)
             self.assertAddRemoveIndex(editor, Article, index)
 
+    @skipUnlessDBFeature("supports_atlas_search")
     def test_multiple_fields(self):
         with connection.schema_editor() as editor:
             index = VectorSearchIndex(
