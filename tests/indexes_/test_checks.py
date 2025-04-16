@@ -12,7 +12,7 @@ from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 
 
 @skipIfDBFeature("supports_atlas_search")
-@isolate_apps("system_checks", attr_name="apps")
+@isolate_apps("indexes_", attr_name="apps")
 @override_system_checks([check_vector_search_indexes])
 class InvalidSearchIndexesTests(TestCase):
     def test_requires_atlas_search_support(self):
@@ -41,7 +41,7 @@ class InvalidSearchIndexesTests(TestCase):
         )
 
 
-@isolate_apps("system_checks", attr_name="apps")
+@isolate_apps("indexes_", attr_name="apps")
 @override_system_checks([check_vector_search_indexes])
 class InvalidVectorSearchIndexesTests(TestCase):
     @skipIfDBFeature("supports_atlas_search")
