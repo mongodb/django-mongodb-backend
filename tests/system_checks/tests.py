@@ -15,7 +15,7 @@ from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 @isolate_apps("system_checks", attr_name="apps")
 @override_system_checks([check_vector_search_indexes])
 class InvalidSearchIndexesTest(TestCase):
-    def test_search_requires_search_index_support(self):
+    def test_requires_atlas_search_support(self):
         class Article(models.Model):
             title = models.CharField(max_length=10)
 
@@ -29,7 +29,7 @@ class InvalidSearchIndexesTest(TestCase):
             errors,
             [
                 checks.Warning(
-                    "This MongoDB server does not support search indexes.",
+                    "This MongoDB server does not support atlas search.",
                     hint=(
                         "The index won't be created. Silence this warning if you "
                         "don't care about it."
@@ -41,11 +41,37 @@ class InvalidSearchIndexesTest(TestCase):
         )
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 @isolate_apps("system_checks", attr_name="apps")
 @override_system_checks([check_vector_search_indexes])
 class InvalidVectorSearchIndexesTest(TestCase):
-    def test_vectorsearch_requires_size(self):
+    @skipIfDBFeature("supports_atlas_search")
+    def test_requires_atlas_search_support(self):
+        class Article(models.Model):
+            title = models.CharField(max_length=10)
+
+            class Meta:
+                indexes = [
+                    VectorSearchIndex(fields=["title"]),
+                ]
+
+        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
+        self.assertEqual(
+            errors,
+            [
+                checks.Warning(
+                    "This MongoDB server does not support atlas search.",
+                    hint=(
+                        "The index won't be created. Silence this warning if you "
+                        "don't care about it."
+                    ),
+                    obj=Article._meta.indexes[0],
+                    id="django_mongodb_backend.indexes.VectorSearchIndex.W001",
+                )
+            ],
+        )
+
+    @skipUnlessDBFeature("supports_atlas_search")
+    def test_requires_size(self):
         class Article(models.Model):
             title_embedded = ArrayField(models.FloatField())
 
@@ -66,7 +92,8 @@ class InvalidVectorSearchIndexesTest(TestCase):
             ],
         )
 
-    def test_vectorsearch_requires_float_inner_field(self):
+    @skipUnlessDBFeature("supports_atlas_search")
+    def test_requires_float_inner_field(self):
         class Article(models.Model):
             title_embedded = ArrayField(models.CharField(), size=30)
 
@@ -87,7 +114,8 @@ class InvalidVectorSearchIndexesTest(TestCase):
             ],
         )
 
-    def test_vectorsearch_unsupported_type(self):
+    @skipUnlessDBFeature("supports_atlas_search")
+    def test_unsupported_type(self):
         class Article(models.Model):
             data = models.JSONField()
 
@@ -108,7 +136,8 @@ class InvalidVectorSearchIndexesTest(TestCase):
             ],
         )
 
-    def test_vectorsearch_invalid_similarity_function(self):
+    @skipUnlessDBFeature("supports_atlas_search")
+    def test_invalid_similarity_function(self):
         class Article(models.Model):
             vector_data = ArrayField(models.DecimalField(), size=10)
 
@@ -130,7 +159,8 @@ class InvalidVectorSearchIndexesTest(TestCase):
             ],
         )
 
-    def test_vectorsearch_invalid_similarities_function(self):
+    @skipUnlessDBFeature("supports_atlas_search")
+    def test_invalid_similarities_function(self):
         class Article(models.Model):
             vector_data = ArrayField(models.DecimalField(), size=10)
 
@@ -161,7 +191,8 @@ class InvalidVectorSearchIndexesTest(TestCase):
             ],
         )
 
-    def test_vectorsearch(self):
+    @skipUnlessDBFeature("supports_atlas_search")
+    def test_simple(self):
         class Article(models.Model):
             vector_data = ArrayField(models.DecimalField(), size=10)
 
