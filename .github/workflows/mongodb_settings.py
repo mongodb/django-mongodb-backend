@@ -17,11 +17,15 @@ else:
         "default": {
             "ENGINE": "django_mongodb_backend",
             "NAME": "djangotests",
+            # Skip replica set discovery and connect directly
+            # to a single MongoDB instance (standalone server)
             "OPTIONS": {"directConnection": True},
         },
         "other": {
             "ENGINE": "django_mongodb_backend",
             "NAME": "djangotests-other",
+            # Skip replica set discovery and connect directly
+            # to a single MongoDB instance (standalone server)
             "OPTIONS": {"directConnection": True},
         },
     }
