@@ -14,7 +14,7 @@ from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 @skipIfDBFeature("supports_atlas_search")
 @isolate_apps("system_checks", attr_name="apps")
 @override_system_checks([check_vector_search_indexes])
-class InvalidSearchIndexesTest(TestCase):
+class InvalidSearchIndexesTests(TestCase):
     def test_requires_atlas_search_support(self):
         class Article(models.Model):
             title = models.CharField(max_length=10)
@@ -43,7 +43,7 @@ class InvalidSearchIndexesTest(TestCase):
 
 @isolate_apps("system_checks", attr_name="apps")
 @override_system_checks([check_vector_search_indexes])
-class InvalidVectorSearchIndexesTest(TestCase):
+class InvalidVectorSearchIndexesTests(TestCase):
     @skipIfDBFeature("supports_atlas_search")
     def test_requires_atlas_search_support(self):
         class Article(models.Model):
@@ -85,7 +85,7 @@ class InvalidVectorSearchIndexesTest(TestCase):
             errors,
             [
                 checks.Error(
-                    "Atlas vector search requires size.",
+                    "Atlas vector search requires size on title_embedded.",
                     id="django_mongodb_backend.indexes.VectorSearchIndex.E001",
                     obj=Article._meta.indexes[0],
                 )

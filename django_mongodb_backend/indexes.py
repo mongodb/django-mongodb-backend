@@ -190,7 +190,7 @@ class VectorSearchIndex(SearchIndex):
                 except (ValueError, TypeError):
                     errors.append(
                         Error(
-                            "Atlas vector search requires size.",
+                            f"Atlas vector search requires size on {field_name}.",
                             obj=self,
                             id=f"{self._error_id_prefix}.E001",
                         )
