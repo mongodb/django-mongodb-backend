@@ -5,7 +5,6 @@ from django.core.checks import Tags, register
 from django.db import connections, router
 
 
-@register(Tags.models)
 def check_vector_search_indexes(app_configs, databases=None, **kwargs):  # noqa: ARG001
     # Validate vector search indexes for models.
     errors = []
@@ -22,3 +21,7 @@ def check_vector_search_indexes(app_configs, databases=None, **kwargs):  # noqa:
                 if hasattr(model_index, "check"):
                     errors.extend(model_index.check(model, connection))
     return errors
+
+
+def register_checks():
+    register(Tags.models)(check_vector_search_indexes)
