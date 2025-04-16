@@ -293,7 +293,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         if index.contains_expressions:
             return
         if isinstance(index, SearchIndex | VectorSearchIndex):
-            self.get_collection(model._meta.db_table).drop_search_index(index.name)
+            if self.connection.features.supports_atlas_search:
+                self.get_collection(model._meta.db_table).drop_search_index(index.name)
         else:
             self.get_collection(model._meta.db_table).drop_index(index.name)
 
