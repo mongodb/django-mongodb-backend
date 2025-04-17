@@ -39,10 +39,10 @@ class InvalidSearchIndexesTests(TestCase):
         )
 
 
+@skipIfDBFeature("supports_atlas_search")
 @isolate_apps("indexes_", attr_name="apps")
 @override_system_checks([check_vector_search_indexes])
-class InvalidVectorSearchIndexesTests(TestCase):
-    @skipIfDBFeature("supports_atlas_search")
+class UnsupportedSearchIndexesTests(TestCase):
     def test_requires_atlas_search_support(self):
         class Article(models.Model):
             title = models.CharField(max_length=10)
@@ -66,7 +66,11 @@ class InvalidVectorSearchIndexesTests(TestCase):
             ],
         )
 
-    @skipUnlessDBFeature("supports_atlas_search")
+
+@skipUnlessDBFeature("supports_atlas_search")
+@isolate_apps("indexes_", attr_name="apps")
+@override_system_checks([check_vector_search_indexes])
+class InvalidVectorSearchIndexesTests(TestCase):
     def test_requires_size(self):
         class Article(models.Model):
             title_embedded = ArrayField(models.FloatField())
@@ -86,7 +90,6 @@ class InvalidVectorSearchIndexesTests(TestCase):
             ],
         )
 
-    @skipUnlessDBFeature("supports_atlas_search")
     def test_requires_float_inner_field(self):
         class Article(models.Model):
             title_embedded = ArrayField(models.CharField(), size=30)
@@ -106,7 +109,6 @@ class InvalidVectorSearchIndexesTests(TestCase):
             ],
         )
 
-    @skipUnlessDBFeature("supports_atlas_search")
     def test_unsupported_type(self):
         class Article(models.Model):
             data = models.JSONField()
@@ -128,7 +130,6 @@ class InvalidVectorSearchIndexesTests(TestCase):
             ],
         )
 
-    @skipUnlessDBFeature("supports_atlas_search")
     def test_invalid_similarity_function(self):
         class Article(models.Model):
             vector_data = ArrayField(models.DecimalField(), size=10)
@@ -151,7 +152,6 @@ class InvalidVectorSearchIndexesTests(TestCase):
             ],
         )
 
-    @skipUnlessDBFeature("supports_atlas_search")
     def test_invalid_similarities_function(self):
         class Article(models.Model):
             vector1 = ArrayField(models.DecimalField(), size=10)
@@ -185,7 +185,6 @@ class InvalidVectorSearchIndexesTests(TestCase):
             ],
         )
 
-    @skipUnlessDBFeature("supports_atlas_search")
     def test_define_field_twice(self):
         class Article(models.Model):
             vector_data = ArrayField(models.DecimalField(), size=10)
@@ -213,7 +212,6 @@ class InvalidVectorSearchIndexesTests(TestCase):
             ],
         )
 
-    @skipUnlessDBFeature("supports_atlas_search")
     def test_simple(self):
         class Article(models.Model):
             vector_data = ArrayField(models.DecimalField(), size=10)
