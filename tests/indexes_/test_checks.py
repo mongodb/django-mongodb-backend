@@ -20,9 +20,7 @@ class InvalidSearchIndexesTests(TestCase):
             title = models.CharField(max_length=10)
 
             class Meta:
-                indexes = [
-                    SearchIndex(fields=["title"]),
-                ]
+                indexes = [SearchIndex(fields=["title"])]
 
         errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
         self.assertEqual(
@@ -50,9 +48,7 @@ class InvalidVectorSearchIndexesTests(TestCase):
             title = models.CharField(max_length=10)
 
             class Meta:
-                indexes = [
-                    VectorSearchIndex(fields=["title"]),
-                ]
+                indexes = [VectorSearchIndex(fields=["title"])]
 
         errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
         self.assertEqual(
@@ -76,9 +72,7 @@ class InvalidVectorSearchIndexesTests(TestCase):
             title_embedded = ArrayField(models.FloatField())
 
             class Meta:
-                indexes = [
-                    VectorSearchIndex(fields=["title_embedded"]),
-                ]
+                indexes = [VectorSearchIndex(fields=["title_embedded"])]
 
         errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
         self.assertEqual(
@@ -98,9 +92,7 @@ class InvalidVectorSearchIndexesTests(TestCase):
             title_embedded = ArrayField(models.CharField(), size=30)
 
             class Meta:
-                indexes = [
-                    VectorSearchIndex(fields=["title_embedded"]),
-                ]
+                indexes = [VectorSearchIndex(fields=["title_embedded"])]
 
         errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
         self.assertEqual(
@@ -203,7 +195,7 @@ class InvalidVectorSearchIndexesTests(TestCase):
                     VectorSearchIndex(
                         fields=["vector_data", "vector_data"],
                         similarities="dotProduct",
-                    ),
+                    )
                 ]
 
         errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
@@ -227,9 +219,7 @@ class InvalidVectorSearchIndexesTests(TestCase):
             vector_data = ArrayField(models.DecimalField(), size=10)
 
             class Meta:
-                indexes = [
-                    VectorSearchIndex(fields=["vector_data"]),
-                ]
+                indexes = [VectorSearchIndex(fields=["vector_data"])]
 
         errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
         self.assertEqual(errors, [])
