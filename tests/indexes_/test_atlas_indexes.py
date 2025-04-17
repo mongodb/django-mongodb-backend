@@ -196,7 +196,7 @@ class VectorSearchIndexTests(TestCase):
         with connection.schema_editor() as editor:
             index = VectorSearchIndex(
                 name="recent_article_idx",
-                fields=["headline", "number", "body", "description_embedded"],
+                fields=["headline", "number", "body", "description_semantic"],
             )
             editor.add_index(index=index, model=Article)
             index_info = connection.introspection.get_constraints(
@@ -211,7 +211,7 @@ class VectorSearchIndexTests(TestCase):
                         {"path": "body", "type": "filter"},
                         {
                             "numDimensions": 10,
-                            "path": "description_embedded",
+                            "path": "description_semantic",
                             "similarity": "cosine",
                             "type": "vector",
                         },

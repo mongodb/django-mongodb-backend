@@ -15,4 +15,4 @@ class Article(models.Model):
     data = models.JSONField()
     embedded = EmbeddedModelField(Data)
     created_at = models.DateTimeField(auto_now=True)
-    description_embedded = ArrayField(models.DecimalField(decimal_places=3, max_digits=10), size=10)
+    description_semantic = ArrayField(models.DecimalField(decimal_places=3, max_digits=10), size=10)
