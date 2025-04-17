@@ -185,7 +185,20 @@ class VectorSearchIndex(SearchIndex):
                         id=f"{self._error_id_prefix}.E004",
                     )
                 )
+        viewed = set()
         for field_name, _ in self.fields_orders:
+            if field_name in viewed:
+                errors.append(
+                    Error(
+                        f"Field '{field_name}' is defined more than once. Vector and filter"
+                        " fields must use distinct field names.",
+                        obj=self,
+                        hint="If you need different configurations for the same field,"
+                        " create separate indexes.",
+                        id=f"{self._error_id_prefix}.E005",
+                    )
+                )
+            viewed.add(field_name)
             field_ = model._meta.get_field(field_name)
             if isinstance(field_, ArrayField):
                 try:

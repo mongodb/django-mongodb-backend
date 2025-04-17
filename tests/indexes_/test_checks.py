@@ -162,12 +162,14 @@ class InvalidVectorSearchIndexesTests(TestCase):
     @skipUnlessDBFeature("supports_atlas_search")
     def test_invalid_similarities_function(self):
         class Article(models.Model):
-            vector_data = ArrayField(models.DecimalField(), size=10)
+            vector1 = ArrayField(models.DecimalField(), size=10)
+            vector2 = ArrayField(models.DecimalField(), size=10)
+            vector3 = ArrayField(models.DecimalField(), size=10)
 
             class Meta:
                 indexes = [
                     VectorSearchIndex(
-                        fields=["vector_data", "vector_data", "vector_data"],
+                        fields=["vector1", "vector2", "vector3"],
                         similarities=["sum", "dotProduct", "tangh"],
                     ),
                 ]
@@ -186,6 +188,34 @@ class InvalidVectorSearchIndexesTests(TestCase):
                     "tangh isn't a valid similarity function, "
                     "options are cosine, dotProduct, euclidean",
                     id="django_mongodb_backend.indexes.VectorSearchIndex.E004",
+                    obj=Article._meta.indexes[0],
+                ),
+            ],
+        )
+
+    @skipUnlessDBFeature("supports_atlas_search")
+    def test_define_field_twice(self):
+        class Article(models.Model):
+            vector_data = ArrayField(models.DecimalField(), size=10)
+
+            class Meta:
+                indexes = [
+                    VectorSearchIndex(
+                        fields=["vector_data", "vector_data"],
+                        similarities="dotProduct",
+                    ),
+                ]
+
+        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
+        self.assertEqual(
+            errors,
+            [
+                checks.Error(
+                    "Field 'vector_data' is defined more than once. Vector and filter"
+                    " fields must use distinct field names.",
+                    id="django_mongodb_backend.indexes.VectorSearchIndex.E005",
+                    hint="If you need different configurations for the same field,"
+                    " create separate indexes.",
                     obj=Article._meta.indexes[0],
                 ),
             ],
