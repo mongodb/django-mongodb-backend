@@ -39,6 +39,7 @@ Models
 - :doc:`ref/models/querysets`
 - :doc:`ref/models/models`
 - :doc:`ref/models/indexes`
+- :doc:`ref/database`
 
 **Topic guides:**
 
