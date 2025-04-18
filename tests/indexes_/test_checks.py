@@ -131,61 +131,6 @@ class InvalidVectorSearchIndexesTests(TestCase):
             ],
         )
 
-    def test_invalid_similarity_function(self):
-        class Article(models.Model):
-            vector_data = ArrayField(models.DecimalField(), size=10)
-
-            class Meta:
-                indexes = [
-                    VectorSearchIndex(fields=["vector_data"], similarities="sum"),
-                ]
-
-        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
-        self.assertEqual(
-            errors,
-            [
-                checks.Error(
-                    "sum isn't a valid similarity function, "
-                    "options are cosine, dotProduct, euclidean",
-                    id="django_mongodb_backend.indexes.VectorSearchIndex.E004",
-                    obj=Article._meta.indexes[0],
-                )
-            ],
-        )
-
-    def test_invalid_similarities_function(self):
-        class Article(models.Model):
-            vector1 = ArrayField(models.DecimalField(), size=10)
-            vector2 = ArrayField(models.DecimalField(), size=10)
-            vector3 = ArrayField(models.DecimalField(), size=10)
-
-            class Meta:
-                indexes = [
-                    VectorSearchIndex(
-                        fields=["vector1", "vector2", "vector3"],
-                        similarities=["sum", "dotProduct", "tangh"],
-                    ),
-                ]
-
-        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
-        self.assertEqual(
-            errors,
-            [
-                checks.Error(
-                    "sum isn't a valid similarity function, "
-                    "options are cosine, dotProduct, euclidean",
-                    id="django_mongodb_backend.indexes.VectorSearchIndex.E004",
-                    obj=Article._meta.indexes[0],
-                ),
-                checks.Error(
-                    "tangh isn't a valid similarity function, "
-                    "options are cosine, dotProduct, euclidean",
-                    id="django_mongodb_backend.indexes.VectorSearchIndex.E004",
-                    obj=Article._meta.indexes[0],
-                ),
-            ],
-        )
-
     def test_define_field_twice(self):
         class Article(models.Model):
             vector_data = ArrayField(models.DecimalField(), size=10)
@@ -205,7 +150,7 @@ class InvalidVectorSearchIndexesTests(TestCase):
                 checks.Error(
                     "Field 'vector_data' is defined more than once. Vector and filter "
                     "fields must use distinct field names.",
-                    id="django_mongodb_backend.indexes.VectorSearchIndex.E005",
+                    id="django_mongodb_backend.indexes.VectorSearchIndex.E004",
                     hint="If you need different configurations for the same field,"
                     " create separate indexes.",
                     obj=Article._meta.indexes[0],
@@ -233,7 +178,7 @@ class InvalidVectorSearchIndexesTests(TestCase):
                     "An Atlas vector search index requires the same number of similarities "
                     "and vector fields, but 1 similarity function were expected and 2 "
                     "were provided.",
-                    id="django_mongodb_backend.indexes.VectorSearchIndex.E006",
+                    id="django_mongodb_backend.indexes.VectorSearchIndex.E005",
                     obj=Article._meta.indexes[0],
                 ),
             ],
@@ -260,7 +205,7 @@ class InvalidVectorSearchIndexesTests(TestCase):
                     "An Atlas vector search index requires the same number of similarities "
                     "and vector fields, but 2 similarities functions were expected and 1 "
                     "was provided.",
-                    id="django_mongodb_backend.indexes.VectorSearchIndex.E006",
+                    id="django_mongodb_backend.indexes.VectorSearchIndex.E005",
                     obj=Article._meta.indexes[0],
                 ),
             ],

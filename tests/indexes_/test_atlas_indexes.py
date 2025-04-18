@@ -104,6 +104,14 @@ class VectorSearchIndexTests(TestMixin, TestCase):
     using Django's schema editor.
     """
 
+    def test_invalid_similarity_function(self):
+        msg = (
+            "sum isn't a valid similarity function, options "
+            f"are {', '.join(sorted(VectorSearchIndex.ALLOWED_SIMILARITY_FUNCTIONS))}"
+        )
+        with self.assertRaisesMessage(ValueError, msg):
+            VectorSearchIndex(fields=["vector_data"], similarities="sum")
+
     @skipUnlessDBFeature("supports_atlas_search")
     def test_deconstruct_default_similarity(self):
         index = VectorSearchIndex(

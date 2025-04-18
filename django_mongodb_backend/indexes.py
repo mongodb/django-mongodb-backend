@@ -168,22 +168,15 @@ class VectorSearchIndex(SearchIndex):
     def __init__(self, *expressions, similarities="cosine", **kwargs):
         super().__init__(*expressions, **kwargs)
         self.similarities = similarities
+        for func in similarities if isinstance(similarities, list) else (similarities,):
+            if func not in self.ALLOWED_SIMILARITY_FUNCTIONS:
+                raise ValueError(
+                    f"{func} isn't a valid similarity function, options "
+                    f"are {', '.join(sorted(self.ALLOWED_SIMILARITY_FUNCTIONS))}"
+                )
 
     def check(self, model, connection):
         errors = super().check(model, connection)
-        similarities = (
-            self.similarities if isinstance(self.similarities, list) else [self.similarities]
-        )
-        for func in similarities:
-            if func not in self.ALLOWED_SIMILARITY_FUNCTIONS:
-                errors.append(
-                    Error(
-                        f"{func} isn't a valid similarity function, options "
-                        f"are {', '.join(sorted(self.ALLOWED_SIMILARITY_FUNCTIONS))}",
-                        obj=self,
-                        id=f"{self._error_id_prefix}.E004",
-                    )
-                )
         viewed = set()
         expected_similarities = 0
         for field_name, _ in self.fields_orders:
@@ -195,7 +188,7 @@ class VectorSearchIndex(SearchIndex):
                         obj=self,
                         hint="If you need different configurations for the same field, "
                         "create separate indexes.",
-                        id=f"{self._error_id_prefix}.E005",
+                        id=f"{self._error_id_prefix}.E004",
                     )
                 )
                 continue
