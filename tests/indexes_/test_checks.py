@@ -213,6 +213,59 @@ class InvalidVectorSearchIndexesTests(TestCase):
             ],
         )
 
+    def test_invalid_number_similarity_function_singular(self):
+        class Article(models.Model):
+            vector_data = ArrayField(models.DecimalField(), size=10)
+
+            class Meta:
+                indexes = [
+                    VectorSearchIndex(
+                        fields=["vector_data"],
+                        similarities=["dotProduct", "cosine"],
+                    )
+                ]
+
+        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
+        self.assertEqual(
+            errors,
+            [
+                checks.Error(
+                    "An Atlas vector search index requires the same number of similarities "
+                    "and vector fields, but 1 similarity function were expected and 2 "
+                    "were provided.",
+                    id="django_mongodb_backend.indexes.VectorSearchIndex.E006",
+                    obj=Article._meta.indexes[0],
+                ),
+            ],
+        )
+
+    def test_invalid_number_similarity_function_plural(self):
+        class Article(models.Model):
+            vector1 = ArrayField(models.DecimalField(), size=10)
+            vector2 = ArrayField(models.DecimalField(), size=10)
+
+            class Meta:
+                indexes = [
+                    VectorSearchIndex(
+                        fields=["vector1", "vector2"],
+                        similarities=["dotProduct"],
+                    )
+                ]
+
+        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
+        self.assertEqual(
+            errors,
+            [
+                checks.Error(
+                    "An Atlas vector search index requires the same number of similarities "
+                    "and vector fields, but 2 similarities functions were expected and 1 "
+                    "was provided.",
+                    id="django_mongodb_backend.indexes.VectorSearchIndex.E006",
+                    obj=Article._meta.indexes[0],
+                ),
+            ],
+        )
+
     def test_simple(self):
         class Article(models.Model):
             vector_data = ArrayField(models.DecimalField(), size=10)

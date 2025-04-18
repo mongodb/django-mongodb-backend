@@ -185,6 +185,7 @@ class VectorSearchIndex(SearchIndex):
                     )
                 )
         viewed = set()
+        expected_similarities = 0
         for field_name, _ in self.fields_orders:
             if field_name in viewed:
                 errors.append(
@@ -197,9 +198,11 @@ class VectorSearchIndex(SearchIndex):
                         id=f"{self._error_id_prefix}.E005",
                     )
                 )
+                continue
             viewed.add(field_name)
             field_ = model._meta.get_field(field_name)
             if isinstance(field_, ArrayField):
+                expected_similarities += 1
                 try:
                     int(field_.size)
                 except (ValueError, TypeError):
@@ -235,6 +238,22 @@ class VectorSearchIndex(SearchIndex):
                             id=f"{self._error_id_prefix}.E003",
                         )
                     )
+        if isinstance(self.similarities, list) and expected_similarities != len(self.similarities):
+            given_similarities = len(self.similarities)
+            similarity_function_text = (
+                "similarities functions" if given_similarities != 1 else "similarity function"
+            )
+            errors.append(
+                Error(
+                    f"An Atlas vector search index requires the same number of similarities and "
+                    f"vector fields, but {expected_similarities} "
+                    f"{similarity_function_text} were expected and "
+                    f"{given_similarities} {'were' if given_similarities != 1 else 'was'} "
+                    "provided.",
+                    obj=self,
+                    id=f"{self._error_id_prefix}.E006",
+                )
+            )
         return errors
 
     def deconstruct(self):
