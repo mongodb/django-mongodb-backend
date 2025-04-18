@@ -1,4 +1,3 @@
-import contextlib
 import os
 
 from django.core.exceptions import ImproperlyConfigured
@@ -89,6 +88,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         "endswith": "LIKE '%%' || {}",
         "iendswith": "LIKE '%%' || UPPER({})",
     }
+    _connections = {}
 
     def _isnull_operator(a, b):
         is_null = {
@@ -176,7 +176,12 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     @async_unsafe
     def get_new_connection(self, conn_params):
-        return MongoClient(**conn_params, driver=self._driver_info())
+        if self.alias not in self._connections:
+            conn = MongoClient(**conn_params, driver=self._driver_info())
+            # setdefault() ensures that multiple threads don't set this in
+            # parallel.
+            self._connections.setdefault(self.alias, conn)
+        return self._connections[self.alias]
 
     def _driver_info(self):
         if not os.environ.get("RUNNING_DJANGOS_TEST_SUITE"):
@@ -189,14 +194,13 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     def _rollback(self):
         pass
 
+    def _close(self):
+        # MongoClient is a connection pool and, unlike database drivers that
+        # implement PEP 249, shouldn't be closed by connection.close().
+        pass
+
     def set_autocommit(self, autocommit, force_begin_transaction_with_broken_autocommit=False):
         self.autocommit = autocommit
-
-    @async_unsafe
-    def close(self):
-        super().close()
-        with contextlib.suppress(AttributeError):
-            del self.database
 
     @async_unsafe
     def cursor(self):
