@@ -114,10 +114,7 @@ class VectorSearchIndexTests(TestMixin, TestCase):
 
     @skipUnlessDBFeature("supports_atlas_search")
     def test_deconstruct_default_similarity(self):
-        index = VectorSearchIndex(
-            name="recent_article_idx",
-            fields=["number"],
-        )
+        index = VectorSearchIndex(name="recent_article_idx", fields=["number"])
         name, args, kwargs = index.deconstruct()
         new = VectorSearchIndex(*args, **kwargs)
         self.assertEqual(new.similarities, index.similarities)

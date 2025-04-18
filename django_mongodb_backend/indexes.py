@@ -232,19 +232,18 @@ class VectorSearchIndex(SearchIndex):
                         )
                     )
         if isinstance(self.similarities, list) and expected_similarities != len(self.similarities):
-            given_similarities = len(self.similarities)
             similarity_function_text = (
-                "similarities functions" if given_similarities != 1 else "similarity function"
+                "similarities functions" if expected_similarities != 1 else "similarity function"
             )
             errors.append(
                 Error(
                     f"An Atlas vector search index requires the same number of similarities and "
                     f"vector fields, but {expected_similarities} "
                     f"{similarity_function_text} were expected and "
-                    f"{given_similarities} {'were' if given_similarities != 1 else 'was'} "
+                    f"{len(self.similarities)} {'were' if len(self.similarities) != 1 else 'was'} "
                     "provided.",
                     obj=self,
-                    id=f"{self._error_id_prefix}.E006",
+                    id=f"{self._error_id_prefix}.E005",
                 )
             )
         return errors
