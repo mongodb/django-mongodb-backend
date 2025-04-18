@@ -102,7 +102,8 @@ class InvalidVectorSearchIndexesTests(TestCase):
             errors,
             [
                 checks.Error(
-                    "Base type must be Float or Decimal.",
+                    "An Atlas vector search index requires the base field of ArrayField "
+                    "Model.field_name to be FloatField or DecimalField but is CharField.",
                     id="django_mongodb_backend.indexes.VectorSearchIndex.E002",
                     obj=Article._meta.indexes[0],
                 )
@@ -202,8 +203,8 @@ class InvalidVectorSearchIndexesTests(TestCase):
             errors,
             [
                 checks.Error(
-                    "Field 'vector_data' is defined more than once. Vector and filter"
-                    " fields must use distinct field names.",
+                    "Field 'vector_data' is defined more than once. Vector and filter "
+                    "fields must use distinct field names.",
                     id="django_mongodb_backend.indexes.VectorSearchIndex.E005",
                     hint="If you need different configurations for the same field,"
                     " create separate indexes.",

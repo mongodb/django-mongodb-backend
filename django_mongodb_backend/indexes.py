@@ -189,11 +189,11 @@ class VectorSearchIndex(SearchIndex):
             if field_name in viewed:
                 errors.append(
                     Error(
-                        f"Field '{field_name}' is defined more than once. Vector and filter"
-                        " fields must use distinct field names.",
+                        f"Field '{field_name}' is defined more than once. Vector and filter "
+                        "fields must use distinct field names.",
                         obj=self,
-                        hint="If you need different configurations for the same field,"
-                        " create separate indexes.",
+                        hint="If you need different configurations for the same field, "
+                        "create separate indexes.",
                         id=f"{self._error_id_prefix}.E005",
                     )
                 )
@@ -213,7 +213,10 @@ class VectorSearchIndex(SearchIndex):
                 if not isinstance(field_.base_field, FloatField | DecimalField):
                     errors.append(
                         Error(
-                            "Base type must be Float or Decimal.",
+                            "An Atlas vector search index requires the base "
+                            "field of ArrayField Model.field_name "
+                            "to be FloatField or DecimalField but "
+                            f"is {field_.base_field.get_internal_type()}.",
                             obj=self,
                             id=f"{self._error_id_prefix}.E002",
                         )
