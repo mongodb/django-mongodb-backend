@@ -18,9 +18,9 @@ project template:
 
 .. code-block:: bash
 
-    $ django-admin startproject mysite --template https://github.com/mongodb-labs/django-mongodb-project/archive/refs/heads/5.1.x.zip
+    $ django-admin startproject mysite --template https://github.com/mongodb-labs/django-mongodb-project/archive/refs/heads/5.2.x.zip
 
-(If you're using a version of Django other than 5.1.x, replace the two numbers
+(If you're using a version of Django other than 5.2.x, replace the two numbers
 to match the first two numbers from your version.)
 
 This template includes the following line in ``settings.py``::
@@ -95,9 +95,9 @@ includes this change:
 
 .. code-block:: bash
 
-    $ python manage.py startapp myapp --template https://github.com/mongodb-labs/django-mongodb-app/archive/refs/heads/5.1.x.zip
+    $ python manage.py startapp myapp --template https://github.com/mongodb-labs/django-mongodb-app/archive/refs/heads/5.2.x.zip
 
-(If you're using a version of Django other than 5.1.x, replace the two numbers
+(If you're using a version of Django other than 5.2.x, replace the two numbers
 to match the first two numbers from your version.)
 
 .. _configuring-databases-setting:
