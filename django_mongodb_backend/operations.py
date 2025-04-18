@@ -159,6 +159,9 @@ class DatabaseOperations(BaseDatabaseOperations):
             value = uuid.UUID(value)
         return value
 
+    def convert_truncated_datetime(self, value, tzinfo):
+        return value
+
     def combine_expression(self, connector, sub_expressions):
         lhs, rhs = sub_expressions
         if connector == Combinable.BITLEFTSHIFT:
