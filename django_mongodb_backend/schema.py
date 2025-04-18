@@ -2,7 +2,7 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
 from pymongo.operations import SearchIndexModel
 
-from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
+from django_mongodb_backend.indexes import SearchIndex
 
 from .fields import EmbeddedModelField
 from .query import wrap_database_errors
@@ -289,7 +289,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     def remove_index(self, model, index):
         if index.contains_expressions:
             return
-        if isinstance(index, SearchIndex | VectorSearchIndex):
+        if isinstance(index, SearchIndex):
             # Drop the index if it is supported.
             if self.connection.features.supports_atlas_search:
                 self.get_collection(model._meta.db_table).drop_search_index(index.name)
