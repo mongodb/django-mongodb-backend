@@ -6,14 +6,14 @@ from django.test.utils import (
     override_system_checks,
 )
 
-from django_mongodb_backend.checks import check_vector_search_indexes
+from django_mongodb_backend.checks import check_indexes
 from django_mongodb_backend.fields import ArrayField
 from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 
 
 @skipIfDBFeature("supports_atlas_search")
 @isolate_apps("indexes_", attr_name="apps")
-@override_system_checks([check_vector_search_indexes])
+@override_system_checks([check_indexes])
 class InvalidSearchIndexesTests(TestCase):
     def test_requires_atlas_search_support(self):
         class Article(models.Model):
@@ -41,7 +41,7 @@ class InvalidSearchIndexesTests(TestCase):
 
 @skipIfDBFeature("supports_atlas_search")
 @isolate_apps("indexes_", attr_name="apps")
-@override_system_checks([check_vector_search_indexes])
+@override_system_checks([check_indexes])
 class UnsupportedSearchIndexesTests(TestCase):
     def test_requires_atlas_search_support(self):
         class Article(models.Model):
@@ -69,7 +69,7 @@ class UnsupportedSearchIndexesTests(TestCase):
 
 @skipUnlessDBFeature("supports_atlas_search")
 @isolate_apps("indexes_", attr_name="apps")
-@override_system_checks([check_vector_search_indexes])
+@override_system_checks([check_indexes])
 class InvalidVectorSearchIndexesTests(TestCase):
     def test_requires_size(self):
         class Article(models.Model):
