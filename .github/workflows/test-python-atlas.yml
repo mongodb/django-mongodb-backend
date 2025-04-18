@@ -51,6 +51,6 @@ jobs:
         run: cp .github/workflows/runtests.py django_repo/tests/runtests_.py
       - name: Start local Atlas
         working-directory: .
-        run: bash .github/workflows/start_local_atlas.sh
+        run: bash .github/workflows/start_local_atlas.sh mongodb/mongodb-atlas-local:7
       - name: Run tests
         run: python3 django_repo/tests/runtests_.py

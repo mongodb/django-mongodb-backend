@@ -3,7 +3,7 @@ set -eu
 
 echo "Starting the container"
 
-IMAGE=mongodb/mongodb-atlas-local:latest
+IMAGE=${1:-mongodb/mongodb-atlas-local:latest}
 DOCKER=$(which docker || which podman)
 
 $DOCKER pull $IMAGE
