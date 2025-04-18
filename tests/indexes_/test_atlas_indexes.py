@@ -1,5 +1,3 @@
-from unittest import mock
-
 from django.db import connection
 from django.test import TestCase, skipIfDBFeature, skipUnlessDBFeature
 
@@ -8,10 +6,7 @@ from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 from .models import Article
 
 
-class SearchIndexTests(TestCase):
-    # Tests for creating, validating, and removing search indexes using Django's schema editor.
-    available_apps = None
-
+class TestMixin:
     def assertAddRemoveIndex(self, editor, model, index):
         editor.add_index(index=index, model=model)
         self.assertIn(
@@ -30,6 +25,10 @@ class SearchIndexTests(TestCase):
             ),
         )
 
+
+class SearchIndexTests(TestMixin, TestCase):
+    """Tests for creating, validating, and removing search indexes using Django's schema editor."""
+
     @skipUnlessDBFeature("supports_atlas_search")
     def test_simple(self):
         with connection.schema_editor() as editor:
@@ -39,17 +38,6 @@ class SearchIndexTests(TestCase):
             )
             editor.add_index(index=index, model=Article)
             self.assertAddRemoveIndex(editor, Article, index)
-
-    def test_drop_non_existing_index(self):
-        with connection.schema_editor() as editor:
-            index = SearchIndex(
-                name="recent_article_idx",
-                fields=["number"],
-            )
-            editor.get_collection = mock.MagicMock()
-            editor.remove_index(index=index, model=Article)
-            # Verify that the collection was not accessed
-            editor.get_collection.assert_not_called()
 
     @skipIfDBFeature("supports_atlas_search")
     def test_index_not_created(self):
@@ -110,39 +98,11 @@ class SearchIndexTests(TestCase):
             self.assertAddRemoveIndex(editor, Article, index)
 
 
-class VectorSearchIndexTests(TestCase):
-    # Tests for creating, validating, and removing vector search indexes
-    # using Django's schema editor.
-    available_apps = None
-
-    def assertAddRemoveIndex(self, editor, model, index):
-        editor.add_index(index=index, model=model)
-        self.assertIn(
-            index.name,
-            connection.introspection.get_constraints(
-                cursor=None,
-                table_name=model._meta.db_table,
-            ),
-        )
-        editor.remove_index(index=index, model=model)
-        self.assertNotIn(
-            index.name,
-            connection.introspection.get_constraints(
-                cursor=None,
-                table_name=model._meta.db_table,
-            ),
-        )
-
-    def test_drop_non_existing_index(self):
-        with connection.schema_editor() as editor:
-            index = SearchIndex(
-                name="recent_article_idx",
-                fields=["number"],
-            )
-            editor.get_collection = mock.MagicMock()
-            editor.remove_index(index=index, model=Article)
-            # Verify that the collection was not accessed
-            editor.get_collection.assert_not_called()
+class VectorSearchIndexTests(TestMixin, TestCase):
+    """
+    Tests for creating, validating, and removing vector search indexes
+    using Django's schema editor.
+    """
 
     @skipUnlessDBFeature("supports_atlas_search")
     def test_deconstruct_default_similarity(self):

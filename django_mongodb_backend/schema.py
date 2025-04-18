@@ -290,13 +290,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         if index.contains_expressions:
             return
         if isinstance(index, SearchIndex | VectorSearchIndex):
-            # Drop the index if it exists, particularly if it may not have been created previously
-            # due to lack of Atlas search support, but now the database supports it.
-            constraints = self.connection.introspection.get_constraints(
-                cursor=None,
-                table_name=model._meta.db_table,
-            )
-            if self.connection.features.supports_atlas_search and index.name in constraints:
+            # Drop the index if it is supported.
+            if self.connection.features.supports_atlas_search:
                 self.get_collection(model._meta.db_table).drop_search_index(index.name)
         else:
             self.get_collection(model._meta.db_table).drop_index(index.name)
