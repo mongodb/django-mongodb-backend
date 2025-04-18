@@ -20,11 +20,5 @@ function wait() {
 
 wait "$CONTAINER_ID"
 
-# EXPOSED_PORT=$($DOCKER inspect --format='{{ (index (index .NetworkSettings.Ports "27017/tcp") 0).HostPort }}' "$CONTAINER_ID")
-# export MONGODB_URI="mongodb://127.0.0.1:$EXPOSED_PORT/?directConnection=true"
-# SCRIPT_DIR=$(realpath "$(dirname ${BASH_SOURCE[0]})")
-# ROOT_DIR=$(dirname $SCRIPT_DIR)
-# echo "MONGODB_URI=$MONGODB_URI" > $ROOT_DIR/.local_atlas_uri
-
 # Sleep for a bit to let all services start.
 sleep 5
