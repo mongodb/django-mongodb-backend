@@ -227,7 +227,7 @@ class VectorSearchIndex(SearchIndex):
                 # filter - for fields that contain boolean, date, objectId,
                 # numeric, string, or UUID values. Reference:
                 # https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-type/#atlas-vector-search-index-fields
-                if search_type not in ("number", "string", "boolean", "objectId", "uuid", "date"):
+                if search_type not in {"number", "string", "boolean", "objectId", "uuid", "date"}:
                     errors.append(
                         Error(
                             f"Unsupported filter of type {field_.get_internal_type()}.",
