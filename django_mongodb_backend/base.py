@@ -89,6 +89,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         "endswith": "LIKE '%%' || {}",
         "iendswith": "LIKE '%%' || UPPER({})",
     }
+    _connection_pools = {}
 
     def _isnull_operator(a, b):
         is_null = {
@@ -176,7 +177,12 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     @async_unsafe
     def get_new_connection(self, conn_params):
-        return MongoClient(**conn_params, driver=self._driver_info())
+        if self.alias not in self._connection_pools:
+            conn = MongoClient(**conn_params, driver=self._driver_info())
+            # setdefault() ensures that multiple threads don't set this in
+            # parallel.
+            self._connection_pools.setdefault(self.alias, conn)
+        return self._connection_pools[self.alias]
 
     def _driver_info(self):
         if not os.environ.get("RUNNING_DJANGOS_TEST_SUITE"):
@@ -192,11 +198,28 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     def set_autocommit(self, autocommit, force_begin_transaction_with_broken_autocommit=False):
         self.autocommit = autocommit
 
+    def _close(self):
+        # Normally called by close(), this method is also called by some tests.
+        pass
+
     @async_unsafe
     def close(self):
-        super().close()
+        self.validate_thread_sharing()
+        # MongoClient is a connection pool and, unlike database drivers that
+        # implement PEP 249, shouldn't be closed by connection.close().
+
+    def close_pool(self):
+        """Close the MongoClient."""
+        connection = self.connection
+        if connection is None:
+            return
+        # Remove all references to the connection.
+        self.connection = None
         with contextlib.suppress(AttributeError):
             del self.database
+        del self._connection_pools[self.alias]
+        # Then close it.
+        connection.close()
 
     @async_unsafe
     def cursor(self):

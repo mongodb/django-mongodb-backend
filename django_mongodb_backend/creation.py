@@ -8,6 +8,9 @@ from django_mongodb_backend.management.commands.createcachecollection import (
 
 class DatabaseCreation(BaseDatabaseCreation):
     def _execute_create_test_db(self, cursor, parameters, keepdb=False):
+        # Close the connection (which may point to the non-test database) so
+        # that a new connection to the test database can be established later.
+        self.connection.close_pool()
         if not keepdb:
             self._destroy_test_db(parameters["dbname"], verbosity=0)
 
@@ -29,3 +32,8 @@ class DatabaseCreation(BaseDatabaseCreation):
             database=self.connection.alias, verbosity=kwargs["verbosity"]
         )
         return test_database_name
+
+    def destroy_test_db(self, old_database_name=None, verbosity=1, keepdb=False, suffix=None):
+        super().destroy_test_db(old_database_name, verbosity, keepdb, suffix)
+        # Close the connection to the test database.
+        self.connection.close_pool()

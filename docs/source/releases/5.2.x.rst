@@ -20,6 +20,8 @@ New features
 
 - Added :class:`.SearchIndex` and :class:`.VectorSearchIndex` for use on
   a model's :attr:`Meta.indexes <django.db.models.Options.indexes>`.
+- PyMongo's connection pooling is now used by default. See
+  :ref:`connection-management`.
 
 Backwards incompatible changes
 ------------------------------
