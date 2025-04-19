@@ -6,7 +6,12 @@ from django.db import connections, router
 
 
 def check_indexes(app_configs, databases=None, **kwargs):  # noqa: ARG001
-    # Validate vector search indexes for models.
+    """
+    Call Index.check() on all model indexes.
+
+    This function will be obsolete when Django calls Index.check() after
+    https://code.djangoproject.com/ticket/36273.
+    """
     errors = []
     if app_configs is None:
         models = apps.get_models()
@@ -24,4 +29,4 @@ def check_indexes(app_configs, databases=None, **kwargs):  # noqa: ARG001
 
 
 def register_checks():
-    register(Tags.models)(check_indexes)
+    register(check_indexes, Tags.models)

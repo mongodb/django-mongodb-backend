@@ -615,10 +615,13 @@ class DatabaseFeatures(BaseDatabaseFeatures):
 
     @cached_property
     def supports_atlas_search(self):
+        """Does the server support Atlas search queries and search indexes?"""
         try:
-            # Check search indexes support (raises if unsupported).
+            # An existing collection must be used on MongoDB 6, otherwise
+            # the operation will not error.
             self.connection.get_collection("django_migrations").list_search_indexes()
         except OperationFailure:
+            # Error: $listSearchIndexes stage is only allowed on MongoDB Atlas
             return False
         else:
             return True

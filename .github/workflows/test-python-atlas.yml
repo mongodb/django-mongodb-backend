@@ -5,7 +5,7 @@ on:
       paths:
       - '**.py'
       - '!setup.py'
-      - '.github/workflows/test-python.yml'
+      - '.github/workflows/test-python-atlas.yml'
   workflow_dispatch:
 
 concurrency:

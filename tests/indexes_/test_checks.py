@@ -14,8 +14,8 @@ from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 @skipIfDBFeature("supports_atlas_search")
 @isolate_apps("indexes_", attr_name="apps")
 @override_system_checks([check_indexes])
-class InvalidSearchIndexesTests(TestCase):
-    def test_requires_atlas_search_support(self):
+class UnsupportedSearchIndexesTests(TestCase):
+    def test_search_requires_atlas_search_support(self):
         class Article(models.Model):
             title = models.CharField(max_length=10)
 
@@ -38,12 +38,7 @@ class InvalidSearchIndexesTests(TestCase):
             ],
         )
 
-
-@skipIfDBFeature("supports_atlas_search")
-@isolate_apps("indexes_", attr_name="apps")
-@override_system_checks([check_indexes])
-class UnsupportedSearchIndexesTests(TestCase):
-    def test_requires_atlas_search_support(self):
+    def test_vector_search_requires_atlas_search_support(self):
         class Article(models.Model):
             title = models.CharField(max_length=10)
 
@@ -151,8 +146,8 @@ class InvalidVectorSearchIndexesTests(TestCase):
                     "Field 'vector_data' is defined more than once. Vector and filter "
                     "fields must use distinct field names.",
                     id="django_mongodb_backend.indexes.VectorSearchIndex.E004",
-                    hint="If you need different configurations for the same field,"
-                    " create separate indexes.",
+                    hint="If you need different configurations for the same field, "
+                    "create separate indexes.",
                     obj=Article._meta.indexes[0],
                 ),
             ],

@@ -125,9 +125,11 @@ class SearchIndex(Index):
             )
         return errors
 
-    # Maps Django internal type to atlas search index type.
-    # Reference: https://www.mongodb.com/docs/atlas/atlas-search/define-field-mappings/#data-types
     def search_index_data_types(self, field, db_type):
+        """
+        Map a model field's internal type to search index type.
+        Reference: https://www.mongodb.com/docs/atlas/atlas-search/define-field-mappings/#data-types
+        """
         if field.get_internal_type() == "UUIDField":
             return "uuid"
         if field.get_internal_type() in ("ObjectIdAutoField", "ObjectIdField"):
