@@ -10,3 +10,4 @@ Model API reference.
    fields
    querysets
    models
+   indexes

@@ -1,5 +1,6 @@
 from django.db.backends.base.features import BaseDatabaseFeatures
 from django.utils.functional import cached_property
+from pymongo.errors import OperationFailure
 
 
 class DatabaseFeatures(BaseDatabaseFeatures):
@@ -611,3 +612,16 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     @cached_property
     def is_mongodb_6_3(self):
         return self.connection.get_database_version() >= (6, 3)
+
+    @cached_property
+    def supports_atlas_search(self):
+        """Does the server support Atlas search queries and search indexes?"""
+        try:
+            # An existing collection must be used on MongoDB 6, otherwise
+            # the operation will not error.
+            self.connection.get_collection("django_migrations").list_search_indexes()
+        except OperationFailure:
+            # Error: $listSearchIndexes stage is only allowed on MongoDB Atlas
+            return False
+        else:
+            return True
