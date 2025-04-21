@@ -110,12 +110,14 @@ class Address(EmbeddedModel):
     city = models.CharField(max_length=20)
     state = models.CharField(max_length=2)
     zip_code = models.IntegerField(db_index=True)
+    tags = ArrayField(models.CharField(max_length=100), null=True, blank=True)
 
 
 class Author(EmbeddedModel):
     name = models.CharField(max_length=10)
     age = models.IntegerField()
     address = EmbeddedModelField(Address)
+    skills = ArrayField(models.CharField(max_length=100), null=True, blank=True)
 
 
 class Book(models.Model):
