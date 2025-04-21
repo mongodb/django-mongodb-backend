@@ -1,6 +1,7 @@
 from ..forms import EmbeddedModelArrayFormField
 from . import EmbeddedModelField
 from .array import ArrayField
+from .embedded_model import EMFExact
 
 
 class EmbeddedModelArrayField(ArrayField):
@@ -35,3 +36,19 @@ class EmbeddedModelArrayField(ArrayField):
                 **kwargs,
             }
         )
+
+    def get_transform(self, name):
+        # TODO: ...
+        return self.base_field.get_transform(name)
+        # Copied from EmbedddedModelField -- customize?
+        #        transform = super().get_transform(name)
+        #        if transform:
+        #            return transform
+        #        field = self.embedded_model._meta.get_field(name)
+        #        return KeyTransformFactory(name, field)
+
+
+@EmbeddedModelArrayField.register_lookup
+class EMFArrayExact(EMFExact):
+    # TODO
+    pass
