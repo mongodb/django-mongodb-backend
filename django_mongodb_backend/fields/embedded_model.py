@@ -155,6 +155,9 @@ class KeyTransform(Transform):
         self.key_name = str(key_name)
         self.ref_field = ref_field
 
+    def get_lookup(self, name):
+        return self.ref_field.get_lookup(name)
+
     def get_transform(self, name):
         """
         Validate that `name` is either a field of an embedded model or a
@@ -203,6 +206,10 @@ class KeyTransform(Transform):
         if json_key_transforms:
             result = build_json_mql_path(result, json_key_transforms)
         return result
+
+    @property
+    def output_field(self):
+        return self.ref_field
 
 
 class KeyTransformFactory:

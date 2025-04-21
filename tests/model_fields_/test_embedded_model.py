@@ -186,6 +186,49 @@ class QueryingTests(TestCase):
         self.assertCountEqual(Book.objects.filter(author__address__city="NYC"), [obj])
 
 
+class ArrayFieldTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.book = Book.objects.create(
+            author=Author(
+                name="Shakespeare",
+                age=55,
+                skills=["writing", "editing"],
+                address=Address(city="NYC", state="NY", tags=["home", "shipping"]),
+            ),
+        )
+
+    def test_contains(self):
+        self.assertCountEqual(Book.objects.filter(author__skills__contains=["nonexistent"]), [])
+        self.assertCountEqual(
+            Book.objects.filter(author__skills__contains=["writing"]), [self.book]
+        )
+        # Nested
+        self.assertCountEqual(
+            Book.objects.filter(author__address__tags__contains=["nonexistent"]), []
+        )
+        self.assertCountEqual(
+            Book.objects.filter(author__address__tags__contains=["home"]), [self.book]
+        )
+
+    def test_contained_by(self):
+        self.assertCountEqual(
+            Book.objects.filter(author__skills__contained_by=["writing", "publishing"]), []
+        )
+        self.assertCountEqual(
+            Book.objects.filter(author__skills__contained_by=["writing", "editing", "publishing"]),
+            [self.book],
+        )
+        # Nested
+        self.assertCountEqual(
+            Book.objects.filter(author__address__tags__contained_by=["home", "work"]), []
+        )
+        self.assertCountEqual(
+            Book.objects.filter(author__address__tags__contained_by=["home", "work", "shipping"]),
+            [self.book],
+        )
+
+
 class InvalidLookupTests(SimpleTestCase):
     def test_invalid_field(self):
         msg = "Author has no field named 'first_name'"

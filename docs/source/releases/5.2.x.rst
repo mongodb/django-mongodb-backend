@@ -12,3 +12,9 @@ Initial release from the state of :ref:`django-mongodb-backend 5.1.0 beta 2
 
 Regarding new features in Django 5.2,
 :class:`~django.db.models.CompositePrimaryKey` isn't supported.
+
+Bug fixes
+---------
+
+- Added support for a field's custom lookups in ``EmbeddedModelField``, e.g.
+  ``ArrayField``’s ``contains``, ``contained__by``, etc.
