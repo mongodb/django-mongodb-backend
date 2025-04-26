@@ -35,3 +35,6 @@ Bug fixes
 - Fixed the results of queries that use the ``tzinfo`` parameter of the
   ``Trunc`` database functions.
 - Added support for ``QuerySet.dates()`` and ``datetimes()``.
+- Fixed loading of ``QuerySet`` results for embedded models that have fields
+  that use database converters. For example, a crash for ``DecimalField``:
+  ``ValidationError: ['“1” value must be a decimal number.']``).
