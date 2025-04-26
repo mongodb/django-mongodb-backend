@@ -24,6 +24,7 @@ from .models import (
     Data,
     Holder,
     Library,
+    NestedData,
 )
 from .utils import truncate_ms
 
@@ -93,7 +94,16 @@ class ModelTests(TestCase):
 class QueryingTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.objs = [Holder.objects.create(data=Data(integer=x)) for x in range(6)]
+        cls.objs = [
+            Holder.objects.create(
+                data=Data(
+                    integer=x,
+                    decimal=f"{x}.5",
+                    nested_data=NestedData(decimal=f"{x}.5"),
+                )
+            )
+            for x in range(6)
+        ]
 
     def test_exact(self):
         self.assertCountEqual(Holder.objects.filter(data__integer=3), [self.objs[3]])
@@ -112,6 +122,19 @@ class QueryingTests(TestCase):
 
     def test_range(self):
         self.assertCountEqual(Holder.objects.filter(data__integer__range=(2, 4)), self.objs[2:5])
+
+    def test_exact_decimal(self):
+        # EmbeddedModelField lookups call
+        # DatabaseOperations.adapt__<foo>field_value().
+        self.assertCountEqual(Holder.objects.filter(data__decimal="3.5"), [self.objs[3]])
+
+    def test_lt_decimal(self):
+        self.assertCountEqual(Holder.objects.filter(data__decimal__lt="3"), self.objs[0:3])
+
+    def test_exact_decimal_nested(self):
+        self.assertCountEqual(
+            Holder.objects.filter(data__nested_data__decimal="3.5"), [self.objs[3]]
+        )
 
     def test_order_by_embedded_field(self):
         qs = Holder.objects.filter(data__integer__gt=3).order_by("-data__integer")
