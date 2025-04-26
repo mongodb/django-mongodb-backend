@@ -228,6 +228,13 @@ class ArrayFieldTests(TestCase):
             [self.book],
         )
 
+    def test_len(self):
+        self.assertCountEqual(Book.objects.filter(author__skills__len=1), [])
+        self.assertCountEqual(Book.objects.filter(author__skills__len=2), [self.book])
+        # Nested
+        self.assertCountEqual(Book.objects.filter(author__address__tags__len=1), [])
+        self.assertCountEqual(Book.objects.filter(author__address__tags__len=2), [self.book])
+
 
 class InvalidLookupTests(SimpleTestCase):
     def test_invalid_field(self):

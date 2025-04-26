@@ -16,5 +16,6 @@ Regarding new features in Django 5.2,
 Bug fixes
 ---------
 
-- Added support for a field's custom lookups in ``EmbeddedModelField``, e.g.
-  ``ArrayField``’s ``contains``, ``contained__by``, etc.
+- Added support for a field's custom lookups and transforms in
+  ``EmbeddedModelField``, e.g. ``ArrayField``’s ``contains``,
+  ``contained__by``, ``len``, etc.

@@ -7,7 +7,6 @@ from django.db.models.fields.related import lazy_related_operation
 from django.db.models.lookups import Transform
 
 from .. import forms
-from .json import build_json_mql_path
 
 
 class EmbeddedModelField(models.Field):
@@ -163,49 +162,29 @@ class KeyTransform(Transform):
         Validate that `name` is either a field of an embedded model or a
         lookup on an embedded model's field.
         """
-        result = None
-        if isinstance(self.ref_field, EmbeddedModelField):
-            opts = self.ref_field.embedded_model._meta
-            new_field = opts.get_field(name)
-            result = KeyTransformFactory(name, new_field)
+        if transform := self.ref_field.get_transform(name):
+            return transform
+        suggested_lookups = difflib.get_close_matches(name, self.ref_field.get_lookups())
+        if suggested_lookups:
+            suggested_lookups = " or ".join(suggested_lookups)
+            suggestion = f", perhaps you meant {suggested_lookups}?"
         else:
-            if self.ref_field.get_transform(name) is None:
-                suggested_lookups = difflib.get_close_matches(name, self.ref_field.get_lookups())
-                if suggested_lookups:
-                    suggested_lookups = " or ".join(suggested_lookups)
-                    suggestion = f", perhaps you meant {suggested_lookups}?"
-                else:
-                    suggestion = "."
-                raise FieldDoesNotExist(
-                    f"Unsupported lookup '{name}' for "
-                    f"{self.ref_field.__class__.__name__} '{self.ref_field.name}'"
-                    f"{suggestion}"
-                )
-            result = KeyTransformFactory(name, self.ref_field)
-        return result
-
-    def preprocess_lhs(self, compiler, connection):
-        previous = self
-        embedded_key_transforms = []
-        json_key_transforms = []
-        while isinstance(previous, KeyTransform):
-            if isinstance(previous.ref_field, EmbeddedModelField):
-                embedded_key_transforms.insert(0, previous.key_name)
-            else:
-                json_key_transforms.insert(0, previous.key_name)
-            previous = previous.lhs
-        mql = previous.as_mql(compiler, connection)
-        # The first json_key_transform is the field name.
-        embedded_key_transforms.append(json_key_transforms.pop(0))
-        return mql, embedded_key_transforms, json_key_transforms
+            suggestion = "."
+        raise FieldDoesNotExist(
+            f"Unsupported lookup '{name}' for "
+            f"{self.ref_field.__class__.__name__} '{self.ref_field.name}'"
+            f"{suggestion}"
+        )
 
     def as_mql(self, compiler, connection):
-        mql, key_transforms, json_key_transforms = self.preprocess_lhs(compiler, connection)
+        previous = self
+        key_transforms = []
+        while isinstance(previous, KeyTransform):
+            key_transforms.insert(0, previous.key_name)
+            previous = previous.lhs
+        mql = previous.as_mql(compiler, connection)
         transforms = ".".join(key_transforms)
-        result = f"{mql}.{transforms}"
-        if json_key_transforms:
-            result = build_json_mql_path(result, json_key_transforms)
-        return result
+        return f"{mql}.{transforms}"
 
     @property
     def output_field(self):
