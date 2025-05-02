@@ -75,10 +75,6 @@ Database functions
     :class:`~django.db.models.functions.SHA512`
   - :class:`~django.db.models.functions.Sign`
 
-- The ``tzinfo`` parameter of the :class:`~django.db.models.functions.Trunc`
-  database functions doesn't work properly because MongoDB converts the result
-  back to UTC.
-
 Transaction management
 ======================
 

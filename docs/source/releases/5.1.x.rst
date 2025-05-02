@@ -10,6 +10,8 @@ Django MongoDB Backend 5.1.x
 - Added support for a field's custom lookups and transforms in
   ``EmbeddedModelField``, e.g. ``ArrayField``’s ``contains``,
   ``contained__by``, ``len``, etc.
+- Fixed the results of queries that use the ``tzinfo`` parameter of the
+  ``Trunc`` database functions.
 
 .. _django-mongodb-backend-5.1.0-beta-2:
 

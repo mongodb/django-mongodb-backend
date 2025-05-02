@@ -57,10 +57,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         # Pattern lookups that use regexMatch don't work on JSONField:
         # Unsupported conversion from array to string in $convert
         "model_fields.test_jsonfield.TestQuerying.test_icontains",
-        # Truncating in another timezone doesn't work becauase MongoDB converts
-        # the result back to UTC.
-        "db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests.test_trunc_func_with_timezone",
-        "db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests.test_trunc_timezone_applied_before_truncation",
         # Unexpected alias_refcount in alias_map.
         "queries.tests.Queries1Tests.test_order_by_tables",
         # The $sum aggregation returns 0 instead of None for null.
