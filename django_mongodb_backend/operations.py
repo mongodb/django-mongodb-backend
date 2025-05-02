@@ -10,7 +10,7 @@ from django.db import DataError
 from django.db.backends.base.operations import BaseDatabaseOperations
 from django.db.models import TextField
 from django.db.models.expressions import Combinable, Expression
-from django.db.models.functions import Cast
+from django.db.models.functions import Cast, Trunc
 from django.utils import timezone
 from django.utils.regex_helper import _lazy_re_compile
 
@@ -97,7 +97,11 @@ class DatabaseOperations(BaseDatabaseOperations):
                 ]
             )
         elif internal_type == "DateField":
-            converters.append(self.convert_datefield_value)
+            # Trunc(... output_field="DateField") values must remain datetime
+            # until Trunc.convert_value() so they can be converted from UTC
+            # before truncation.
+            if not isinstance(expression, Trunc):
+                converters.append(self.convert_datefield_value)
         elif internal_type == "DateTimeField":
             if settings.USE_TZ:
                 converters.append(self.convert_datetimefield_value)
@@ -106,7 +110,11 @@ class DatabaseOperations(BaseDatabaseOperations):
         elif internal_type == "JSONField":
             converters.append(self.convert_jsonfield_value)
         elif internal_type == "TimeField":
-            converters.append(self.convert_timefield_value)
+            # Trunc(... output_field="TimeField") values must remain datetime
+            # until Trunc.convert_value() so they can be converted from UTC
+            # before truncation.
+            if not isinstance(expression, Trunc):
+                converters.append(self.convert_timefield_value)
         elif internal_type == "UUIDField":
             converters.append(self.convert_uuidfield_value)
         return converters

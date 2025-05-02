@@ -58,10 +58,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "model_fields.test_jsonfield.TestQuerying.test_icontains",
         # MongoDB gives ROUND(365, -1)=360 instead of 370 like other databases.
         "db_functions.math.test_round.RoundTests.test_integer_with_negative_precision",
-        # Truncating in another timezone doesn't work becauase MongoDB converts
-        # the result back to UTC.
-        "db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests.test_trunc_func_with_timezone",
-        "db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests.test_trunc_timezone_applied_before_truncation",
         # Unexpected alias_refcount in alias_map.
         "queries.tests.Queries1Tests.test_order_by_tables",
         # The $sum aggregation returns 0 instead of None for null.
