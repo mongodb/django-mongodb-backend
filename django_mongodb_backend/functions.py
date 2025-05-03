@@ -248,6 +248,9 @@ def trunc_date(self, compiler, connection):
 
 
 def trunc_time(self, compiler, connection):
+    tzname = self.get_tzname()
+    if tzname and tzname != "UTC":
+        raise NotSupportedError(f"TruncTime with tzinfo ({tzname}) isn't supported on MongoDB.")
     lhs_mql = process_lhs(self, compiler, connection)
     return {
         "$dateFromString": {
