@@ -278,6 +278,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             "update.tests.AdvancedTests.test_update_annotated_multi_table_queryset",
             "update.tests.AdvancedTests.test_update_ordered_by_m2m_annotation",
             "update.tests.AdvancedTests.test_update_ordered_by_m2m_annotation_desc",
+            "update.tests.AdvancedTests.test_update_values_annotation",
         },
         "QuerySet.dates() is not supported on MongoDB.": {
             "admin_changelist.tests.ChangeListTests.test_computed_list_display_localization",
