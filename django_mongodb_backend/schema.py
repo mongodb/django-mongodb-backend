@@ -1,5 +1,8 @@
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
+from pymongo.operations import SearchIndexModel
+
+from django_mongodb_backend.indexes import SearchIndex
 
 from .fields import EmbeddedModelField
 from .query import wrap_database_errors
@@ -265,7 +268,10 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         )
         if idx:
             model = parent_model or model
-            self.get_collection(model._meta.db_table).create_indexes([idx])
+            if isinstance(idx, SearchIndexModel):
+                self.get_collection(model._meta.db_table).create_search_index(idx)
+            else:
+                self.get_collection(model._meta.db_table).create_indexes([idx])
 
     def _add_composed_index(self, model, field_names, column_prefix="", parent_model=None):
         """Add an index on the given list of field_names."""
@@ -283,7 +289,12 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     def remove_index(self, model, index):
         if index.contains_expressions:
             return
-        self.get_collection(model._meta.db_table).drop_index(index.name)
+        if isinstance(index, SearchIndex):
+            # Drop the index if it's supported.
+            if self.connection.features.supports_atlas_search:
+                self.get_collection(model._meta.db_table).drop_search_index(index.name)
+        else:
+            self.get_collection(model._meta.db_table).drop_index(index.name)
 
     def _remove_composed_index(
         self, model, field_names, constraint_kwargs, column_prefix="", parent_model=None

@@ -13,6 +13,19 @@ Initial release from the state of :ref:`django-mongodb-backend 5.1.0 beta 2
 Regarding new features in Django 5.2,
 :class:`~django.db.models.CompositePrimaryKey` isn't supported.
 
+New features
+------------
+
+*These features won't appear in Django MongoDB Backend 5.1.x.*
+
+- Added :class:`.SearchIndex` and :class:`.VectorSearchIndex` for use on
+  a model's :attr:`Meta.indexes <django.db.models.Options.indexes>`.
+
+Backwards incompatible changes
+------------------------------
+
+- The minimum supported version of ``pymongo`` is increased from 4.6 to 4.7.
+
 Bug fixes
 ---------
 

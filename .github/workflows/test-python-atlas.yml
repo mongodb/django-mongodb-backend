@@ -1,0 +1,56 @@
+name: Python Tests on Atlas
+
+on:
+  pull_request:
+      paths:
+      - '**.py'
+      - '!setup.py'
+      - '.github/workflows/test-python-atlas.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash -eux {0}
+
+jobs:
+  build:
+    name: Django Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout django-mongodb-backend
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: install django-mongodb-backend
+        run: |
+          pip3 install --upgrade pip
+          pip3 install -e .
+      - name: Checkout Django
+        uses: actions/checkout@v4
+        with:
+          repository: 'mongodb-forks/django'
+          ref: 'mongodb-5.2.x'
+          path: 'django_repo'
+          persist-credentials: false
+      - name: Install system packages for Django's Python test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install libmemcached-dev
+      - name: Install Django and its Python test dependencies
+        run: |
+          cd django_repo/tests/
+          pip3 install -e ..
+          pip3 install -r requirements/py3.txt
+      - name: Copy the test settings file
+        run: cp .github/workflows/mongodb_settings.py django_repo/tests/
+      - name: Copy the test runner file
+        run: cp .github/workflows/runtests.py django_repo/tests/runtests_.py
+      - name: Start local Atlas
+        working-directory: .
+        run: bash .github/workflows/start_local_atlas.sh mongodb/mongodb-atlas-local:7
+      - name: Run tests
+        run: python3 django_repo/tests/runtests_.py

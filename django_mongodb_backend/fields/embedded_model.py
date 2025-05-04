@@ -20,6 +20,9 @@ class EmbeddedModelField(models.Field):
         self.embedded_model = embedded_model
         super().__init__(*args, **kwargs)
 
+    def db_type(self, connection):
+        return "embeddedDocuments"
+
     def check(self, **kwargs):
         from ..models import EmbeddedModel
 

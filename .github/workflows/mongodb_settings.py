@@ -17,10 +17,13 @@ else:
         "default": {
             "ENGINE": "django_mongodb_backend",
             "NAME": "djangotests",
+            # Required when connecting to the Atlas image in Docker.
+            "OPTIONS": {"directConnection": True},
         },
         "other": {
             "ENGINE": "django_mongodb_backend",
             "NAME": "djangotests-other",
+            "OPTIONS": {"directConnection": True},
         },
     }
 
