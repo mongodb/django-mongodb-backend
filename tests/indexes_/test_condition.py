@@ -5,20 +5,10 @@ from django.db.models import Index, Q
 from django.test import TestCase
 
 from .models import Article
+from .test_base import SchemaAssertionMixin
 
 
-class PartialIndexTests(TestCase):
-    def assertAddRemoveIndex(self, editor, model, index):
-        editor.add_index(index=index, model=model)
-        self.assertIn(
-            index.name,
-            connection.introspection.get_constraints(
-                cursor=None,
-                table_name=model._meta.db_table,
-            ),
-        )
-        editor.remove_index(index=index, model=model)
-
+class PartialIndexTests(SchemaAssertionMixin, TestCase):
     def test_not_supported(self):
         msg = "MongoDB does not support the 'isnull' lookup in indexes."
         with connection.schema_editor() as editor, self.assertRaisesMessage(NotSupportedError, msg):
