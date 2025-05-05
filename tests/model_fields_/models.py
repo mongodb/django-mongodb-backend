@@ -115,14 +115,12 @@ class Address(EmbeddedModel):
     city = models.CharField(max_length=20)
     state = models.CharField(max_length=2)
     zip_code = models.IntegerField(db_index=True)
-    tags = ArrayField(models.CharField(max_length=100), null=True, blank=True)
 
 
 class Author(EmbeddedModel):
     name = models.CharField(max_length=10)
     age = models.IntegerField()
     address = EmbeddedModelField(Address)
-    skills = ArrayField(models.CharField(max_length=100), null=True, blank=True)
 
 
 class Book(models.Model):
@@ -182,3 +180,28 @@ class Movie(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class ArtifactDetail(EmbeddedModel):
+    """Details about a specific artifact."""
+
+    name = models.CharField(max_length=255)
+    description = models.CharField(max_length=255)
+    metadata = models.JSONField()
+
+
+class ExhibitSection(EmbeddedModel):
+    """A section within an exhibit, containing multiple artifacts."""
+
+    section_number = models.IntegerField()
+    artifacts = EmbeddedModelArrayField(ArtifactDetail, null=True)
+
+
+class MuseumExhibit(models.Model):
+    """An exhibit in the museum, composed of multiple sections."""
+
+    exhibit_name = models.CharField(max_length=255)
+    sections = EmbeddedModelArrayField(ExhibitSection, null=True)
+
+    def __str__(self):
+        return self.exhibit_name
