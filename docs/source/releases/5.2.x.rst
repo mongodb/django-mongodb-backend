@@ -25,6 +25,7 @@ Backwards incompatible changes
 ------------------------------
 
 - The minimum supported version of ``pymongo`` is increased from 4.6 to 4.7.
+- Allowed ``EmbeddedModelField``’s ``exact`` lookup to use a model instance.
 
 Bug fixes
 ---------
