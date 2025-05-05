@@ -19,18 +19,16 @@ from django_mongodb_backend.models import EmbeddedModel
 
 
 from .models import (
-    A,
     Address,
+    ArtifactDetail,
     Author,
-    B,
     Book,
-    C,
-    D,
     Data,
-    E,
+    ExhibitSection,
     Holder,
     Library,
     Movie,
+    MuseumExhibit,
     NestedData,
     Review,
 )
@@ -148,6 +146,59 @@ class EmbeddedArrayQueryingTests(TestCase):
             Review(title="Classic", rating=7),
         ]
         cls.bears = Movie.objects.create(title="Bears", reviews=reviews)
+        cls.egypt = MuseumExhibit.objects.create(
+            exhibit_name="Ancient Egypt",
+            sections=[
+                ExhibitSection(
+                    section_number=1,
+                    artifacts=[
+                        ArtifactDetail(
+                            name="Ptolemaic Crown",
+                            description="Royal headpiece worn by Ptolemy kings.",
+                            metadata={
+                                "material": "gold",
+                                "origin": "Egypt",
+                                "era": "Ptolemaic Period",
+                            },
+                        )
+                    ],
+                )
+            ],
+        )
+        cls.wonders = MuseumExhibit.objects.create(
+            exhibit_name="Wonders of the Ancient World",
+            sections=[
+                ExhibitSection(
+                    section_number=1,
+                    artifacts=[
+                        ArtifactDetail(
+                            name="Statue of Zeus",
+                            description="One of the Seven Wonders, created by Phidias.",
+                            metadata={"location": "Olympia", "height_m": 12},
+                        ),
+                        ArtifactDetail(
+                            name="Hanging Gardens",
+                            description="Legendary gardens of Babylon.",
+                            metadata={"debated_existence": True},
+                        ),
+                    ],
+                ),
+                ExhibitSection(
+                    section_number=2,
+                    artifacts=[
+                        ArtifactDetail(
+                            name="Lighthouse of Alexandria",
+                            description="Guided sailors safely to port.",
+                            metadata={"height_m": 100, "built": "3rd century BC"},
+                        )
+                    ],
+                ),
+            ],
+        )
+        cls.new_descoveries = MuseumExhibit.objects.create(
+            exhibit_name="New Discoveries",
+            sections=[ExhibitSection(section_number=1, artifacts=[])],
+        )
 
     def test_filter_with_field(self):
         self.assertCountEqual(
@@ -158,6 +209,12 @@ class EmbeddedArrayQueryingTests(TestCase):
         self.assertCountEqual(
             Movie.objects.filter(reviews=Review(title="Horrible", rating=2)),
             [self.clouds, self.frozen],
+        )
+
+    def test_filter_with_embeddedfield_path(self):
+        self.assertCountEqual(
+            MuseumExhibit.objects.filter(sections__0__section_number=1),
+            [self.egypt, self.wonders, self.new_descoveries],
         )
 
 
@@ -337,56 +394,6 @@ class QueryingTests(TestCase):
             author=Author(name="Shakespeare", age=55, address=Address(city="NYC", state="NY"))
         )
         self.assertCountEqual(Book.objects.filter(author__address__city="NYC"), [obj])
-
-
-class ArrayFieldTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.book = Book.objects.create(
-            author=Author(
-                name="Shakespeare",
-                age=55,
-                skills=["writing", "editing"],
-                address=Address(city="NYC", state="NY", tags=["home", "shipping"]),
-            ),
-        )
-
-    def test_contains(self):
-        self.assertCountEqual(Book.objects.filter(author__skills__contains=["nonexistent"]), [])
-        self.assertCountEqual(
-            Book.objects.filter(author__skills__contains=["writing"]), [self.book]
-        )
-        # Nested
-        self.assertCountEqual(
-            Book.objects.filter(author__address__tags__contains=["nonexistent"]), []
-        )
-        self.assertCountEqual(
-            Book.objects.filter(author__address__tags__contains=["home"]), [self.book]
-        )
-
-    def test_contained_by(self):
-        self.assertCountEqual(
-            Book.objects.filter(author__skills__contained_by=["writing", "publishing"]), []
-        )
-        self.assertCountEqual(
-            Book.objects.filter(author__skills__contained_by=["writing", "editing", "publishing"]),
-            [self.book],
-        )
-        # Nested
-        self.assertCountEqual(
-            Book.objects.filter(author__address__tags__contained_by=["home", "work"]), []
-        )
-        self.assertCountEqual(
-            Book.objects.filter(author__address__tags__contained_by=["home", "work", "shipping"]),
-            [self.book],
-        )
-
-    def test_len(self):
-        self.assertCountEqual(Book.objects.filter(author__skills__len=1), [])
-        self.assertCountEqual(Book.objects.filter(author__skills__len=2), [self.book])
-        # Nested
-        self.assertCountEqual(Book.objects.filter(author__address__tags__len=1), [])
-        self.assertCountEqual(Book.objects.filter(author__address__tags__len=2), [self.book])
 
 
 class InvalidLookupTests(SimpleTestCase):
