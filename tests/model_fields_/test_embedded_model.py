@@ -1,5 +1,5 @@
 import operator
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import connection, models
@@ -28,11 +28,13 @@ from .models import (
     D,
     Data,
     E,
+    ExhibitMeta,
     ExhibitSection,
     Holder,
     Library,
     Movie,
     MuseumExhibit,
+    RestorationRecord,
     Review,
 )
 from .utils import truncate_ms
@@ -197,6 +199,36 @@ class EmbeddedArrayQueryingTests(TestCase):
             exhibit_name="New Discoveries",
             sections=[ExhibitSection(section_number=1, artifacts=[])],
         )
+        cls.lost_empires = MuseumExhibit.objects.create(
+            exhibit_name="Lost Empires",
+            meta=ExhibitMeta(
+                curator_name="Dr. Amina Hale",
+                artifacts=[
+                    ArtifactDetail(
+                        name="Bronze Statue",
+                        description="Statue from the Hellenistic period.",
+                        metadata={"origin": "Pergamon", "material": "bronze"},
+                        restorations=[
+                            RestorationRecord(
+                                date=date(1998, 4, 15),
+                                description="Removed oxidized layer.",
+                                restored_by="Restoration Lab A",
+                            ),
+                            RestorationRecord(
+                                date=date(2010, 7, 22),
+                                description="Reinforced the base structure.",
+                                restored_by="Dr. Liu Cheng",
+                            ),
+                        ],
+                        last_restoration=RestorationRecord(
+                            date=date(2010, 7, 22),
+                            description="Reinforced the base structure.",
+                            restored_by="Dr. Liu Cheng",
+                        ),
+                    )
+                ],
+            ),
+        )
 
     def test_filter_with_field(self):
         self.assertCountEqual(
@@ -213,6 +245,14 @@ class EmbeddedArrayQueryingTests(TestCase):
         self.assertCountEqual(
             MuseumExhibit.objects.filter(sections__0__section_number=1),
             [self.egypt, self.wonders, self.new_descoveries],
+        )
+
+    def test_filter_with_embeddedfield_array_path(self):
+        self.assertCountEqual(
+            MuseumExhibit.objects.filter(
+                meta__artifacts__restorations__0__restored_by="Restoration Lab A"
+            ),
+            [self.lost_empires],
         )
 
 
