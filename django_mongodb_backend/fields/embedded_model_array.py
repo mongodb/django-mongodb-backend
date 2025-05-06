@@ -1,6 +1,8 @@
 import difflib
 
 from django.core.exceptions import FieldDoesNotExist
+from django.db import models
+from django.db.models.expressions import Col
 from django.db.models.lookups import Transform
 
 from ..forms import EmbeddedModelArrayFormField
@@ -8,7 +10,6 @@ from ..query_utils import process_lhs, process_rhs
 from . import EmbeddedModelField
 from .array import ArrayField
 from .embedded_model import EMFExact
-from .json import build_json_mql_path
 
 
 class EmbeddedModelArrayField(ArrayField):
@@ -55,18 +56,29 @@ class EmbeddedModelArrayField(ArrayField):
 @EmbeddedModelArrayField.register_lookup
 class EMFArrayExact(EMFExact):
     def as_mql(self, compiler, connection):
-        mql, key_transforms, json_key_transforms = self.lhs.preprocess_lhs(compiler, connection)
-        # TODO, maybe a new flow of transform query must be build
-        # this part must merge the two part of the transform train.
+        lhs_mql = process_lhs(self, compiler, connection)
         value = process_rhs(self, compiler, connection)
-        transforms = build_json_mql_path("$$this", key_transforms)
-        return {
-            "$reduce": {
-                "input": mql,
-                "initialValue": False,
-                "in": {"$or": ["$$value", {"$eq": [f"$$this.{transforms}", value]}]},
+        if isinstance(self.lhs, Col | KeyTransform):
+            if isinstance(value, models.Model):
+                value, emf_data = self.model_to_dict(value)
+                # Get conditions for any nested EmbeddedModelFields.
+                conditions = self.get_conditions({"$$item": (value, emf_data)})
+                return {
+                    "$anyElementTrue": {
+                        "$map": {"input": lhs_mql, "as": "item", "in": {"$and": conditions}}
+                    }
+                }
+            lhs_mql = process_lhs(self.lhs, compiler, connection)
+            return {
+                "$anyElementTrue": {
+                    "$map": {
+                        "input": lhs_mql,
+                        "as": "item",
+                        "in": {"$eq": [f"$$item.{self.lhs.key_name}", value]},
+                    }
+                }
             }
-        }
+        return connection.mongo_operators[self.lookup_name](lhs_mql, value)
 
 
 class KeyTransform(Transform):
@@ -77,7 +89,7 @@ class KeyTransform(Transform):
         self.ref_field = ref_field
 
     def get_lookup(self, name):
-        return self.ref_field.get_lookup(name)
+        return self.output_field.get_lookup(name)
 
     def get_transform(self, name):
         """
@@ -99,11 +111,12 @@ class KeyTransform(Transform):
         )
 
     def as_mql(self, compiler, connection):
-        return process_lhs(self, compiler, connection)
+        lhs_mql = process_lhs(self, compiler, connection)
+        return f"{lhs_mql}.{self.key_name}"
 
     @property
     def output_field(self):
-        return self.ref_field
+        return EmbeddedModelArrayField(self.ref_field)
 
 
 class KeyTransformFactory:
