@@ -157,7 +157,9 @@ class DatabaseOperations(BaseDatabaseOperations):
             # Apply database converters to each field of the embedded model.
             for field in expression.output_field.embedded_model._meta.fields:
                 field_expr = Expression(output_field=field)
-                converters = connection.ops.get_db_converters(field_expr)
+                converters = connection.ops.get_db_converters(
+                    field_expr
+                ) + field_expr.get_db_converters(connection)
                 for converter in converters:
                     value[field.attname] = converter(value[field.attname], field_expr, connection)
         return value

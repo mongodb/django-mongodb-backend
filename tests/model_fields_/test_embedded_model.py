@@ -71,6 +71,11 @@ class ModelTests(TestCase):
         obj = Holder.objects.get()
         self.assertIsNone(obj.data)
 
+    def test_save_load_json(self):
+        obj = Holder.objects.create(data=Data(json_value={"a": 1}))
+        obj.refresh_from_db()
+        self.assertEqual(obj.data.json_value, {"a": 1})
+
     def test_pre_save(self):
         """Field.pre_save() is called on embedded model fields."""
         obj = Holder.objects.create(data=Data())
