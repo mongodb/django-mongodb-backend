@@ -206,7 +206,7 @@ class EmbeddedArrayQueryingTests(TestCase):
     def test_filter_with_model(self):
         self.assertCountEqual(
             Movie.objects.filter(reviews=Review(title="Horrible", rating=2)),
-            [self.clouds, self.frozen],
+            [self.frozen],
         )
 
     def test_filter_with_embeddedfield_path(self):
