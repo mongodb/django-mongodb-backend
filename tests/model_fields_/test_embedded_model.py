@@ -147,16 +147,12 @@ class QueryingTests(TestCase):
         # Due to the possibility of schema changes or the reordering of a
         # model's fields, a lookup must work if an embedded document has its
         # keys in a different order than what's declared on the embedded model.
-        connection.get_collection("model_fields__holder").insert_one(
-            {
-                "data": {
-                    "auto_now": None,
-                    "auto_now_add": None,
-                    "json_value": None,
-                    "integer": 100,
-                }
-            }
-        )
+        data = {}
+        for field in reversed(Data._meta.fields):
+            data[field.name] = None
+        del data["id"]
+        data["integer"] = 100
+        connection.get_collection("model_fields__holder").insert_one({"data": data})
         self.assertEqual(Holder.objects.filter(data=Data(integer=100)).get().data.integer, 100)
 
     def test_exact_with_nested_model(self):

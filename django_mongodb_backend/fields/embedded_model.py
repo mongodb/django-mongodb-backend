@@ -156,7 +156,7 @@ class EmbeddedModelField(models.Field):
 
 @EmbeddedModelField.register_lookup
 class EMFExact(lookups.Exact):
-    def model_to_dict(self, instance):
+    def model_to_dict(self, instance, connection):
         """
         Return a dict containing the data in a model instance, as well as a
         dict containing the data for any embedded model fields.
@@ -164,9 +164,11 @@ class EMFExact(lookups.Exact):
         data = {}
         emf_data = {}
         for f in instance._meta.concrete_fields:
-            value = f.value_from_object(instance)
+            value = f.get_db_prep_value(f.value_from_object(instance), connection)
             if isinstance(f, EmbeddedModelField):
-                emf_data[f.name] = self.model_to_dict(value) if value is not None else (None, {})
+                emf_data[f.name] = (
+                    self.model_to_dict(value, connection) if value is not None else (None, {})
+                )
                 continue
             # Unless explicitly set, primary keys aren't included in embedded
             # models.
@@ -202,7 +204,7 @@ class EMFExact(lookups.Exact):
             and isinstance(self.lhs.ref_field, EmbeddedModelField)
         ):
             if isinstance(value, models.Model):
-                value, emf_data = self.model_to_dict(value)
+                value, emf_data = self.model_to_dict(value, connection)
                 # Get conditions for any nested EmbeddedModelFields.
                 conditions = self.get_conditions({lhs_mql: (value, emf_data)})
                 return {"$and": conditions}
