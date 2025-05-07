@@ -98,8 +98,8 @@ Caching
 
 :doc:`Database caching </topics/cache>` uses this library's
 :djadmin:`createcachecollection` command rather Django's SQL-specific
-:djadmin:`createcachetable`.
+:djadmin:`createcachetable` command.
 
 Secondly, you must use the :class:`django_mongodb_backend.cache.MongoDBCache`
 backend rather than Django's built-in database cache backend,
-``django.core.cache.backends.db.DatabaseCache``).
+``django.core.cache.backends.db.DatabaseCache``.
