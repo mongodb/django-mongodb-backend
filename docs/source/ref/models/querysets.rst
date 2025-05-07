@@ -8,7 +8,6 @@ Supported ``QuerySet`` methods
 All of Django's :doc:`QuerySet methods <django:ref/models/querysets>` are
 supported, except:
 
-  - :meth:`bulk_update() <django.db.models.query.QuerySet.bulk_update>`
   - :meth:`extra() <django.db.models.query.QuerySet.extra>`
   - :meth:`prefetch_related() <django.db.models.query.QuerySet.prefetch_related>`
 
