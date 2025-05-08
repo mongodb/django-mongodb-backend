@@ -59,16 +59,20 @@ class EMFArrayExact(EMFExact):
         lhs_mql = process_lhs(self, compiler, connection)
         value = process_rhs(self, compiler, connection)
         if isinstance(self.lhs, Col | KeyTransform):
+            if isinstance(self.lhs, Col):
+                inner_lhs_mql = "$$item"
+            else:
+                lhs_mql, inner_lhs_mql = lhs_mql
             if isinstance(value, models.Model):
                 value, emf_data = self.model_to_dict(value)
                 # Get conditions for any nested EmbeddedModelFields.
-                conditions = self.get_conditions({lhs_mql[1]: (value, emf_data)})
+                conditions = self.get_conditions({inner_lhs_mql: (value, emf_data)})
                 return {
                     "$anyElementTrue": {
                         "$ifNull": [
                             {
                                 "$map": {
-                                    "input": lhs_mql[0],
+                                    "input": lhs_mql,
                                     "as": "item",
                                     "in": {"$and": conditions},
                                 }
@@ -82,9 +86,9 @@ class EMFArrayExact(EMFExact):
                     "$ifNull": [
                         {
                             "$map": {
-                                "input": lhs_mql[0],
+                                "input": lhs_mql,
                                 "as": "item",
-                                "in": {"$eq": [lhs_mql[1], value]},
+                                "in": {"$eq": [inner_lhs_mql, value]},
                             }
                         },
                         [],
@@ -138,10 +142,7 @@ class KeyTransform(Transform):
         )
 
     def as_mql(self, compiler, connection):
-        if isinstance(self._lhs, Transform):
-            inner_lhs_mql = self._lhs.as_mql(compiler, connection)
-        else:
-            inner_lhs_mql = None
+        inner_lhs_mql = self._lhs.as_mql(compiler, connection)
         lhs_mql = process_lhs(self, compiler, connection)
         return lhs_mql, inner_lhs_mql
 
