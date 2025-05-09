@@ -104,18 +104,26 @@ class Data(EmbeddedModel):
     auto_now = models.DateTimeField(auto_now=True)
     auto_now_add = models.DateTimeField(auto_now_add=True)
     json_value = models.JSONField()
+    decimal = models.DecimalField(max_digits=9, decimal_places="2", null=True, blank=True)
+    nested_data = EmbeddedModelField("NestedData", null=True, blank=True)
+
+
+class NestedData(EmbeddedModel):
+    decimal = models.DecimalField(max_digits=9, decimal_places="2", null=True, blank=True)
 
 
 class Address(EmbeddedModel):
     city = models.CharField(max_length=20)
     state = models.CharField(max_length=2)
     zip_code = models.IntegerField(db_index=True)
+    tags = ArrayField(models.CharField(max_length=100), null=True, blank=True)
 
 
 class Author(EmbeddedModel):
     name = models.CharField(max_length=10)
     age = models.IntegerField()
     address = EmbeddedModelField(Address)
+    skills = ArrayField(models.CharField(max_length=100), null=True, blank=True)
 
 
 class Book(models.Model):

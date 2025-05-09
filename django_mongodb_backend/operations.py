@@ -10,7 +10,7 @@ from django.db import DataError
 from django.db.backends.base.operations import BaseDatabaseOperations
 from django.db.models import TextField
 from django.db.models.expressions import Combinable, Expression
-from django.db.models.functions import Cast
+from django.db.models.functions import Cast, Trunc
 from django.utils import timezone
 from django.utils.regex_helper import _lazy_re_compile
 
@@ -97,16 +97,26 @@ class DatabaseOperations(BaseDatabaseOperations):
                 ]
             )
         elif internal_type == "DateField":
-            converters.append(self.convert_datefield_value)
+            # Trunc(... output_field="DateField") values must remain datetime
+            # until Trunc.convert_value() so they can be converted from UTC
+            # before truncation.
+            if not isinstance(expression, Trunc):
+                converters.append(self.convert_datefield_value)
         elif internal_type == "DateTimeField":
             if settings.USE_TZ:
                 converters.append(self.convert_datetimefield_value)
         elif internal_type == "DecimalField":
             converters.append(self.convert_decimalfield_value)
+        elif internal_type == "EmbeddedModelField":
+            converters.append(self.convert_embeddedmodelfield_value)
         elif internal_type == "JSONField":
             converters.append(self.convert_jsonfield_value)
         elif internal_type == "TimeField":
-            converters.append(self.convert_timefield_value)
+            # Trunc(... output_field="TimeField") values must remain datetime
+            # until Trunc.convert_value() so they can be converted from UTC
+            # before truncation.
+            if not isinstance(expression, Trunc):
+                converters.append(self.convert_timefield_value)
         elif internal_type == "UUIDField":
             converters.append(self.convert_uuidfield_value)
         return converters
@@ -140,6 +150,16 @@ class DatabaseOperations(BaseDatabaseOperations):
                 # `value` could be Decimal128 if doing a computation with
                 # DurationField and Decimal128.
                 value = datetime.timedelta(milliseconds=int(str(value)))
+        return value
+
+    def convert_embeddedmodelfield_value(self, value, expression, connection):
+        if value is not None:
+            # Apply database converters to each field of the embedded model.
+            for field in expression.output_field.embedded_model._meta.fields:
+                field_expr = Expression(output_field=field)
+                converters = connection.ops.get_db_converters(field_expr)
+                for converter in converters:
+                    value[field.attname] = converter(value[field.attname], field_expr, connection)
         return value
 
     def convert_jsonfield_value(self, value, expression, connection):

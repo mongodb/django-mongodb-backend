@@ -31,8 +31,6 @@ Querying
 - The following ``QuerySet`` methods aren't supported:
 
   - :meth:`bulk_update() <django.db.models.query.QuerySet.bulk_update>`
-  - :meth:`dates() <django.db.models.query.QuerySet.dates>`
-  - :meth:`datetimes() <django.db.models.query.QuerySet.datetimes>`
   - :meth:`extra() <django.db.models.query.QuerySet.extra>`
   - :meth:`prefetch_related() <django.db.models.query.QuerySet.prefetch_related>`
 
@@ -74,9 +72,10 @@ Database functions
     :class:`~django.db.models.functions.SHA512`
   - :class:`~django.db.models.functions.Sign`
 
-- The ``tzinfo`` parameter of the :class:`~django.db.models.functions.Trunc`
-  database functions doesn't work properly because MongoDB converts the result
-  back to UTC.
+- The ``tzinfo`` parameter of the
+  :class:`~django.db.models.functions.TruncDate` and
+  :class:`~django.db.models.functions.TruncTime` database functions isn't
+  supported.
 
 Transaction management
 ======================
