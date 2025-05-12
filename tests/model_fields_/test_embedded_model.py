@@ -103,56 +103,6 @@ class ModelTests(TestCase):
         self.assertGreater(obj.data.auto_now, auto_now_two)
 
 
-class ArrayFieldTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.book = Book.objects.create(
-            author=Author(
-                name="Shakespeare",
-                age=55,
-                skills=["writing", "editing"],
-                address=Address(city="NYC", state="NY", tags=["home", "shipping"]),
-            ),
-        )
-
-    def test_contains(self):
-        self.assertCountEqual(Book.objects.filter(author__skills__contains=["nonexistent"]), [])
-        self.assertCountEqual(
-            Book.objects.filter(author__skills__contains=["writing"]), [self.book]
-        )
-        # Nested
-        self.assertCountEqual(
-            Book.objects.filter(author__address__tags__contains=["nonexistent"]), []
-        )
-        self.assertCountEqual(
-            Book.objects.filter(author__address__tags__contains=["home"]), [self.book]
-        )
-
-    def test_contained_by(self):
-        self.assertCountEqual(
-            Book.objects.filter(author__skills__contained_by=["writing", "publishing"]), []
-        )
-        self.assertCountEqual(
-            Book.objects.filter(author__skills__contained_by=["writing", "editing", "publishing"]),
-            [self.book],
-        )
-        # Nested
-        self.assertCountEqual(
-            Book.objects.filter(author__address__tags__contained_by=["home", "work"]), []
-        )
-        self.assertCountEqual(
-            Book.objects.filter(author__address__tags__contained_by=["home", "work", "shipping"]),
-            [self.book],
-        )
-
-    def test_len(self):
-        self.assertCountEqual(Book.objects.filter(author__skills__len=1), [])
-        self.assertCountEqual(Book.objects.filter(author__skills__len=2), [self.book])
-        # Nested
-        self.assertCountEqual(Book.objects.filter(author__address__tags__len=1), [])
-        self.assertCountEqual(Book.objects.filter(author__address__tags__len=2), [self.book])
-
-
 class EmbeddedArrayTests(TestCase):
     def test_save_load(self):
         reviews = [
@@ -483,6 +433,56 @@ class QueryingTests(TestCase):
             author=Author(name="Shakespeare", age=55, address=Address(city="NYC", state="NY"))
         )
         self.assertCountEqual(Book.objects.filter(author__address__city="NYC"), [obj])
+
+
+class ArrayFieldTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.book = Book.objects.create(
+            author=Author(
+                name="Shakespeare",
+                age=55,
+                skills=["writing", "editing"],
+                address=Address(city="NYC", state="NY", tags=["home", "shipping"]),
+            ),
+        )
+
+    def test_contains(self):
+        self.assertCountEqual(Book.objects.filter(author__skills__contains=["nonexistent"]), [])
+        self.assertCountEqual(
+            Book.objects.filter(author__skills__contains=["writing"]), [self.book]
+        )
+        # Nested
+        self.assertCountEqual(
+            Book.objects.filter(author__address__tags__contains=["nonexistent"]), []
+        )
+        self.assertCountEqual(
+            Book.objects.filter(author__address__tags__contains=["home"]), [self.book]
+        )
+
+    def test_contained_by(self):
+        self.assertCountEqual(
+            Book.objects.filter(author__skills__contained_by=["writing", "publishing"]), []
+        )
+        self.assertCountEqual(
+            Book.objects.filter(author__skills__contained_by=["writing", "editing", "publishing"]),
+            [self.book],
+        )
+        # Nested
+        self.assertCountEqual(
+            Book.objects.filter(author__address__tags__contained_by=["home", "work"]), []
+        )
+        self.assertCountEqual(
+            Book.objects.filter(author__address__tags__contained_by=["home", "work", "shipping"]),
+            [self.book],
+        )
+
+    def test_len(self):
+        self.assertCountEqual(Book.objects.filter(author__skills__len=1), [])
+        self.assertCountEqual(Book.objects.filter(author__skills__len=2), [self.book])
+        # Nested
+        self.assertCountEqual(Book.objects.filter(author__address__tags__len=1), [])
+        self.assertCountEqual(Book.objects.filter(author__address__tags__len=2), [self.book])
 
 
 class InvalidLookupTests(SimpleTestCase):
