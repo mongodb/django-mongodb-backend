@@ -226,7 +226,7 @@ These indexes use 0-based indexing.
 
 Stores a model of type ``embedded_model``.
 
-   .. attribute:: embedded_model
+    .. attribute:: embedded_model
 
         This is a required argument.
 
