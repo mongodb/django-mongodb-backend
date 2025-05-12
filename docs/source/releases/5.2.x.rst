@@ -27,6 +27,9 @@ Backwards incompatible changes
 ------------------------------
 
 - The minimum supported version of ``pymongo`` is increased from 4.6 to 4.7.
+- The ``conn_max_age`` parameter of
+  :func:`~django_mongodb_backend.utils.parse_uri` is removed because persistent
+  connections are now used by default.
 
 Bug fixes
 ---------

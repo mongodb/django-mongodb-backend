@@ -12,7 +12,7 @@ following parts can be considered stable.
 ``parse_uri()``
 ===============
 
-.. function:: parse_uri(uri, db_name=None, conn_max_age=0, test=None)
+.. function:: parse_uri(uri, db_name=None, test=None)
 
 Parses a MongoDB `connection string`_ into a dictionary suitable for Django's
 :setting:`DATABASES` setting.
@@ -32,8 +32,6 @@ doesn't specify ``defaultauthdb``.
 You can use the parameters to customize the resulting :setting:`DATABASES`
 setting:
 
-- Use ``conn_max_age`` to configure :ref:`persistent database connections
-  <persistent-database-connections>`.
 - Use ``test`` to provide a dictionary of settings for test databases in the
   format of :setting:`TEST <DATABASE-TEST>`.
 

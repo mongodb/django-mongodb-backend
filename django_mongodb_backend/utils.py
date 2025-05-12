@@ -28,7 +28,7 @@ def check_django_compatability():
         )
 
 
-def parse_uri(uri, *, db_name=None, conn_max_age=0, test=None):
+def parse_uri(uri, *, db_name=None, test=None):
     """
     Convert the given uri into a dictionary suitable for Django's DATABASES
     setting.
@@ -56,7 +56,6 @@ def parse_uri(uri, *, db_name=None, conn_max_age=0, test=None):
         "USER": uri.get("username"),
         "PASSWORD": uri.get("password"),
         "OPTIONS": uri.get("options"),
-        "CONN_MAX_AGE": conn_max_age,
     }
     if "authSource" not in settings_dict["OPTIONS"] and uri["database"]:
         settings_dict["OPTIONS"]["authSource"] = uri["database"]

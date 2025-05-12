@@ -82,10 +82,6 @@ class ParseURITests(SimpleTestCase):
         self.assertEqual(settings_dict["NAME"], "db")
         self.assertEqual(settings_dict["OPTIONS"], {"authSource": "auth"})
 
-    def test_conn_max_age(self):
-        settings_dict = parse_uri("mongodb://localhost/db", conn_max_age=600)
-        self.assertEqual(settings_dict["CONN_MAX_AGE"], 600)
-
     def test_test_kwarg(self):
         settings_dict = parse_uri("mongodb://localhost/db", test={"NAME": "test_db"})
         self.assertEqual(settings_dict["TEST"], {"NAME": "test_db"})
