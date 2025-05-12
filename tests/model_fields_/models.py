@@ -211,17 +211,12 @@ class ExhibitSection(EmbeddedModel):
     artifacts = EmbeddedModelArrayField(ArtifactDetail, null=True)
 
 
-class ExhibitMeta(EmbeddedModel):
-    curator_name = models.CharField(max_length=255)
-    artifacts = EmbeddedModelArrayField(ArtifactDetail, null=True)
-
-
 class MuseumExhibit(models.Model):
     """An exhibit in the museum, composed of multiple sections."""
 
     exhibit_name = models.CharField(max_length=255)
     sections = EmbeddedModelArrayField(ExhibitSection, null=True)
-    meta = EmbeddedModelField(ExhibitMeta, null=True)
+    main_section = EmbeddedModelField(ExhibitSection, null=True)
 
     def __str__(self):
         return self.exhibit_name

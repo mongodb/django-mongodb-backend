@@ -58,29 +58,14 @@ class EMFArrayExact(EMFExact):
     def as_mql(self, compiler, connection):
         lhs_mql = process_lhs(self, compiler, connection)
         value = process_rhs(self, compiler, connection)
-        if isinstance(self.lhs, Col | KeyTransform):
-            if isinstance(self.lhs, Col):
-                inner_lhs_mql = "$$item"
-            else:
-                lhs_mql, inner_lhs_mql = lhs_mql
-            if isinstance(value, models.Model):
-                value, emf_data = self.model_to_dict(value)
-                # Get conditions for any nested EmbeddedModelFields.
-                conditions = self.get_conditions({inner_lhs_mql: (value, emf_data)})
-                return {
-                    "$anyElementTrue": {
-                        "$ifNull": [
-                            {
-                                "$map": {
-                                    "input": lhs_mql,
-                                    "as": "item",
-                                    "in": {"$and": conditions},
-                                }
-                            },
-                            [],
-                        ]
-                    }
-                }
+        if isinstance(self.lhs, KeyTransform):
+            lhs_mql, inner_lhs_mql = lhs_mql
+        else:
+            inner_lhs_mql = "$$item"
+        if isinstance(value, models.Model):
+            value, emf_data = self.model_to_dict(value)
+            # Get conditions for any nested EmbeddedModelFields.
+            conditions = self.get_conditions({inner_lhs_mql: (value, emf_data)})
             return {
                 "$anyElementTrue": {
                     "$ifNull": [
@@ -88,14 +73,27 @@ class EMFArrayExact(EMFExact):
                             "$map": {
                                 "input": lhs_mql,
                                 "as": "item",
-                                "in": {"$eq": [inner_lhs_mql, value]},
+                                "in": {"$and": conditions},
                             }
                         },
                         [],
                     ]
                 }
             }
-        return connection.mongo_operators[self.lookup_name](lhs_mql, value)
+        return {
+            "$anyElementTrue": {
+                "$ifNull": [
+                    {
+                        "$map": {
+                            "input": lhs_mql,
+                            "as": "item",
+                            "in": {"$eq": [inner_lhs_mql, value]},
+                        }
+                    },
+                    [],
+                ]
+            }
+        }
 
 
 class KeyTransform(Transform):
@@ -103,10 +101,13 @@ class KeyTransform(Transform):
     def __init__(self, key_name, base_field, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.base_field = base_field
-        #  TODO: Need to create a column, will refactor this thing.
+        self.key_name = key_name
+        # The iteration items begins from the base_field, a virtual column with
+        # base field output type is created.
         column_target = base_field.clone()
-        column_target.db_column = f"$item.{key_name}"
-        column_target.set_attributes_from_name(f"$item.{key_name}")
+        column_name = f"$item.{key_name}"
+        column_target.db_column = column_name
+        column_target.set_attributes_from_name(column_name)
         self._lhs = Col(None, column_target)
         self._sub_transform = None
 
@@ -117,19 +118,8 @@ class KeyTransform(Transform):
     def get_lookup(self, name):
         return self.output_field.get_lookup(name)
 
-    def get_transform(self, name):
-        """
-        Validate that `name` is either a field of an embedded model or a
-        lookup on an embedded model's field.
-        """
-        if isinstance(self._lhs, Transform):
-            transform = self._lhs.get_transform(name)
-        else:
-            transform = self.base_field.get_transform(name)
-        if transform:
-            self._sub_transform = transform
-            return self
-        suggested_lookups = difflib.get_close_matches(name, self.base_field.get_lookups())
+    def _get_missing_field_or_lookup_exception(self, lhs, name):
+        suggested_lookups = difflib.get_close_matches(name, lhs.get_lookups())
         if suggested_lookups:
             suggested_lookups = " or ".join(suggested_lookups)
             suggestion = f", perhaps you meant {suggested_lookups}?"
@@ -139,6 +129,25 @@ class KeyTransform(Transform):
             f"Unsupported lookup '{name}' for "
             f"{self.base_field.__class__.__name__} '{self.base_field.name}'"
             f"{suggestion}"
+        )
+
+    def get_transform(self, name):
+        """
+        Validate that `name` is either a field of an embedded model or a
+        lookup on an embedded model's field.
+        """
+        # Once the sub lhs is a transform, all the filter are applied over it.
+
+        transform = (
+            self._lhs.get_transform(name)
+            if isinstance(self._lhs, Transform)
+            else self.base_field.get_transform(name)
+        )
+        if transform:
+            self._sub_transform = transform
+            return self
+        raise self._get_missing_field_or_lookup_exception(
+            self._lhs if isinstance(self._lhs, Transform) else self.base_field, name
         )
 
     def as_mql(self, compiler, connection):
