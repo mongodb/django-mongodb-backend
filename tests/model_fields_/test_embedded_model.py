@@ -256,6 +256,28 @@ class EmbeddedArrayQueryingTests(TestCase):
             [self.lost_empires],
         )
 
+    def test_len(self):
+        self.assertCountEqual(MuseumExhibit.objects.filter(sections__len=10), [])
+        self.assertCountEqual(
+            MuseumExhibit.objects.filter(sections__len=1), [self.egypt, self.new_descoveries]
+        )
+        # Nested EMF
+        self.assertCountEqual(
+            MuseumExhibit.objects.filter(main_section__artifacts__len=1), [self.lost_empires]
+        )
+        self.assertCountEqual(MuseumExhibit.objects.filter(main_section__artifacts__len=2), [])
+        self.assertCountEqual(MuseumExhibit.objects.filter(main_section__artifacts__len=2), [])
+        # Nested Indexed Array
+        self.assertCountEqual(
+            MuseumExhibit.objects.filter(sections__0__artifacts__len=2), [self.wonders]
+        )
+        self.assertCountEqual(
+            MuseumExhibit.objects.filter(sections__0__artifacts__len=0), [self.new_descoveries]
+        )
+        self.assertCountEqual(
+            MuseumExhibit.objects.filter(sections__1__artifacts__len=1), [self.wonders]
+        )
+
 
 class QueryingTests(TestCase):
     @classmethod
