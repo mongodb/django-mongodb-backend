@@ -251,7 +251,7 @@ class EmbeddedArrayQueryingTests(TestCase):
     def test_filter_with_embeddedfield_array_path(self):
         self.assertCountEqual(
             MuseumExhibit.objects.filter(
-                meta__artifacts__restorations__0__restored_by="Restoration Lab A"
+                main_section__artifacts__restorations__0__restored_by="Restoration Lab A"
             ),
             [self.lost_empires],
         )
