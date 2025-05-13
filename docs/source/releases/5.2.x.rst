@@ -5,7 +5,7 @@ Django MongoDB Backend 5.2.x
 5.2.0 beta 0
 ============
 
-*Unreleased*
+*May 13, 2025*
 
 Initial release from the state of :ref:`django-mongodb-backend 5.1.0 beta 2
 <django-mongodb-backend-5.1.0-beta-2>`.
