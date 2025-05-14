@@ -1,7 +1,7 @@
 import operator
 from datetime import timedelta
 
-from django.core.exceptions import FieldDoesNotExist, ValidationError
+from django.core.exceptions import FieldDoesNotExist, FieldError, ValidationError
 from django.db import models
 from django.db.models import (
     Exists,
@@ -144,15 +144,12 @@ class EmbeddedArrayQueryingTests(TestCase):
         cls.bears = Movie.objects.create(title="Bears", reviews=reviews)
 
     def test_filter_with_field(self):
-        self.assertCountEqual(
-            Movie.objects.filter(reviews__title="Horrible"), [self.clouds, self.frozen]
+        msg = (
+            "Unsupported lookup 'title' for EmbeddedModelArrayField or join "
+            "on the field not permitted."
         )
-
-    def test_filter_with_model(self):
-        self.assertCountEqual(
-            Movie.objects.filter(reviews=Review(title="Horrible", rating=2)),
-            [self.clouds, self.frozen],
-        )
+        with self.assertRaisesMessage(FieldError, msg):
+            Movie.objects.filter(reviews__title="Horrible")
 
 
 class QueryingTests(TestCase):
