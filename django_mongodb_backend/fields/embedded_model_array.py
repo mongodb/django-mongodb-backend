@@ -49,8 +49,7 @@ class EmbeddedModelArrayField(ArrayField):
         transform = super().get_transform(name)
         if transform:
             return transform
-        field = self.base_field.embedded_model._meta.get_field(name)
-        return KeyTransformFactory(name, field)
+        return KeyTransformFactory(name, self.base_field)
 
 
 @EmbeddedModelArrayField.register_lookup
@@ -137,11 +136,10 @@ class KeyTransform(Transform):
         lookup on an embedded model's field.
         """
         # Once the sub lhs is a transform, all the filter are applied over it.
-
         transform = (
             self._lhs.get_transform(name)
             if isinstance(self._lhs, Transform)
-            else self.base_field.get_transform(name)
+            else self.base_field.embedded_model._meta.get_field(self.key_name).get_transform(name)
         )
         if transform:
             self._sub_transform = transform
