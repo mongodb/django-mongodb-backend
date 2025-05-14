@@ -153,7 +153,7 @@ class Library(models.Model):
 # ArrayField + EmbeddedModelField
 class Review(EmbeddedModel):
     title = models.CharField(max_length=255)
-    rating = models.IntegerField()
+    rating = models.DecimalField(max_digits=6, decimal_places=1)
 
     def __str__(self):
         return self.title

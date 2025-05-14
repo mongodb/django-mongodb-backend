@@ -35,8 +35,9 @@ Some MongoDB-specific fields are available in ``django_mongodb_backend.fields``.
         :class:`~django.db.models.OneToOneField` and
         :class:`~django.db.models.ManyToManyField`) and file fields (
         :class:`~django.db.models.FileField` and
-        :class:`~django.db.models.ImageField`). :class:`EmbeddedModelField` is
-        also not (yet) supported.
+        :class:`~django.db.models.ImageField`).
+
+        For :class:`EmbeddedModelField`, use :class:`EmbeddedModelArrayField`.
 
         It is possible to nest array fields - you can specify an instance of
         ``ArrayField`` as the ``base_field``. For example::
@@ -178,7 +179,7 @@ Index transforms
 Index transforms index into the array. Any non-negative integer can be used.
 There are no errors if it exceeds the :attr:`max_size <ArrayField.max_size>` of
 the array. The lookups available after the transform are those from the
-:attr:`base_field <ArrayField.base_field>`. For example:
+:attr:`~ArrayField.base_field`. For example:
 
 .. code-block:: pycon
 
@@ -267,6 +268,20 @@ See :doc:`/topics/embedded-models` for more details and examples.
     embedded model will be made. Using the models above as an example, if you
     created these models and then added an indexed field to ``Address``,
     the index created in the nested ``Book`` embed is not created.
+
+``EmbeddedModelArrayField``
+---------------------------
+
+.. class:: EmbeddedModelArrayField(embedded_model, **kwargs)
+
+.. versionadded:: 5.2.0b1
+
+Stores a list of models of type ``embedded_model``.
+
+    .. attribute:: embedded_model
+
+        This is a required argument, similar to
+        :attr:`EmbeddedModelField.embedded_model`.
 
 ``ObjectIdAutoField``
 ---------------------
