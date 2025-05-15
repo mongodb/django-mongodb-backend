@@ -22,6 +22,7 @@ New features
   a model's :attr:`Meta.indexes <django.db.models.Options.indexes>`.
 - PyMongo's connection pooling is now used by default. See
   :ref:`connection-management`.
+- Allowed ``EmbeddedModelField``’s ``exact`` lookup to use a model instance.
 
 Backwards incompatible changes
 ------------------------------
