@@ -195,10 +195,11 @@ class SaveLoadTests(TestCase):
         instance = OtherTypesArrayModel.objects.create(
             ips=["192.168.0.1", "::1"],
             uuids=[uuid.uuid4()],
-            decimals=[decimal.Decimal(1.25), 1.75],
+            decimals=None,
             tags=None,
         )
         instance.refresh_from_db()
+        self.assertIsNone(instance.decimals)
         self.assertIsNone(instance.tags)
         self.assertEqual(instance.json, [])
 
