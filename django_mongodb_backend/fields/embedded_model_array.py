@@ -6,6 +6,7 @@ from .array import ArrayField
 class EmbeddedModelArrayField(ArrayField):
     def __init__(self, model, **kwargs):
         super().__init__(EmbeddedModelField(model), **kwargs)
+        self.embedded_model = model
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
