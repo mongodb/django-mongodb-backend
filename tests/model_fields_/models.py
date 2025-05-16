@@ -2,7 +2,12 @@ import enum
 
 from django.db import models
 
-from django_mongodb_backend.fields import ArrayField, EmbeddedModelField, ObjectIdField
+from django_mongodb_backend.fields import (
+    ArrayField,
+    EmbeddedModelArrayField,
+    EmbeddedModelField,
+    ObjectIdField,
+)
 from django_mongodb_backend.models import EmbeddedModel
 
 
@@ -80,7 +85,12 @@ class NestedIntegerArrayModel(models.Model):
 class OtherTypesArrayModel(models.Model):
     ips = ArrayField(models.GenericIPAddressField(), default=list)
     uuids = ArrayField(models.UUIDField(), default=list)
-    decimals = ArrayField(models.DecimalField(max_digits=5, decimal_places=2), default=list)
+    decimals = ArrayField(
+        models.DecimalField(max_digits=5, decimal_places=2),
+        default=list,
+        null=True,
+        blank=True,
+    )
     tags = ArrayField(TagField(), blank=True, null=True)
     json = ArrayField(models.JSONField(default=dict), default=list)
 
@@ -138,3 +148,20 @@ class Library(models.Model):
 
     def __str__(self):
         return self.name
+
+
+# ArrayField + EmbeddedModelField
+class Review(EmbeddedModel):
+    title = models.CharField(max_length=255)
+    rating = models.DecimalField(max_digits=6, decimal_places=1)
+
+    def __str__(self):
+        return self.title
+
+
+class Movie(models.Model):
+    title = models.CharField(max_length=255)
+    reviews = EmbeddedModelArrayField(Review, null=True)
+
+    def __str__(self):
+        return self.title

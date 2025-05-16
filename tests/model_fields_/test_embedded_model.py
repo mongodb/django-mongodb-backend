@@ -1,7 +1,7 @@
 import operator
 from datetime import timedelta
 
-from django.core.exceptions import FieldDoesNotExist, ValidationError
+from django.core.exceptions import FieldDoesNotExist, FieldError, ValidationError
 from django.db import models
 from django.db.models import (
     Exists,
@@ -24,7 +24,9 @@ from .models import (
     Data,
     Holder,
     Library,
+    Movie,
     NestedData,
+    Review,
 )
 from .utils import truncate_ms
 
@@ -94,6 +96,60 @@ class ModelTests(TestCase):
         obj.save()
         self.assertEqual(obj.data.auto_now_add, auto_now_add)
         self.assertGreater(obj.data.auto_now, auto_now_two)
+
+
+class EmbeddedArrayTests(TestCase):
+    def test_save_load(self):
+        reviews = [
+            Review(title="The best", rating=10),
+            Review(title="Mediocre", rating=5),
+            Review(title="Horrible", rating=1),
+        ]
+        Movie.objects.create(title="Lion King", reviews=reviews)
+        movie = Movie.objects.get(title="Lion King")
+        self.assertEqual(movie.reviews[0].title, "The best")
+        self.assertEqual(movie.reviews[0].rating, 10)
+        self.assertEqual(movie.reviews[1].title, "Mediocre")
+        self.assertEqual(movie.reviews[1].rating, 5)
+        self.assertEqual(movie.reviews[2].title, "Horrible")
+        self.assertEqual(movie.reviews[2].rating, 1)
+        self.assertEqual(len(movie.reviews), 3)
+
+    def test_save_load_null(self):
+        movie = Movie.objects.create(title="Lion King")
+        movie = Movie.objects.get(title="Lion King")
+        self.assertIsNone(movie.reviews)
+
+
+class EmbeddedArrayQueryingTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        reviews = [
+            Review(title="The best", rating=10),
+            Review(title="Mediocre", rating=5),
+            Review(title="Horrible", rating=1),
+        ]
+        cls.clouds = Movie.objects.create(title="Clouds", reviews=reviews)
+        reviews = [
+            Review(title="Super", rating=9),
+            Review(title="Meh", rating=5),
+            Review(title="Horrible", rating=2),
+        ]
+        cls.frozen = Movie.objects.create(title="Frozen", reviews=reviews)
+        reviews = [
+            Review(title="Excellent", rating=9),
+            Review(title="Wow", rating=8),
+            Review(title="Classic", rating=7),
+        ]
+        cls.bears = Movie.objects.create(title="Bears", reviews=reviews)
+
+    def test_filter_with_field(self):
+        msg = (
+            "Unsupported lookup 'title' for EmbeddedModelArrayField or join "
+            "on the field not permitted."
+        )
+        with self.assertRaisesMessage(FieldError, msg):
+            Movie.objects.filter(reviews__title="Horrible")
 
 
 class QueryingTests(TestCase):

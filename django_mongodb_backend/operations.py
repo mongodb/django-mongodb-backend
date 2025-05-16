@@ -80,6 +80,8 @@ class DatabaseOperations(BaseDatabaseOperations):
     def _get_arrayfield_converter(self, converter, *args, **kwargs):
         # Return a database converter that can be applied to a list of values.
         def convert_value(value, expression, connection):
+            if value is None:
+                return None
             return [converter(x, expression, connection) for x in value]
 
         return convert_value
@@ -109,6 +111,15 @@ class DatabaseOperations(BaseDatabaseOperations):
             converters.append(self.convert_decimalfield_value)
         elif internal_type == "EmbeddedModelField":
             converters.append(self.convert_embeddedmodelfield_value)
+        elif internal_type == "EmbeddedModelArrayField":
+            converters.extend(
+                [
+                    self._get_arrayfield_converter(converter)
+                    for converter in self.get_db_converters(
+                        Expression(output_field=expression.output_field.base_field)
+                    )
+                ]
+            )
         elif internal_type == "JSONField":
             converters.append(self.convert_jsonfield_value)
         elif internal_type == "TimeField":
