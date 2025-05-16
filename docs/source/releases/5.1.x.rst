@@ -2,6 +2,14 @@
 Django MongoDB Backend 5.1.x
 ============================
 
+5.1.0 beta 4
+============
+
+*Unreleased*
+
+- Fixed crash when loading models with a null value for ``ArrayField``\s where
+  the ``base_field`` uses a database converter.
+
 5.1.0 beta 3
 ============
 
