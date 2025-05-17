@@ -49,11 +49,20 @@ class EmbeddedModelArrayField(ArrayField):
         transform = super().get_transform(name)
         if transform:
             return transform
-        return KeyTransformFactory(name, self.base_field)
+        return KeyTransformFactory(name, self)
+
+
+class ProcessRHSMixin:
+    def process_rhs(self, compiler, connection):
+        if isinstance(self.lhs, KeyTransform):
+            get_db_prep_value = self.lhs._lhs.output_field.get_db_prep_value
+        else:
+            get_db_prep_value = self.lhs.output_field.get_db_prep_value
+        return None, [get_db_prep_value(v, connection, prepared=True) for v in self.rhs]
 
 
 @EmbeddedModelArrayField.register_lookup
-class EMFArrayExact(EMFExact):
+class EMFArrayExact(EMFExact, ProcessRHSMixin):
     def as_mql(self, compiler, connection):
         lhs_mql = process_lhs(self, compiler, connection)
         value = process_rhs(self, compiler, connection)
@@ -95,15 +104,61 @@ class EMFArrayExact(EMFExact):
         }
 
 
+@EmbeddedModelArrayField.register_lookup
+class ArrayOverlap(EMFExact, ProcessRHSMixin):
+    lookup_name = "overlap"
+
+    def as_mql(self, compiler, connection):
+        lhs_mql = process_lhs(self, compiler, connection)
+        values = process_rhs(self, compiler, connection)
+        if isinstance(self.lhs, KeyTransform):
+            lhs_mql, inner_lhs_mql = lhs_mql
+            return {
+                "$anyElementTrue": {
+                    "$ifNull": [
+                        {
+                            "$map": {
+                                "input": lhs_mql,
+                                "as": "item",
+                                "in": {"$in": [inner_lhs_mql, values]},
+                            }
+                        },
+                        [],
+                    ]
+                }
+            }
+        conditions = []
+        inner_lhs_mql = "$$item"
+        for value in values:
+            if isinstance(value, models.Model):
+                value, emf_data = self.model_to_dict(value)
+                # Get conditions for any nested EmbeddedModelFields.
+                conditions.append({"$and": self.get_conditions({inner_lhs_mql: (value, emf_data)})})
+        return {
+            "$anyElementTrue": {
+                "$ifNull": [
+                    {
+                        "$map": {
+                            "input": lhs_mql,
+                            "as": "item",
+                            "in": {"$or": conditions},
+                        }
+                    },
+                    [],
+                ]
+            }
+        }
+
+
 class KeyTransform(Transform):
     # it should be different class than EMF keytransform even most of the methods are equal.
-    def __init__(self, key_name, base_field, *args, **kwargs):
+    def __init__(self, key_name, array_field, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.base_field = base_field
+        self.array_field = array_field
         self.key_name = key_name
         # The iteration items begins from the base_field, a virtual column with
         # base field output type is created.
-        column_target = base_field.clone()
+        column_target = array_field.base_field.embedded_model._meta.get_field(key_name).clone()
         column_name = f"$item.{key_name}"
         column_target.db_column = column_name
         column_target.set_attributes_from_name(column_name)
@@ -126,7 +181,7 @@ class KeyTransform(Transform):
             suggestion = "."
         raise FieldDoesNotExist(
             f"Unsupported lookup '{name}' for "
-            f"{self.base_field.__class__.__name__} '{self.base_field.name}'"
+            f"{self.array_field.base_field.__class__.__name__} '{self.array_field.base_field.name}'"
             f"{suggestion}"
         )
 
@@ -139,7 +194,9 @@ class KeyTransform(Transform):
         transform = (
             self._lhs.get_transform(name)
             if isinstance(self._lhs, Transform)
-            else self.base_field.embedded_model._meta.get_field(self.key_name).get_transform(name)
+            else self.array_field.base_field.embedded_model._meta.get_field(
+                self.key_name
+            ).get_transform(name)
         )
         if transform:
             self._sub_transform = transform
@@ -155,7 +212,7 @@ class KeyTransform(Transform):
 
     @property
     def output_field(self):
-        return EmbeddedModelArrayField(self.base_field)
+        return self.array_field
 
 
 class KeyTransformFactory:

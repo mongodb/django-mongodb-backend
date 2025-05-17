@@ -282,6 +282,55 @@ class EmbeddedArrayQueryingTests(TestCase):
             MuseumExhibit.objects.filter(sections__1__artifacts__len=1), [self.wonders]
         )
 
+    def test_overlap_simplefield(self):
+        self.assertSequenceEqual(
+            MuseumExhibit.objects.filter(sections__section_number__overlap=[10]), []
+        )
+        self.assertSequenceEqual(
+            MuseumExhibit.objects.filter(sections__section_number__overlap=[1]),
+            [self.egypt, self.wonders, self.new_descoveries],
+        )
+        self.assertSequenceEqual(
+            MuseumExhibit.objects.filter(sections__section_number__overlap=[2]), [self.wonders]
+        )
+
+    def test_overlap_emf(self):
+        self.assertSequenceEqual(
+            Movie.objects.filter(reviews__overlap=[Review(title="The best", rating=10)]),
+            [self.clouds],
+        )
+
+    """
+    def test_overlap_charfield_including_expression(self):
+        obj_1 = CharArrayModel.objects.create(field=["TEXT", "lower text"])
+        obj_2 = CharArrayModel.objects.create(field=["lower text", "TEXT"])
+        CharArrayModel.objects.create(field=["lower text", "text"])
+        self.assertSequenceEqual(
+            CharArrayModel.objects.filter(
+                field__overlap=[
+                    Upper(Value("text")),
+                    "other",
+                ]
+            ),
+            [obj_1, obj_2],
+        )
+
+    def test_overlap_values(self):
+        qs = NullableIntegerArrayModel.objects.filter(order__lt=3)
+        self.assertCountEqual(
+            NullableIntegerArrayModel.objects.filter(
+                field__overlap=qs.values_list("field"),
+            ),
+            self.objs[:3],
+        )
+        self.assertCountEqual(
+            NullableIntegerArrayModel.objects.filter(
+                field__overlap=qs.values("field"),
+            ),
+            self.objs[:3],
+        )
+    """
+
 
 class QueryingTests(TestCase):
     @classmethod
