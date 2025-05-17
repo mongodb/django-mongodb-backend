@@ -2,7 +2,12 @@ import enum
 
 from django.db import models
 
-from django_mongodb_backend.fields import ArrayField, EmbeddedModelField, ObjectIdField
+from django_mongodb_backend.fields import (
+    ArrayField,
+    EmbeddedModelArrayField,
+    EmbeddedModelField,
+    ObjectIdField,
+)
 from django_mongodb_backend.models import EmbeddedModel
 
 
@@ -138,3 +143,82 @@ class Library(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class A(models.Model):
+    b = EmbeddedModelField("B")
+
+
+class B(EmbeddedModel):
+    c = EmbeddedModelField("C")
+    name = models.CharField(max_length=100)
+    value = models.IntegerField()
+
+
+class C(EmbeddedModel):
+    d = EmbeddedModelField("D")
+    name = models.CharField(max_length=100)
+    value = models.IntegerField()
+
+
+class D(EmbeddedModel):
+    e = EmbeddedModelField("E")
+    nullable_e = EmbeddedModelField("E", null=True, blank=True)
+    name = models.CharField(max_length=100)
+    value = models.IntegerField()
+
+
+class E(EmbeddedModel):
+    name = models.CharField(max_length=100)
+    value = models.IntegerField()
+
+
+# ArrayField + EmbeddedModelField
+class Review(EmbeddedModel):
+    title = models.CharField(max_length=255)
+    rating = models.IntegerField()
+
+    def __str__(self):
+        return self.title
+
+
+class Movie(models.Model):
+    title = models.CharField(max_length=255)
+    reviews = EmbeddedModelArrayField(Review, null=True)
+
+    def __str__(self):
+        return self.title
+
+
+class RestorationRecord(EmbeddedModel):
+    date = models.DateField()
+    description = models.TextField()
+    restored_by = models.CharField(max_length=255)
+
+
+class ArtifactDetail(EmbeddedModel):
+    """Details about a specific artifact."""
+
+    name = models.CharField(max_length=255)
+    description = models.CharField(max_length=255)
+    metadata = models.JSONField()
+    restorations = EmbeddedModelArrayField(RestorationRecord, null=True)
+    last_restoration = EmbeddedModelField(RestorationRecord, null=True)
+
+
+class ExhibitSection(EmbeddedModel):
+    """A section within an exhibit, containing multiple artifacts."""
+
+    section_number = models.IntegerField()
+    artifacts = EmbeddedModelArrayField(ArtifactDetail, null=True)
+
+
+class MuseumExhibit(models.Model):
+    """An exhibit in the museum, composed of multiple sections."""
+
+    exhibit_name = models.CharField(max_length=255)
+    sections = EmbeddedModelArrayField(ExhibitSection, null=True)
+    main_section = EmbeddedModelField(ExhibitSection, null=True)
+
+    def __str__(self):
+        return self.exhibit_name

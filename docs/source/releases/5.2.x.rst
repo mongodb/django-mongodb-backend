@@ -30,6 +30,8 @@ Backwards incompatible changes
 - The ``conn_max_age`` parameter of
   :func:`~django_mongodb_backend.utils.parse_uri` is removed because persistent
   connections are now used by default.
+- Allowed ``EmbeddedModelField``’s ``exact`` lookup to use a model instance.
+>>>>>>> 389e2e7 (Allow querying an EmbeddedModelField by model instance)
 
 Bug fixes
 ---------
