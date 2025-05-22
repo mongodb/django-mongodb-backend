@@ -28,7 +28,7 @@ Some MongoDB-specific fields are available in ``django_mongodb_backend.forms``.
 
 .. class:: ObjectIdField
 
-Stores an :class:`~bson.objectid.ObjectId`.
+    Stores an :class:`~bson.objectid.ObjectId`.
 
 ``SimpleArrayField``
 --------------------

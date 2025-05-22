@@ -19,10 +19,10 @@ Available commands
 
 .. django-admin:: createcachecollection
 
-Creates the cache collection for use with the :doc:`database cache backend
-</topics/cache>` using the information from your :setting:`CACHES` setting.
+    Creates the cache collection for use with the :doc:`database cache backend
+    </topics/cache>` using the information from your :setting:`CACHES` setting.
 
-.. django-admin-option:: --database DATABASE
+    .. django-admin-option:: --database DATABASE
 
-Specifies the database in which the cache collection(s) will be created.
-Defaults to ``default``.
+        Specifies the database in which the cache collection(s) will be created.
+        Defaults to ``default``.

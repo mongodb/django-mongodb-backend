@@ -224,7 +224,7 @@ These indexes use 0-based indexing.
 
 .. class:: EmbeddedModelField(embedded_model, **kwargs)
 
-Stores a model of type ``embedded_model``.
+    Stores a model of type ``embedded_model``.
 
     .. attribute:: embedded_model
 
@@ -256,7 +256,7 @@ Stores a model of type ``embedded_model``.
             class Book(models.Model):
                 author = EmbeddedModelField(Author)
 
-See :doc:`/topics/embedded-models` for more details and examples.
+    See :doc:`/topics/embedded-models` for more details and examples.
 
 .. admonition:: Migrations support is limited
 
@@ -273,12 +273,12 @@ See :doc:`/topics/embedded-models` for more details and examples.
 
 .. class:: ObjectIdAutoField
 
-This field is typically the default primary key field for all models stored in
-MongoDB. See :ref:`specifying the-default-pk-field`.
+    This field is typically the default primary key field for all models stored
+    in MongoDB. See :ref:`specifying the-default-pk-field`.
 
 ``ObjectIdField``
 -----------------
 
 .. class:: ObjectIdField
 
-Stores an :class:`~bson.objectid.ObjectId`.
+    Stores an :class:`~bson.objectid.ObjectId`.

@@ -14,26 +14,26 @@ following parts can be considered stable.
 
 .. function:: parse_uri(uri, db_name=None, test=None)
 
-Parses a MongoDB `connection string`_ into a dictionary suitable for Django's
-:setting:`DATABASES` setting.
+    Parses a MongoDB `connection string`_ into a dictionary suitable for
+    Django's :setting:`DATABASES` setting.
 
-.. _connection string: https://www.mongodb.com/docs/manual/reference/connection-string/
+    .. _connection string: https://www.mongodb.com/docs/manual/reference/connection-string/
 
-Example::
+    Example::
 
-    import django_mongodb_backend
+        import django_mongodb_backend
 
-    MONGODB_URI = "mongodb+srv://my_user:my_password@cluster0.example.mongodb.net/defaultauthdb?retryWrites=true&w=majority&tls=false"
-    DATABASES["default"] = django_mongodb_backend.parse_uri(MONGODB_URI, db_name="example")
+        MONGODB_URI = "mongodb+srv://my_user:my_password@cluster0.example.mongodb.net/defaultauthdb?retryWrites=true&w=majority&tls=false"
+        DATABASES["default"] = django_mongodb_backend.parse_uri(MONGODB_URI, db_name="example")
 
-You must specify ``db_name`` (the :setting:`NAME` of your database) if the URI
-doesn't specify ``defaultauthdb``.
+    You must specify ``db_name`` (the :setting:`NAME` of your database) if the
+    URI doesn't specify ``defaultauthdb``.
 
-You can use the parameters to customize the resulting :setting:`DATABASES`
-setting:
+    You can use the parameters to customize the resulting :setting:`DATABASES`
+    setting:
 
-- Use ``test`` to provide a dictionary of settings for test databases in the
-  format of :setting:`TEST <DATABASE-TEST>`.
+    - Use ``test`` to provide a dictionary of settings for test databases in
+      the format of :setting:`TEST <DATABASE-TEST>`.
 
-But for maximum flexibility, construct :setting:`DATABASES` manually as
-described in :ref:`configuring-databases-setting`.
+    But for maximum flexibility, construct :setting:`DATABASES` manually as
+    described in :ref:`configuring-databases-setting`.
