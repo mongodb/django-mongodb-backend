@@ -176,9 +176,9 @@ Index transforms
 ^^^^^^^^^^^^^^^^
 
 Index transforms index into the array. Any non-negative integer can be used.
-There are no errors if it exceeds the :attr:`max_size <ArrayField.max_size>` of
-the array. The lookups available after the transform are those from the
-:attr:`base_field <ArrayField.base_field>`. For example:
+There are no errors if it exceeds the :attr:`~ArrayField.max_size` of the
+array. The lookups available after the transform are those from the
+:attr:`~ArrayField.base_field`. For example:
 
 .. code-block:: pycon
 
