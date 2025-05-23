@@ -35,8 +35,8 @@ Some MongoDB-specific fields are available in ``django_mongodb_backend.fields``.
         :class:`~django.db.models.OneToOneField` and
         :class:`~django.db.models.ManyToManyField`) and file fields (
         :class:`~django.db.models.FileField` and
-        :class:`~django.db.models.ImageField`). :class:`EmbeddedModelField` is
-        also not (yet) supported.
+        :class:`~django.db.models.ImageField`). For
+        :class:`EmbeddedModelField`, use :class:`EmbeddedModelArrayField`.
 
         It is possible to nest array fields - you can specify an instance of
         ``ArrayField`` as the ``base_field``. For example::
@@ -267,6 +267,33 @@ These indexes use 0-based indexing.
     embedded model will be made. Using the models above as an example, if you
     created these models and then added an indexed field to ``Address``,
     the index created in the nested ``Book`` embed is not created.
+
+``EmbeddedModelArrayField``
+---------------------------
+
+.. class:: EmbeddedModelArrayField(embedded_model, max_size=None, **kwargs)
+
+    .. versionadded:: 5.2.0b1
+
+    Similar to :class:`EmbeddedModelField`, but stores a list of models of type
+    ``embedded_model`` rather than a single instance.
+
+    .. attribute:: embedded_model
+
+        This is a required argument, similar to
+        :attr:`EmbeddedModelField.embedded_model`.
+
+    .. attribute:: max_size
+
+        This is an optional argument.
+
+        If passed, the array will have a maximum size as specified, validated
+        by forms and model validation, but not enforced by the database.
+
+.. admonition:: Migrations support is limited
+
+    As described above for :class:`EmbeddedModelField`,
+    :djadmin:`makemigrations` does not yet detect changes to embedded models.
 
 ``ObjectIdAutoField``
 ---------------------

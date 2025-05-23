@@ -61,7 +61,10 @@ repos:
   rev: v1.1.1
   hooks:
     - id: doc8
-      args: ["--ignore=D001"]  # ignore line length
+      # D000 Invalid class attribute value for "class" directive when using
+      #      * (keyword-only parameters separator).
+      # D001 line length
+      args: ["--ignore=D000,D001"]
       stages: [manual]
 
 - repo: https://github.com/sirosen/check-jsonschema
