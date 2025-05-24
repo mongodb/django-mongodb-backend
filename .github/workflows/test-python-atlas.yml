@@ -39,7 +39,7 @@ jobs:
       - name: Install system packages for Django's Python test dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install libmemcached-dev
+          sudo apt-get install gdal-bin libmemcached-dev
       - name: Install Django and its Python test dependencies
         run: |
           cd django_repo/tests/
