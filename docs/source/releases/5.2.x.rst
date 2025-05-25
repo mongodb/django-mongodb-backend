@@ -7,6 +7,12 @@ Django MongoDB Backend 5.2.x
 
 *Unreleased*
 
+New features
+------------
+
+- Added :class:`~.fields.EmbeddedModelArrayField` for storing data as an array
+  of model instances.
+
 Bug fixes
 ---------
 

@@ -24,7 +24,9 @@ from .models import (
     Data,
     Holder,
     Library,
+    Movie,
     NestedData,
+    Review,
 )
 from .utils import truncate_ms
 
@@ -94,6 +96,29 @@ class ModelTests(TestCase):
         obj.save()
         self.assertEqual(obj.data.auto_now_add, auto_now_add)
         self.assertGreater(obj.data.auto_now, auto_now_two)
+
+
+class EmbeddedArrayTests(TestCase):
+    def test_save_load(self):
+        reviews = [
+            Review(title="The best", rating=10),
+            Review(title="Mediocre", rating=5),
+            Review(title="Horrible", rating=1),
+        ]
+        Movie.objects.create(title="Lion King", reviews=reviews)
+        movie = Movie.objects.get(title="Lion King")
+        self.assertEqual(movie.reviews[0].title, "The best")
+        self.assertEqual(movie.reviews[0].rating, 10)
+        self.assertEqual(movie.reviews[1].title, "Mediocre")
+        self.assertEqual(movie.reviews[1].rating, 5)
+        self.assertEqual(movie.reviews[2].title, "Horrible")
+        self.assertEqual(movie.reviews[2].rating, 1)
+        self.assertEqual(len(movie.reviews), 3)
+
+    def test_save_load_null(self):
+        movie = Movie.objects.create(title="Lion King")
+        movie = Movie.objects.get(title="Lion King")
+        self.assertIsNone(movie.reviews)
 
 
 class QueryingTests(TestCase):

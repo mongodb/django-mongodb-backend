@@ -1,7 +1,8 @@
 Embedded models
 ===============
 
-Use :class:`~django_mongodb_backend.fields.EmbeddedModelField` to structure
+Use :class:`~django_mongodb_backend.fields.EmbeddedModelField` and
+:class:`~django_mongodb_backend.fields.EmbeddedModelArrayField` to structure
 your data using `embedded documents
 <https://www.mongodb.com/docs/manual/data-modeling/#embedded-data>`_.
 
