@@ -16,17 +16,10 @@ class DatabaseFeatures(BaseSpatialFeatures, MongoFeatures):
                 # SRIDs aren't supported.
                 "gis_tests.geogapp.tests.GeographyTest.test05_geography_layermapping",
                 "gis_tests.geoapp.tests.GeoModelTest.test_proxy",
-                # 'WithinLookup' object has no attribute 'as_mql'
-                # "gis_tests.relatedapp.tests.RelatedGeoModelTest.test10_combine",
                 # GEOSException: Calling transform() with no SRID set is not supported
                 "gis_tests.relatedapp.tests.RelatedGeoModelTest.test06_f_expressions",
                 # 'Adapter' object has no attribute 'srid'
                 "gis_tests.geoapp.test_expressions.GeoExpressionsTests.test_geometry_value_annotation",
-                # To triage:
-                "gis_tests.geoapp.test_expressions.GeoExpressionsTests.test_multiple_annotation",
-                # 'ContainsLookup' object has no attribute 'as_mql'.
-                "gis_tests.geoapp.test_regress.GeoRegressionTests.test_empty_count",
-                "gis_tests.geoapp.tests.GeoLookupTest.test_contains_contained_lookups",
                 # Object of type ObjectId is not JSON serializable
                 "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_fields_option",
                 # LinearRing requires at least 4 points, got 1.
@@ -36,14 +29,9 @@ class DatabaseFeatures(BaseSpatialFeatures, MongoFeatures):
                 "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_id_field_option",
                 "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_serialization_base",
                 "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_srid_option",
-                # 'DisjointLookup' object has no attribute 'as_mql'
-                "gis_tests.geoapp.tests.GeoLookupTest.test_disjoint_lookup",
-                # 'SameAsLookup' object has no attribute 'as_mql'
-                "gis_tests.geoapp.tests.GeoLookupTest.test_equals_lookups",
-                # 'WithinLookup' object has no attribute 'as_mql'
-                "gis_tests.geoapp.tests.GeoLookupTest.test_subquery_annotation",
-                "gis_tests.geoapp.tests.GeoQuerySetTest.test_within_subquery",
-                # issubclass() arg 1 must be a class
+                # GeometryField is not supported (the type of Geometry isn't
+                # stored so that it can be initialized by the database converter).
+                # Error in database converter: issubclass() arg 1 must be a class
                 "gis_tests.geoapp.tests.GeoModelTest.test_geometryfield",
                 # KeyError: 'within' connection.ops.gis_operators[self.lookup_name]
                 "gis_tests.geoapp.tests.GeoModelTest.test_gis_query_as_string",
