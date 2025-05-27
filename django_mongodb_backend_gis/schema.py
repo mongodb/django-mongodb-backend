@@ -6,16 +6,16 @@ from django_mongodb_backend.schema import DatabaseSchemaEditor as BaseSchemaEdit
 
 
 class DatabaseSchemaEditor(BaseSchemaEditor):
-    def _field_should_be_indexed(self, model, field):
-        if getattr(field, "spatial_index", False):
-            return True
-        return super()._field_should_be_indexed(model, field)
+    #    def _field_should_be_indexed(self, model, field):
+    #        if getattr(field, "spatial_index", False):
+    #            return True
+    #        return super()._field_should_be_indexed(model, field)
 
-    def _add_field_index(self, model, field, *, column_prefix=""):
-        if hasattr(field, "geodetic"):
-            self._add_spatial_index(model, field)
-        else:
-            super()._add_field_index(model, field, column_prefix=column_prefix)
+    #    def _add_field_index(self, model, field, *, column_prefix=""):
+    #        if hasattr(field, "geodetic"):
+    #            self._add_spatial_index(model, field)
+    #        else:
+    #            super()._add_field_index(model, field, column_prefix=column_prefix)
 
     def _alter_field(
         self,
