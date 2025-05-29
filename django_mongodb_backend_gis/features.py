@@ -13,8 +13,8 @@ class DatabaseFeatures(BaseSpatialFeatures, MongoFeatures):
         expected_failures = super().django_test_expected_failures
         expected_failures.update(
             {
-                # SRIDs aren't supported.
-                "gis_tests.geogapp.tests.GeographyTest.test05_geography_layermapping",
+                # SRIDs aren't populated: AssertionError: 4326 != None
+                # self.assertEqual(4326, nullcity.point.srid)
                 "gis_tests.geoapp.tests.GeoModelTest.test_proxy",
                 # GEOSException: Calling transform() with no SRID set is not supported
                 "gis_tests.relatedapp.tests.RelatedGeoModelTest.test06_f_expressions",
@@ -22,17 +22,17 @@ class DatabaseFeatures(BaseSpatialFeatures, MongoFeatures):
                 "gis_tests.geoapp.test_expressions.GeoExpressionsTests.test_geometry_value_annotation",
                 # Object of type ObjectId is not JSON serializable
                 "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_fields_option",
-                # LinearRing requires at least 4 points, got 1.
-                "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_geometry_field_option",
-                "gis_tests.geoapp.tests.GeoLookupTest.test_null_geometries",
                 # source and target must be of type SpatialReference
+                "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_geometry_field_option",
                 "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_id_field_option",
                 "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_serialization_base",
                 "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_srid_option",
-                # GeometryField is not supported (the type of Geometry isn't
-                # stored so that it can be initialized by the database converter).
-                # Error in database converter: issubclass() arg 1 must be a class
+                # GeometryCollection not supported
                 "gis_tests.geoapp.tests.GeoModelTest.test_geometryfield",
+                "gis_tests.geogapp.tests.GeographyTest.test05_geography_layermapping",
+                "gis_tests.layermap.tests.LayerMapTest.test_layermap_unique_multigeometry_fk",
+                "gis_tests.layermap.tests.LayerMapTest.test_null_geom_with_unique",
+                "gis_tests.layermap.tests.LayerMapTest.test_test_fid_range_step",
                 # KeyError: 'within' connection.ops.gis_operators[self.lookup_name]
                 "gis_tests.geoapp.tests.GeoModelTest.test_gis_query_as_string",
                 # Point object != Point object
