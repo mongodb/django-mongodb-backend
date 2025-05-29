@@ -73,13 +73,14 @@ class DatabaseOperations(BaseSpatialOperations, MongoOperations):
                 return None
             geom_class = getattr(geos, value["type"])
             if issubclass(geom_class, geos.GeometryCollection):
-                from django.db import NotSupportedError
-
-                raise NotSupportedError("GeometryCollection not supported")
-                # init_val = [
-                #     geom_class._allowed(value["coordinates"][x][0])
-                #     for x in range(len(value["coordinates"]))
-                # ]
-            return geom_class(value["coordinates"])
+                # TODO: confirm this is correct.
+                return geom_class(
+                    [
+                        geom_class._allowed(value["coordinates"][x][0])
+                        for x in range(len(value["coordinates"]))
+                    ],
+                    srid=4326,
+                )
+            return geom_class(value["coordinates"], srid=4326)
 
         return converter
