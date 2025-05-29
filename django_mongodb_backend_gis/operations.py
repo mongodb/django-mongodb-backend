@@ -68,18 +68,18 @@ class DatabaseOperations(BaseSpatialOperations, MongoOperations):
         return "object"
 
     def get_geometry_converter(self, expression):
-        geom_class = expression.output_field.geom_class
-
         def converter(value, expression, connection):  # noqa: ARG001
             if value is None:
                 return None
+            geom_class = getattr(geos, value["type"])
             if issubclass(geom_class, geos.GeometryCollection):
-                init_val = [
-                    geom_class._allowed(value["coordinates"][x][0])
-                    for x in range(len(value["coordinates"]))
-                ]
-            else:
-                init_val = value["coordinates"]
-            return geom_class(init_val)
+                from django.db import NotSupportedError
+
+                raise NotSupportedError("GeometryCollection not supported")
+                # init_val = [
+                #     geom_class._allowed(value["coordinates"][x][0])
+                #     for x in range(len(value["coordinates"]))
+                # ]
+            return geom_class(value["coordinates"])
 
         return converter

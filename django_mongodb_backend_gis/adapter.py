@@ -8,5 +8,5 @@ class Adapter(collections.UserDict):
         """
         self.data = {
             "type": obj.__class__.__name__,
-            "coordinates": obj.coords,
+            "coordinates": obj.coords[0] if obj.__class__.__name__ == "Polygon" else obj.coords,
         }
