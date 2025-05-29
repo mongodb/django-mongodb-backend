@@ -1,5 +1,6 @@
 from itertools import chain
 
+from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist
 from django.db import connections
 from django.db.models import QuerySet
@@ -11,6 +12,13 @@ from django.db.models.sql.query import RawQuery as BaseRawQuery
 class MongoQuerySet(QuerySet):
     def raw_aggregate(self, pipeline, using=None):
         return RawQuerySet(pipeline, model=self.model, using=using)
+
+
+class MultiMongoQuerySet(MongoQuerySet):
+    def __iter__(self, *args, **kwargs):
+        for obj in super().__iter__(*args, **kwargs):
+            model_class = apps.get_model(obj._meta.app_label, obj._t)
+            yield model_class.objects.get(pk=obj.pk)
 
 
 class RawQuerySet(BaseRawQuerySet):
