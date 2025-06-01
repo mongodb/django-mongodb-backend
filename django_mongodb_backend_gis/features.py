@@ -25,8 +25,6 @@ class DatabaseFeatures(BaseSpatialFeatures, MongoFeatures):
                 "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_geometry_field_option",
                 "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_serialization_base",
                 "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_srid_option",
-                # Crash initializing GeometryCollection: 'tuple' object is not callable
-                "gis_tests.geoapp.tests.GeoModelTest.test_geometryfield",
                 # KeyError: 'within' connection.ops.gis_operators[self.lookup_name]
                 "gis_tests.geoapp.tests.GeoModelTest.test_gis_query_as_string",
                 # No lookups are supported (yet?)

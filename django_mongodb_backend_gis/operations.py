@@ -72,10 +72,17 @@ class DatabaseOperations(BaseSpatialOperations, MongoOperations):
             if value is None:
                 return None
             geom_class = getattr(geos, value["type"])
+            if geom_class.__name__ == "GeometryCollection":
+                return geom_class(
+                    [getattr(geos, v["type"])(v["coordinates"]) for v in value["geometries"]],
+                    srid=4326,
+                )
             if issubclass(geom_class, geos.GeometryCollection):
                 # TODO: confirm this is correct.
                 return geom_class(
                     [
+                        # TODO: For MultiLineString, geom_class._allowed is a
+                        # tuple so this will crash.
                         geom_class._allowed(value["coordinates"][x][0])
                         for x in range(len(value["coordinates"]))
                     ],
