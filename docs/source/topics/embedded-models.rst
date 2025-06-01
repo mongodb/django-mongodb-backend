@@ -10,41 +10,44 @@ The basics
 
 Let's consider this example::
 
-   from django_mongodb_backend.fields import EmbeddedModelField
-   from django_mongodb_backend.models import EmbeddedModel
+    from django.db import models
 
-   class Customer(models.Model):
-       name = models.CharField(...)
-       address = EmbeddedModelField("Address")
-       ...
+    from django_mongodb_backend.fields import EmbeddedModelField
+    from django_mongodb_backend.models import EmbeddedModel
 
-   class Address(EmbeddedModel):
-       ...
-       city = models.CharField(...)
+
+    class Customer(models.Model):
+        name = models.CharField(max_length=255)
+        address = EmbeddedModelField("Address")
+
+        def __str__(self):
+            return self.name
+
+
+    class Address(EmbeddedModel):
+        city = models.CharField(max_length=255)
+
+        def __str__(self):
+            return self.city
 
 
 The API is similar to that of Django's relational fields::
 
-   >>> Customer.objects.create(name="Bob", address=Address(city="New York", ...), ...)
-   >>> bob = Customer.objects.get(...)
-   >>> bob.address
-   <Address: Address object>
-   >>> bob.address.city
-   'New York'
+    >>> bob = Customer.objects.create(name="Bob", address=Address(city="New York"))
+    >>> bob.address
+    <Address: New York>
+    >>> bob.address.city
+    'New York'
 
-Represented in BSON, Bob's structure looks like this:
+Represented in BSON, the customer structure looks like this:
 
 .. code-block:: js
 
-   {
-     "_id": ObjectId(...),
-     "name": "Bob",
-     "address": {
-       ...
-       "city": "New York"
-     },
-     ...
-   }
+    {
+      _id: ObjectId('683df821ec4bbe0692d43388'),
+      name: 'Bob',
+      address: { city: 'New York' }
+    }
 
 Querying ``EmbeddedModelField``
 -------------------------------
