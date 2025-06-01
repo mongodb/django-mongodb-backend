@@ -4,36 +4,6 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
 
-class EmbeddedModelWidget(forms.MultiWidget):
-    def __init__(self, field_names, *args, **kwargs):
-        self.field_names = field_names
-        super().__init__(*args, **kwargs)
-        # The default widget names are "_0", "_1", etc. Use the field names
-        # instead since that's how they'll be rendered by the model form.
-        self.widgets_names = ["-" + name for name in field_names]
-
-    def decompress(self, value):
-        if value is None:
-            return []
-        # Get the data from `value` (a model) for each field.
-        return [getattr(value, name) for name in self.field_names]
-
-
-class EmbeddedModelBoundField(forms.BoundField):
-    def __init__(self, form, field, name, prefix_override=None):
-        super().__init__(form, field, name)
-        # prefix_override overrides the prefix in self.field.form_kwargs so
-        # that nested embedded model form elements have the correct name.
-        self.prefix_override = prefix_override
-
-    def __str__(self):
-        """Render the model form as the representation for this field."""
-        form = self.field.model_form_cls(instance=self.value(), **self.field.form_kwargs)
-        if self.prefix_override:
-            form.prefix = self.prefix_override
-        return mark_safe(f"{form.as_div()}")  # noqa: S308
-
-
 class EmbeddedModelField(forms.MultiValueField):
     default_error_messages = {
         "invalid": _("Enter a list of values."),
@@ -79,3 +49,33 @@ class EmbeddedModelField(forms.MultiValueField):
         # (rather than a list) for initializing the form in
         # EmbeddedModelBoundField.__str__().
         return self.compress(value) if isinstance(value, list) else value
+
+
+class EmbeddedModelBoundField(forms.BoundField):
+    def __init__(self, form, field, name, prefix_override=None):
+        super().__init__(form, field, name)
+        # prefix_override overrides the prefix in self.field.form_kwargs so
+        # that nested embedded model form elements have the correct name.
+        self.prefix_override = prefix_override
+
+    def __str__(self):
+        """Render the model form as the representation for this field."""
+        form = self.field.model_form_cls(instance=self.value(), **self.field.form_kwargs)
+        if self.prefix_override:
+            form.prefix = self.prefix_override
+        return mark_safe(f"{form.as_div()}")  # noqa: S308
+
+
+class EmbeddedModelWidget(forms.MultiWidget):
+    def __init__(self, field_names, *args, **kwargs):
+        self.field_names = field_names
+        super().__init__(*args, **kwargs)
+        # The default widget names are "_0", "_1", etc. Use the field names
+        # instead since that's how they'll be rendered by the model form.
+        self.widgets_names = ["-" + name for name in field_names]
+
+    def decompress(self, value):
+        if value is None:
+            return []
+        # Get the data from `value` (a model) for each field.
+        return [getattr(value, name) for name in self.field_names]
