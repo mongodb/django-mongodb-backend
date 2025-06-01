@@ -14,3 +14,6 @@ One MongoDB-specific model is available in ``django_mongodb_backend.models``.
     any of the normal ``QuerySet`` methods (``all()``, ``filter()``,
     ``delete()``, etc.) You also cannot call ``Model.save()`` and ``delete()``
     on them.
+
+    Embedded model instances won't have a value for their primary key unless
+    one is explicitly set.
