@@ -151,17 +151,17 @@ class Library(models.Model):
 
 
 # EmbeddedModelArrayField
-class Review(EmbeddedModel):
+class Movie(models.Model):
     title = models.CharField(max_length=255)
-    rating = models.DecimalField(max_digits=6, decimal_places=1)
+    reviews = EmbeddedModelArrayField("Review", null=True)
 
     def __str__(self):
         return self.title
 
 
-class Movie(models.Model):
+class Review(EmbeddedModel):
     title = models.CharField(max_length=255)
-    reviews = EmbeddedModelArrayField(Review, null=True)
+    rating = models.DecimalField(max_digits=6, decimal_places=1)
 
     def __str__(self):
         return self.title

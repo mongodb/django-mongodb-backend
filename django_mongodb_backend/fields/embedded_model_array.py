@@ -1,4 +1,5 @@
 from django.db.models import Field
+from django.db.models.fields.related import lazy_related_operation
 
 from .. import forms
 from . import EmbeddedModelField
@@ -11,6 +12,17 @@ class EmbeddedModelArrayField(ArrayField):
             raise ValueError("EmbeddedModelArrayField does not support size.")
         super().__init__(EmbeddedModelField(embedded_model), **kwargs)
         self.embedded_model = embedded_model
+
+    def contribute_to_class(self, cls, name, private_only=False, **kwargs):
+        super().contribute_to_class(cls, name, private_only=private_only, **kwargs)
+
+        if not cls._meta.abstract:
+            # If the embedded_model argument is a string, resolve it to the
+            # actual model class.
+            def _resolve_lookup(_, resolved_model):
+                self.embedded_model = resolved_model
+
+            lazy_related_operation(_resolve_lookup, cls, self.embedded_model)
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
