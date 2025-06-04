@@ -91,7 +91,7 @@ We will use the following example model::
         def __str__(self):
             return self.name
 
-.. fieldlookup:: arrayfield.contains
+.. fieldlookup:: mongo-arrayfield.contains
 
 ``contains``
 ^^^^^^^^^^^^
@@ -134,7 +134,7 @@ passed. It uses the ``$setIntersection`` operator. For example:
     >>> Post.objects.filter(tags__contained_by=["thoughts", "django", "tutorial"])
     <QuerySet [<Post: First post>, <Post: Second post>, <Post: Third post>]>
 
-.. fieldlookup:: arrayfield.overlap
+.. fieldlookup:: mongo-arrayfield.overlap
 
 ``overlap``
 ~~~~~~~~~~~
@@ -154,7 +154,7 @@ uses the ``$setIntersection`` operator. For example:
     >>> Post.objects.filter(tags__overlap=["thoughts", "tutorial"])
     <QuerySet [<Post: First post>, <Post: Second post>, <Post: Third post>]>
 
-.. fieldlookup:: arrayfield.len
+.. fieldlookup:: mongo-arrayfield.len
 
 ``len``
 ^^^^^^^
@@ -170,7 +170,7 @@ available for :class:`~django.db.models.IntegerField`. For example:
     >>> Post.objects.filter(tags__len=1)
     <QuerySet [<Post: Second post>]>
 
-.. fieldlookup:: arrayfield.index
+.. fieldlookup:: mongo-arrayfield.index
 
 Index transforms
 ^^^^^^^^^^^^^^^^
@@ -196,7 +196,7 @@ array. The lookups available after the transform are those from the
 
 These indexes use 0-based indexing.
 
-.. fieldlookup:: arrayfield.slice
+.. fieldlookup:: mongo-arrayfield.slice
 
 Slice transforms
 ^^^^^^^^^^^^^^^^
