@@ -36,8 +36,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     supports_temporal_subtraction = True
     # MongoDB stores datetimes in UTC.
     supports_timezones = False
-    # Not implemented: https://github.com/mongodb/django-mongodb-backend/issues/7
-    supports_transactions = False
     supports_unspecified_pk = True
     uses_savepoints = False
 
@@ -96,6 +94,22 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_xor_right_null",
         "expressions.tests.ExpressionOperatorTests.test_lefthand_transformed_field_bitwise_or",
     }
+
+    @cached_property
+    def supports_transactions(self):
+        """Confirm support for transactions."""
+        is_replica_set = False
+        is_sharded_cluster = False
+        with self.connection.cursor():
+            client = self.connection.connection
+            hello_response = client.admin.command("hello")
+            if "setName" in hello_response:
+                is_replica_set = True
+            if "msg" in client.admin.command("hello") and hello_response["msg"] == "isdbgrid":
+                is_sharded_cluster = True
+        if is_replica_set or is_sharded_cluster:
+            return True
+        return False
 
     @cached_property
     def django_test_expected_failures(self):
