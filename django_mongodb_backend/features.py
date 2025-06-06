@@ -103,11 +103,17 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         with self.connection.cursor():
             client = self.connection.connection
             hello_response = client.admin.command("hello")
+            server_status = client.admin.command("serverStatus")
             if "setName" in hello_response:
                 is_replica_set = True
-            if "msg" in client.admin.command("hello") and hello_response["msg"] == "isdbgrid":
+            if "msg" in hello_response and hello_response["msg"] == "isdbgrid":
                 is_sharded_cluster = True
-        if is_replica_set or is_sharded_cluster:
+            if (
+                "storageEngine" in server_status
+                and server_status["storageEngine"].get("name") == "wiredTiger"
+            ):
+                is_wired_tiger = True
+        if (is_replica_set or is_sharded_cluster) and is_wired_tiger:
             return True
         return False
 
