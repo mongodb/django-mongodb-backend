@@ -141,8 +141,47 @@ class EmbeddedModelArrayFieldBuiltinLookup(Lookup):
         return {"$anyElementTrue": lhs_mql}
 
 
+class ArrayAggregationSubqueryMixin:
+    def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr):
+        return [
+            {
+                "$facet": {
+                    "group": [
+                        {"$project": {"tmp_name": expr.as_mql(compiler, connection)}},
+                        {
+                            "$unwind": "$tmp_name",
+                        },
+                        {
+                            "$group": {
+                                "_id": None,
+                                "tmp_name": {"$addToSet": "$tmp_name"},
+                            }
+                        },
+                    ]
+                }
+            },
+            {
+                "$project": {
+                    field_name: {
+                        "$ifNull": [
+                            {
+                                "$getField": {
+                                    "input": {"$arrayElemAt": ["$group", 0]},
+                                    "field": "tmp_name",
+                                }
+                            },
+                            [],
+                        ]
+                    }
+                }
+            },
+        ]
+
+
 @_EmbeddedModelArrayOutputField.register_lookup
-class EmbeddedModelArrayFieldIn(EmbeddedModelArrayFieldBuiltinLookup, lookups.In):
+class EmbeddedModelArrayFieldIn(
+    EmbeddedModelArrayFieldBuiltinLookup, lookups.In, ArrayAggregationSubqueryMixin
+):
     pass
 
 

@@ -167,6 +167,11 @@ class Review(EmbeddedModel):
         return self.title
 
 
+class Audit(models.Model):
+    related_section_number = models.IntegerField()
+    reviewed = models.BooleanField()
+
+
 # An exhibit in the museum, composed of multiple sections.
 class Exhibit(models.Model):
     exhibit_name = models.CharField(max_length=255)
