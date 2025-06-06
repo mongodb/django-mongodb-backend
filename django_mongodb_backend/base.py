@@ -139,6 +139,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     introspection_class = DatabaseIntrospection
     ops_class = DatabaseOperations
     validation_class = DatabaseValidation
+    session = None
 
     def get_collection(self, name, **kwargs):
         collection = Collection(self.database, name, **kwargs)
@@ -190,13 +191,28 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         return None
 
     def _commit(self):
-        pass
+        if self.session:
+            self.session.commit_transaction()
+            self.session.end_session()
+            self.session = None
 
     def _rollback(self):
         pass
 
-    def set_autocommit(self, autocommit, force_begin_transaction_with_broken_autocommit=False):
-        self.autocommit = autocommit
+    def _start_session(self):
+        if self.session is None:
+            self.session = self.connection.start_session()
+            self.session.start_transaction()
+
+    def _start_transaction_under_autocommit(self):
+        self._start_session()
+
+    def _set_autocommit(self, autocommit, force_begin_transaction_with_broken_autocommit=False):
+        if not autocommit:
+            self._start_session()
+        else:
+            if self.session:
+                self.commit()
 
     def _close(self):
         # Normally called by close(), this method is also called by some tests.

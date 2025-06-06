@@ -685,7 +685,9 @@ class SQLInsertCompiler(SQLCompiler):
     @wrap_database_errors
     def insert(self, docs, returning_fields=None):
         """Store a list of documents using field columns as element names."""
-        inserted_ids = self.collection.insert_many(docs).inserted_ids
+        inserted_ids = self.collection.insert_many(
+            docs, session=self.connection.session
+        ).inserted_ids
         return [(x,) for x in inserted_ids] if returning_fields else []
 
     @cached_property
