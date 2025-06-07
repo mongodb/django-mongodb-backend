@@ -63,7 +63,9 @@ class MongoQuery:
         """Execute a delete query."""
         if self.compiler.subqueries:
             raise NotSupportedError("Cannot use QuerySet.delete() when a subquery is required.")
-        return self.compiler.collection.delete_many(self.match_mql).deleted_count
+        return self.compiler.collection.delete_many(
+            self.match_mql, session=self.compiler.connection.session
+        ).deleted_count
 
     @wrap_database_errors
     def get_cursor(self):
@@ -71,7 +73,9 @@ class MongoQuery:
         Return a pymongo CommandCursor that can be iterated on to give the
         results of the query.
         """
-        return self.compiler.collection.aggregate(self.get_pipeline())
+        return self.compiler.collection.aggregate(
+            self.get_pipeline(), session=self.compiler.connection.session
+        )
 
     def get_pipeline(self):
         pipeline = []
