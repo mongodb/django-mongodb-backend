@@ -191,12 +191,16 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         return None
 
     def _commit(self):
+        if not self.features.supports_transactions:
+            return
         if self.session:
             self.session.commit_transaction()
             self.session.end_session()
             self.session = None
 
     def _rollback(self):
+        if not self.features.supports_transactions:
+            return
         if self.session:
             self.session.abort_transaction()
             self.session = None
@@ -207,9 +211,13 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             self.session.start_transaction()
 
     def _start_transaction_under_autocommit(self):
+        if not self.features.supports_transactions:
+            return
         self._start_session()
 
     def _set_autocommit(self, autocommit, force_begin_transaction_with_broken_autocommit=False):
+        if self.features.supports_transactions:
+            return
         if not autocommit:
             self._start_session()
 
