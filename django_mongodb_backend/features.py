@@ -589,3 +589,8 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             return False
         else:
             return True
+
+    @cached_property
+    def supports_select_union(self):
+        # Stage not supported inside of a multi-document transaction: $unionWith
+        return not self.supports_transactions

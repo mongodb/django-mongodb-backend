@@ -1,6 +1,6 @@
 from bson import ObjectId
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import TestCase, skipUnlessDBFeature
 
 from .models import Order, OrderItem, Tag
 
@@ -75,6 +75,7 @@ class ObjectIdTests(TestCase):
         parent_qs = Tag.objects.filter(children__id__in=child_ids).distinct().order_by("name")
         self.assertSequenceEqual(parent_qs, [self.t1])
 
+    @skipUnlessDBFeature("supports_select_union")
     def test_filter_group_id_union_with_str(self):
         """Combine queries using union with string values."""
         qs_a = Tag.objects.filter(group_id=self.group_id_str_1)
@@ -82,6 +83,7 @@ class ObjectIdTests(TestCase):
         union_qs = qs_a.union(qs_b).order_by("name")
         self.assertSequenceEqual(union_qs, [self.t3, self.t4])
 
+    @skipUnlessDBFeature("supports_select_union")
     def test_filter_group_id_union_with_obj(self):
         """Combine queries using union with ObjectId values."""
         qs_a = Tag.objects.filter(group_id=self.group_id_obj_1)
