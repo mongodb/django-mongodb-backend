@@ -197,7 +197,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             self.session = None
 
     def _rollback(self):
-        pass
+        if self.session:
+            self.session.abort_transaction()
+            self.session = None
 
     def _start_session(self):
         if self.session is None:
@@ -210,9 +212,6 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     def _set_autocommit(self, autocommit, force_begin_transaction_with_broken_autocommit=False):
         if not autocommit:
             self._start_session()
-        else:
-            if self.session:
-                self.commit()
 
     def _close(self):
         # Normally called by close(), this method is also called by some tests.

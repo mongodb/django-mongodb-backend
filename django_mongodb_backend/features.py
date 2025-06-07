@@ -84,6 +84,8 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         # Value.as_mql() doesn't call output_field.get_db_prep_save():
         # https://github.com/mongodb/django-mongodb-backend/issues/282
         "model_fields.test_jsonfield.TestSaveLoad.test_bulk_update_custom_get_prep_value",
+        # to debug
+        "transactions.tests.AtomicMiscTests.test_mark_for_rollback_on_error_in_transaction",
     }
     # $bitAnd, #bitOr, and $bitXor are new in MongoDB 6.3.
     _django_test_expected_failures_bitwise = {
@@ -504,16 +506,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         },
         "Connection health checks not implemented.": {
             "backends.base.test_base.ConnectionHealthChecksTests",
-        },
-        "transaction.atomic() is not supported.": {
-            "backends.base.test_base.DatabaseWrapperLoggingTests",
-            "migrations.test_executor.ExecutorTests.test_atomic_operation_in_non_atomic_migration",
-            "migrations.test_operations.OperationTests.test_run_python_atomic",
-        },
-        "transaction.rollback() is not supported.": {
-            "transactions.tests.AtomicMiscTests.test_mark_for_rollback_on_error_in_autocommit",
-            "transactions.tests.AtomicMiscTests.test_mark_for_rollback_on_error_in_transaction",
-            "transactions.tests.NonAutocommitTests.test_orm_query_after_error_and_rollback",
         },
         "migrate --fake-initial is not supported.": {
             "migrations.test_commands.MigrateTests.test_migrate_fake_initial",

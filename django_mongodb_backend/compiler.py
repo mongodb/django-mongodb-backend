@@ -770,7 +770,9 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
 
     @wrap_database_errors
     def update(self, criteria, pipeline):
-        return self.collection.update_many(criteria, pipeline).matched_count
+        return self.collection.update_many(
+            criteria, pipeline, session=self.connection.session
+        ).matched_count
 
     def check_query(self):
         super().check_query()

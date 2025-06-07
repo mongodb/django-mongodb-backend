@@ -182,7 +182,8 @@ class RawAggregateTests(TestCase):
             {
                 field.name: getattr(author, field.name)
                 for field in reversed(Author._meta.concrete_fields)
-            }
+            },
+            session=connection.session,
         )
         query = []
         authors = Author.objects.all()
