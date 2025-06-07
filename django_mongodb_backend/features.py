@@ -533,8 +533,18 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             "foreign_object.test_tuple_lookups.TupleLookupsTests",
         },
         "ColPairs is not supported.": {
-            # 'ColPairs' object has no attribute 'as_mql'
             "auth_tests.test_views.CustomUserCompositePrimaryKeyPasswordResetTest",
+            "composite_pk.test_aggregate.CompositePKAggregateTests",
+            "composite_pk.test_create.CompositePKCreateTests",
+            "composite_pk.test_delete.CompositePKDeleteTests",
+            "composite_pk.test_filter.CompositePKFilterTests",
+            "composite_pk.test_get.CompositePKGetTests",
+            "composite_pk.test_models.CompositePKModelsTests",
+            "composite_pk.test_order_by.CompositePKOrderByTests",
+            "composite_pk.test_update.CompositePKUpdateTests",
+            "composite_pk.test_values.CompositePKValuesTests",
+            "composite_pk.tests.CompositePKTests",
+            "composite_pk.tests.CompositePKFixturesTests",
         },
         "Custom lookups are not supported.": {
             "custom_lookups.tests.BilateralTransformTests",
