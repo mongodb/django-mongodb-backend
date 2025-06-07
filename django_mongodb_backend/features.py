@@ -36,8 +36,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     supports_temporal_subtraction = True
     # MongoDB stores datetimes in UTC.
     supports_timezones = False
-    # Not implemented: https://github.com/mongodb/django-mongodb-backend/issues/7
-    supports_transactions = False
     supports_unspecified_pk = True
     uses_savepoints = False
 
@@ -86,6 +84,8 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         # Value.as_mql() doesn't call output_field.get_db_prep_save():
         # https://github.com/mongodb/django-mongodb-backend/issues/282
         "model_fields.test_jsonfield.TestSaveLoad.test_bulk_update_custom_get_prep_value",
+        # to debug
+        "transactions.tests.AtomicMiscTests.test_mark_for_rollback_on_error_in_transaction",
     }
     # $bitAnd, #bitOr, and $bitXor are new in MongoDB 6.3.
     _django_test_expected_failures_bitwise = {
@@ -96,6 +96,28 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_xor_right_null",
         "expressions.tests.ExpressionOperatorTests.test_lefthand_transformed_field_bitwise_or",
     }
+
+    @cached_property
+    def supports_transactions(self):
+        """Confirm support for transactions."""
+        is_replica_set = False
+        is_sharded_cluster = False
+        with self.connection.cursor():
+            client = self.connection.connection
+            hello_response = client.admin.command("hello")
+            server_status = client.admin.command("serverStatus")
+            if "setName" in hello_response:
+                is_replica_set = True
+            if "msg" in hello_response and hello_response["msg"] == "isdbgrid":
+                is_sharded_cluster = True
+            if (
+                "storageEngine" in server_status
+                and server_status["storageEngine"].get("name") == "wiredTiger"
+            ):
+                is_wired_tiger = True
+        if (is_replica_set or is_sharded_cluster) and is_wired_tiger:
+            return True
+        return False
 
     @cached_property
     def django_test_expected_failures(self):
@@ -485,16 +507,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "Connection health checks not implemented.": {
             "backends.base.test_base.ConnectionHealthChecksTests",
         },
-        "transaction.atomic() is not supported.": {
-            "backends.base.test_base.DatabaseWrapperLoggingTests",
-            "migrations.test_executor.ExecutorTests.test_atomic_operation_in_non_atomic_migration",
-            "migrations.test_operations.OperationTests.test_run_python_atomic",
-        },
-        "transaction.rollback() is not supported.": {
-            "transactions.tests.AtomicMiscTests.test_mark_for_rollback_on_error_in_autocommit",
-            "transactions.tests.AtomicMiscTests.test_mark_for_rollback_on_error_in_transaction",
-            "transactions.tests.NonAutocommitTests.test_orm_query_after_error_and_rollback",
-        },
         "migrate --fake-initial is not supported.": {
             "migrations.test_commands.MigrateTests.test_migrate_fake_initial",
             "migrations.test_commands.MigrateTests.test_migrate_fake_split_initial",
@@ -533,8 +545,18 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             "foreign_object.test_tuple_lookups.TupleLookupsTests",
         },
         "ColPairs is not supported.": {
-            # 'ColPairs' object has no attribute 'as_mql'
             "auth_tests.test_views.CustomUserCompositePrimaryKeyPasswordResetTest",
+            "composite_pk.test_aggregate.CompositePKAggregateTests",
+            "composite_pk.test_create.CompositePKCreateTests",
+            "composite_pk.test_delete.CompositePKDeleteTests",
+            "composite_pk.test_filter.CompositePKFilterTests",
+            "composite_pk.test_get.CompositePKGetTests",
+            "composite_pk.test_models.CompositePKModelsTests",
+            "composite_pk.test_order_by.CompositePKOrderByTests",
+            "composite_pk.test_update.CompositePKUpdateTests",
+            "composite_pk.test_values.CompositePKValuesTests",
+            "composite_pk.tests.CompositePKTests",
+            "composite_pk.tests.CompositePKFixturesTests",
         },
         "Custom lookups are not supported.": {
             "custom_lookups.tests.BilateralTransformTests",
@@ -577,3 +599,8 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             return False
         else:
             return True
+
+    @cached_property
+    def supports_select_union(self):
+        # Stage not supported inside of a multi-document transaction: $unionWith
+        return not self.supports_transactions

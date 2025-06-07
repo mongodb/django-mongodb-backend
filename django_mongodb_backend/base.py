@@ -3,6 +3,7 @@ import os
 
 from django.core.exceptions import ImproperlyConfigured
 from django.db.backends.base.base import BaseDatabaseWrapper
+from django.db.backends.utils import debug_transaction
 from django.utils.asyncio import async_unsafe
 from django.utils.functional import cached_property
 from pymongo.collection import Collection
@@ -139,6 +140,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     introspection_class = DatabaseIntrospection
     ops_class = DatabaseOperations
     validation_class = DatabaseValidation
+    session = None
 
     def get_collection(self, name, **kwargs):
         collection = Collection(self.database, name, **kwargs)
@@ -190,13 +192,38 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         return None
 
     def _commit(self):
-        pass
+        if not self.features.supports_transactions:
+            return
+        if self.session:
+            with debug_transaction(self, "session.commit_transaction()"):
+                self.session.commit_transaction()
+            self.session.end_session()
+            self.session = None
 
     def _rollback(self):
-        pass
+        if not self.features.supports_transactions:
+            return
+        if self.session:
+            with debug_transaction(self, "session.abort_transaction()"):
+                self.session.abort_transaction()
+            self.session = None
 
-    def set_autocommit(self, autocommit, force_begin_transaction_with_broken_autocommit=False):
-        self.autocommit = autocommit
+    def _start_session(self):
+        if self.session is None:
+            self.session = self.connection.start_session()
+            with debug_transaction(self, "session.start_transaction()"):
+                self.session.start_transaction()
+
+    def _start_transaction_under_autocommit(self):
+        if not self.features.supports_transactions:
+            return
+        self._start_session()
+
+    def _set_autocommit(self, autocommit, force_begin_transaction_with_broken_autocommit=False):
+        if self.features.supports_transactions:
+            return
+        if not autocommit:
+            self._start_session()
 
     def _close(self):
         # Normally called by close(), this method is also called by some tests.
