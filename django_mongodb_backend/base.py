@@ -3,6 +3,7 @@ import os
 
 from django.core.exceptions import ImproperlyConfigured
 from django.db.backends.base.base import BaseDatabaseWrapper
+from django.db.backends.utils import debug_transaction
 from django.utils.asyncio import async_unsafe
 from django.utils.functional import cached_property
 from pymongo.collection import Collection
@@ -194,7 +195,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         if not self.features.supports_transactions:
             return
         if self.session:
-            self.session.commit_transaction()
+            with debug_transaction(self, "session.commit_transaction()"):
+                self.session.commit_transaction()
             self.session.end_session()
             self.session = None
 
@@ -202,13 +204,15 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         if not self.features.supports_transactions:
             return
         if self.session:
-            self.session.abort_transaction()
+            with debug_transaction(self, "session.abort_transaction()"):
+                self.session.abort_transaction()
             self.session = None
 
     def _start_session(self):
         if self.session is None:
             self.session = self.connection.start_session()
-            self.session.start_transaction()
+            with debug_transaction(self, "session.start_transaction()"):
+                self.session.start_transaction()
 
     def _start_transaction_under_autocommit(self):
         if not self.features.supports_transactions:
