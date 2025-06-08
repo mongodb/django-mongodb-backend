@@ -96,6 +96,11 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_xor_right_null",
         "expressions.tests.ExpressionOperatorTests.test_lefthand_transformed_field_bitwise_or",
     }
+    _django_test_expected_failures_transactions = {
+        # When get_or_create() fails with IntegrityError, the transaction is no longer usable.
+        "get_or_create.tests.UpdateOrCreateTests.test_manual_primary_key_test",
+        "get_or_create.tests.UpdateOrCreateTestsWithManualPKs.test_create_with_duplicate_primary_key",
+    }
 
     @cached_property
     def supports_transactions(self):
@@ -125,6 +130,8 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         expected_failures.update(self._django_test_expected_failures)
         if not self.is_mongodb_6_3:
             expected_failures.update(self._django_test_expected_failures_bitwise)
+        if self.supports_transactions:
+            expected_failures.update(self._django_test_expected_failures_transactions)
         return expected_failures
 
     django_test_skips = {
