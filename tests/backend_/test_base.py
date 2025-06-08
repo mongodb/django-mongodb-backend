@@ -1,7 +1,7 @@
 from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
 from django.db.backends.signals import connection_created
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TransactionTestCase
 
 from django_mongodb_backend.base import DatabaseWrapper
 
@@ -15,7 +15,9 @@ class DatabaseWrapperTests(SimpleTestCase):
             DatabaseWrapper(settings).get_connection_params()
 
 
-class DatabaseWrapperConnectionTests(TestCase):
+class DatabaseWrapperConnectionTests(TransactionTestCase):
+    available_apps = ["backend_"]
+
     def test_set_autocommit(self):
         self.assertIs(connection.get_autocommit(), True)
         connection.set_autocommit(False)
