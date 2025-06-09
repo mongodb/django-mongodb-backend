@@ -97,7 +97,8 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "expressions.tests.ExpressionOperatorTests.test_lefthand_transformed_field_bitwise_or",
     }
     _django_test_expected_failures_transactions = {
-        # When get_or_create() fails with IntegrityError, the transaction is no longer usable.
+        # When update_or_create() fails with IntegrityError, the transaction
+        # is no longer usable.
         "get_or_create.tests.UpdateOrCreateTests.test_manual_primary_key_test",
         "get_or_create.tests.UpdateOrCreateTestsWithManualPKs.test_create_with_duplicate_primary_key",
     }
