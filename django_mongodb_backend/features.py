@@ -103,28 +103,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     }
 
     @cached_property
-    def supports_transactions(self):
-        """Confirm support for transactions."""
-        is_replica_set = False
-        is_sharded_cluster = False
-        with self.connection.cursor():
-            client = self.connection.connection
-            hello_response = client.admin.command("hello")
-            server_status = client.admin.command("serverStatus")
-            if "setName" in hello_response:
-                is_replica_set = True
-            if "msg" in hello_response and hello_response["msg"] == "isdbgrid":
-                is_sharded_cluster = True
-            if (
-                "storageEngine" in server_status
-                and server_status["storageEngine"].get("name") == "wiredTiger"
-            ):
-                is_wired_tiger = True
-        if (is_replica_set or is_sharded_cluster) and is_wired_tiger:
-            return True
-        return False
-
-    @cached_property
     def django_test_expected_failures(self):
         expected_failures = super().django_test_expected_failures
         expected_failures.update(self._django_test_expected_failures)
@@ -611,3 +589,20 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     def supports_select_union(self):
         # Stage not supported inside of a multi-document transaction: $unionWith
         return not self.supports_transactions
+
+    @cached_property
+    def supports_transactions(self):
+        """
+        Transactions are enabled if the MongoDB configuration supports it:
+        MongoDB must be configured as a replica set or sharded cluster, and
+        the store engine must be WiredTiger.
+        """
+        self.connection.ensure_connection()
+        client = self.connection.connection.admin
+        hello_response = client.command("hello")
+        is_replica_set = "setName" in hello_response
+        is_sharded_cluster = hello_response.get("msg") == "isdbgrid"
+        if is_replica_set or is_sharded_cluster:
+            engine = client.command("serverStatus").get("storageEngine", {})
+            return engine.get("name") == "wiredTiger"
+        return False
