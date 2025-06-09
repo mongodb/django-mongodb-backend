@@ -2,6 +2,7 @@ import contextlib
 import os
 
 from django.core.exceptions import ImproperlyConfigured
+from django.db import DEFAULT_DB_ALIAS
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.utils import debug_transaction
 from django.utils.asyncio import async_unsafe
@@ -140,7 +141,10 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     introspection_class = DatabaseIntrospection
     ops_class = DatabaseOperations
     validation_class = DatabaseValidation
-    session = None
+
+    def __init__(self, settings_dict, alias=DEFAULT_DB_ALIAS):
+        super().__init__(settings_dict, alias=alias)
+        self.session = None
 
     def get_collection(self, name, **kwargs):
         collection = Collection(self.database, name, **kwargs)
@@ -237,6 +241,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def close_pool(self):
         """Close the MongoClient."""
+        # Clear commit hooks and session.
+        self.run_on_commit = []
+        self.session = None
         connection = self.connection
         if connection is None:
             return
