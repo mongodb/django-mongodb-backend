@@ -259,6 +259,10 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     def cursor(self):
         return Cursor()
 
+    def validate_no_broken_transaction(self):
+        if self.features.supports_transactions:
+            super().validate_no_broken_transaction()
+
     def get_database_version(self):
         """Return a tuple of the database's version."""
         return tuple(self.connection.server_info()["versionArray"])
