@@ -48,8 +48,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "aggregation.tests.AggregateTestCase.test_order_by_aggregate_transform",
         # 'NulledTransform' object has no attribute 'as_mql'.
         "lookup.tests.LookupTests.test_exact_none_transform",
-        # "Save with update_fields did not affect any rows."
-        "basic.tests.SelectOnSaveTests.test_select_on_save_lying_update",
         # BaseExpression.convert_value() crashes with Decimal128.
         "aggregation.tests.AggregateTestCase.test_combine_different_types",
         "annotations.tests.NonAggregateAnnotationTestCase.test_combined_f_expression_annotation_with_aggregation",
@@ -84,8 +82,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         # Value.as_mql() doesn't call output_field.get_db_prep_save():
         # https://github.com/mongodb/django-mongodb-backend/issues/282
         "model_fields.test_jsonfield.TestSaveLoad.test_bulk_update_custom_get_prep_value",
-        # to debug
-        "transactions.tests.AtomicMiscTests.test_mark_for_rollback_on_error_in_transaction",
     }
     # $bitAnd, #bitOr, and $bitXor are new in MongoDB 6.3.
     _django_test_expected_failures_bitwise = {
@@ -96,11 +92,35 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_xor_right_null",
         "expressions.tests.ExpressionOperatorTests.test_lefthand_transformed_field_bitwise_or",
     }
+    _django_test_expected_failures_no_transactions = {
+        # "Save with update_fields did not affect any rows." instead of
+        # "An error occurred in the current transaction. You can't execute
+        # queries until the end of the 'atomic' block."
+        "basic.tests.SelectOnSaveTests.test_select_on_save_lying_update",
+    }
     _django_test_expected_failures_transactions = {
         # When update_or_create() fails with IntegrityError, the transaction
         # is no longer usable.
         "get_or_create.tests.UpdateOrCreateTests.test_manual_primary_key_test",
         "get_or_create.tests.UpdateOrCreateTestsWithManualPKs.test_create_with_duplicate_primary_key",
+        # Tests that require savepoints
+        "admin_views.tests.AdminViewBasicTest.test_disallowed_to_field",
+        "admin_views.tests.AdminViewPermissionsTest.test_add_view",
+        "admin_views.tests.AdminViewPermissionsTest.test_change_view",
+        "admin_views.tests.AdminViewPermissionsTest.test_change_view_save_as_new",
+        "admin_views.tests.AdminViewPermissionsTest.test_delete_view",
+        "auth_tests.test_views.ChangelistTests.test_view_user_password_is_readonly",
+        "fixtures.tests.FixtureLoadingTests.test_loaddata_app_option",
+        "fixtures.tests.FixtureLoadingTests.test_unmatched_identifier_loading",
+        "fixtures_model_package.tests.FixtureTestCase.test_loaddata",
+        "get_or_create.tests.GetOrCreateTests.test_get_or_create_invalid_params",
+        "get_or_create.tests.UpdateOrCreateTests.test_integrity",
+        "many_to_many.tests.ManyToManyTests.test_add",
+        "many_to_one.tests.ManyToOneTests.test_fk_assignment_and_related_object_cache",
+        "model_fields.test_booleanfield.BooleanFieldTests.test_null_default",
+        "model_fields.test_floatfield.TestFloatField.test_float_validates_object",
+        "multiple_database.tests.QueryTestCase.test_generic_key_cross_database_protection",
+        "multiple_database.tests.QueryTestCase.test_m2m_cross_database_protection",
     }
 
     @cached_property
@@ -111,6 +131,8 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             expected_failures.update(self._django_test_expected_failures_bitwise)
         if self.supports_transactions:
             expected_failures.update(self._django_test_expected_failures_transactions)
+        else:
+            expected_failures.update(self._django_test_expected_failures_no_transactions)
         return expected_failures
 
     django_test_skips = {

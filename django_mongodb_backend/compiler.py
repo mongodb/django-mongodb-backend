@@ -685,6 +685,7 @@ class SQLInsertCompiler(SQLCompiler):
     @wrap_database_errors
     def insert(self, docs, returning_fields=None):
         """Store a list of documents using field columns as element names."""
+        self.connection.validate_no_broken_transaction()
         inserted_ids = self.collection.insert_many(
             docs, session=self.connection.session
         ).inserted_ids
@@ -770,6 +771,7 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
 
     @wrap_database_errors
     def update(self, criteria, pipeline):
+        self.connection.validate_no_broken_transaction()
         return self.collection.update_many(
             criteria, pipeline, session=self.connection.session
         ).matched_count
