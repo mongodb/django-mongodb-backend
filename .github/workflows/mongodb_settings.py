@@ -15,13 +15,13 @@ if mongodb_uri := os.getenv("MONGODB_URI"):
 else:
     DATABASES = {
         "default": {
-            "ENGINE": "django_mongodb_backend",
+            "ENGINE": "django_mongodb_backend_gis",
             "NAME": "djangotests",
             # Required when connecting to the Atlas image in Docker.
             "OPTIONS": {"directConnection": True},
         },
         "other": {
-            "ENGINE": "django_mongodb_backend",
+            "ENGINE": "django_mongodb_backend_gis",
             "NAME": "djangotests-other",
             "OPTIONS": {"directConnection": True},
         },
