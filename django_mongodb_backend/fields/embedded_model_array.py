@@ -143,7 +143,40 @@ class EmbeddedModelArrayFieldBuiltinLookup(Lookup):
 
 @_EmbeddedModelArrayOutputField.register_lookup
 class EmbeddedModelArrayFieldIn(EmbeddedModelArrayFieldBuiltinLookup, lookups.In):
-    pass
+    def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr):
+        return [
+            {
+                "$facet": {
+                    "gathered_data": [
+                        {"$project": {"tmp_name": expr.as_mql(compiler, connection)}},
+                        {
+                            "$unwind": "$tmp_name",
+                        },
+                        {
+                            "$group": {
+                                "_id": None,
+                                "tmp_name": {"$addToSet": "$tmp_name"},
+                            }
+                        },
+                    ]
+                }
+            },
+            {
+                "$project": {
+                    field_name: {
+                        "$ifNull": [
+                            {
+                                "$getField": {
+                                    "input": {"$arrayElemAt": ["$gathered_data", 0]},
+                                    "field": "tmp_name",
+                                }
+                            },
+                            [],
+                        ]
+                    }
+                }
+            },
+        ]
 
 
 @_EmbeddedModelArrayOutputField.register_lookup
