@@ -2,7 +2,9 @@ import contextlib
 import os
 
 from django.core.exceptions import ImproperlyConfigured
+from django.db import DEFAULT_DB_ALIAS
 from django.db.backends.base.base import BaseDatabaseWrapper
+from django.db.backends.utils import debug_transaction
 from django.utils.asyncio import async_unsafe
 from django.utils.functional import cached_property
 from pymongo.collection import Collection
@@ -140,6 +142,10 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     ops_class = DatabaseOperations
     validation_class = DatabaseValidation
 
+    def __init__(self, settings_dict, alias=DEFAULT_DB_ALIAS):
+        super().__init__(settings_dict, alias=alias)
+        self.session = None
+
     def get_collection(self, name, **kwargs):
         collection = Collection(self.database, name, **kwargs)
         if self.queries_logged:
@@ -190,13 +196,38 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         return None
 
     def _commit(self):
-        pass
+        if not self.features.supports_transactions:
+            return
+        if self.session:
+            with debug_transaction(self, "session.commit_transaction()"):
+                self.session.commit_transaction()
+            self.session.end_session()
+            self.session = None
 
     def _rollback(self):
-        pass
+        if not self.features.supports_transactions:
+            return
+        if self.session:
+            with debug_transaction(self, "session.abort_transaction()"):
+                self.session.abort_transaction()
+            self.session = None
 
-    def set_autocommit(self, autocommit, force_begin_transaction_with_broken_autocommit=False):
-        self.autocommit = autocommit
+    def _start_session(self):
+        if self.session is None:
+            self.session = self.connection.start_session()
+            with debug_transaction(self, "session.start_transaction()"):
+                self.session.start_transaction()
+
+    def _start_transaction_under_autocommit(self):
+        if not self.features.supports_transactions:
+            return
+        self._start_session()
+
+    def _set_autocommit(self, autocommit, force_begin_transaction_with_broken_autocommit=False):
+        if self.features.supports_transactions:
+            return
+        if not autocommit:
+            self._start_session()
 
     def _close(self):
         # Normally called by close(), this method is also called by some tests.
@@ -210,6 +241,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def close_pool(self):
         """Close the MongoClient."""
+        # Clear commit hooks and session.
+        self.run_on_commit = []
+        self.session = None
         connection = self.connection
         if connection is None:
             return
@@ -224,6 +258,10 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     @async_unsafe
     def cursor(self):
         return Cursor()
+
+    def validate_no_broken_transaction(self):
+        if self.features.supports_transactions:
+            super().validate_no_broken_transaction()
 
     def get_database_version(self):
         """Return a tuple of the database's version."""

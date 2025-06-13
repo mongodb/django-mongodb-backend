@@ -2,6 +2,16 @@
 Django MongoDB Backend 5.2.x
 ============================
 
+5.2.0 beta 2
+============
+
+*Unreleased*
+
+New features
+------------
+
+- Added support for :ref:`database transactions <transactions>`.
+
 5.2.0 beta 1
 ============
 
