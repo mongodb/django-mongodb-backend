@@ -112,6 +112,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "auth_tests.test_views.ChangelistTests.test_view_user_password_is_readonly",
         "fixtures.tests.FixtureLoadingTests.test_loaddata_app_option",
         "fixtures.tests.FixtureLoadingTests.test_unmatched_identifier_loading",
+        "fixtures_model_package.tests.FixtureTestCase.test_loaddata",
         "get_or_create.tests.GetOrCreateTests.test_get_or_create_invalid_params",
         "get_or_create.tests.UpdateOrCreateTests.test_integrity",
         "many_to_many.tests.ManyToManyTests.test_add",
