@@ -212,22 +212,30 @@ class DatabaseWrapper(BaseDatabaseWrapper):
                 self.session.abort_transaction()
             self.session = None
 
-    def _start_session(self):
+    def _start_transaction(self):
         if self.session is None:
             self.session = self.connection.start_session()
             with debug_transaction(self, "session.start_transaction()"):
                 self.session.start_transaction()
 
     def _start_transaction_under_autocommit(self):
+        # Implementing this hook (intended only for SQLite), allows
+        # BaseDatabaseWrapper.set_autocommit() to use it to start a transaction
+        # rather than set_autocommit(), bypassing set_autocommit()'s call to
+        # debug_transaction(self, "BEGIN") which isn't semantic for a no-SQL
+        # backend.
         if not self.features.supports_transactions:
             return
-        self._start_session()
+        self._start_transaction()
 
     def _set_autocommit(self, autocommit, force_begin_transaction_with_broken_autocommit=False):
         if self.features.supports_transactions:
             return
+        # Besides @transaction.atomic() (which uses
+        # _start_transaction_under_autocommit(), disabling autocommit is
+        # another way to start a transaction.
         if not autocommit:
-            self._start_session()
+            self._start_transaction()
 
     def _close(self):
         # Normally called by close(), this method is also called by some tests.
