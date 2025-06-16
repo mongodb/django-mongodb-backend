@@ -34,6 +34,17 @@ class Cursor:
         pass
 
 
+def requires_transaction_support(func):
+    """Make a method a no-op if transactions aren't supported."""
+
+    def wrapper(self, *args, **kwargs):
+        if not self.features.supports_transactions:
+            return
+        func(self, *args, **kwargs)
+
+    return wrapper
+
+
 class DatabaseWrapper(BaseDatabaseWrapper):
     data_types = {
         "AutoField": "int",
@@ -195,18 +206,16 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             return DriverInfo("django-mongodb-backend", django_mongodb_backend_version)
         return None
 
+    @requires_transaction_support
     def _commit(self):
-        if not self.features.supports_transactions:
-            return
         if self.session:
             with debug_transaction(self, "session.commit_transaction()"):
                 self.session.commit_transaction()
             self.session.end_session()
             self.session = None
 
+    @requires_transaction_support
     def _rollback(self):
-        if not self.features.supports_transactions:
-            return
         if self.session:
             with debug_transaction(self, "session.abort_transaction()"):
                 self.session.abort_transaction()
@@ -218,19 +227,17 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             with debug_transaction(self, "session.start_transaction()"):
                 self.session.start_transaction()
 
+    @requires_transaction_support
     def _start_transaction_under_autocommit(self):
         # Implementing this hook (intended only for SQLite), allows
         # BaseDatabaseWrapper.set_autocommit() to use it to start a transaction
         # rather than set_autocommit(), bypassing set_autocommit()'s call to
         # debug_transaction(self, "BEGIN") which isn't semantic for a no-SQL
         # backend.
-        if not self.features.supports_transactions:
-            return
         self._start_transaction()
 
+    @requires_transaction_support
     def _set_autocommit(self, autocommit, force_begin_transaction_with_broken_autocommit=False):
-        if self.features.supports_transactions:
-            return
         # Besides @transaction.atomic() (which uses
         # _start_transaction_under_autocommit(), disabling autocommit is
         # another way to start a transaction.
@@ -267,9 +274,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     def cursor(self):
         return Cursor()
 
+    @requires_transaction_support
     def validate_no_broken_transaction(self):
-        if self.features.supports_transactions:
-            super().validate_no_broken_transaction()
+        super().validate_no_broken_transaction()
 
     def get_database_version(self):
         """Return a tuple of the database's version."""
