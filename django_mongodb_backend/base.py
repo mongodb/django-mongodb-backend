@@ -211,21 +211,26 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         if self.session:
             with debug_transaction(self, "session.commit_transaction()"):
                 self.session.commit_transaction()
-            self.session.end_session()
-            self.session = None
+            self._end_session()
 
     @requires_transaction_support
     def _rollback(self):
         if self.session:
             with debug_transaction(self, "session.abort_transaction()"):
                 self.session.abort_transaction()
-            self.session = None
+            self._end_session()
 
     def _start_transaction(self):
+        # Private API, specific to this backend.
         if self.session is None:
             self.session = self.connection.start_session()
             with debug_transaction(self, "session.start_transaction()"):
                 self.session.start_transaction()
+
+    def _end_session(self):
+        # Private API, specific to this backend.
+        self.session.end_session()
+        self.session = None
 
     @requires_transaction_support
     def _start_transaction_under_autocommit(self):
@@ -258,7 +263,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         """Close the MongoClient."""
         # Clear commit hooks and session.
         self.run_on_commit = []
-        self.session = None
+        if self.session:
+            self._end_session()
         connection = self.connection
         if connection is None:
             return
