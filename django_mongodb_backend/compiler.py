@@ -17,6 +17,7 @@ from django.db.models.sql.datastructures import BaseTable
 from django.utils.functional import cached_property
 from pymongo import ASCENDING, DESCENDING
 
+from .expressions.builtins import SearchExpression
 from .query import MongoQuery, wrap_database_errors
 
 
@@ -34,6 +35,8 @@ class SQLCompiler(compiler.SQLCompiler):
         # A list of OrderBy objects for this query.
         self.order_by_objs = None
         self.subqueries = []
+        # Atlas search calls
+        self.search_pipeline = []
 
     def _get_group_alias_column(self, expr, annotation_group_idx):
         """Generate a dummy field for use in the ids fields in $group."""
@@ -56,6 +59,29 @@ class SQLCompiler(compiler.SQLCompiler):
         column_target.db_column = alias
         column_target.set_attributes_from_name(alias)
         return Col(self.collection_name, column_target)
+
+    def _get_replace_expr(self, sub_expr, group, alias):
+        column_target = sub_expr.output_field.clone()
+        column_target.db_column = alias
+        column_target.set_attributes_from_name(alias)
+        inner_column = Col(self.collection_name, column_target)
+        if getattr(sub_expr, "distinct", False):
+            # If the expression should return distinct values, use
+            # $addToSet to deduplicate.
+            rhs = sub_expr.as_mql(self, self.connection, resolve_inner_expression=True)
+            group[alias] = {"$addToSet": rhs}
+            replacing_expr = sub_expr.copy()
+            replacing_expr.set_source_expressions([inner_column, None])
+        else:
+            group[alias] = sub_expr.as_mql(self, self.connection)
+            replacing_expr = inner_column
+        # Count must return 0 rather than null.
+        if isinstance(sub_expr, Count):
+            replacing_expr = Coalesce(replacing_expr, 0)
+        # Variance = StdDev^2
+        if isinstance(sub_expr, Variance):
+            replacing_expr = Power(replacing_expr, 2)
+        return replacing_expr
 
     def _prepare_expressions_for_pipeline(self, expression, target, annotation_group_idx):
         """
@@ -80,28 +106,40 @@ class SQLCompiler(compiler.SQLCompiler):
             alias = (
                 f"__aggregation{next(annotation_group_idx)}" if sub_expr != expression else target
             )
-            column_target = sub_expr.output_field.clone()
-            column_target.db_column = alias
-            column_target.set_attributes_from_name(alias)
-            inner_column = Col(self.collection_name, column_target)
-            if sub_expr.distinct:
-                # If the expression should return distinct values, use
-                # $addToSet to deduplicate.
-                rhs = sub_expr.as_mql(self, self.connection, resolve_inner_expression=True)
-                group[alias] = {"$addToSet": rhs}
-                replacing_expr = sub_expr.copy()
-                replacing_expr.set_source_expressions([inner_column, None])
-            else:
-                group[alias] = sub_expr.as_mql(self, self.connection)
-                replacing_expr = inner_column
-            # Count must return 0 rather than null.
-            if isinstance(sub_expr, Count):
-                replacing_expr = Coalesce(replacing_expr, 0)
-            # Variance = StdDev^2
-            if isinstance(sub_expr, Variance):
-                replacing_expr = Power(replacing_expr, 2)
-            replacements[sub_expr] = replacing_expr
+            replacements[sub_expr] = self._get_replace_expr(sub_expr, group, alias)
         return replacements, group
+
+    def _prepare_search_expressions_for_pipeline(
+        self, expression, target, search_idx, replacements
+    ):
+        searches = {}
+        for sub_expr in self._get_search_expressions(expression):
+            if sub_expr not in replacements:
+                alias = f"__search_expr.search{next(search_idx)}"
+                replacements[sub_expr] = self._get_replace_expr(sub_expr, searches, alias)
+        return list(searches.values())
+
+    def _prepare_search_query_for_aggregation_pipeline(self, order_by):
+        replacements = {}
+        searches = []
+        annotation_group_idx = itertools.count(start=1)
+        for target, expr in self.query.annotation_select.items():
+            expr_searches = self._prepare_search_expressions_for_pipeline(
+                expr, target, annotation_group_idx, replacements
+            )
+            searches += expr_searches
+
+        for expr, _ in order_by:
+            expr_searches = self._prepare_search_expressions_for_pipeline(
+                expr, None, annotation_group_idx, replacements
+            )
+            searches += expr_searches
+
+        having_group = self._prepare_search_expressions_for_pipeline(
+            self.having, None, annotation_group_idx, replacements
+        )
+        searches += having_group
+        return searches, replacements
 
     def _prepare_annotations_for_aggregation_pipeline(self, order_by):
         """Prepare annotations for the aggregation pipeline."""
@@ -179,6 +217,9 @@ class SQLCompiler(compiler.SQLCompiler):
             ids = self.get_project_fields(tuple(columns), force_expression=True)
         return ids, replacements
 
+    def _build_search_pipeline(self, search_queries):
+        pass
+
     def _build_aggregation_pipeline(self, ids, group):
         """Build the aggregation pipeline for grouping."""
         pipeline = []
@@ -207,9 +248,21 @@ class SQLCompiler(compiler.SQLCompiler):
                 pipeline.append({"$unset": "_id"})
         return pipeline
 
+    def _compound_searches_queries(self, searches):
+        if not searches:
+            return []
+        if len(searches) > 1:
+            raise ValueError("Cannot perform more than one search operation.")
+        return [searches[0], {"$addFields": {"__search_expr.search1": {"$meta": "searchScore"}}}]
+
     def pre_sql_setup(self, with_col_aliases=False):
         extra_select, order_by, group_by = super().pre_sql_setup(with_col_aliases=with_col_aliases)
-        group, all_replacements = self._prepare_annotations_for_aggregation_pipeline(order_by)
+        searches, search_replacements = self._prepare_search_query_for_aggregation_pipeline(
+            order_by
+        )
+        group, group_replacements = self._prepare_annotations_for_aggregation_pipeline(order_by)
+        all_replacements = {**search_replacements, **group_replacements}
+        self.search_pipeline = self._compound_searches_queries(searches)
         # query.group_by is either:
         # - None: no GROUP BY
         # - True: group by select fields
@@ -557,10 +610,16 @@ class SQLCompiler(compiler.SQLCompiler):
         return result
 
     def _get_aggregate_expressions(self, expr):
+        return self._get_all_expressions_of_type(expr, Aggregate)
+
+    def _get_search_expressions(self, expr):
+        return self._get_all_expressions_of_type(expr, SearchExpression)
+
+    def _get_all_expressions_of_type(self, expr, target_type):
         stack = [expr]
         while stack:
             expr = stack.pop()
-            if isinstance(expr, Aggregate):
+            if isinstance(expr, target_type):
                 yield expr
             elif hasattr(expr, "get_source_expressions"):
                 stack.extend(expr.get_source_expressions())
