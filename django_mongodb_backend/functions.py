@@ -2,8 +2,8 @@ from datetime import datetime
 
 from django.conf import settings
 from django.db import NotSupportedError
-from django.db.models import DateField, DateTimeField, TimeField
-from django.db.models.expressions import Func
+from django.db.models import DateField, DateTimeField, Expression, FloatField, TimeField
+from django.db.models.expressions import F, Func, Value
 from django.db.models.functions import JSONArray
 from django.db.models.functions.comparison import Cast, Coalesce, Greatest, Least, NullIf
 from django.db.models.functions.datetime import (
@@ -38,8 +38,9 @@ from django.db.models.functions.text import (
     Trim,
     Upper,
 )
+from django.utils.deconstruct import deconstructible
 
-from .query_utils import process_lhs
+from .query_utils import process_lhs, process_rhs
 
 MONGO_OPERATORS = {
     Ceil: "ceil",
@@ -266,6 +267,30 @@ def trunc_time(self, compiler, connection):
             }
         }
     }
+
+
+@deconstructible(path="django_mongodb_backend.functions.SearchScore")
+class SearchScore(Expression):
+    def __init__(self, path, value, operation="equals", **kwargs):
+        self.extra_params = kwargs
+        self.lhs = path if hasattr(path, "resolve_expression") else F(path)
+        if not isinstance(value, str):
+            # TODO HANDLE VALUES LIKE Value("some string")
+            raise ValueError("STRING NEEDED")
+        self.rhs = Value(value)
+        self.operation = operation
+        super().__init__(output_field=FloatField())
+
+    def __repr__(self):
+        return f"search {self.field} = {self.value} | {self.extra_params}"
+
+    def as_mql(self, compiler, connection):
+        lhs = process_lhs(self, compiler, connection)
+        rhs = process_rhs(self, compiler, connection)
+        return {"$search": {self.operation: {"path": lhs[:1], "query": rhs, **self.extra_params}}}
+
+    def as_sql(self, compiler, connection):
+        return "", []
 
 
 def register_functions():

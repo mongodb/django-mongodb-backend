@@ -1,6 +1,7 @@
 from django.db import models
 
 from django_mongodb_backend.fields import ObjectIdAutoField, ObjectIdField
+from django_mongodb_backend.indexes import SearchIndex
 
 
 class Author(models.Model):
@@ -53,3 +54,12 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return str(self.pk)
+
+
+class Article(models.Model):
+    headline = models.CharField(max_length=100)
+    number = models.IntegerField()
+    body = models.TextField()
+
+    class Meta:
+        indexes = [SearchIndex(fields=["headline"])]

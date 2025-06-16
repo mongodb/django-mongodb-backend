@@ -4,7 +4,7 @@ from django.db.models.expressions import Value
 
 
 def is_direct_value(node):
-    return not hasattr(node, "as_sql")
+    return not hasattr(node, "as_sql") and not hasattr(node, "as_mql")
 
 
 def process_lhs(node, compiler, connection):
