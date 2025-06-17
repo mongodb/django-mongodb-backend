@@ -36,8 +36,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     supports_temporal_subtraction = True
     # MongoDB stores datetimes in UTC.
     supports_timezones = False
-    # Not implemented: https://github.com/mongodb/django-mongodb-backend/issues/7
-    supports_transactions = False
     supports_unspecified_pk = True
     uses_savepoints = False
 
@@ -50,8 +48,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "aggregation.tests.AggregateTestCase.test_order_by_aggregate_transform",
         # 'NulledTransform' object has no attribute 'as_mql'.
         "lookup.tests.LookupTests.test_exact_none_transform",
-        # "Save with update_fields did not affect any rows."
-        "basic.tests.SelectOnSaveTests.test_select_on_save_lying_update",
         # BaseExpression.convert_value() crashes with Decimal128.
         "aggregation.tests.AggregateTestCase.test_combine_different_types",
         "annotations.tests.NonAggregateAnnotationTestCase.test_combined_f_expression_annotation_with_aggregation",
@@ -96,6 +92,36 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_xor_right_null",
         "expressions.tests.ExpressionOperatorTests.test_lefthand_transformed_field_bitwise_or",
     }
+    _django_test_expected_failures_no_transactions = {
+        # "Save with update_fields did not affect any rows." instead of
+        # "An error occurred in the current transaction. You can't execute
+        # queries until the end of the 'atomic' block."
+        "basic.tests.SelectOnSaveTests.test_select_on_save_lying_update",
+    }
+    _django_test_expected_failures_transactions = {
+        # When update_or_create() fails with IntegrityError, the transaction
+        # is no longer usable.
+        "get_or_create.tests.UpdateOrCreateTests.test_manual_primary_key_test",
+        "get_or_create.tests.UpdateOrCreateTestsWithManualPKs.test_create_with_duplicate_primary_key",
+        # Tests that require savepoints
+        "admin_views.tests.AdminViewBasicTest.test_disallowed_to_field",
+        "admin_views.tests.AdminViewPermissionsTest.test_add_view",
+        "admin_views.tests.AdminViewPermissionsTest.test_change_view",
+        "admin_views.tests.AdminViewPermissionsTest.test_change_view_save_as_new",
+        "admin_views.tests.AdminViewPermissionsTest.test_delete_view",
+        "auth_tests.test_views.ChangelistTests.test_view_user_password_is_readonly",
+        "fixtures.tests.FixtureLoadingTests.test_loaddata_app_option",
+        "fixtures.tests.FixtureLoadingTests.test_unmatched_identifier_loading",
+        "fixtures_model_package.tests.FixtureTestCase.test_loaddata",
+        "get_or_create.tests.GetOrCreateTests.test_get_or_create_invalid_params",
+        "get_or_create.tests.UpdateOrCreateTests.test_integrity",
+        "many_to_many.tests.ManyToManyTests.test_add",
+        "many_to_one.tests.ManyToOneTests.test_fk_assignment_and_related_object_cache",
+        "model_fields.test_booleanfield.BooleanFieldTests.test_null_default",
+        "model_fields.test_floatfield.TestFloatField.test_float_validates_object",
+        "multiple_database.tests.QueryTestCase.test_generic_key_cross_database_protection",
+        "multiple_database.tests.QueryTestCase.test_m2m_cross_database_protection",
+    }
 
     @cached_property
     def django_test_expected_failures(self):
@@ -103,6 +129,10 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         expected_failures.update(self._django_test_expected_failures)
         if not self.is_mongodb_6_3:
             expected_failures.update(self._django_test_expected_failures_bitwise)
+        if self.supports_transactions:
+            expected_failures.update(self._django_test_expected_failures_transactions)
+        else:
+            expected_failures.update(self._django_test_expected_failures_no_transactions)
         return expected_failures
 
     django_test_skips = {
@@ -485,16 +515,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         "Connection health checks not implemented.": {
             "backends.base.test_base.ConnectionHealthChecksTests",
         },
-        "transaction.atomic() is not supported.": {
-            "backends.base.test_base.DatabaseWrapperLoggingTests",
-            "migrations.test_executor.ExecutorTests.test_atomic_operation_in_non_atomic_migration",
-            "migrations.test_operations.OperationTests.test_run_python_atomic",
-        },
-        "transaction.rollback() is not supported.": {
-            "transactions.tests.AtomicMiscTests.test_mark_for_rollback_on_error_in_autocommit",
-            "transactions.tests.AtomicMiscTests.test_mark_for_rollback_on_error_in_transaction",
-            "transactions.tests.NonAutocommitTests.test_orm_query_after_error_and_rollback",
-        },
         "migrate --fake-initial is not supported.": {
             "migrations.test_commands.MigrateTests.test_migrate_fake_initial",
             "migrations.test_commands.MigrateTests.test_migrate_fake_split_initial",
@@ -533,8 +553,18 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             "foreign_object.test_tuple_lookups.TupleLookupsTests",
         },
         "ColPairs is not supported.": {
-            # 'ColPairs' object has no attribute 'as_mql'
             "auth_tests.test_views.CustomUserCompositePrimaryKeyPasswordResetTest",
+            "composite_pk.test_aggregate.CompositePKAggregateTests",
+            "composite_pk.test_create.CompositePKCreateTests",
+            "composite_pk.test_delete.CompositePKDeleteTests",
+            "composite_pk.test_filter.CompositePKFilterTests",
+            "composite_pk.test_get.CompositePKGetTests",
+            "composite_pk.test_models.CompositePKModelsTests",
+            "composite_pk.test_order_by.CompositePKOrderByTests",
+            "composite_pk.test_update.CompositePKUpdateTests",
+            "composite_pk.test_values.CompositePKValuesTests",
+            "composite_pk.tests.CompositePKTests",
+            "composite_pk.tests.CompositePKFixturesTests",
         },
         "Custom lookups are not supported.": {
             "custom_lookups.tests.BilateralTransformTests",
@@ -577,3 +607,35 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             return False
         else:
             return True
+
+    @cached_property
+    def supports_select_union(self):
+        # Stage not supported inside of a multi-document transaction: $unionWith
+        return not self.supports_transactions
+
+    @cached_property
+    def supports_transactions(self):
+        """
+        Transactions are enabled if the MongoDB configuration supports it:
+        MongoDB must be configured as a replica set or sharded cluster, and
+        the store engine must be WiredTiger.
+        """
+        self.connection.ensure_connection()
+        client = self.connection.connection.admin
+        hello_response = client.command("hello")
+        is_replica_set = "setName" in hello_response
+        is_sharded_cluster = hello_response.get("msg") == "isdbgrid"
+        if is_replica_set or is_sharded_cluster:
+            engine = client.command("serverStatus").get("storageEngine", {})
+            return engine.get("name") == "wiredTiger"
+        return False
+
+    @cached_property
+    def supports_queryable_encryption(self):
+        """
+        Queryable Encryption is available if the server is Atlas or Enterprise.
+        """
+        self.connection.ensure_connection()
+        client = self.connection.connection.admin
+        build_info = client.command("buildInfo")
+        return "enterprise" in build_info.get("modules")
