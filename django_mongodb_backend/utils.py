@@ -1,5 +1,8 @@
 import copy
+import os
 import time
+from pathlib import Path
+from urllib.parse import urlencode
 
 import django
 from django.conf import settings
@@ -8,6 +11,7 @@ from django.db.backends.utils import logger
 from django.utils.functional import SimpleLazyObject
 from django.utils.text import format_lazy
 from django.utils.version import get_version_tuple
+from pymongo.encryption_options import AutoEncryptionOpts
 from pymongo.uri_parser import parse_uri as pymongo_parse_uri
 
 
@@ -26,6 +30,62 @@ def check_django_compatability():
             f"You must use the latest version of django-mongodb-backend {A}.{B}.x "
             f"with Django {A}.{B}.y (found django-mongodb-backend {__version__})."
         )
+
+
+# Queryable Encryption-related functions based on helpers from Python Queryable
+# Encryption Tutorial
+# https://github.com/mongodb/docs/tree/master/source/includes/qe-tutorials/python/
+def _get_kms_provider_credentials(kms_provider_name):
+    """
+    "A KMS is a remote service that securely stores and manages your encryption keys."
+
+    Via https://www.mongodb.com/docs/manual/core/queryable-encryption/quick-start/
+
+    Here we check the provider name and return the appropriate credentials.
+    """
+    # TODO: Add support for other KMS providers.
+    if kms_provider_name == "local":
+        if not Path("./customer-master-key.txt").exists:
+            try:
+                path = "customer-master-key.txt"
+                file_bytes = os.urandom(96)
+                with Path.open(path, "wb") as f:
+                    f.write(file_bytes)
+            except Exception as e:
+                raise Exception(
+                    "Unable to write Customer Master Key to file due to the following error: "
+                ) from e
+
+        try:
+            path = "./customer-master-key.txt"
+            with Path.open(path, "rb") as f:
+                local_master_key = f.read()
+                if len(local_master_key) != 96:
+                    raise Exception("Expected the customer master key file to be 96 bytes.")
+                return {
+                    "local": {"key": local_master_key},
+                }
+        except Exception as e:
+            raise Exception(
+                "Unable to read Customer Master Key from file due to the following error: "
+            ) from e
+    else:
+        raise ValueError(
+            "Unrecognized value for kms_provider_name encountered while retrieving KMS credentials."
+        )
+
+
+def get_auto_encryption_options(kms_provider_name):
+    key_vault_database_name = "encryption"
+    key_vault_collection_name = "__keyVault"
+    key_vault_namespace = f"{key_vault_database_name}.{key_vault_collection_name}"
+    kms_provider_credentials = _get_kms_provider_credentials(kms_provider_name)
+    auto_encryption_opts = AutoEncryptionOpts(
+        kms_provider_credentials,
+        key_vault_namespace,
+        crypt_shared_lib_path=os.environ.get("SHARED_LIB_PATH"),
+    )
+    return urlencode(auto_encryption_opts)
 
 
 def parse_uri(uri, *, db_name=None, test=None):

@@ -629,3 +629,13 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             engine = client.command("serverStatus").get("storageEngine", {})
             return engine.get("name") == "wiredTiger"
         return False
+
+    @cached_property
+    def supports_queryable_encryption(self):
+        """
+        Queryable Encryption is available if the server is Atlas or Enterprise.
+        """
+        self.connection.ensure_connection()
+        client = self.connection.connection.admin
+        build_info = client.command("buildInfo")
+        return "enterprise" in build_info.get("modules")

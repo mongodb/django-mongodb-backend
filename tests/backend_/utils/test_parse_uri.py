@@ -1,10 +1,11 @@
 from unittest.mock import patch
+from urllib.parse import parse_qs
 
 import pymongo
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 
-from django_mongodb_backend import parse_uri
+from django_mongodb_backend import get_auto_encryption_options, parse_uri
 
 
 class ParseURITests(SimpleTestCase):
@@ -94,3 +95,10 @@ class ParseURITests(SimpleTestCase):
     def test_no_scheme(self):
         with self.assertRaisesMessage(pymongo.errors.InvalidURI, "Invalid URI scheme"):
             parse_uri("cluster0.example.mongodb.net")
+
+    def test_queryable_encryption_config(self):
+        auto_encryption_options = get_auto_encryption_options("local")
+        settings_dict = parse_uri(
+            f"mongodb://cluster0.example.mongodb.net/myDatabase{auto_encryption_options}"
+        )
+        self.assertEqual(settings_dict["OPTIONS"], parse_qs(auto_encryption_options))
