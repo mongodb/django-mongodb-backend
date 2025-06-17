@@ -50,10 +50,8 @@ Transactions
 .. versionadded:: 5.2.0b2
 
 Support for :doc:`Django's transactions APIs <django:topics/db/transactions>`
-is enabled if the MongoDB configuration supports them: MongoDB must be
-configured as a :doc:`replica set <manual:replication>` or :doc:`sharded
-cluster <manual:sharding>`, and the store engine must be :doc:`WiredTiger
-<manual:core/wiredtiger>`.
+is enabled if MongoDB is configured as a :doc:`replica set<manual:replication>`
+or a :doc:`sharded cluster <manual:sharding>`.
 
 If transactions aren't supported, query execution uses Django and MongoDB's
 default behavior of autocommit mode. Each query is immediately committed to the

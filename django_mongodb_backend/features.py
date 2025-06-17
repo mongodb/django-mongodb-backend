@@ -616,16 +616,11 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     @cached_property
     def supports_transactions(self):
         """
-        Transactions are enabled if the MongoDB configuration supports it:
-        MongoDB must be configured as a replica set or sharded cluster, and
-        the store engine must be WiredTiger.
+        Transactions are enabled if MongoDB is configured as a replica set or a
+        sharded cluster.
         """
         self.connection.ensure_connection()
         client = self.connection.connection.admin
-        hello_response = client.command("hello")
-        is_replica_set = "setName" in hello_response
-        is_sharded_cluster = hello_response.get("msg") == "isdbgrid"
-        if is_replica_set or is_sharded_cluster:
-            engine = client.command("serverStatus").get("storageEngine", {})
-            return engine.get("name") == "wiredTiger"
-        return False
+        hello = client.command("hello")
+        # a replica set or a sharded cluster
+        return "setName" in hello or hello.get("msg") == "isdbgrid"
