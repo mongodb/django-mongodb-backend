@@ -96,9 +96,13 @@ class ParseURITests(SimpleTestCase):
             parse_uri("cluster0.example.mongodb.net")
 
 
-# TODO: This can go in `test_features` once transaction support is added.
+# TODO: This can be moved to `test_features` once transaction support is merged.
 class ParseUriOptionsTests(TestCase):
     @skipUnlessDBFeature("supports_queryable_encryption")
-    def test_queryable_encryption_config(self):
+    def test_auto_encryption_options(self):
         auto_encryption_options = get_auto_encryption_options()
-        self.assertEqual(auto_encryption_options._key_vault_namespace, "encryption.__keyVault")
+        settings_dict = parse_uri(
+            "mongodb://cluster0.example.mongodb.net/myDatabase",
+            auto_encryption_options=auto_encryption_options,
+        )
+        self.assertEqual(settings_dict["OPTIONS"]["key_vault_namespace"], "encryption.__keyVault")
