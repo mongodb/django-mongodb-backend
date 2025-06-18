@@ -169,21 +169,21 @@ class Review(EmbeddedModel):
 
 # An exhibit in the museum, composed of multiple sections.
 class Exhibit(models.Model):
-    exhibit_name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255)
     sections = EmbeddedModelArrayField("Section", null=True)
     main_section = EmbeddedModelField("Section", null=True)
 
     def __str__(self):
-        return self.exhibit_name
+        return self.name
 
 
 # A section within an exhibit, containing multiple artifacts.
 class Section(EmbeddedModel):
-    section_number = models.IntegerField()
+    number = models.IntegerField()
     artifacts = EmbeddedModelArrayField("Artifact", null=True)
 
     def __str__(self):
-        return "Section %d" % self.section_number
+        return "Section %d" % self.number
 
 
 # Details about a specific artifact.

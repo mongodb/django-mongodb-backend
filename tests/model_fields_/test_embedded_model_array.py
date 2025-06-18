@@ -62,10 +62,10 @@ class QueryingTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.egypt = Exhibit.objects.create(
-            exhibit_name="Ancient Egypt",
+            name="Ancient Egypt",
             sections=[
                 Section(
-                    section_number=1,
+                    number=1,
                     artifacts=[
                         Artifact(
                             name="Ptolemaic Crown",
@@ -78,10 +78,10 @@ class QueryingTests(TestCase):
             ],
         )
         cls.wonders = Exhibit.objects.create(
-            exhibit_name="Wonders of the Ancient World",
+            name="Wonders of the Ancient World",
             sections=[
                 Section(
-                    section_number=1,
+                    number=1,
                     artifacts=[
                         Artifact(
                             name="Statue of Zeus",
@@ -93,7 +93,7 @@ class QueryingTests(TestCase):
                     ],
                 ),
                 Section(
-                    section_number=2,
+                    number=2,
                     artifacts=[
                         Artifact(
                             name="Lighthouse of Alexandria",
@@ -104,10 +104,10 @@ class QueryingTests(TestCase):
             ],
         )
         cls.new_descoveries = Exhibit.objects.create(
-            exhibit_name="New Discoveries",
+            name="New Discoveries",
             sections=[
                 Section(
-                    section_number=2,
+                    number=2,
                     artifacts=[
                         Artifact(
                             name="Lighthouse of Alexandria",
@@ -118,9 +118,9 @@ class QueryingTests(TestCase):
             ],
         )
         cls.lost_empires = Exhibit.objects.create(
-            exhibit_name="Lost Empires",
+            name="Lost Empires",
             main_section=Section(
-                section_number=3,
+                number=3,
                 artifacts=[
                     Artifact(
                         name="Bronze Statue",
@@ -149,12 +149,12 @@ class QueryingTests(TestCase):
 
     def test_exact(self):
         self.assertCountEqual(
-            Exhibit.objects.filter(sections__section_number=1), [self.egypt, self.wonders]
+            Exhibit.objects.filter(sections__number=1), [self.egypt, self.wonders]
         )
 
     def test_array_index(self):
         self.assertCountEqual(
-            Exhibit.objects.filter(sections__0__section_number=1),
+            Exhibit.objects.filter(sections__0__number=1),
             [self.egypt, self.wonders],
         )
 
@@ -168,7 +168,7 @@ class QueryingTests(TestCase):
 
     def test_array_slice(self):
         self.assertSequenceEqual(
-            Exhibit.objects.filter(sections__0_1__section_number=2), [self.new_descoveries]
+            Exhibit.objects.filter(sections__0_1__number=2), [self.new_descoveries]
         )
 
     def test_filter_unsupported_lookups_in_json(self):
@@ -196,16 +196,16 @@ class QueryingTests(TestCase):
         self.assertCountEqual(Exhibit.objects.filter(sections__1__artifacts__len=1), [self.wonders])
 
     def test_in(self):
-        self.assertCountEqual(Exhibit.objects.filter(sections__section_number__in=[10]), [])
+        self.assertCountEqual(Exhibit.objects.filter(sections__number__in=[10]), [])
         self.assertCountEqual(
-            Exhibit.objects.filter(sections__section_number__in=[1]),
+            Exhibit.objects.filter(sections__number__in=[1]),
             [self.egypt, self.wonders],
         )
         self.assertCountEqual(
-            Exhibit.objects.filter(sections__section_number__in=[2]),
+            Exhibit.objects.filter(sections__number__in=[2]),
             [self.new_descoveries, self.wonders],
         )
-        self.assertCountEqual(Exhibit.objects.filter(sections__section_number__in=[3]), [])
+        self.assertCountEqual(Exhibit.objects.filter(sections__number__in=[3]), [])
 
     def test_iexact(self):
         self.assertCountEqual(
@@ -215,24 +215,24 @@ class QueryingTests(TestCase):
 
     def test_gt(self):
         self.assertCountEqual(
-            Exhibit.objects.filter(sections__section_number__gt=1),
+            Exhibit.objects.filter(sections__number__gt=1),
             [self.new_descoveries, self.wonders],
         )
 
     def test_gte(self):
         self.assertCountEqual(
-            Exhibit.objects.filter(sections__section_number__gte=1),
+            Exhibit.objects.filter(sections__number__gte=1),
             [self.egypt, self.new_descoveries, self.wonders],
         )
 
     def test_lt(self):
         self.assertCountEqual(
-            Exhibit.objects.filter(sections__section_number__lt=2), [self.egypt, self.wonders]
+            Exhibit.objects.filter(sections__number__lt=2), [self.egypt, self.wonders]
         )
 
     def test_lte(self):
         self.assertCountEqual(
-            Exhibit.objects.filter(sections__section_number__lte=2),
+            Exhibit.objects.filter(sections__number__lte=2),
             [self.egypt, self.wonders, self.new_descoveries],
         )
 
@@ -255,12 +255,12 @@ class QueryingTests(TestCase):
     def test_invalid_lookup(self):
         msg = "Unsupported lookup 'return' for EmbeddedModelArrayField of 'IntegerField'"
         with self.assertRaisesMessage(FieldDoesNotExist, msg):
-            Exhibit.objects.filter(sections__section_number__return=3)
+            Exhibit.objects.filter(sections__number__return=3)
 
     def test_invalid_operation(self):
         msg = "Unsupported lookup 'rage' for EmbeddedModelArrayField of 'IntegerField'"
         with self.assertRaisesMessage(FieldDoesNotExist, msg):
-            Exhibit.objects.filter(sections__section_number__rage=[10])
+            Exhibit.objects.filter(sections__number__rage=[10])
 
     def test_missing_lookup_suggestions(self):
         msg = (
@@ -268,7 +268,7 @@ class QueryingTests(TestCase):
             "perhaps you meant lte or lt?"
         )
         with self.assertRaisesMessage(FieldDoesNotExist, msg):
-            Exhibit.objects.filter(sections__section_number__ltee=3)
+            Exhibit.objects.filter(sections__number__ltee=3)
 
     def test_nested_lookup(self):
         msg = "Cannot perform multiple levels of array traversal in a query."
@@ -277,11 +277,11 @@ class QueryingTests(TestCase):
 
     def test_foreign_field_exact(self):
         """Querying from a foreign key to an EmbeddedModelArrayField."""
-        qs = Tour.objects.filter(exhibit__sections__section_number=1)
+        qs = Tour.objects.filter(exhibit__sections__number=1)
         self.assertCountEqual(qs, [self.egypt_tour, self.wonders_tour])
 
     def test_foreign_field_with_slice(self):
-        qs = Tour.objects.filter(exhibit__sections__0_2__section_number__in=[1, 2])
+        qs = Tour.objects.filter(exhibit__sections__0_2__number__in=[1, 2])
         self.assertCountEqual(qs, [self.wonders_tour, self.egypt_tour])
 
 
