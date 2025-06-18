@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pymongo
 from django.core.exceptions import ImproperlyConfigured
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase, skipUnlessDBFeature
 
 from django_mongodb_backend import get_auto_encryption_options, parse_uri
 
@@ -95,5 +95,10 @@ class ParseURITests(SimpleTestCase):
         with self.assertRaisesMessage(pymongo.errors.InvalidURI, "Invalid URI scheme"):
             parse_uri("cluster0.example.mongodb.net")
 
+
+# TODO: This can go in `test_features` once transaction support is added.
+class ParseUriOptionsTests(TestCase):
+    @skipUnlessDBFeature("supports_queryable_encryption")
     def test_queryable_encryption_config(self):
-        get_auto_encryption_options()
+        auto_encryption_options = get_auto_encryption_options()
+        self.assertEqual(auto_encryption_options._key_vault_namespace, "encryption.__keyVault")

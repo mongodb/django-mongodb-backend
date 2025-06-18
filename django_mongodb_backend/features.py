@@ -581,9 +581,17 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     @cached_property
     def supports_queryable_encryption(self):
         """
-        Queryable Encryption is supported if the server is Atlas or Enterprise.
+        Queryable Encryption is supported if the server is Atlas or Enterprise
+        and if pymongocrypt is installed.
         """
         self.connection.ensure_connection()
         client = self.connection.connection.admin
         build_info = client.command("buildInfo")
-        return "enterprise" in build_info.get("modules")
+        is_enterprise = "enterprise" in build_info.get("modules")
+        try:
+            import pymongocrypt  # noqa: F401
+
+            has_pymongocrypt = True
+        except ImportError:
+            has_pymongocrypt = False
+        return is_enterprise and has_pymongocrypt
