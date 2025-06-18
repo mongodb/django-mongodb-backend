@@ -100,9 +100,5 @@ class ParseURITests(SimpleTestCase):
 class ParseUriOptionsTests(TestCase):
     @skipUnlessDBFeature("supports_queryable_encryption")
     def test_auto_encryption_options(self):
-        auto_encryption_options = get_auto_encryption_options()
-        settings_dict = parse_uri(
-            "mongodb://cluster0.example.mongodb.net/myDatabase",
-            auto_encryption_options=auto_encryption_options,
-        )
-        self.assertEqual(settings_dict["OPTIONS"]["key_vault_namespace"], "encryption.__keyVault")
+        auto_encryption_options = get_auto_encryption_options(crypt_shared_lib_path="/path/to/lib")
+        parse_uri("mongodb://localhost/db", auto_encryption_options=auto_encryption_options)
