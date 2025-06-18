@@ -8,6 +8,7 @@ from django.db.backends.utils import logger
 from django.utils.functional import SimpleLazyObject
 from django.utils.text import format_lazy
 from django.utils.version import get_version_tuple
+from pymongo.encryption_options import AutoEncryptionOpts
 from pymongo.uri_parser import parse_uri as pymongo_parse_uri
 
 
@@ -26,6 +27,16 @@ def check_django_compatability():
             f"You must use the latest version of django-mongodb-backend {A}.{B}.x "
             f"with Django {A}.{B}.y (found django-mongodb-backend {__version__})."
         )
+
+
+def get_auto_encryption_options(crypt_shared_lib_path=None):
+    key_vault_database_name = "encryption"
+    key_vault_collection_name = "__keyVault"
+    key_vault_namespace = f"{key_vault_database_name}.{key_vault_collection_name}"
+    kms_providers = {}
+    return AutoEncryptionOpts(
+        kms_providers, key_vault_namespace, crypt_shared_lib_path=crypt_shared_lib_path
+    )
 
 
 def parse_uri(uri, *, db_name=None, test=None):
