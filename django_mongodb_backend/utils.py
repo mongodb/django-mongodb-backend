@@ -1,4 +1,5 @@
 import copy
+import os
 import time
 
 import django
@@ -33,7 +34,7 @@ def get_auto_encryption_options(crypt_shared_lib_path=None):
     key_vault_database_name = "encryption"
     key_vault_collection_name = "__keyVault"
     key_vault_namespace = f"{key_vault_database_name}.{key_vault_collection_name}"
-    kms_providers = {}
+    kms_providers = {"local": {"key": os.urandom(96)}}
     return AutoEncryptionOpts(
         key_vault_namespace=key_vault_namespace,
         kms_providers=kms_providers,
