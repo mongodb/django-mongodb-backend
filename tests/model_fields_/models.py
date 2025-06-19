@@ -8,7 +8,7 @@ from django_mongodb_backend.fields import (
     EmbeddedModelField,
     ObjectIdField,
 )
-from django_mongodb_backend.models import EmbeddedModel
+from django_mongodb_backend.models import EmbeddedModel, EncryptedModel
 
 
 # ObjectIdField
@@ -134,6 +134,10 @@ class Author(EmbeddedModel):
     age = models.IntegerField()
     address = EmbeddedModelField(Address)
     skills = ArrayField(models.CharField(max_length=100), null=True, blank=True)
+
+
+class EncryptedData(EncryptedModel):
+    pass
 
 
 class Book(models.Model):
