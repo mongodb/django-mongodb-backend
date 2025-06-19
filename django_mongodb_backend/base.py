@@ -121,8 +121,10 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         "gte": lambda a, b: {"$gte": [a, b]},
         # MongoDB considers null less than zero. Exclude null values to match
         # SQL behavior.
-        "lt": lambda a, b: {"$and": [{"$lt": [a, b]}, {"$ne": [a, None]}]},
-        "lte": lambda a, b: {"$and": [{"$lte": [a, b]}, {"$ne": [a, None]}]},
+        "lt": lambda a, b: {"$and": [{"$lt": [a, b]}, DatabaseWrapper._isnull_operator(a, False)]},
+        "lte": lambda a, b: {
+            "$and": [{"$lte": [a, b]}, DatabaseWrapper._isnull_operator(a, False)]
+        },
         "in": lambda a, b: {"$in": [a, b]},
         "isnull": _isnull_operator,
         "range": lambda a, b: {
