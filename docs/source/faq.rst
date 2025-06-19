@@ -4,6 +4,19 @@ FAQ
 
 This page contains a list of some frequently asked questions.
 
+Performance
+===========
+
+Querying across relational fields like :class:`~django.db.models.ForeignKey` and :class:`~django.db.models.ManyToManyField` is really slow. Is there a way to improve the speed of these joins?
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Not really. Joins use MongoDB's :doc:`$lookup
+<manual:reference/operator/aggregation/lookup>` operator, which doesn't perform
+well with large tables.
+
+The best practice for modeling relational data in MongoDB is to instead use
+:doc:`embedded models <topics/embedded-models>`.
+
 Troubleshooting
 ===============
 
