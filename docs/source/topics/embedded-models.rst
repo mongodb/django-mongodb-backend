@@ -181,3 +181,114 @@ For example, if the ``Tag`` model had an ``EmbeddedModelArrayField`` called
     >>> Post.objects.filter(tags__colors__name="blue")
     ...
     ValueError: Cannot perform multiple levels of array traversal in a query.
+
+.. _polymorphic-embedded-model-field-example:
+
+``PolymorphicEmbeddedModelField``
+---------------------------------
+
+The basics
+~~~~~~~~~~
+
+Let's consider this example::
+
+    from django.db import models
+
+    from django_mongodb_backend.fields import PolymorphicEmbeddedModelField
+    from django_mongodb_backend.models import EmbeddedModel
+
+
+    class Person(models.Model):
+        name = models.CharField(max_length=255)
+        pet = PolymorphicEmbeddedModelField(["Cat", "Dog"])
+
+        def __str__(self):
+            return self.name
+
+
+    class Cat(EmbeddedModel):
+        name = models.CharField(max_length=255)
+        purrs = models.BooleanField(default=True)
+
+        def __str__(self):
+            return self.name
+
+
+    class Dog(EmbeddedModel):
+        name = models.CharField(max_length=255)
+        barks = models.BooleanField(default=True)
+
+        def __str__(self):
+            return self.name
+
+
+The API is similar to that of Django's relational fields::
+
+    >>> bob = Person.objects.create(name="Bob", pet=Dog(name="Woofer"))
+    >>> bob.pet
+    <Dog: Woofer>
+    >>> bob.pet.name
+    'Woofer'
+    >>> bob = Person.objects.create(name="Fred", pet=Cat(name="Pheobe"))
+
+Represented in BSON, the person structures looks like this:
+
+.. code-block:: js
+
+    {
+      _id: ObjectId('685da4895e42adade0c8db29'),
+      name: 'Bob',
+     pet: { name: 'Woofer', barks: true, _label: 'myapp.Dog' }
+    },
+    {
+      _id: ObjectId('685da4925e42adade0c8db2a'),
+      name: 'Fred',
+      pet: { name: 'Pheobe', purrs: true, _label: 'myapp.Cat' }
+    }
+
+The ``_label`` field tracks the model's :attr:`~django.db.models.Options.label`
+so that the model can be initialized properly.
+
+Querying ``PolymorphicEmbeddedModelField``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can query into a polymorphic embedded model field using the same double
+underscore syntax as relational fields. For example, to retrieve all people
+who have a pet named "Lassy"::
+
+    >>> Person.objects.filter(pet__name="Lassy")
+
+You can also filter on fields that aren't shared among the embedded models. For
+example, if you filter on ``barks``, you'll only get back people with dogs that
+bark::
+
+    >>> Person.objects.filter(pet__barks=True)
+
+Clashing field names
+~~~~~~~~~~~~~~~~~~~~
+
+Be careful not to use embedded models with clashing field names of different
+types. For example::
+
+    from django.db import models
+
+    from django_mongodb_backend.fields import PolymorphicEmbeddedModelField
+    from django_mongodb_backend.models import EmbeddedModel
+
+    class Target1(EmbeddedModel):
+        number = models.IntegerField()
+
+    class Target2(EmbeddedModel):
+        number = models.DecimalField(max_digits=4, decimal_places=2)
+
+    class Example(models.Model):
+        target = PolymorphicEmbeddedModelField([Target1, Target2])
+
+In this case, it will be impossible to query the ``number`` field properly
+since Django won't know whether to prepare the lookup value as an integer or as
+a decimal. This backend iterates through ``embedded_models`` and uses the first
+field it finds, ``Target1.number`` in this case.
+
+Similarly, querying into nested embedded model fields with the same name isn't
+well supported: the first model in ``embedded_models`` is the one that will be
+used for nested lookups.

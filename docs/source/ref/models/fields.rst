@@ -313,3 +313,33 @@ These indexes use 0-based indexing.
 .. class:: ObjectIdField
 
     Stores an :class:`~bson.objectid.ObjectId`.
+
+``PolymorphicEmbeddedModelField``
+---------------------------------
+
+.. class:: PolymorphicEmbeddedModelField(embedded_models, **kwargs)
+
+    .. versionadded:: 5.2.0b2
+
+    Stores a model of one of the types in ``embedded_models``.
+
+    .. attribute:: embedded_models
+
+        This is a required argument that specifies a list of model classes
+        that may be embedded.
+
+        Each model class reference works just like
+        :attr:`.EmbeddedModelField.embedded_model`.
+
+    See :ref:`the embedded model topic guide
+    <polymorphic-embedded-model-field-example>` for more details and examples.
+
+.. admonition:: Migrations support is limited
+
+    :djadmin:`makemigrations` does not yet detect changes to embedded models,
+    nor does it create indexes or constraints for embedded models referenced
+    by ``PolymorphicEmbeddedModelField``.
+
+.. admonition:: Forms are not supported
+
+    ``PolymorphicEmbeddedModelField``\s don't appear in model forms.

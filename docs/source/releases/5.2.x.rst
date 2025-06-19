@@ -14,6 +14,8 @@ New features
 - Added the ``options`` parameter to
   :func:`~django_mongodb_backend.utils.parse_uri`.
 - Added support for :ref:`database transactions <transactions>`.
+- Added :class:`~.fields.PolymorphicEmbeddedModelField` for storing a model
+  instance that may be of more than one model class.
 
 5.2.0 beta 1
 ============

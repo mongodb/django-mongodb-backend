@@ -5,6 +5,7 @@ from .embedded_model import EmbeddedModelField
 from .embedded_model_array import EmbeddedModelArrayField
 from .json import register_json_field
 from .objectid import ObjectIdField
+from .polymorphic_embedded_model import PolymorphicEmbeddedModelField
 
 __all__ = [
     "register_fields",
@@ -13,6 +14,7 @@ __all__ = [
     "EmbeddedModelField",
     "ObjectIdAutoField",
     "ObjectIdField",
+    "PolymorphicEmbeddedModelField",
 ]
 
 
