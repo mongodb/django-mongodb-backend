@@ -22,4 +22,4 @@ cp ./.github/workflows/mongodb_settings.py django_repo/tests/
 cp ./.github/workflows/runtests.py django_repo/tests/runtests_.py
 
 # Run tests
-python django_repo/tests/runtests_.py
+python django_repo/tests/runtests.py --settings mongodb_settings -v 2
