@@ -17,7 +17,7 @@ from django.db.models.sql.datastructures import BaseTable
 from django.utils.functional import cached_property
 from pymongo import ASCENDING, DESCENDING
 
-from .functions import SearchScore
+from .functions import SearchExpression
 from .query import MongoQuery, wrap_database_errors
 
 
@@ -115,31 +115,31 @@ class SQLCompiler(compiler.SQLCompiler):
         for sub_expr in self._get_search_expressions(expression):
             alias = f"__search_expr.search{next(search_idx)}"
             replacements[sub_expr] = self._get_replace_expr(sub_expr, searches, alias)
-        return replacements, searches
+        return replacements, list(searches.values())
 
     def _prepare_search_query_for_aggregation_pipeline(self, order_by):
         replacements = {}
-        searches = {}
-        search_idx = itertools.count(start=1)
+        searches = []
+        annotation_group_idx = itertools.count(start=1)
         for target, expr in self.query.annotation_select.items():
             new_replacements, expr_searches = self._prepare_search_expressions_for_pipeline(
-                expr, target, search_idx
+                expr, target, annotation_group_idx
             )
             replacements.update(new_replacements)
-            searches.update(expr_searches)
+            searches += expr_searches
 
         for expr, _ in order_by:
             new_replacements, expr_searches = self._prepare_search_expressions_for_pipeline(
-                expr, None, search_idx
+                expr, None, annotation_group_idx
             )
             replacements.update(new_replacements)
-            searches.update(expr_searches)
+            searches += expr_searches
 
         having_replacements, having_group = self._prepare_search_expressions_for_pipeline(
-            self.having, None, search_idx
+            self.having, None, annotation_group_idx
         )
         replacements.update(having_replacements)
-        searches.update(having_group)
+        searches += having_group
         return searches, replacements
 
     def _prepare_annotations_for_aggregation_pipeline(self, order_by):
@@ -249,6 +249,13 @@ class SQLCompiler(compiler.SQLCompiler):
                 pipeline.append({"$unset": "_id"})
         return pipeline
 
+    def _compound_searches_queries(self, searches):
+        if not searches:
+            return []
+        if len(searches) > 1:
+            raise ValueError("Cannot perform more than one search operation.")
+        return [searches[0], {"$addFields": {"__search_expr.search1": {"$meta": "searchScore"}}}]
+
     def pre_sql_setup(self, with_col_aliases=False):
         extra_select, order_by, group_by = super().pre_sql_setup(with_col_aliases=with_col_aliases)
         searches, search_replacements = self._prepare_search_query_for_aggregation_pipeline(
@@ -256,7 +263,7 @@ class SQLCompiler(compiler.SQLCompiler):
         )
         group, group_replacements = self._prepare_annotations_for_aggregation_pipeline(order_by)
         all_replacements = {**search_replacements, **group_replacements}
-        self.search_pipeline = searches
+        self.search_pipeline = self._compound_searches_queries(searches)
         # query.group_by is either:
         # - None: no GROUP BY
         # - True: group by select fields
@@ -607,7 +614,7 @@ class SQLCompiler(compiler.SQLCompiler):
         return self._get_all_expressions_of_type(expr, Aggregate)
 
     def _get_search_expressions(self, expr):
-        return self._get_all_expressions_of_type(expr, SearchScore)
+        return self._get_all_expressions_of_type(expr, SearchExpression)
 
     def _get_all_expressions_of_type(self, expr, target_type):
         stack = [expr]
