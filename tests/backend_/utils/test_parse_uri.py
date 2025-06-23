@@ -4,7 +4,7 @@ import pymongo
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 
-from django_mongodb_backend import parse_uri
+from django_mongodb_backend import get_auto_encryption_opts, parse_uri
 
 
 class ParseURITests(SimpleTestCase):
@@ -94,3 +94,13 @@ class ParseURITests(SimpleTestCase):
     def test_no_scheme(self):
         with self.assertRaisesMessage(pymongo.errors.InvalidURI, "Invalid URI scheme"):
             parse_uri("cluster0.example.mongodb.net")
+
+    def test_options(self):
+        settings_dict = parse_uri(
+            "mongodb://cluster0.example.mongodb.net/myDatabase",
+            options={"auto_encryption_opts": get_auto_encryption_opts()},
+        )
+        self.assertIsInstance(
+            settings_dict["OPTIONS"]["auto_encryption_opts"],
+            pymongo.encryption_options.AutoEncryptionOpts,
+        )
