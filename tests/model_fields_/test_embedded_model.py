@@ -50,6 +50,16 @@ class MethodTests(SimpleTestCase):
         with self.assertRaisesMessage(ValidationError, msg):
             obj.full_clean()
 
+    def test_validate_wrong_model_type(self):
+        obj = Holder(data=Library())
+        msg = (
+            "{'data': [\"Expected instance of type "
+            "<class 'model_fields_.models.Data'>, not "
+            "<class 'model_fields_.models.Library'>.\"]}"
+        )
+        with self.assertRaisesMessage(ValidationError, msg):
+            obj.full_clean()
+
 
 class ModelTests(TestCase):
     def test_save_load(self):

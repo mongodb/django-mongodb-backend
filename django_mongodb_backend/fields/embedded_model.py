@@ -1,7 +1,7 @@
 import difflib
 
 from django.core import checks
-from django.core.exceptions import FieldDoesNotExist
+from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import models
 from django.db.models.fields.related import lazy_related_operation
 from django.db.models.lookups import Transform
@@ -134,6 +134,11 @@ class EmbeddedModelField(models.Field):
 
     def validate(self, value, model_instance):
         super().validate(value, model_instance)
+        if not isinstance(value, self.embedded_model):
+            raise ValidationError(
+                f"Expected instance of type {self.embedded_model!r}, not {type(value)!r}."
+            )
+
         for field in self.embedded_model._meta.fields:
             attname = field.attname
             field.validate(getattr(value, attname), model_instance)
