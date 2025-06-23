@@ -134,8 +134,6 @@ class EmbeddedModelField(models.Field):
 
     def validate(self, value, model_instance):
         super().validate(value, model_instance)
-        if self.embedded_model is None:
-            return
         for field in self.embedded_model._meta.fields:
             attname = field.attname
             field.validate(getattr(value, attname), model_instance)
