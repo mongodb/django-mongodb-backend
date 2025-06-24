@@ -67,11 +67,13 @@ def get_customer_master_key():
 
 def get_kms_providers():
     """
-    Return the KMS providers for the MongoDB client.
+    Return supported KMS providers for MongoDB Client-Side Field Level Encryption.
     """
-    if not settings.KMS_PROVIDERS:
-        raise ImproperlyConfigured("You must set KMS_PROVIDERS in your Django settings.")
-    return settings.KMS_PROVIDERS
+    return {
+        "local": {
+            "key": get_customer_master_key(),
+        },
+    }
 
 
 def parse_uri(uri, *, db_name=None, test=None, options=None):
