@@ -82,6 +82,17 @@ class ParseURITests(SimpleTestCase):
         self.assertEqual(settings_dict["NAME"], "db")
         self.assertEqual(settings_dict["OPTIONS"], {"authSource": "auth"})
 
+    def test_options_kwarg(self):
+        options = {"authSource": "auth", "retryWrites": True}
+        settings_dict = parse_uri(
+            "mongodb://cluster0.example.mongodb.net/myDatabase?retryWrites=false&retryReads=true",
+            options=options,
+        )
+        self.assertEqual(
+            settings_dict["OPTIONS"],
+            {"authSource": "auth", "retryWrites": True, "retryReads": True},
+        )
+
     def test_test_kwarg(self):
         settings_dict = parse_uri("mongodb://localhost/db", test={"NAME": "test_db"})
         self.assertEqual(settings_dict["TEST"], {"NAME": "test_db"})

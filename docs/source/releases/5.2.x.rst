@@ -11,6 +11,8 @@ New features
 ------------
 
 - Added subquery support for :class:`~.fields.EmbeddedModelArrayField`.
+- Added the ``options`` parameter to
+  :func:`~django_mongodb_backend.utils.parse_uri`.
 
 5.2.0 beta 1
 ============
