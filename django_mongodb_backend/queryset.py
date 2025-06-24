@@ -35,7 +35,7 @@ class RawQuery(BaseRawQuery):
     def _execute_query(self):
         connection = connections[self.using]
         collection = connection.get_collection(self.model._meta.db_table)
-        self.cursor = collection.aggregate(self.pipeline)
+        self.cursor = collection.aggregate(self.pipeline, session=connection.session)
 
     def __str__(self):
         return str(self.pipeline)

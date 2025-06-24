@@ -45,6 +45,7 @@ intersphinx_mapping = {
     "pymongo": ("https://pymongo.readthedocs.io/en/stable/", None),
     "python": ("https://docs.python.org/3/", None),
     "atlas": ("https://www.mongodb.com/docs/atlas/", None),
+    "manual": ("https://www.mongodb.com/docs/manual/", None),
 }
 
 root_doc = "contents"

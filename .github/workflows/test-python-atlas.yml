@@ -53,4 +53,4 @@ jobs:
         working-directory: .
         run: bash .github/workflows/start_local_atlas.sh mongodb/mongodb-atlas-local:7
       - name: Run tests
-        run: python3 django_repo/tests/runtests_.py
+        run: python3 django_repo/tests/runtests.py --settings mongodb_settings -v 2
