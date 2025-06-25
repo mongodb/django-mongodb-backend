@@ -34,7 +34,8 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-docs = [ "sphinx>=7"]
+docs = ["sphinx>=7"]
+encryption = ["pymongo[encryption]"]
 
 [project.urls]
 Homepage = "https://www.mongodb.org"

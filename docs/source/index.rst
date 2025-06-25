@@ -50,6 +50,7 @@ Models
 **Topic guides:**
 
 - :doc:`topics/embedded-models`
+- :doc:`topics/queryable-encryption`
 - :doc:`topics/transactions`
 
 Forms
