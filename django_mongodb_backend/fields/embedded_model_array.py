@@ -13,6 +13,8 @@ from .array import ArrayField, ArrayLenTransform
 
 
 class EmbeddedModelArrayField(ArrayField):
+    value_is_model_instance = True
+
     def __init__(self, embedded_model, **kwargs):
         if "size" in kwargs:
             raise ValueError("EmbeddedModelArrayField does not support size.")
