@@ -118,6 +118,7 @@ class OperationDebugWrapper:
         "create_indexes",
         "create_search_index",
         "drop",
+        "find_one",
         "index_information",
         "insert_many",
         "delete_many",
@@ -193,3 +194,23 @@ class OperationCollector(OperationDebugWrapper):
             self.log(method, args, kwargs)
 
         return wrapper
+
+
+def model_has_encrypted_fields(model):
+    """
+    Recursively check if this model or any embedded models contain encrypted fields.
+    Returns True if encryption is found anywhere in the hierarchy.
+    """
+    from django_mongodb_backend.fields import EmbeddedModelField  # noqa: PLC0415
+
+    for field in model._meta.fields:
+        if getattr(field, "encrypted", False):
+            return True
+
+        # Recursively check embedded models.
+        if isinstance(field, EmbeddedModelField) and model_has_encrypted_fields(
+            field.embedded_model
+        ):
+            return True
+
+    return False
