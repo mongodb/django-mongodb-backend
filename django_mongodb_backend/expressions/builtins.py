@@ -25,7 +25,7 @@ from django.db.models.expressions import (
 )
 from django.db.models.sql import Query
 
-from .query_utils import process_lhs
+from ..query_utils import process_lhs
 
 
 def case(self, compiler, connection):
