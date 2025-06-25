@@ -8,7 +8,7 @@ check_django_compatability()
 
 from .aggregates import register_aggregates  # noqa: E402
 from .checks import register_checks  # noqa: E402
-from .expressions import register_expressions  # noqa: E402
+from .expressions.builtins import register_expressions  # noqa: E402
 from .fields import register_fields  # noqa: E402
 from .functions import register_functions  # noqa: E402
 from .indexes import register_indexes  # noqa: E402
