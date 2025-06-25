@@ -1,13 +1,17 @@
 from time import monotonic, sleep
 
+from django.core.exceptions import ImproperlyConfigured
+from django.db import router
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
+from pymongo.encryption import ClientEncryption
 from pymongo.operations import SearchIndexModel
 
 from django_mongodb_backend.indexes import SearchIndex
 
 from .fields import EmbeddedModelField
 from .gis.schema import GISSchemaEditor
+from .model_utils import model_has_encrypted_fields
 from .query import wrap_database_errors
 from .utils import OperationCollector
 
@@ -44,7 +48,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
     @wrap_database_errors
     @ignore_embedded_models
     def create_model(self, model):
-        self.get_database().create_collection(model._meta.db_table)
+        self._create_collection(model)
         self._create_model_indexes(model)
         # Make implicit M2M tables.
         for field in model._meta.local_many_to_many:
@@ -451,6 +455,81 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                 return True
             sleep(interval)
         raise TimeoutError(f"Index {index_name} not dropped after {timeout} seconds.")
+
+    def _create_collection(self, model):
+        """
+        Create a collection for the model with the encrypted fields. If
+        provided, use the `_encrypted_fields_map` in the client's
+        `auto_encryption_opts`. Otherwise, create the encrypted fields map
+        with `_get_encrypted_fields_map`.
+        """
+        db = self.get_database()
+        db_table = model._meta.db_table
+        if model_has_encrypted_fields(model):
+            client = self.connection.connection
+            auto_encryption_opts = getattr(client._options, "auto_encryption_opts", None)
+            if not auto_encryption_opts:
+                raise ImproperlyConfigured(
+                    f"Encrypted fields found but DATABASES['{self.connection.alias}']['OPTIONS'] "
+                    "is missing auto_encryption_opts."
+                )
+            encrypted_fields_map = getattr(auto_encryption_opts, "_encrypted_fields_map", None)
+            if not encrypted_fields_map:
+                encrypted_fields_map = self._get_encrypted_fields_map(
+                    model, client, create_data_keys=True
+                )
+            else:
+                # If the encrypted fields map is provided, get the map for the
+                # specific collection.
+                encrypted_fields_map = encrypted_fields_map.get(db_table)
+            db.create_collection(db_table, encryptedFields=encrypted_fields_map)
+        else:
+            db.create_collection(db_table)
+
+    def _get_encrypted_fields_map(self, model, client, create_data_keys=False):
+        connection = self.connection
+        fields = model._meta.fields
+        options = client._options
+        auto_encryption_opts = options.auto_encryption_opts
+        kms_provider = router.kms_provider(model)
+        master_key = self.connection.settings_dict.get("KMS_CREDENTIALS", {}).get(kms_provider)
+        client_encryption = ClientEncryption(
+            auto_encryption_opts._kms_providers,
+            auto_encryption_opts._key_vault_namespace,
+            client,
+            client.codec_options,
+        )
+        key_vault_db, key_vault_coll = auto_encryption_opts._key_vault_namespace.split(".", 1)
+        key_vault_collection = client[key_vault_db][key_vault_coll]
+        db_table = model._meta.db_table
+        field_list = []
+        for field in fields:
+            if getattr(field, "encrypted", False):
+                key_alt_name = f"{db_table}_{field.column}"
+                if create_data_keys:
+                    data_key = client_encryption.create_data_key(
+                        kms_provider=kms_provider,
+                        master_key=master_key,
+                        key_alt_names=[key_alt_name],
+                    )
+                else:
+                    key_doc = key_vault_collection.find_one({"keyAltNames": key_alt_name})
+                    if not key_doc:
+                        raise ValueError(
+                            f"No key found in keyvault for keyAltName={key_alt_name}. "
+                            "You may need to run the management command with "
+                            "'--create-data-keys' to create missing keys."
+                        )
+                    data_key = key_doc["_id"]
+                field_dict = {
+                    "bsonType": field.db_type(connection),
+                    "path": field.column,
+                    "keyId": data_key,
+                }
+                if field.queries:
+                    field_dict["queries"] = field.queries
+                field_list.append(field_dict)
+        return {"fields": field_list}
 
 
 # GISSchemaEditor extends some SchemaEditor methods.

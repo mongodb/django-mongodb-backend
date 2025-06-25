@@ -46,10 +46,12 @@ Models
 - :doc:`ref/database`
 - :doc:`ref/contrib/gis`
 - :doc:`ref/django-admin`
+- :doc:`ref/models/encrypted-fields`
 
 **Topic guides:**
 
 - :doc:`topics/embedded-models`
+- :doc:`topics/queryable-encryption`
 - :doc:`topics/transactions`
 
 Forms
