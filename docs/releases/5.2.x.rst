@@ -124,6 +124,7 @@ New features
   :class:`~.fields.PolymorphicEmbeddedModelArrayField` for storing a model
   instance or list of model instances that may be of more than one model class.
 - Added :doc:`GeoDjango support </ref/contrib/gis>`.
+- Added :doc:`Queryable Encryption support </topics/queryable-encryption>`.
 
 Backwards incompatible changes
 ------------------------------
