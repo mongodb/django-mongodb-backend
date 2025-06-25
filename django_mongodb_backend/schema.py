@@ -1,10 +1,13 @@
+import contextlib
+
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
+from pymongo.encryption import EncryptedCollectionError
 from pymongo.operations import SearchIndexModel
 
-from django_mongodb_backend.indexes import SearchIndex
-
+from .encryption import get_encrypted_client
 from .fields import EmbeddedModelField
+from .indexes import SearchIndex
 from .query import wrap_database_errors
 from .utils import OperationCollector
 
@@ -41,7 +44,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     @wrap_database_errors
     @ignore_embedded_models
     def create_model(self, model):
-        self.get_database().create_collection(model._meta.db_table)
+        self._create_collection(model)
         self._create_model_indexes(model)
         # Make implicit M2M tables.
         for field in model._meta.local_many_to_many:
@@ -418,3 +421,45 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         db_type = field.db_type(self.connection)
         # The _id column is automatically unique.
         return db_type and field.unique and field.column != "_id"
+
+    def _supports_encryption(self, model):
+        """
+        Check for `supports_encryption` feature and `auto_encryption_opts`
+        and `embedded_fields_map`. If `supports_encryption` is True and
+        `auto_encryption_opts` is in the cached connection settings and
+        the model has an embedded_fields_map property, then encryption
+        is supported.
+        """
+        return (
+            self.connection.features.supports_encryption
+            and self.connection._settings_dict.get("OPTIONS", {}).get("auto_encryption_opts")
+            and hasattr(model, "encrypted_fields_map")
+        )
+
+    def _create_collection(self, model):
+        """
+        Create a collection or, if encryption is supported, create
+        an encrypted connection then use it to create an encrypted
+        client then use that to create an encrypted collection.
+        """
+
+        if self._supports_encryption(model):
+            auto_encryption_opts = self.connection._settings_dict.get("OPTIONS", {}).get(
+                "auto_encryption_opts"
+            )
+            # Use the cached settings dict to create a new connection
+            encrypted_connection = self.connection.get_new_connection(
+                self.connection._settings_dict
+            )
+            # Use the encrypted connection and auto_encryption_opts to create an encrypted client
+            encrypted_client = get_encrypted_client(auto_encryption_opts, encrypted_connection)
+
+            with contextlib.suppress(EncryptedCollectionError):
+                encrypted_client.create_encrypted_collection(
+                    encrypted_connection[self.connection.database.name],
+                    model._meta.db_table,
+                    model.encrypted_fields_map,
+                    "local",  # TODO: KMS provider should be configurable
+                )
+        else:
+            self.get_database().create_collection(model._meta.db_table)
