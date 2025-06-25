@@ -111,7 +111,7 @@ class RawAggregateTests(TestCase):
                 self.assertEqual(getattr(result, annotation), value)
 
     def test_rawqueryset_repr(self):
-        queryset = RawQuerySet(pipeline=[])
+        queryset = RawQuerySet(pipeline=[], model=Book)
         self.assertEqual(repr(queryset), "<RawQuerySet: []>")
         self.assertEqual(repr(queryset.query), "<RawQuery: []>")
 

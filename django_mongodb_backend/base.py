@@ -11,6 +11,7 @@ from django.utils.asyncio import async_unsafe
 from django.utils.functional import cached_property
 from pymongo.collection import Collection
 from pymongo.driver_info import DriverInfo
+from pymongo.encryption import ClientEncryption
 from pymongo.mongo_client import MongoClient
 from pymongo.uri_parser import parse_uri
 
@@ -381,3 +382,55 @@ class DatabaseWrapper(BaseDatabaseWrapper):
                     )
             else:
                 func()
+
+    ## Queryable Encryption properties
+    @cached_property
+    def auto_encryption_opts(self):
+        return self.connection._options.auto_encryption_opts
+
+    @cached_property
+    def client_encryption(self):
+        if auto_encryption_opts := self.auto_encryption_opts:
+            return ClientEncryption(
+                auto_encryption_opts._kms_providers,
+                auto_encryption_opts._key_vault_namespace,
+                self.connection,
+                self.connection.codec_options,
+            )
+        return None
+
+    @cached_property
+    def key_vault(self):
+        # The key vault collection.
+        _, key_vault_collection = self.auto_encryption_opts._key_vault_namespace.split(".", 1)
+        return self.get_collection(key_vault_collection)
+
+    @cached_property
+    def kms_provider(self):
+        # The KMS provider.
+        kms_providers = self.auto_encryption_opts._kms_providers
+        if len(kms_providers) == 1:
+            return next(iter(kms_providers.keys()))
+        # Multiple providers are configured since AutoEncryptionOpts requires
+        # at least one.
+        raise ImproperlyConfigured(
+            "Multiple KMS providers per database aren't supported. Please "
+            "create a feature request with details about your use case."
+        )
+
+    @cached_property
+    def kms_credentials(self):
+        # The KMS credentials (also called "master key"). N/A for local KMS.
+        kms_provider = self.kms_provider
+        if kms_provider == "local":
+            return None
+        if "KMS_CREDENTIALS" not in self.settings_dict:
+            raise ImproperlyConfigured(
+                f"DATABASES['{self.alias}'] is missing 'KMS_CREDENTIALS' "
+                f"required for KMS '{kms_provider}'."
+            )
+        if kms_provider not in self.settings_dict["KMS_CREDENTIALS"]:
+            raise ImproperlyConfigured(
+                f"DATABASES['{self.alias}']['KMS_CREDENTIALS'] is missing '{kms_provider}' key."
+            )
+        return self.settings_dict["KMS_CREDENTIALS"][kms_provider]

@@ -4,6 +4,8 @@ from django.db.models.lookups import (
     BuiltinLookup,
     FieldGetDbPrepValueIterableMixin,
     IsNull,
+    LessThan,
+    LessThanOrEqual,
     Lookup,
     PatternLookup,
     UUIDTextMixin,
@@ -88,6 +90,26 @@ def is_null_path(self, compiler, connection):
     return connection.mongo_operators["isnull"](lhs_mql, self.rhs)
 
 
+def less_than_path(self, compiler, connection):
+    lhs_mql = process_lhs(self, compiler, connection)
+    value = process_rhs(self, compiler, connection)
+    # Encrypted fields don't support null and Automatic Encryption cannot
+    # handle it ("csfle "analyze_query" failed: typenull type isn't supported
+    # for the range encrypted index.), so omit the null check.
+    if getattr(self.lhs.output_field, "encrypted", False):
+        return {lhs_mql: {"$lt": value}}
+    return connection.mongo_operators[self.lookup_name](lhs_mql, value)
+
+
+def less_than_or_equal_path(self, compiler, connection):
+    lhs_mql = process_lhs(self, compiler, connection)
+    value = process_rhs(self, compiler, connection)
+    # Same comment as less_than_path().
+    if getattr(self.lhs.output_field, "encrypted", False):
+        return {lhs_mql: {"$lte": value}}
+    return connection.mongo_operators[self.lookup_name](lhs_mql, value)
+
+
 # from https://www.pcre.org/current/doc/html/pcre2pattern.html#SEC4
 REGEX_MATCH_ESCAPE_CHARS = (
     ("\\", r"\\"),  # general escape character
@@ -144,6 +166,8 @@ def register_lookups():
     In.get_subquery_wrapping_pipeline = get_subquery_wrapping_pipeline
     IsNull.as_mql_expr = is_null_expr
     IsNull.as_mql_path = is_null_path
+    LessThan.as_mql_path = less_than_path
+    LessThanOrEqual.as_mql_path = less_than_or_equal_path
     Lookup.can_use_path = lookup_can_use_path
     PatternLookup.prep_lookup_value_mongo = pattern_lookup_prep_lookup_value
     UUIDTextMixin.as_mql = uuid_text_mixin

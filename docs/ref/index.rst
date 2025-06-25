@@ -10,4 +10,5 @@ API reference
    contrib/index
    database
    django-admin
+   settings
    utils

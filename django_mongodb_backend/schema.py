@@ -1,5 +1,6 @@
 from time import monotonic, sleep
 
+from django.core.exceptions import ImproperlyConfigured
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
 from pymongo.operations import SearchIndexModel
@@ -9,7 +10,7 @@ from django_mongodb_backend.indexes import SearchIndex
 from .fields import EmbeddedModelField
 from .gis.schema import GISSchemaEditor
 from .query import wrap_database_errors
-from .utils import OperationCollector
+from .utils import OperationCollector, model_has_encrypted_fields
 
 
 def ignore_embedded_models(func):
@@ -44,7 +45,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
     @wrap_database_errors
     @ignore_embedded_models
     def create_model(self, model):
-        self.get_database().create_collection(model._meta.db_table)
+        self._create_collection(model)
         self._create_model_indexes(model)
         # Make implicit M2M tables.
         for field in model._meta.local_many_to_many:
@@ -451,6 +452,93 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                 return True
             sleep(interval)
         raise TimeoutError(f"Index {index_name} not dropped after {timeout} seconds.")
+
+    def _create_collection(self, model):
+        """Create a collection for the model."""
+        db = self.get_database()
+        db_table = model._meta.db_table
+        if model_has_encrypted_fields(model):
+            # Create an encrypted collection.
+            if not self.connection.auto_encryption_opts:
+                raise ImproperlyConfigured(
+                    f"Tried to create model {model._meta.label} in "
+                    f"'{self.connection.alias}' database. The model has "
+                    "encrypted fields but "
+                    f"DATABASES['{self.connection.alias}']['OPTIONS'] is "
+                    'missing the "auto_encryption_opts" parameter. If the '
+                    "model should not be created in this database, adjust "
+                    "your database routers."
+                )
+            # Create an index (if not present) to enforce unique keyAltNames.
+            self.connection.key_vault.create_index(
+                "keyAltNames",
+                unique=True,
+                partialFilterExpression={"keyAltNames": {"$exists": True}},
+            )
+            encrypted_fields = self._get_encrypted_fields(model)
+            db.create_collection(db_table, encryptedFields=encrypted_fields)
+        else:
+            db.create_collection(db_table)
+
+    def _get_encrypted_fields(
+        self, model, *, key_alt_name_prefix=None, path_prefix=None, create_data_keys=True
+    ):
+        """
+        Return the encrypted fields map for the given model. The "prefix"
+        arguments are used when this method is called recursively on embedded
+        models.
+        """
+        if create_data_keys:
+            # Initializing these cached properties does some validation of
+            # user-provided settings and may raise ImproperlyConfigured.
+            kms_provider = self.connection.kms_provider
+            kms_credentials = self.connection.kms_credentials
+        key_alt_name_prefix = key_alt_name_prefix or model._meta.db_table
+        path_prefix = path_prefix or ""
+        # Generate the encrypted fields map.
+        field_list = []
+        for field in model._meta.fields:
+            key_alt_name = f"{key_alt_name_prefix}.{field.column}"
+            path = f"{path_prefix}.{field.column}" if path_prefix else field.column
+            # Check non-encrypted EmbeddedModelFields for encrypted fields.
+            if isinstance(field, EmbeddedModelField) and not getattr(field, "encrypted", False):
+                embedded_fields = self._get_encrypted_fields(
+                    field.embedded_model,
+                    key_alt_name_prefix=key_alt_name,
+                    path_prefix=path,
+                    create_data_keys=create_data_keys,
+                )
+                # An EmbeddedModelField may not have any encrypted fields.
+                if embedded_fields:
+                    field_list.extend(embedded_fields["fields"])
+            # Populate data for encrypted field.
+            elif getattr(field, "encrypted", False):
+                if create_data_keys:
+                    # Create the field's encryption key.
+                    data_key = self.connection.client_encryption.create_data_key(
+                        kms_provider=kms_provider,
+                        key_alt_names=[key_alt_name],
+                        master_key=kms_credentials,
+                    )
+                else:
+                    # Retrieve the field's keyId from the vault.
+                    data_key = self.connection.key_vault.find_one({"keyAltNames": key_alt_name})
+                    if data_key:
+                        data_key = data_key["_id"]
+                    else:
+                        raise ImproperlyConfigured(
+                            f"Encryption key '{key_alt_name}' not found. Have "
+                            f"you migrated the {model._meta.label} model?"
+                        )
+                field_dict = {
+                    "bsonType": field.db_type(self.connection),
+                    "path": path,
+                    "keyId": data_key,
+                }
+                if queries := getattr(field, "queries", None):
+                    field_dict["queries"] = queries
+                field_list.append(field_dict)
+        return {"fields": field_list}
 
 
 # GISSchemaEditor extends some SchemaEditor methods.

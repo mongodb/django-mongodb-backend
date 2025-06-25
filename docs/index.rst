@@ -57,6 +57,15 @@ Forms
 
 - :doc:`ref/forms`
 
+MongoDB Features
+================
+
+- **Queryable Encryption:**
+  :doc:`How-to guide </howto/queryable-encryption>` |
+  :doc:`/ref/models/encrypted-fields/`
+- **Settings:**
+  :doc:`Django MongoDB Backend-specific settings </ref/settings>`
+
 Miscellaneous
 =============
 

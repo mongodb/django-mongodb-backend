@@ -12,8 +12,10 @@ from django_mongodb_backend.fields import EmbeddedModelField
 from django_mongodb_backend.fields.array import ArrayField, ArrayLenTransform
 from django_mongodb_backend.query_utils import process_lhs, process_rhs
 
+from .mixins import NoEncryptedEmbeddedFieldsMixin
 
-class EmbeddedModelArrayField(ArrayField):
+
+class EmbeddedModelArrayField(NoEncryptedEmbeddedFieldsMixin, ArrayField):
     def __init__(self, embedded_model, **kwargs):
         if "size" in kwargs:
             raise ValueError("EmbeddedModelArrayField does not support size.")
