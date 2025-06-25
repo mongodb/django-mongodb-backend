@@ -45,6 +45,7 @@ Models
 **Topic guides:**
 
 - :doc:`topics/embedded-models`
+- :doc:`topics/queryable-encryption`
 
 Forms
 =====

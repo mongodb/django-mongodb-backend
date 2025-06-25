@@ -379,3 +379,79 @@ These indexes use 0-based indexing.
 .. admonition:: Forms are not supported
 
     ``PolymorphicEmbeddedModelArrayField``\s don't appear in model forms.
+
+.. _encrypted-fields:
+
+Encrypted fields
+----------------
+
+Encrypted fields are used to store sensitive data with MongoDB's Queryable
+Encryption feature. They are subclasses of Django's built-in fields, and
+they encrypt the data before storing it in the database.
+
++----------------------------------------+------------------------------------------------------+
+| Encrypted Field                        | Django Field                                         |
++========================================+======================================================+
+| ``EncryptedBigIntegerField``           | :class:`~django.db.models.BigIntegerField`           |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedBooleanField``              | :class:`~django.db.models.BooleanField`              |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedCharField``                 | :class:`~django.db.models.CharField`                 |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedDateField``                 | :class:`~django.db.models.DateField`                 |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedDateTimeField``             | :class:`~django.db.models.DateTimeField`             |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedDecimalField``              | :class:`~django.db.models.DecimalField`              |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedFloatField``                | :class:`~django.db.models.FloatField`                |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedGenericIPAddressField``     | :class:`~django.db.models.GenericIPAddressField`     |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedIntegerField``              | :class:`~django.db.models.IntegerField`              |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedPositiveBigIntegerField``   | :class:`~django.db.models.PositiveBigIntegerField`   |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedPositiveIntegerField``      | :class:`~django.db.models.PositiveIntegerField`      |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedPositiveSmallIntegerField`` | :class:`~django.db.models.PositiveSmallIntegerField` |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedSmallIntegerField``         | :class:`~django.db.models.SmallIntegerField`         |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedTextField``                 | :class:`~django.db.models.TextField`                 |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedTimeField``                 | :class:`~django.db.models.TimeField`                 |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedURLField``                  | :class:`~django.db.models.URLField`                  |
++----------------------------------------+------------------------------------------------------+
+
+.. _encrypted-fields-unsupported-fields:
+
+.. admonition:: Unsupported fields
+
+    The following fields are supported by Django MongoDB Backend but are not supported by
+    Queryable Encryption.
+
+    :class:`~django.db.models.SlugField`
+
+EncryptedFieldMixin
+-------------------
+
+You can use the ``EncryptedFieldMixin`` to create your own encrypted fields. This mixin
+supports the use of a ``queries`` argument in the field definition to specify query type
+for the field::
+
+    from django.db import models
+    from django_mongodb_backend.fields import EncryptedFieldMixin
+    from .models import MyField
+
+
+    class MyEncryptedField(EncryptedFieldMixin, MyField):
+        pass
+
+
+    class MyModel(models.Model):
+        my_encrypted_field = MyEncryptedField(
+            queries={"queryType": "equality"},
+            # Other field options...
+        )
