@@ -589,8 +589,20 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         return skips
 
     @cached_property
+    def mongodb_version(self):
+        return self.connection.get_database_version()  # e.g., (6, 3, 0)
+
+    @cached_property
     def is_mongodb_6_3(self):
-        return self.connection.get_database_version() >= (6, 3)
+        return self.mongodb_version >= (6, 3)
+
+    @cached_property
+    def is_mongodb_7_0(self):
+        return self.mongodb_version >= (7, 0)
+
+    @cached_property
+    def is_mongodb_8_0(self):
+        return self.mongodb_version >= (8, 0)
 
     @cached_property
     def supports_atlas_search(self):
@@ -620,3 +632,18 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         hello = client.command("hello")
         # a replica set or a sharded cluster
         return "setName" in hello or hello.get("msg") == "isdbgrid"
+
+    @cached_property
+    def supports_queryable_encryption(self):
+        """
+        Queryable Encryption requires a MongoDB 8.0 or later replica set or sharded
+        cluster, as well as MongoDB Atlas or Enterprise.
+        """
+        self.connection.ensure_connection()
+        build_info = self.connection.connection.admin.command("buildInfo")
+        is_enterprise = "enterprise" in build_info.get("modules")
+        return (
+            (is_enterprise or self.supports_atlas_search)
+            and self._supports_transactions
+            and self.is_mongodb_8_0
+        )

@@ -11,6 +11,7 @@ from django.utils.asyncio import async_unsafe
 from django.utils.functional import cached_property
 from pymongo.collection import Collection
 from pymongo.driver_info import DriverInfo
+from pymongo.encryption import ClientEncryption
 from pymongo.mongo_client import MongoClient
 from pymongo.uri_parser import parse_uri
 
@@ -242,6 +243,16 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         return self.database
 
     @cached_property
+    def client_encryption(self):
+        auto_encryption_opts = self.connection._options.auto_encryption_opts
+        return ClientEncryption(
+            auto_encryption_opts._kms_providers,
+            auto_encryption_opts._key_vault_namespace,
+            self.connection,
+            self.connection.codec_options,
+        )
+
+    @cached_property
     def database(self):
         """Connect to the database the first time it's accessed."""
         if self.connection is None:
@@ -325,7 +336,11 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def get_database_version(self):
         """Return a tuple of the database's version."""
-        return tuple(self.connection.server_info()["versionArray"])
+        # TODO: Remove this workaround and replace with
+        # `tuple(self.connection.server_info()["versionArray"])` when the minimum
+        # supported version of pymongocrypt is >= 1.14.2 and PYTHON-5429 is resolved.
+        # See: https://jira.mongodb.org/browse/PYTHON-5429
+        return tuple(self.connection.admin.command("buildInfo")["versionArray"])
 
     ## Transaction API for django_mongodb_backend.transaction.atomic()
     @async_unsafe

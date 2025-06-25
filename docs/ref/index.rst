@@ -9,5 +9,7 @@ API reference
    forms
    contrib/index
    database
+   models/encrypted-fields
    django-admin
    utils
+   settings

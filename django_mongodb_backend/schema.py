@@ -1,5 +1,7 @@
 from time import monotonic, sleep
 
+from django.core.exceptions import ImproperlyConfigured
+from django.db import router
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
 from pymongo.operations import SearchIndexModel
@@ -9,7 +11,7 @@ from django_mongodb_backend.indexes import SearchIndex
 from .fields import EmbeddedModelField
 from .gis.schema import GISSchemaEditor
 from .query import wrap_database_errors
-from .utils import OperationCollector
+from .utils import OperationCollector, model_has_encrypted_fields
 
 
 def ignore_embedded_models(func):
@@ -44,7 +46,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
     @wrap_database_errors
     @ignore_embedded_models
     def create_model(self, model):
-        self.get_database().create_collection(model._meta.db_table)
+        self._create_collection(model)
         self._create_model_indexes(model)
         # Make implicit M2M tables.
         for field in model._meta.local_many_to_many:
@@ -451,6 +453,94 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                 return True
             sleep(interval)
         raise TimeoutError(f"Index {index_name} not dropped after {timeout} seconds.")
+
+    def _create_collection(self, model):
+        """
+        Create a collection for the model.
+        If the model has encrypted fields, build (or retrieve) the encrypted_fields schema.
+        """
+        db = self.get_database()
+        db_table = model._meta.db_table
+
+        if model_has_encrypted_fields(model):
+            # Encrypted path
+            client = self.connection.connection
+            auto_encryption_opts = getattr(client._options, "auto_encryption_opts", None)
+            if not auto_encryption_opts:
+                raise ImproperlyConfigured(
+                    f"Encrypted fields found but DATABASES['{self.connection.alias}']['OPTIONS'] "
+                    "is missing auto_encryption_opts."
+                )
+            encrypted_fields = self._get_encrypted_fields(model)
+            db.create_collection(db_table, encryptedFields=encrypted_fields)
+        else:
+            # Unencrypted path
+            db.create_collection(db_table)
+
+    def _get_encrypted_fields(self, model, key_alt_name=None, path_prefix=None):
+        """
+        Recursively collect encryption schema data for only encrypted fields in a model.
+        Returns None if no encrypted fields are found anywhere in the model hierarchy.
+        """
+        connection = self.connection
+        client = connection.connection
+        fields = model._meta.fields
+        key_alt_name = key_alt_name or model._meta.db_table
+        path_prefix = path_prefix or ""
+
+        options = client._options
+        auto_encryption_opts = options.auto_encryption_opts
+
+        key_vault_db, key_vault_coll = auto_encryption_opts._key_vault_namespace.split(".", 1)
+        key_vault_collection = client[key_vault_db][key_vault_coll]
+
+        # Create partial unique index on keyAltNames
+        key_vault_collection.create_index(
+            "keyAltNames", unique=True, partialFilterExpression={"keyAltNames": {"$exists": True}}
+        )
+
+        kms_provider = router.kms_provider(model)
+        master_key = connection.settings_dict.get("KMS_CREDENTIALS", {}).get(kms_provider)
+        client_encryption = self.connection.client_encryption
+
+        field_list = []
+
+        for field in fields:
+            new_key_alt_name = f"{key_alt_name}.{field.column}"
+            path = f"{path_prefix}.{field.column}" if path_prefix else field.column
+
+            if isinstance(field, EmbeddedModelField) and not getattr(field, "encrypted", False):
+                embedded_result = self._get_encrypted_fields(
+                    field.embedded_model,
+                    key_alt_name=new_key_alt_name,
+                    path_prefix=path,
+                )
+                if embedded_result:
+                    field_list.extend(embedded_result["fields"])
+                continue
+
+            if getattr(field, "encrypted", False):
+                bson_type = field.db_type(connection)
+                data_key = key_vault_collection.find_one({"keyAltNames": new_key_alt_name})
+                if data_key:
+                    data_key = data_key["_id"]
+                else:
+                    data_key = client_encryption.create_data_key(
+                        kms_provider=kms_provider,
+                        master_key=master_key,
+                        key_alt_names=[new_key_alt_name],
+                    )
+                field_dict = {
+                    "bsonType": bson_type,
+                    "path": path,
+                    "keyId": data_key,
+                }
+                queries = getattr(field, "queries", None)
+                if queries:
+                    field_dict["queries"] = queries
+                field_list.append(field_dict)
+
+        return {"fields": field_list} if field_list else None
 
 
 # GISSchemaEditor extends some SchemaEditor methods.
