@@ -746,7 +746,7 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
             elif hasattr(value, "prepare_database_save"):
                 if field.remote_field:
                     value = value.prepare_database_save(field)
-                elif not hasattr(field, "embedded_model"):
+                elif not getattr(field, "stores_model_instance", False):
                     raise TypeError(
                         f"Tried to update field {field} with a model "
                         f"instance, {value!r}. Use a value compatible with "
