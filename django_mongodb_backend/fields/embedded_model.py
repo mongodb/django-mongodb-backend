@@ -12,6 +12,8 @@ from .. import forms
 class EmbeddedModelField(models.Field):
     """Field that stores a model instance."""
 
+    stores_model_instance = True
+
     def __init__(self, embedded_model, *args, **kwargs):
         """
         `embedded_model` is the model class of the instance to be stored.
