@@ -379,3 +379,50 @@ These indexes use 0-based indexing.
 .. admonition:: Forms are not supported
 
     ``PolymorphicEmbeddedModelArrayField``\s don't appear in model forms.
+
+.. _encrypted-fields:
+
+Encrypted fields
+----------------
+
+Encrypted fields are used to store sensitive data with MongoDB's Queryable
+Encryption feature. They are subclasses of Django's built-in fields, and
+they encrypt the data before storing it in the database.
+
++---------------------------------------+--------------------------------------------------+
+| Encrypted Field                       | Django Field                                     |
++=======================================+==================================================+
+| ``EncryptedBigIntegerField``          | :class:`~django.db.models.BigIntegerField`       |
++---------------------------------------+--------------------------------------------------+
+| ``EncryptedBooleanField``             | :class:`~django.db.models.BooleanField`          |
++---------------------------------------+--------------------------------------------------+
+| ``EncryptedCharField``                | :class:`~django.db.models.CharField`             |
++---------------------------------------+--------------------------------------------------+
+| ``EncryptedDateField``                | :class:`~django.db.models.DateField`             |
++---------------------------------------+--------------------------------------------------+
+| ``EncryptedDateTimeField``            | :class:`~django.db.models.DateTimeField`         |
++---------------------------------------+--------------------------------------------------+
+| ``EncryptedDecimalField``             | :class:`~django.db.models.DecimalField`          |
++---------------------------------------+--------------------------------------------------+
+| ``EncryptedFloatField``               | :class:`~django.db.models.FloatField`            |
++---------------------------------------+--------------------------------------------------+
+| ``EncryptedGenericIPAddressField``    | :class:`~django.db.models.GenericIPAddressField` |
++---------------------------------------+--------------------------------------------------+
+| ``EncryptedIntegerField``             | :class:`~django.db.models.IntegerField`          |
++---------------------------------------+--------------------------------------------------+
+| ``EncryptedTextField``                | :class:`~django.db.models.TextField`             |
++---------------------------------------+--------------------------------------------------+
+| ``EncryptedTimeField``                | :class:`~django.db.models.TimeField`             |
++---------------------------------------+--------------------------------------------------+
+| ``EncryptedURLField``                 | :class:`~django.db.models.URLField`              |
++---------------------------------------+--------------------------------------------------+
+
+.. _encrypted-fields-unsupported-fields:
+
+Fields unsupported with Queryable Encryption
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following fields are supported by Django MongoDB Backend but not by Queryable Encryption.
+
+- :class:`~django.db.models.DurationField`
+- :class:`~django.db.models.SlugField`

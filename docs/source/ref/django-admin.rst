@@ -26,3 +26,20 @@ Available commands
 
         Specifies the database in which the cache collection(s) will be created.
         Defaults to ``default``.
+
+
+``get_encrypted_fields_map``
+----------------------------
+
+.. django-admin:: get_encrypted_fields_map
+
+    Creates a schema map for encrypted fields that can be used with
+    :class:`~pymongo.encryption_options.AutoEncryptionOpts` to configure
+    an encrypted client.
+
+    .. django-admin-option:: --database DATABASE
+
+        Specifies the database to use.
+        Defaults to ``default``.
+
+.. TODO: Clarify how database specified could affect output.
