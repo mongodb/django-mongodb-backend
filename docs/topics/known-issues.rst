@@ -26,6 +26,8 @@ Model fields
   - :class:`~django.db.models.CompositePrimaryKey`
   - :class:`~django.db.models.GeneratedField`
 
+.. _known-issues-limitations-querying:
+
 Querying
 ========
 
