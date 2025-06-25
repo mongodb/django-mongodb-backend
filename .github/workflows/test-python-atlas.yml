@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'mongodb-forks/django'
-          ref: 'mongodb-5.2.x'
+          ref: 'mongodb-6.0.x'
           path: 'django_repo'
           persist-credentials: false
       - name: Install system packages for Django's Python test dependencies
@@ -53,4 +53,4 @@ jobs:
         working-directory: .
         run: bash .github/workflows/start_local_atlas.sh mongodb/mongodb-atlas-local:7
       - name: Run tests
-        run: python3 django_repo/tests/runtests_.py
+        run: python3 django_repo/tests/runtests.py --settings mongodb_settings -v 2
