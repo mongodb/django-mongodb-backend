@@ -10,6 +10,7 @@ from django.utils.functional import cached_property
 from pymongo.collection import Collection
 from pymongo.driver_info import DriverInfo
 from pymongo.mongo_client import MongoClient
+from pymongo.write_concern import WriteConcern
 
 from . import __version__ as django_mongodb_backend_version
 from . import dbapi as Database
@@ -156,8 +157,29 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     def __init__(self, settings_dict, alias=DEFAULT_DB_ALIAS):
         super().__init__(settings_dict, alias=alias)
         self.session = None
+        self._write_concern = self._parse_write_concern(settings_dict.get('OPTIONS', {}).get('WRITE_CONCERN'))
+
+    def _parse_write_concern(self, write_concern_config):
+        """Parse write concern configuration from Django settings."""
+        if write_concern_config is None:
+            return None
+        
+        if isinstance(write_concern_config, dict):
+            return WriteConcern(**write_concern_config)
+        elif isinstance(write_concern_config, str):
+            return WriteConcern(w=write_concern_config)
+        elif isinstance(write_concern_config, int):
+            return WriteConcern(w=write_concern_config)
+        else:
+            raise ImproperlyConfigured(
+                f"WRITE_CONCERN must be a dict, str, or int, got {type(write_concern_config)}"
+            )
 
     def get_collection(self, name, **kwargs):
+        # Apply write concern if configured
+        if self._write_concern is not None:
+            kwargs.setdefault('write_concern', self._write_concern)
+        
         collection = Collection(self.database, name, **kwargs)
         if self.queries_logged:
             collection = OperationDebugWrapper(self, collection)
