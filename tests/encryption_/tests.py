@@ -26,5 +26,5 @@ class EncryptedModelTests(TestCase):
         self.assertEqual(instance.encrypted_fields_map, expected)
 
     def test_non_encrypted_fields_not_included(self):
-        encrypted_field_names = Person.encrypted_fields_map.keys()
-        self.assertNotIn("ssn", encrypted_field_names)
+        encrypted_field_names = Person.encrypted_fields_map.get("fields").keys()
+        self.assertNotIn("name", encrypted_field_names)
