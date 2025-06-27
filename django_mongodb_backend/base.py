@@ -160,6 +160,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         # Cache the `settings_dict` in case we need to check for
         # auto_encryption_opts later.
         self.__dict__["_settings_dict"] = copy.deepcopy(settings_dict)
+        self.encrypted_connection = None
 
     def get_collection(self, name, **kwargs):
         collection = Collection(self.database, name, **kwargs)
