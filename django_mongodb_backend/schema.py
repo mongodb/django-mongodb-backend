@@ -422,20 +422,6 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         # The _id column is automatically unique.
         return db_type and field.unique and field.column != "_id"
 
-    def _supports_encryption(self, model):
-        """
-        Check for `supports_encryption` feature and `auto_encryption_opts`
-        and `embedded_fields_map`. If `supports_encryption` is True and
-        `auto_encryption_opts` is in the cached connection settings and
-        the model has an embedded_fields_map property, then encryption
-        is supported.
-        """
-        return (
-            self.connection.features.supports_encryption
-            and self.connection._settings_dict.get("OPTIONS", {}).get("auto_encryption_opts")
-            and hasattr(model, "encrypted_fields_map")
-        )
-
     def _create_collection(self, model):
         """
         Create a collection or, if encryption is supported, create
@@ -443,7 +429,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         client then use that to create an encrypted collection.
         """
 
-        if self._supports_encryption(model):
+        if hasattr(model, "encrypted_fields_map"):
             auto_encryption_opts = self.connection._settings_dict.get("OPTIONS", {}).get(
                 "auto_encryption_opts"
             )
