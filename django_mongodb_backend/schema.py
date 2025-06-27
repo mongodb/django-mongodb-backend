@@ -455,6 +455,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             # Use the encrypted connection and auto_encryption_opts to create an encrypted client
             encrypted_client = get_encrypted_client(auto_encryption_opts, self.encrypted_connection)
 
+            # If the collection exists, `create_encrypted_collection` will raise an
+            # EncryptedCollectionError.
             with contextlib.suppress(EncryptedCollectionError):
                 encrypted_client.create_encrypted_collection(
                     self.encrypted_connection[self.connection.database.name],
