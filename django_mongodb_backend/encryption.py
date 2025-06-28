@@ -8,7 +8,7 @@ from bson.codec_options import CodecOptions
 from pymongo.encryption import AutoEncryptionOpts, ClientEncryption
 
 
-def get_encrypted_client(auto_encryption_opts, encrypted_connection):
+def get_client_encryption(auto_encryption_opts, encrypted_connection):
     """
     Returns a `ClientEncryption` instance for MongoDB Client-Side Field Level
     Encryption (CSFLE) that can be used to create an encrypted collection.

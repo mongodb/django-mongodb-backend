@@ -2,7 +2,7 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
 from pymongo.operations import SearchIndexModel
 
-from .encryption import get_encrypted_client
+from .encryption import get_client_encryption
 from .fields import EmbeddedModelField
 from .indexes import SearchIndex
 from .query import wrap_database_errors
@@ -421,9 +421,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
 
     def _create_collection(self, model):
         """
-        Create a collection or, if encryption is supported, create
-        an encrypted client then use that to create an encrypted
-        collection.
+        Create a collection or encrypted collection for the model.
         """
 
         if hasattr(model, "encrypted_fields_map"):
@@ -431,8 +429,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 "auto_encryption_opts"
             )
             client = self.connection.connection
-            encrypted_client = get_encrypted_client(auto_encryption_opts, client)
-            encrypted_client.create_encrypted_collection(
+            client_encryption = get_client_encryption(auto_encryption_opts, client)
+            client_encryption.create_encrypted_collection(
                 client.database,
                 model._meta.db_table,
                 model.encrypted_fields_map,
