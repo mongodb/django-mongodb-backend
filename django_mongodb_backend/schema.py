@@ -2,9 +2,9 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
 from pymongo.operations import SearchIndexModel
 
-from django_mongodb_backend.indexes import SearchIndex
-
+from .encryption import get_client_encryption
 from .fields import EmbeddedModelField
+from .indexes import SearchIndex
 from .query import wrap_database_errors
 from .utils import OperationCollector
 
@@ -41,7 +41,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     @wrap_database_errors
     @ignore_embedded_models
     def create_model(self, model):
-        self.get_database().create_collection(model._meta.db_table)
+        self._create_collection(model)
         self._create_model_indexes(model)
         # Make implicit M2M tables.
         for field in model._meta.local_many_to_many:
@@ -418,3 +418,23 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         db_type = field.db_type(self.connection)
         # The _id column is automatically unique.
         return db_type and field.unique and field.column != "_id"
+
+    def _create_collection(self, model):
+        """
+        Create a collection or encrypted collection for the model.
+        """
+
+        if hasattr(model, "encrypted_fields_map"):
+            auto_encryption_opts = self.connection.settings_dict.get("OPTIONS", {}).get(
+                "auto_encryption_opts"
+            )
+            client = self.connection.connection
+            client_encryption = get_client_encryption(auto_encryption_opts, client)
+            client_encryption.create_encrypted_collection(
+                client.database,
+                model._meta.db_table,
+                model.encrypted_fields_map,
+                "local",  # TODO: KMS provider should be configurable
+            )
+        else:
+            self.get_database().create_collection(model._meta.db_table)

@@ -286,4 +286,6 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def get_database_version(self):
         """Return a tuple of the database's version."""
-        return tuple(self.connection.server_info()["versionArray"])
+        return (8, 1, 1)
+        # TODO: provide an unencrypted connection for this method.
+        # return tuple(self.connection.server_info()["versionArray"])
