@@ -1,8 +1,5 @@
-import contextlib
-
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
-from pymongo.encryption import EncryptedCollectionError
 from pymongo.operations import SearchIndexModel
 
 from .encryption import get_encrypted_client
@@ -425,8 +422,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     def _create_collection(self, model):
         """
         Create a collection or, if encryption is supported, create
-        an encrypted connection then use it to create an encrypted
-        client then use that to create an encrypted collection.
+        an encrypted client then use that to create an encrypted
+        collection.
         """
 
         if hasattr(model, "encrypted_fields_map"):
@@ -435,15 +432,11 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             )
             client = self.connection.connection
             encrypted_client = get_encrypted_client(auto_encryption_opts, client)
-
-            # If the collection exists, `create_encrypted_collection` will raise an
-            # EncryptedCollectionError.
-            with contextlib.suppress(EncryptedCollectionError):
-                encrypted_client.create_encrypted_collection(
-                    client.database,
-                    model._meta.db_table,
-                    model.encrypted_fields_map,
-                    "local",  # TODO: KMS provider should be configurable
-                )
+            encrypted_client.create_encrypted_collection(
+                client.database,
+                model._meta.db_table,
+                model.encrypted_fields_map,
+                "local",  # TODO: KMS provider should be configurable
+            )
         else:
             self.get_database().create_collection(model._meta.db_table)
