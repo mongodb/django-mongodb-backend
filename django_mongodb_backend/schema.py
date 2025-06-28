@@ -430,22 +430,17 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         """
 
         if hasattr(model, "encrypted_fields_map"):
-            auto_encryption_opts = self.connection._settings_dict.get("OPTIONS", {}).get(
+            auto_encryption_opts = self.connection.settings_dict.get("OPTIONS", {}).get(
                 "auto_encryption_opts"
             )
-            if not self.connection.encrypted_connection:
-                # Use the cached settings dict to create a new connection
-                self.encrypted_connection = self.connection.get_new_connection(
-                    self.connection._settings_dict
-                )
-            # Use the encrypted connection and auto_encryption_opts to create an encrypted client
-            encrypted_client = get_encrypted_client(auto_encryption_opts, self.encrypted_connection)
+            client = self.connection.connection
+            encrypted_client = get_encrypted_client(auto_encryption_opts, client)
 
             # If the collection exists, `create_encrypted_collection` will raise an
             # EncryptedCollectionError.
             with contextlib.suppress(EncryptedCollectionError):
                 encrypted_client.create_encrypted_collection(
-                    self.encrypted_connection[self.connection.database.name],
+                    client.database,
                     model._meta.db_table,
                     model.encrypted_fields_map,
                     "local",  # TODO: KMS provider should be configurable

@@ -1,10 +1,9 @@
 import contextlib
-import copy
 import os
 
 from django.core.exceptions import ImproperlyConfigured
 from django.db import DEFAULT_DB_ALIAS
-from django.db.backends.base.base import NO_DB_ALIAS, BaseDatabaseWrapper
+from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.utils import debug_transaction
 from django.utils.asyncio import async_unsafe
 from django.utils.functional import cached_property
@@ -157,10 +156,6 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     def __init__(self, settings_dict, alias=DEFAULT_DB_ALIAS):
         super().__init__(settings_dict, alias=alias)
         self.session = None
-        # Cache the `settings_dict` in case we need to check for
-        # auto_encryption_opts later.
-        self.__dict__["_settings_dict"] = copy.deepcopy(settings_dict)
-        self.encrypted_connection = None
 
     def get_collection(self, name, **kwargs):
         collection = Collection(self.database, name, **kwargs)
@@ -291,26 +286,6 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def get_database_version(self):
         """Return a tuple of the database's version."""
-        return tuple(self.connection.server_info()["versionArray"])
-
-    @contextlib.contextmanager
-    def _nodb_cursor(self):
-        """
-        Returns a cursor from an unencrypted connection for operations
-        that do not support encryption.
-
-        Encryption is only supported on encrypted models.
-        """
-
-        # Remove auto_encryption_opts from OPTIONS
-        if self.settings_dict.get("OPTIONS", {}).get("auto_encryption_opts"):
-            self.settings_dict["OPTIONS"].pop("auto_encryption_opts")
-
-        # Create a new connection without OPTIONS["auto_encryption_opts": …]
-        conn = self.__class__({**self.settings_dict}, alias=NO_DB_ALIAS)
-
-        try:
-            with conn.cursor() as cursor:
-                yield cursor
-        finally:
-            conn.close()
+        return (8, 1, 1)
+        # TODO: provide an unencrypted connection for this method.
+        # return tuple(self.connection.server_info()["versionArray"])
