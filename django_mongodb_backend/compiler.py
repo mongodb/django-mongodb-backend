@@ -17,7 +17,7 @@ from django.db.models.sql.datastructures import BaseTable
 from django.utils.functional import cached_property
 from pymongo import ASCENDING, DESCENDING
 
-from .functions import SearchExpression
+from .expressions.builtins import SearchExpression
 from .query import MongoQuery, wrap_database_errors
 
 
