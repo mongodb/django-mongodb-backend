@@ -214,8 +214,7 @@ def value(self, compiler, connection):  # noqa: ARG001
 
 
 class SearchExpression(Expression):
-    def __init__(self):
-        super().__init__(output_field=FloatField())
+    output_field = FloatField()
 
     def get_source_expressions(self):
         return []
@@ -240,34 +239,37 @@ class SearchExpression(Expression):
 
 
 class SearchAutocomplete(SearchExpression):
-    def __init__(self, path, query, score=None):
-        self.path = F(path)
-        self.query = Value(query)
+    def __init__(self, path, query, fuzzy=None, score=None):
+        self.path = path
+        self.query = query
+        self.fuzzy = fuzzy
         self.score = score
         super().__init__()
 
     def as_mql(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection)[1:],
-            "query": self.query.as_mql(compiler, connection),
+            "path": self.path,
+            "query": self.query,
         }
         if self.score is not None:
             params["score"] = self.score
+        if self.fuzzy is not None:
+            params["fuzzy"] = self.fuzzy
         index = self._get_query_index([self.path], compiler)
         return {"$search": {"autocomplete": params, "index": index}}
 
 
 class SearchEquals(SearchExpression):
     def __init__(self, path, value, score=None):
-        self.path = F(path)
-        self.value = Value(query)
+        self.path = path
+        self.value = value
         self.score = score
         super().__init__()
 
     def as_mql(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection)[1:],
-            "value": self.value.as_mql(compiler, connection),
+            "path": self.path,
+            "value": self.value,
         }
         if self.score is not None:
             params["score"] = self.score
@@ -277,13 +279,13 @@ class SearchEquals(SearchExpression):
 
 class SearchExists(SearchExpression):
     def __init__(self, path, score=None):
-        self.path = F(path)
+        self.path = path
         self.score = score
         super().__init__()
 
     def as_mql(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection)[1:],
+            "path": self.path,
         }
         if self.score is not None:
             params["score"] = self.score
@@ -293,15 +295,15 @@ class SearchExists(SearchExpression):
 
 class SearchIn(SearchExpression):
     def __init__(self, path, value, score=None):
-        self.path = F(path)
-        self.value = Value(value)
+        self.path = path
+        self.value = value
         self.score = score
         super().__init__()
 
     def as_mql(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection)[1:],
-            "value": self.value.as_mql(compiler, connection),
+            "path": self.path,
+            "value": self.value,
         }
         if self.score is not None:
             params["score"] = self.score
@@ -310,9 +312,9 @@ class SearchIn(SearchExpression):
 
 
 class SearchPhrase(SearchExpression):
-    def __init__(self, path, value, slop=None, synonyms=None, score=None):
-        self.path = F(path)
-        self.value = Value(value)
+    def __init__(self, path, query, slop=None, synonyms=None, score=None):
+        self.path = path
+        self.query = query
         self.score = score
         self.slop = slop
         self.synonyms = synonyms
@@ -320,8 +322,8 @@ class SearchPhrase(SearchExpression):
 
     def as_mql(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection)[1:],
-            "value": self.value.as_mql(compiler, connection),
+            "path": self.path,
+            "query": self.query,
         }
         if self.score is not None:
             params["score"] = self.score
@@ -335,15 +337,15 @@ class SearchPhrase(SearchExpression):
 
 class SearchQueryString(SearchExpression):
     def __init__(self, path, query, score=None):
-        self.path = F(path)
-        self.query = Value(query)
+        self.path = path
+        self.query = query
         self.score = score
         super().__init__()
 
     def as_mql(self, compiler, connection):
         params = {
-            "defaultPath": self.path.as_mql(compiler, connection)[1:],
-            "query": self.query.as_mql(compiler, connection),
+            "defaultPath": self.path,
+            "query": self.query,
         }
         if self.score is not None:
             params["score"] = self.score
@@ -353,98 +355,104 @@ class SearchQueryString(SearchExpression):
 
 class SearchRange(SearchExpression):
     def __init__(self, path, lt=None, lte=None, gt=None, gte=None, score=None):
-        self.path = F(path)
-        self.lt = Value(lt)
-        self.lte = Value(lte)
-        self.gt = Value(gt)
-        self.gte = Value(gte)
+        self.path = path
+        self.lt = lt
+        self.lte = lte
+        self.gt = gt
+        self.gte = gte
         self.score = score
         super().__init__()
 
     def as_mql(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection)[1:],
+            "path": self.path,
         }
         if self.score is not None:
             params["score"] = self.score
         if self.lt is not None:
-            params["lt"] = self.lt.as_mql(compiler, connection)
+            params["lt"] = self.lt
         if self.lte is not None:
-            params["lte"] = self.lte.as_mql(compiler, connection)
+            params["lte"] = self.lte
         if self.gt is not None:
-            params["gt"] = self.gt.as_mql(compiler, connection)
+            params["gt"] = self.gt
         if self.gte is not None:
-            params["gte"] = self.gte.as_mql(compiler, connection)
+            params["gte"] = self.gte
         index = self._get_query_index([self.path], compiler)
         return {"$search": {"range": params, "index": index}}
 
 
 class SearchRegex(SearchExpression):
     def __init__(self, path, query, allow_analyzed_field=None, score=None):
-        self.path = F(path)
-        self.allow_analyzed_field = Value(allow_analyzed_field)
+        self.path = path
+        self.query = query
+        self.allow_analyzed_field = allow_analyzed_field
         self.score = score
         super().__init__()
 
     def as_mql(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection)[1:],
+            "path": self.path,
+            "query": self.query,
         }
         if self.score:
             params["score"] = self.score
         if self.allow_analyzed_field is not None:
-            params["allowAnalyzedField"] = self.allow_analyzed_field.as_mql(compiler, connection)
+            params["allowAnalyzedField"] = self.allow_analyzed_field
         index = self._get_query_index([self.path], compiler)
         return {"$search": {"regex": params, "index": index}}
 
 
 class SearchText(SearchExpression):
     def __init__(self, path, query, fuzzy=None, match_criteria=None, synonyms=None, score=None):
-        self.path = F(path)
-        self.fuzzy = Value(fuzzy)
-        self.match_criteria = Value(match_criteria)
-        self.synonyms = Value(synonyms)
+        self.path = path
+        self.query = query
+        self.fuzzy = fuzzy
+        self.match_criteria = match_criteria
+        self.synonyms = synonyms
         self.score = score
         super().__init__()
 
     def as_mql(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection)[1:],
+            "path": self.path,
+            "query": self.query,
         }
         if self.score:
             params["score"] = self.score
         if self.fuzzy is not None:
-            params["fuzzy"] = self.fuzzy.as_mql(compiler, connection)
+            params["fuzzy"] = self.fuzzy
         if self.match_criteria is not None:
-            params["matchCriteria"] = self.match_criteria.as_mql(compiler, connection)
+            params["matchCriteria"] = self.match_criteria
         if self.synonyms is not None:
-            params["synonyms"] = self.synonyms.as_mql(compiler, connection)
+            params["synonyms"] = self.synonyms
         index = self._get_query_index([self.path], compiler)
         return {"$search": {"text": params, "index": index}}
 
 
 class SearchWildcard(SearchExpression):
     def __init__(self, path, query, allow_analyzed_field=None, score=None):
-        self.path = F(path)
-        self.allow_analyzed_field = Value(allow_analyzed_field)
+        self.path = path
+        self.query = query
+        self.allow_analyzed_field = allow_analyzed_field
         self.score = score
         super().__init__()
 
     def as_mql(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection)[1:],
+            "path": self.path,
+            "query": self.query,
         }
         if self.score:
             params["score"] = self.score
         if self.allow_analyzed_field is not None:
-            params["allowAnalyzedField"] = self.allow_analyzed_field.as_mql(compiler, connection)
+            params["allowAnalyzedField"] = self.allow_analyzed_field
         index = self._get_query_index([self.path], compiler)
         return {"$search": {"wildcard": params, "index": index}}
 
 
 class SearchGeoShape(SearchExpression):
     def __init__(self, path, relation, geometry, score=None):
-        self.path = F(path)
+        self.path = path
         self.relation = relation
         self.geometry = geometry
         self.score = score
@@ -452,19 +460,19 @@ class SearchGeoShape(SearchExpression):
 
     def as_mql(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection)[1:],
+            "path": self.path,
             "relation": self.relation,
             "geometry": self.geometry,
         }
         if self.score:
             params["score"] = self.score
         index = self._get_query_index([self.path], compiler)
-        return {"$search": {"wildcard": params, "index": index}}
+        return {"$search": {"geoShape": params, "index": index}}
 
 
 class SearchGeoWithin(SearchExpression):
-    def __init__(self, path, kind, geo_object, geometry, score=None):
-        self.path = F(path)
+    def __init__(self, path, kind, geo_object, score=None):
+        self.path = path
         self.kind = kind
         self.geo_object = geo_object
         self.score = score
@@ -472,13 +480,13 @@ class SearchGeoWithin(SearchExpression):
 
     def as_mql(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection)[1:],
+            "path": self.path,
             self.kind: self.geo_object,
         }
         if self.score:
             params["score"] = self.score
         index = self._get_query_index([self.path], compiler)
-        return {"$search": {"wildcard": params, "index": index}}
+        return {"$search": {"geoWithin": params, "index": index}}
 
 
 class SearchMoreLikeThis(SearchExpression):
@@ -497,7 +505,22 @@ class SearchMoreLikeThis(SearchExpression):
         for doc in self.documents:
             needed_fields += list(doc.keys())
         index = self._get_query_index(needed_fields, compiler)
-        return {"$search": {"wildcard": params, "index": index}}
+        return {"$search": {"moreLikeThis": params, "index": index}}
+
+
+class SearchScoreOption:
+    """Class to mutate scoring on a search operation"""
+
+    def __init__(self, definitions=None):
+        self.definitions = definitions
+
+
+class CombinedSearchExpression(SearchExpression):
+    def __init__(self, lhs, connector, rhs, output_field=None):
+        super().__init__(output_field=output_field)
+        self.connector = connector
+        self.lhs = lhs
+        self.rhs = rhs
 
 
 def register_expressions():
