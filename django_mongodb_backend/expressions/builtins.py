@@ -490,6 +490,8 @@ class SearchGeoWithin(SearchExpression):
 
 
 class SearchMoreLikeThis(SearchExpression):
+    search_type = "more_like_this"
+
     def __init__(self, documents, score=None):
         self.documents = documents
         self.score = score

@@ -109,36 +109,35 @@ class SQLCompiler(compiler.SQLCompiler):
             replacements[sub_expr] = self._get_replace_expr(sub_expr, group, alias)
         return replacements, group
 
-    def _prepare_search_expressions_for_pipeline(self, expression, target, search_idx):
+    def _prepare_search_expressions_for_pipeline(
+        self, expression, target, search_idx, replacements
+    ):
         searches = {}
-        replacements = {}
         for sub_expr in self._get_search_expressions(expression):
-            alias = f"__search_expr.search{next(search_idx)}"
-            replacements[sub_expr] = self._get_replace_expr(sub_expr, searches, alias)
-        return replacements, list(searches.values())
+            if sub_expr not in replacements:
+                alias = f"__search_expr.search{next(search_idx)}"
+                replacements[sub_expr] = self._get_replace_expr(sub_expr, searches, alias)
+        return list(searches.values())
 
     def _prepare_search_query_for_aggregation_pipeline(self, order_by):
         replacements = {}
         searches = []
         annotation_group_idx = itertools.count(start=1)
         for target, expr in self.query.annotation_select.items():
-            new_replacements, expr_searches = self._prepare_search_expressions_for_pipeline(
-                expr, target, annotation_group_idx
+            expr_searches = self._prepare_search_expressions_for_pipeline(
+                expr, target, annotation_group_idx, replacements
             )
-            replacements.update(new_replacements)
             searches += expr_searches
 
         for expr, _ in order_by:
-            new_replacements, expr_searches = self._prepare_search_expressions_for_pipeline(
-                expr, None, annotation_group_idx
+            expr_searches = self._prepare_search_expressions_for_pipeline(
+                expr, None, annotation_group_idx, replacements
             )
-            replacements.update(new_replacements)
             searches += expr_searches
 
-        having_replacements, having_group = self._prepare_search_expressions_for_pipeline(
-            self.having, None, annotation_group_idx
+        having_group = self._prepare_search_expressions_for_pipeline(
+            self.having, None, annotation_group_idx, replacements
         )
-        replacements.update(having_replacements)
         searches += having_group
         return searches, replacements
 
