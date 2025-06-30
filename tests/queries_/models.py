@@ -53,3 +53,10 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return str(self.pk)
+
+
+class Article(models.Model):
+    headline = models.CharField(max_length=100)
+    number = models.IntegerField()
+    body = models.TextField()
+    location = models.JSONField(null=True)
