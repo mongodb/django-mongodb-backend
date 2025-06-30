@@ -11,6 +11,7 @@ from django_mongodb_backend.expressions.builtins import (
     SearchGeoShape,
     SearchGeoWithin,
     SearchIn,
+    SearchMoreLikeThis,
     SearchPhrase,
     SearchRange,
     SearchRegex,
@@ -27,7 +28,7 @@ class CreateIndexMixin:
 
     def create_search_index(self, model, index_name, definition):
         collection = self._get_collection(model)
-        idx = SearchIndexModel(definition=definition, name="test_index")
+        idx = SearchIndexModel(definition=definition, name=index_name)
         collection.create_search_index(idx)
 
 
@@ -254,3 +255,44 @@ class SearchGeoWithinTest(TestCase, CreateIndexMixin):
             )
         )
         self.assertEqual(qs.first().number, 2)
+
+
+class SearchMoreLikeThisTest(TestCase, CreateIndexMixin):
+    def setUp(self):
+        self.create_search_index(
+            Article,
+            "mlt_index",
+            {
+                "mappings": {
+                    "dynamic": False,
+                    "fields": {"body": {"type": "string"}, "headline": {"type": "string"}},
+                }
+            },
+        )
+        self.article1 = Article.objects.create(
+            headline="Space exploration", number=1, body="Webb telescope"
+        )
+        self.article2 = Article.objects.create(
+            headline="The commodities fall",
+            number=2,
+            body="Commodities dropped sharply due to inflation concerns",
+        )
+        Article.objects.create(
+            headline="irrelevant",
+            number=3,
+            body="This is a completely unrelated article about cooking",
+        )
+        time.sleep(1)
+
+    def test_search_more_like_this(self):
+        like_docs = [
+            {"headline": self.article1.headline, "body": self.article1.body},
+            {"headline": self.article2.headline, "body": self.article2.body},
+        ]
+        like_docs = [{"body": "NASA launches new satellite to explore the galaxy"}]
+        qs = Article.objects.annotate(score=SearchMoreLikeThis(documents=like_docs)).order_by(
+            "score"
+        )
+        self.assertQuerySetEqual(
+            qs, ["space exploration", "The commodities fall"], lambda a: a.headline
+        )
