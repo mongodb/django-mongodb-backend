@@ -4,6 +4,8 @@ from .models import Person
 
 
 class EncryptedModelTests(TestCase):
+    databases = ["encryption"]
+
     @classmethod
     def setUpTestData(cls):
         cls.objs = [Person.objects.create()]
