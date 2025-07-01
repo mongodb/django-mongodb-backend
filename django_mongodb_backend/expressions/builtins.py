@@ -524,6 +524,35 @@ class CombinedSearchExpression(SearchExpression):
         self.lhs = lhs
         self.rhs = rhs
 
+    def as_mql(self, compiler, connection):
+        if self.connector == self.AND:
+            return CompoundExpression(must=[self.lhs, self.rhs])
+        if self.connector == self.NEGATION:
+            return CompoundExpression(must_must=[self.lhs])
+        raise ValueError(":)")
+
+    def __invert__(self):
+        # SHOULD BE MOVED TO THE PARENT
+        return self
+
+
+class CompoundExpression(SearchExpression):
+    def __init__(self, must=None, must_not=None, should=None, filter=None, score=None):
+        self.must = must
+        self.must_not = must_not
+        self.should = should
+        self.filter = filter
+        self.score = score
+
+    def as_mql(self, compiler, connection):
+        params = {}
+        for param in ["must", "must_not", "should", "filter"]:
+            clauses = getattr(self, param)
+            if clauses:
+                params[param] = [clause.as_mql(compiler, connection) for clause in clauses]
+
+        return {"$compound": params}
+
 
 def register_expressions():
     Case.as_mql = case
