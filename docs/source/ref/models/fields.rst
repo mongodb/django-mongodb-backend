@@ -343,3 +343,39 @@ These indexes use 0-based indexing.
 .. admonition:: Forms are not supported
 
     ``PolymorphicEmbeddedModelField``\s don't appear in model forms.
+
+``PolymorphicEmbeddedModelArrayField``
+--------------------------------------
+
+.. class:: PolymorphicEmbeddedModelArrayField(embedded_models, **kwargs)
+
+    .. versionadded:: 5.2.0b2
+
+    Similar to :class:`PolymorphicEmbeddedModelField`, but stores a **list** of
+    models of type ``embedded_models`` rather than a single instance.
+
+    .. attribute:: embedded_models
+
+        This is a required argument that works just like
+        :attr:`PolymorphicEmbeddedModelField.embedded_models`.
+
+    .. attribute:: max_size
+
+        This is an optional argument.
+
+        If passed, the list will have a maximum size as specified, validated
+        by forms and model validation, but not enforced by the database.
+
+    See :ref:`the embedded model topic guide
+    <polymorphic-embedded-model-array-field-example>` for more details and
+    examples.
+
+.. admonition:: Migrations support is limited
+
+    :djadmin:`makemigrations` does not yet detect changes to embedded models,
+    nor does it create indexes or constraints for embedded models referenced
+    by ``PolymorphicEmbeddedModelArrayField``.
+
+.. admonition:: Forms are not supported
+
+    ``PolymorphicEmbeddedModelArrayField``\s don't appear in model forms.

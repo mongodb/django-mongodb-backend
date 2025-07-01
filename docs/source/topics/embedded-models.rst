@@ -116,6 +116,8 @@ Represented in BSON, the post's structure looks like this:
       tags: [ { name: 'welcome' }, { name: 'test' } ]
     }
 
+.. _querying-embedded-model-array-field:
+
 Querying ``EmbeddedModelArrayField``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -264,6 +266,8 @@ bark::
 
     >>> Person.objects.filter(pet__barks=True)
 
+.. _polymorphic-embedded-model-field-clashing-field-names:
+
 Clashing field names
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -292,3 +296,87 @@ field it finds, ``Target1.number`` in this case.
 Similarly, querying into nested embedded model fields with the same name isn't
 well supported: the first model in ``embedded_models`` is the one that will be
 used for nested lookups.
+
+.. _polymorphic-embedded-model-array-field-example:
+
+``PolymorphicEmbeddedModelArrayField``
+--------------------------------------
+
+The basics
+~~~~~~~~~~
+
+Let's consider this example::
+
+    from django.db import models
+
+    from django_mongodb_backend.fields import PolymorphicEmbeddedModelArrayField
+    from django_mongodb_backend.models import EmbeddedModel
+
+
+    class Person(models.Model):
+        name = models.CharField(max_length=255)
+        pets = PolymorphicEmbeddedModelArrayField(["Cat", "Dog"])
+
+        def __str__(self):
+            return self.name
+
+
+    class Cat(EmbeddedModel):
+        name = models.CharField(max_length=255)
+        purrs = models.BooleanField(default=True)
+
+        def __str__(self):
+            return self.name
+
+
+    class Dog(EmbeddedModel):
+        name = models.CharField(max_length=255)
+        barks = models.BooleanField(default=True)
+
+        def __str__(self):
+            return self.name
+
+
+The API is similar to that of Django's relational fields::
+
+    >>> bob = Person.objects.create(
+    ...     name="Bob",
+    ...     pets=[Dog(name="Woofer"), Cat(name="Phoebe")],
+    ... )
+    >>> bob.pets
+    [<Dog: Woofer>, <Cat: Phoebe>]
+    >>> bob.pets[0].name
+    'Woofer'
+
+Represented in BSON, Bob's structure looks like this:
+
+.. code-block:: js
+
+    {
+      _id: ObjectId('6875605cf6dc6f95cadf2d75'),
+      name: 'Bob',
+      pets: [
+        { name: 'Woofer', barks: true, _label: 'polymorphic_array.Dog' },
+        { name: 'Phoebe', purrs: true, _label: 'polymorphic_array.Cat' }
+      ]
+    }
+
+The ``_label`` field tracks each model's :attr:`~django.db.models.Options.label`
+so that the models can be initialized properly.
+
+Querying ``PolymorphicEmbeddedModelArrayField``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can query into an embedded model array using :ref:`the same syntax and operators
+<querying-embedded-model-array-field>` as :class:`~.fields.EmbeddedModelArrayField`.
+
+Like :class:`~.fields.PolymorphicEmbeddedModelField`, if you filter on fields that aren't shared
+among the embedded models, you'll only get back objects that have embedded models with
+those fields.
+
+Clashing field names
+~~~~~~~~~~~~~~~~~~~~
+
+As with :class:`~.fields.PolymorphicEmbeddedModelField`, take care that your embedded
+models don't use :ref:`clashing field names
+<polymorphic-embedded-model-field-clashing-field-names>`.
