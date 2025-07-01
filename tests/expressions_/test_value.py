@@ -23,6 +23,9 @@ class ValueTests(SimpleTestCase):
     def test_decimal(self):
         self.assertEqual(Value(Decimal("1.0")).as_mql(None, None), Decimal128("1.0"))
 
+    def test_list(self):
+        self.assertEqual(Value([1, 2]).as_mql(None, None), {"$literal": [1, 2]})
+
     def test_time(self):
         self.assertEqual(
             Value(datetime.time(9, 8, 7)).as_mql(None, None),
