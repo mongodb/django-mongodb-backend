@@ -1,32 +1,24 @@
+from django.db import connection
 from django.test import TestCase
 
 from .models import Person
 
 
 class EncryptedModelTests(TestCase):
-    databases = ["encryption"]
-
     @classmethod
     def setUpTestData(cls):
-        cls.objs = [Person.objects.create()]
-
-    def test_encrypted_fields_map_on_class(self):
-        expected = {
-            "fields": {
-                "ssn": "EncryptedCharField",
-            }
-        }
-        self.assertEqual(Person.encrypted_fields_map, expected)
+        cls.person = Person(ssn="123-45-6789")
 
     def test_encrypted_fields_map_on_instance(self):
-        instance = Person(ssn="123-45-6789")
         expected = {
             "fields": {
                 "ssn": "EncryptedCharField",
             }
         }
-        self.assertEqual(instance.encrypted_fields_map, expected)
+        with connection.schema_editor() as editor:
+            self.assertEqual(editor._get_encrypted_fields_map(self.person), expected)
 
     def test_non_encrypted_fields_not_included(self):
-        encrypted_field_names = Person.encrypted_fields_map.get("fields").keys()
-        self.assertNotIn("name", encrypted_field_names)
+        with connection.schema_editor() as editor:
+            encrypted_field_names = editor._get_encrypted_fields_map(self.person).get("fields")
+            self.assertNotIn("name", encrypted_field_names)

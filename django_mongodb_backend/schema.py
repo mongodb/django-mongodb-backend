@@ -421,20 +421,26 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
 
     def _create_collection(self, model):
         """
-        Create a collection or encrypted collection for the model.
+        If the model is not encrypted, create a normal collection otherwise
+        create an encrypted collection with the encrypted fields map.
         """
 
-        if hasattr(model, "encrypted"):
+        if not hasattr(model, "encrypted"):
+            self.get_database().create_collection(model._meta.db_table)
+        else:
+            # TODO: Route to the encrypted database connection.
             auto_encryption_opts = self.connection.settings_dict.get("OPTIONS", {}).get(
                 "auto_encryption_opts"
             )
             client = self.connection.connection
+
             client_encryption = get_client_encryption(auto_encryption_opts, client)
             client_encryption.create_encrypted_collection(
                 client.database,
                 model._meta.db_table,
-                {"fields": []},
+                self._get_encrypted_fields_map(model),
                 "local",  # TODO: KMS provider should be configurable
             )
-        else:
-            self.get_database().create_collection(model._meta.db_table)
+
+    def _get_encrypted_fields_map(self, model):
+        return {"fields": []}
