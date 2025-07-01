@@ -16,24 +16,8 @@ class EmbeddedModel(models.Model):
         raise NotSupportedError("EmbeddedModels cannot be saved.")
 
 
-class EncryptedModelBase(models.base.ModelBase):
-    def __new__(cls, name, bases, attrs, **kwargs):
-        new_class = super().__new__(cls, name, bases, attrs, **kwargs)
+class EncryptedModel(models.Model):
+    encrypted = True
 
-        # Build a map of encrypted fields
-        encrypted_fields = {
-            "fields": {
-                field.name: field.__class__.__name__
-                for field in new_class._meta.fields
-                if getattr(field, "encrypted", False)
-            }
-        }
-
-        # Store it as a class-level attribute
-        new_class.encrypted_fields_map = encrypted_fields
-        return new_class
-
-
-class EncryptedModel(models.Model, metaclass=EncryptedModelBase):
     class Meta:
         abstract = True
