@@ -626,9 +626,9 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         return "setName" in hello or hello.get("msg") == "isdbgrid"
 
     @cached_property
-    def supports_encryption(self):
+    def supports_queryable_encryption(self):
         """
-        Encryption is supported if the server is Atlas or Enterprise
+        Queryable Encryption is supported if the server is Atlas or Enterprise
         and is configured as a replica set or sharded cluster.
         """
         self.connection.ensure_connection()
