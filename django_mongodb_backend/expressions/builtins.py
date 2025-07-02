@@ -505,6 +505,42 @@ class SearchMoreLikeThis(SearchExpression):
         return {"$search": {"moreLikeThis": params, "index": index}}
 
 
+class SearchVector(SearchExpression):
+    def __init__(
+        self,
+        path,
+        query_vector,
+        index,
+        limit,
+        num_candidates=None,
+        exact=None,
+        filter=None,
+    ):
+        self.path = path
+        self.query_vector = query_vector
+        self.index = index
+        self.limit = limit
+        self.num_candidates = num_candidates
+        self.exact = exact
+        self.filter = filter
+        super().__init__()
+
+    def as_mql(self, compiler, connection):
+        params = {
+            "index": self.index,
+            "path": self.path,
+            "queryVector": self.query_vector,
+            "limit": self.limit,
+        }
+        if self.num_candidates is not None:
+            params["numCandidates"] = self.num_candidates
+        if self.exact is not None:
+            params["exact"] = self.exact
+        if self.filter is not None:
+            params["filter"] = self.filter
+        return {"$vectorSearch": params}
+
+
 class SearchScoreOption:
     """Class to mutate scoring on a search operation"""
 
@@ -512,31 +548,12 @@ class SearchScoreOption:
         self.definitions = definitions
 
 
-class CombinedSearchExpression(SearchExpression):
-    def __init__(self, lhs, connector, rhs, output_field=None):
-        super().__init__(output_field=output_field)
-        self.connector = connector
-        self.lhs = lhs
-        self.rhs = rhs
-
-    def as_mql(self, compiler, connection):
-        if self.connector == self.AND:
-            return CompoundExpression(must=[self.lhs, self.rhs])
-        if self.connector == self.NEGATION:
-            return CompoundExpression(must_must=[self.lhs])
-        raise ValueError(":)")
-
-    def __invert__(self):
-        # SHOULD BE MOVED TO THE PARENT
-        return self
-
-
 class CompoundExpression(SearchExpression):
     def __init__(self, must=None, must_not=None, should=None, filter=None, score=None):
-        self.must = must
-        self.must_not = must_not
-        self.should = should
-        self.filter = filter
+        self.must = must or []
+        self.must_not = must_not or []
+        self.should = should or []
+        self.filter = filter or []
         self.score = score
 
     def as_mql(self, compiler, connection):
