@@ -9,6 +9,7 @@ from pymongo.encryption import AutoEncryptionOpts, ClientEncryption
 
 KEY_VAULT_DATABASE_NAME = "keyvault"
 KEY_VAULT_COLLECTION_NAME = "__keyVault"
+KMS_PROVIDER = "local"  # e.g., "aws", "azure", "gcp", "kmip", or "local"
 
 
 def get_customer_master_key():

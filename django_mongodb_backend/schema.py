@@ -440,7 +440,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 db,
                 model._meta.db_table,
                 self._get_encrypted_fields_map(model),
-                "local",  # TODO: KMS provider should be configurable
+                settings.KMS_PROVIDER,
             )
 
     def _get_encrypted_fields_map(self, model):
