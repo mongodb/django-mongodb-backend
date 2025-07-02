@@ -5,8 +5,10 @@ from .models import Person
 from .routers import EncryptedRouter
 
 
-@override_settings(DATABASE_ROUTERS=[EncryptedRouter])
+@override_settings(DATABASE_ROUTERS=[EncryptedRouter()])
 class EncryptedModelTests(TestCase):
+    databases = {"default", "encrypted"}
+
     @classmethod
     def setUpTestData(cls):
         cls.person = Person(ssn="123-45-6789")
