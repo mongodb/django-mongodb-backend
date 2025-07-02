@@ -7,6 +7,9 @@ from bson.binary import STANDARD
 from bson.codec_options import CodecOptions
 from pymongo.encryption import AutoEncryptionOpts, ClientEncryption
 
+KEY_VAULT_DATABASE_NAME = "keyvault"
+KEY_VAULT_COLLECTION_NAME = "__keyVault"
+
 
 def get_kms_providers():
     """
@@ -19,7 +22,7 @@ def get_kms_providers():
     }
 
 
-def get_client_encryption(encrypted_connection):
+def get_client_encryption(client):
     """
     Returns a `ClientEncryption` instance for MongoDB Client-Side Field Level
     Encryption (CSFLE) that can be used to create an encrypted collection.
@@ -28,21 +31,26 @@ def get_client_encryption(encrypted_connection):
     key_vault_namespace = get_key_vault_namespace()
     kms_providers = get_kms_providers()
     codec_options = CodecOptions(uuid_representation=STANDARD)
-    return ClientEncryption(kms_providers, key_vault_namespace, encrypted_connection, codec_options)
+    return ClientEncryption(kms_providers, key_vault_namespace, client, codec_options)
 
 
-def get_key_vault_namespace():
-    key_vault_database_name = "encryption"
-    key_vault_collection_name = "__keyVault"
+def get_key_vault_namespace(
+    key_vault_database_name=KEY_VAULT_DATABASE_NAME,
+    key_vault_collection_name=KEY_VAULT_COLLECTION_NAME,
+):
     return f"{key_vault_database_name}.{key_vault_collection_name}"
 
 
-def get_auto_encryption_opts(crypt_shared_lib_path=None, kms_providers=None):
+KEY_VAULT_NAMESPACE = get_key_vault_namespace()
+
+
+def get_auto_encryption_opts(
+    key_vault_namespace=KEY_VAULT_NAMESPACE, crypt_shared_lib_path=None, kms_providers=None
+):
     """
     Returns an `AutoEncryptionOpts` instance for MongoDB Client-Side Field
     Level Encryption (CSFLE) that can be used to create an encrypted connection.
     """
-    key_vault_namespace = get_key_vault_namespace()
     return AutoEncryptionOpts(
         key_vault_namespace=key_vault_namespace,
         kms_providers=kms_providers,
