@@ -1,9 +1,11 @@
 from django.db import connection
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from .models import Person
+from .routers import EncryptedRouter
 
 
+@override_settings(DATABASE_ROUTERS=[EncryptedRouter])
 class EncryptedModelTests(TestCase):
     @classmethod
     def setUpTestData(cls):
