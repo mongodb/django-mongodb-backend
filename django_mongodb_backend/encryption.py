@@ -12,6 +12,30 @@ KEY_VAULT_COLLECTION_NAME = "__keyVault"
 KMS_PROVIDER = "local"  # e.g., "aws", "azure", "gcp", "kmip", or "local"
 
 
+def get_auto_encryption_opts(
+    key_vault_namespace=None, crypt_shared_lib_path=None, kms_providers=None
+):
+    """
+    Returns an `AutoEncryptionOpts` instance for MongoDB Client-Side Field
+    Level Encryption (CSFLE) that can be used to create an encrypted connection.
+    """
+    return AutoEncryptionOpts(
+        key_vault_namespace=key_vault_namespace,
+        kms_providers=kms_providers,
+        crypt_shared_lib_path=crypt_shared_lib_path,
+    )
+
+
+def get_client_encryption(client, key_vault_namespace=None, kms_providers=None):
+    """
+    Returns a `ClientEncryption` instance for MongoDB Client-Side Field Level
+    Encryption (CSFLE) that can be used to create an encrypted collection.
+    """
+
+    codec_options = CodecOptions(uuid_representation=STANDARD)
+    return ClientEncryption(kms_providers, key_vault_namespace, client, codec_options)
+
+
 def get_customer_master_key():
     """
     Returns a 96-byte local master key for use with MongoDB Client-Side Field Level
@@ -32,6 +56,13 @@ def get_customer_master_key():
     )
 
 
+def get_key_vault_namespace(
+    key_vault_database_name=KEY_VAULT_DATABASE_NAME,
+    key_vault_collection_name=KEY_VAULT_COLLECTION_NAME,
+):
+    return f"{key_vault_database_name}.{key_vault_collection_name}"
+
+
 def get_kms_providers():
     """
     Return supported KMS providers for MongoDB Client-Side Field Level Encryption (CSFLE).
@@ -41,34 +72,3 @@ def get_kms_providers():
             "key": get_customer_master_key(),
         },
     }
-
-
-def get_key_vault_namespace(
-    key_vault_database_name=KEY_VAULT_DATABASE_NAME,
-    key_vault_collection_name=KEY_VAULT_COLLECTION_NAME,
-):
-    return f"{key_vault_database_name}.{key_vault_collection_name}"
-
-
-def get_client_encryption(client, key_vault_namespace=None, kms_providers=None):
-    """
-    Returns a `ClientEncryption` instance for MongoDB Client-Side Field Level
-    Encryption (CSFLE) that can be used to create an encrypted collection.
-    """
-
-    codec_options = CodecOptions(uuid_representation=STANDARD)
-    return ClientEncryption(kms_providers, key_vault_namespace, client, codec_options)
-
-
-def get_auto_encryption_opts(
-    key_vault_namespace=None, crypt_shared_lib_path=None, kms_providers=None
-):
-    """
-    Returns an `AutoEncryptionOpts` instance for MongoDB Client-Side Field
-    Level Encryption (CSFLE) that can be used to create an encrypted connection.
-    """
-    return AutoEncryptionOpts(
-        key_vault_namespace=key_vault_namespace,
-        kms_providers=kms_providers,
-        crypt_shared_lib_path=crypt_shared_lib_path,
-    )
