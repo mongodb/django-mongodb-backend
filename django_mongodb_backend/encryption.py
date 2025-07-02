@@ -43,9 +43,6 @@ def get_kms_providers():
     }
 
 
-KMS_PROVIDERS = get_kms_providers()
-
-
 def get_key_vault_namespace(
     key_vault_database_name=KEY_VAULT_DATABASE_NAME,
     key_vault_collection_name=KEY_VAULT_COLLECTION_NAME,
@@ -53,12 +50,7 @@ def get_key_vault_namespace(
     return f"{key_vault_database_name}.{key_vault_collection_name}"
 
 
-KEY_VAULT_NAMESPACE = get_key_vault_namespace()
-
-
-def get_client_encryption(
-    client, key_vault_namespace=KEY_VAULT_NAMESPACE, kms_providers=KMS_PROVIDERS
-):
+def get_client_encryption(client, key_vault_namespace=None, kms_providers=None):
     """
     Returns a `ClientEncryption` instance for MongoDB Client-Side Field Level
     Encryption (CSFLE) that can be used to create an encrypted collection.
@@ -69,7 +61,7 @@ def get_client_encryption(
 
 
 def get_auto_encryption_opts(
-    key_vault_namespace=KEY_VAULT_NAMESPACE, crypt_shared_lib_path=None, kms_providers=None
+    key_vault_namespace=None, crypt_shared_lib_path=None, kms_providers=None
 ):
     """
     Returns an `AutoEncryptionOpts` instance for MongoDB Client-Side Field
