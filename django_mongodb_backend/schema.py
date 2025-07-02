@@ -425,13 +425,14 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         create an encrypted collection with the encrypted fields map.
         """
 
+        db = self.get_database()
         if not hasattr(model, "encrypted"):
-            self.get_database().create_collection(model._meta.db_table)
+            db.create_collection(model._meta.db_table)
         else:
             client = self.connection.connection
-            client_encryption = get_client_encryption(client)
-            client_encryption.create_encrypted_collection(
-                client.database,
+            ce = get_client_encryption(client)
+            ce.create_encrypted_collection(
+                db,
                 model._meta.db_table,
                 self._get_encrypted_fields_map(model),
                 "local",  # TODO: KMS provider should be configurable
