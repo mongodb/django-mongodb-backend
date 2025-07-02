@@ -8,16 +8,33 @@ from bson.codec_options import CodecOptions
 from pymongo.encryption import AutoEncryptionOpts, ClientEncryption
 
 
-def get_client_encryption(auto_encryption_opts, encrypted_connection):
+def get_kms_providers():
+    """
+    Return supported KMS providers for MongoDB Client-Side Field Level Encryption (CSFLE).
+    """
+    return {
+        "local": {
+            "key": get_customer_master_key(),
+        },
+    }
+
+
+def get_client_encryption(encrypted_connection):
     """
     Returns a `ClientEncryption` instance for MongoDB Client-Side Field Level
     Encryption (CSFLE) that can be used to create an encrypted collection.
     """
 
-    key_vault_namespace = auto_encryption_opts._key_vault_namespace
-    kms_providers = auto_encryption_opts._kms_providers
+    key_vault_namespace = get_key_vault_namespace()
+    kms_providers = get_kms_providers()
     codec_options = CodecOptions(uuid_representation=STANDARD)
     return ClientEncryption(kms_providers, key_vault_namespace, encrypted_connection, codec_options)
+
+
+def get_key_vault_namespace():
+    key_vault_database_name = "encryption"
+    key_vault_collection_name = "__keyVault"
+    return f"{key_vault_database_name}.{key_vault_collection_name}"
 
 
 def get_auto_encryption_opts(crypt_shared_lib_path=None, kms_providers=None):
@@ -25,9 +42,7 @@ def get_auto_encryption_opts(crypt_shared_lib_path=None, kms_providers=None):
     Returns an `AutoEncryptionOpts` instance for MongoDB Client-Side Field
     Level Encryption (CSFLE) that can be used to create an encrypted connection.
     """
-    key_vault_database_name = "encryption"
-    key_vault_collection_name = "__keyVault"
-    key_vault_namespace = f"{key_vault_database_name}.{key_vault_collection_name}"
+    key_vault_namespace = get_key_vault_namespace()
     return AutoEncryptionOpts(
         key_vault_namespace=key_vault_namespace,
         kms_providers=kms_providers,
@@ -53,14 +68,3 @@ def get_customer_master_key():
         "404142434445464748494a4b4c4d4e4f"
         "505152535455565758595a5b5c5d5e5f"
     )
-
-
-def get_kms_providers():
-    """
-    Return supported KMS providers for MongoDB Client-Side Field Level Encryption (CSFLE).
-    """
-    return {
-        "local": {
-            "key": get_customer_master_key(),
-        },
-    }

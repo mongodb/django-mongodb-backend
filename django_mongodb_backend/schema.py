@@ -428,13 +428,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         if not hasattr(model, "encrypted"):
             self.get_database().create_collection(model._meta.db_table)
         else:
-            # TODO: Route to the encrypted database connection.
-            auto_encryption_opts = self.connection.settings_dict.get("OPTIONS", {}).get(
-                "auto_encryption_opts"
-            )
             client = self.connection.connection
-
-            client_encryption = get_client_encryption(auto_encryption_opts, client)
+            client_encryption = get_client_encryption(client)
             client_encryption.create_encrypted_collection(
                 client.database,
                 model._meta.db_table,
