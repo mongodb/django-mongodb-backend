@@ -2,13 +2,14 @@ import contextlib
 import os
 
 from django.core.exceptions import ImproperlyConfigured
-from django.db import DEFAULT_DB_ALIAS
+from django.db import DEFAULT_DB_ALIAS, connections
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.utils import debug_transaction
 from django.utils.asyncio import async_unsafe
 from django.utils.functional import cached_property
 from pymongo.collection import Collection
 from pymongo.driver_info import DriverInfo
+from pymongo.errors import EncryptionError
 from pymongo.mongo_client import MongoClient
 
 from . import __version__ as django_mongodb_backend_version
@@ -286,5 +287,10 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def get_database_version(self):
         """Return a tuple of the database's version."""
-        # return tuple(self.connection.server_info()["versionArray"])
-        return (8, 1, 1)
+        try:
+            return tuple(self.connection.server_info()["versionArray"])
+        except EncryptionError:
+            # Work around self.connection.server_info's refusal to work
+            # with encrypted connections.
+            default_connection = connections[DEFAULT_DB_ALIAS]
+            return default_connection.get_database_version()
