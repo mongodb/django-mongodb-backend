@@ -264,10 +264,10 @@ class QueryingTests(TestCase):
         with self.assertRaisesMessage(FieldDoesNotExist, msg):
             Exhibit.objects.filter(sections__number__return=3)
 
-    def test_invalid_operation(self):
-        msg = "Unsupported lookup 'rage' for EmbeddedModelArrayField of 'IntegerField'"
+    def test_unsupported_lookup(self):
+        msg = "Unsupported lookup 'range' for EmbeddedModelArrayField of 'IntegerField'"
         with self.assertRaisesMessage(FieldDoesNotExist, msg):
-            Exhibit.objects.filter(sections__number__rage=[10])
+            Exhibit.objects.filter(sections__number__range=[10])
 
     def test_missing_lookup_suggestions(self):
         msg = (
