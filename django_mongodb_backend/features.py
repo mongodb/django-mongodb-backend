@@ -624,3 +624,18 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         hello = client.command("hello")
         # a replica set or a sharded cluster
         return "setName" in hello or hello.get("msg") == "isdbgrid"
+
+    @cached_property
+    def supports_queryable_encryption(self):
+        """
+        Queryable Encryption is supported if the server is Atlas or Enterprise
+        and is configured as a replica set or sharded cluster.
+        """
+        self.connection.ensure_connection()
+        client = self.connection.connection.admin
+        build_info = client.command("buildInfo")
+        is_enterprise = "enterprise" in build_info.get("modules")
+        # `supports_transactions` already checks if the server is a
+        # replica set or sharded cluster.
+        is_not_single = self.supports_transactions
+        return is_enterprise and is_not_single

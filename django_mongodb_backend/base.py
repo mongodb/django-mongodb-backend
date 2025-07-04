@@ -286,4 +286,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def get_database_version(self):
         """Return a tuple of the database's version."""
-        return tuple(self.connection.server_info()["versionArray"])
+        # Avoid PyMongo or require PyMongo>=4.14.0 which
+        # will contain a fix for the buildInfo command.
+        # https://jira.mongodb.org/browse/PYTHON-5429
+        return tuple(self.connection.admin.command("buildInfo")["versionArray"])
