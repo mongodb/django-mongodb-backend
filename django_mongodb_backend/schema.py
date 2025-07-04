@@ -448,7 +448,17 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         fields = model._meta.fields
         return {
             "fields": [
-                {"path": field.name, "bsonType": field.db_type(conn)}
+                {
+                    "path": field.name,
+                    "bsonType": field.db_type(conn),
+                    # Specify queries in the field definition as a list of query
+                    # types e.g. queries=["equality", "range"]
+                    **(
+                        {"queries": [{"queryType": query} for query in field.queries]}
+                        if hasattr(field, "queries") and field.queries
+                        else {}
+                    ),
+                }
                 for field in fields
                 if getattr(field, "encrypted", False)
             ]

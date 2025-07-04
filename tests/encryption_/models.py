@@ -6,7 +6,8 @@ from django_mongodb_backend.models import EncryptedModel
 
 class Person(EncryptedModel):
     name = models.CharField("name", max_length=100)
-    ssn = EncryptedCharField("ssn", max_length=11)
+    ssn = EncryptedCharField("ssn", max_length=11, queries=["equality"])
+    ssn2 = EncryptedCharField("ssn", max_length=11, queries=["equality"])
 
     def __str__(self):
         return self.name
