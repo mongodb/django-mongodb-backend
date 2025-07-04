@@ -122,6 +122,8 @@ class DatabaseOperations(BaseDatabaseOperations):
             )
         elif internal_type == "JSONField":
             converters.append(self.convert_jsonfield_value)
+        elif internal_type == "PolymorphicEmbeddedModelField":
+            converters.append(self.convert_polymorphicembeddedmodelfield_value)
         elif internal_type == "TimeField":
             # Trunc(... output_field="TimeField") values must remain datetime
             # until Trunc.convert_value() so they can be converted from UTC
@@ -181,6 +183,19 @@ class DatabaseOperations(BaseDatabaseOperations):
         decode it using json.loads().
         """
         return json.dumps(value)
+
+    def convert_polymorphicembeddedmodelfield_value(self, value, expression, connection):
+        if value is not None:
+            model_class = expression.output_field._get_model_from_label(value["_label"])
+            # Apply database converters to each field of the embedded model.
+            for field in model_class._meta.fields:
+                field_expr = Expression(output_field=field)
+                converters = connection.ops.get_db_converters(
+                    field_expr
+                ) + field_expr.get_db_converters(connection)
+                for converter in converters:
+                    value[field.attname] = converter(value[field.attname], field_expr, connection)
+        return value
 
     def convert_timefield_value(self, value, expression, connection):
         if value is not None:

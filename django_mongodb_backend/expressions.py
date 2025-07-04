@@ -190,9 +190,9 @@ def when(self, compiler, connection):
 
 def value(self, compiler, connection):  # noqa: ARG001
     value = self.value
-    if isinstance(value, int):
-        # Wrap numbers in $literal to prevent ambiguity when Value appears in
-        # $project.
+    if isinstance(value, list | int):
+        # Wrap lists & numbers in $literal to prevent ambiguity when Value
+        # appears in $project.
         return {"$literal": value}
     if isinstance(value, Decimal):
         return Decimal128(value)
