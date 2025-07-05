@@ -208,15 +208,72 @@ def value(self, compiler, connection):  # noqa: ARG001
     return value
 
 
-class SearchExpression(Expression):
-    output_field = FloatField()
+class Operator:
+    AND = "AND"
+    OR = "OR"
+    NOT = "NOT"
 
-    def get_source_expressions(self):
-        return []
+    def __init__(self, operator):
+        self.operator = operator
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return self.operator == other
+        return self.operator == other.operator
+
+    def negate(self):
+        if self.operator == self.AND:
+            return Operator(self.OR)
+        if self.operator == self.OR:
+            return Operator(self.AND)
+        return Operator(self.operator)
+
+    def __hash__(self):
+        return hash(self.operator)
 
     def __str__(self):
-        args = ", ".join(map(str, self.get_source_expressions()))
-        return f"{self.search_type}({args})"
+        return self.operator
+
+    def __repr__(self):
+        return self.operator
+
+
+class SearchCombinable:
+    def _combine(self, other, connector):
+        if not isinstance(self, CompoundExpression | CombinedSearchExpression):
+            lhs = CompoundExpression(must=[self])
+        else:
+            lhs = self
+        if other and not isinstance(other, CompoundExpression | CombinedSearchExpression):
+            rhs = CompoundExpression(must=[other])
+        else:
+            rhs = other
+        return CombinedSearchExpression(lhs, connector, rhs)
+
+    def __invert__(self):
+        return self._combine(None, Operator(Operator.NOT))
+
+    def __and__(self, other):
+        return self._combine(other, Operator(Operator.AND))
+
+    def __rand__(self, other):
+        return self._combine(other, Operator(Operator.AND))
+
+    def __or__(self, other):
+        return self._combine(other, Operator(Operator.OR))
+
+    def __ror__(self, other):
+        return self._combine(self, Operator(Operator.OR), other)
+
+
+class SearchExpression(SearchCombinable, Expression):
+    output_field = FloatField()
+
+    def __str__(self):
+        cls = self.identity[0]
+        kwargs = dict(self.identity[1:])
+        arg_str = ", ".join(f"{k}={v!r}" for k, v in kwargs.items())
+        return f"{cls.__name__}({arg_str})"
 
     def __repr__(self):
         return str(self)
@@ -232,6 +289,13 @@ class SearchExpression(Expression):
                 return search_indexes["name"]
         return "default"
 
+    def search_operator(self):
+        raise NotImplementedError
+
+    def as_mql(self, compiler, connection):
+        index = self._get_query_index(self.get_search_fields(), compiler)
+        return {"$search": {**self.search_operator(), "index": index}}
+
 
 class SearchAutocomplete(SearchExpression):
     def __init__(self, path, query, fuzzy=None, score=None):
@@ -241,7 +305,10 @@ class SearchAutocomplete(SearchExpression):
         self.score = score
         super().__init__()
 
-    def as_mql(self, compiler, connection):
+    def get_search_fields(self):
+        return {self.path}
+
+    def search_operator(self):
         params = {
             "path": self.path,
             "query": self.query,
@@ -250,8 +317,7 @@ class SearchAutocomplete(SearchExpression):
             params["score"] = self.score
         if self.fuzzy is not None:
             params["fuzzy"] = self.fuzzy
-        index = self._get_query_index([self.path], compiler)
-        return {"$search": {"autocomplete": params, "index": index}}
+        return {"autocomplete": params}
 
 
 class SearchEquals(SearchExpression):
@@ -261,15 +327,17 @@ class SearchEquals(SearchExpression):
         self.score = score
         super().__init__()
 
-    def as_mql(self, compiler, connection):
+    def get_search_fields(self):
+        return {self.path}
+
+    def search_operator(self):
         params = {
             "path": self.path,
             "value": self.value,
         }
         if self.score is not None:
             params["score"] = self.score
-        index = self._get_query_index([self.path], compiler)
-        return {"$search": {"equals": params, "index": index}}
+        return {"equals": params}
 
 
 class SearchExists(SearchExpression):
@@ -278,14 +346,16 @@ class SearchExists(SearchExpression):
         self.score = score
         super().__init__()
 
-    def as_mql(self, compiler, connection):
+    def get_search_fields(self):
+        return {self.path}
+
+    def search_operator(self):
         params = {
             "path": self.path,
         }
         if self.score is not None:
             params["score"] = self.score
-        index = self._get_query_index([self.path], compiler)
-        return {"$search": {"exists": params, "index": index}}
+        return {"exists": params}
 
 
 class SearchIn(SearchExpression):
@@ -295,15 +365,17 @@ class SearchIn(SearchExpression):
         self.score = score
         super().__init__()
 
-    def as_mql(self, compiler, connection):
+    def get_search_fields(self):
+        return {self.path}
+
+    def search_operator(self):
         params = {
             "path": self.path,
             "value": self.value,
         }
         if self.score is not None:
             params["score"] = self.score
-        index = self._get_query_index([self.path], compiler)
-        return {"$search": {"in": params, "index": index}}
+        return {"in": params}
 
 
 class SearchPhrase(SearchExpression):
@@ -315,7 +387,10 @@ class SearchPhrase(SearchExpression):
         self.synonyms = synonyms
         super().__init__()
 
-    def as_mql(self, compiler, connection):
+    def get_search_fields(self):
+        return {self.path}
+
+    def search_operator(self):
         params = {
             "path": self.path,
             "query": self.query,
@@ -326,8 +401,7 @@ class SearchPhrase(SearchExpression):
             params["slop"] = self.slop
         if self.synonyms is not None:
             params["synonyms"] = self.synonyms
-        index = self._get_query_index([self.path], compiler)
-        return {"$search": {"phrase": params, "index": index}}
+        return {"phrase": params}
 
 
 class SearchQueryString(SearchExpression):
@@ -337,15 +411,17 @@ class SearchQueryString(SearchExpression):
         self.score = score
         super().__init__()
 
-    def as_mql(self, compiler, connection):
+    def get_search_fields(self):
+        return {self.path}
+
+    def search_operator(self):
         params = {
             "defaultPath": self.path,
             "query": self.query,
         }
         if self.score is not None:
             params["score"] = self.score
-        index = self._get_query_index([self.path], compiler)
-        return {"$search": {"queryString": params, "index": index}}
+        return {"queryString": params}
 
 
 class SearchRange(SearchExpression):
@@ -358,7 +434,10 @@ class SearchRange(SearchExpression):
         self.score = score
         super().__init__()
 
-    def as_mql(self, compiler, connection):
+    def get_search_fields(self):
+        return {self.path}
+
+    def search_operator(self):
         params = {
             "path": self.path,
         }
@@ -372,8 +451,7 @@ class SearchRange(SearchExpression):
             params["gt"] = self.gt
         if self.gte is not None:
             params["gte"] = self.gte
-        index = self._get_query_index([self.path], compiler)
-        return {"$search": {"range": params, "index": index}}
+        return {"range": params}
 
 
 class SearchRegex(SearchExpression):
@@ -384,7 +462,10 @@ class SearchRegex(SearchExpression):
         self.score = score
         super().__init__()
 
-    def as_mql(self, compiler, connection):
+    def get_search_fields(self):
+        return {self.path}
+
+    def search_operator(self):
         params = {
             "path": self.path,
             "query": self.query,
@@ -393,8 +474,7 @@ class SearchRegex(SearchExpression):
             params["score"] = self.score
         if self.allow_analyzed_field is not None:
             params["allowAnalyzedField"] = self.allow_analyzed_field
-        index = self._get_query_index([self.path], compiler)
-        return {"$search": {"regex": params, "index": index}}
+        return {"regex": params}
 
 
 class SearchText(SearchExpression):
@@ -407,7 +487,10 @@ class SearchText(SearchExpression):
         self.score = score
         super().__init__()
 
-    def as_mql(self, compiler, connection):
+    def get_search_fields(self):
+        return {self.path}
+
+    def search_operator(self):
         params = {
             "path": self.path,
             "query": self.query,
@@ -420,8 +503,7 @@ class SearchText(SearchExpression):
             params["matchCriteria"] = self.match_criteria
         if self.synonyms is not None:
             params["synonyms"] = self.synonyms
-        index = self._get_query_index([self.path], compiler)
-        return {"$search": {"text": params, "index": index}}
+        return {"text": params}
 
 
 class SearchWildcard(SearchExpression):
@@ -432,7 +514,10 @@ class SearchWildcard(SearchExpression):
         self.score = score
         super().__init__()
 
-    def as_mql(self, compiler, connection):
+    def get_search_fields(self):
+        return {self.path}
+
+    def search_operator(self):
         params = {
             "path": self.path,
             "query": self.query,
@@ -441,8 +526,7 @@ class SearchWildcard(SearchExpression):
             params["score"] = self.score
         if self.allow_analyzed_field is not None:
             params["allowAnalyzedField"] = self.allow_analyzed_field
-        index = self._get_query_index([self.path], compiler)
-        return {"$search": {"wildcard": params, "index": index}}
+        return {"wildcard": params}
 
 
 class SearchGeoShape(SearchExpression):
@@ -453,7 +537,10 @@ class SearchGeoShape(SearchExpression):
         self.score = score
         super().__init__()
 
-    def as_mql(self, compiler, connection):
+    def get_search_fields(self):
+        return {self.path}
+
+    def search_operator(self):
         params = {
             "path": self.path,
             "relation": self.relation,
@@ -461,8 +548,7 @@ class SearchGeoShape(SearchExpression):
         }
         if self.score:
             params["score"] = self.score
-        index = self._get_query_index([self.path], compiler)
-        return {"$search": {"geoShape": params, "index": index}}
+        return {"geoShape": params}
 
 
 class SearchGeoWithin(SearchExpression):
@@ -473,36 +559,38 @@ class SearchGeoWithin(SearchExpression):
         self.score = score
         super().__init__()
 
-    def as_mql(self, compiler, connection):
+    def search_operator(self):
         params = {
             "path": self.path,
             self.kind: self.geo_object,
         }
         if self.score:
             params["score"] = self.score
-        index = self._get_query_index([self.path], compiler)
-        return {"$search": {"geoWithin": params, "index": index}}
+        return {"geoWithin": params}
+
+    def get_search_fields(self):
+        return {self.path}
 
 
 class SearchMoreLikeThis(SearchExpression):
-    search_type = "more_like_this"
-
     def __init__(self, documents, score=None):
         self.documents = documents
         self.score = score
         super().__init__()
 
-    def as_mql(self, compiler, connection):
+    def search_operator(self):
         params = {
             "like": self.documents,
         }
         if self.score:
             params["score"] = self.score
-        needed_fields = []
+        return {"moreLikeThis": params}
+
+    def get_search_fields(self):
+        needed_fields = set()
         for doc in self.documents:
-            needed_fields += list(doc.keys())
-        index = self._get_query_index(needed_fields, compiler)
-        return {"$search": {"moreLikeThis": params, "index": index}}
+            needed_fields.update(set(doc.keys()))
+        return needed_fields
 
 
 class SearchVector(SearchExpression):
@@ -510,7 +598,6 @@ class SearchVector(SearchExpression):
         self,
         path,
         query_vector,
-        index,
         limit,
         num_candidates=None,
         exact=None,
@@ -518,16 +605,36 @@ class SearchVector(SearchExpression):
     ):
         self.path = path
         self.query_vector = query_vector
-        self.index = index
         self.limit = limit
         self.num_candidates = num_candidates
         self.exact = exact
         self.filter = filter
         super().__init__()
 
+    def __invert__(self):
+        return ValueError("SearchVector cannot be negated")
+
+    def __and__(self, other):
+        raise NotSupportedError("SearchVector cannot be combined")
+
+    def __rand__(self, other):
+        raise NotSupportedError("SearchVector cannot be combined")
+
+    def __or__(self, other):
+        raise NotSupportedError("SearchVector cannot be combined")
+
+    def __ror__(self, other):
+        raise NotSupportedError("SearchVector cannot be combined")
+
+    def get_search_fields(self):
+        return {self.path}
+
+    def _get_query_index(self, field, compiler):
+        return "default"
+
     def as_mql(self, compiler, connection):
         params = {
-            "index": self.index,
+            "index": self._get_query_index(self.get_search_fields()),
             "path": self.path,
             "queryVector": self.query_vector,
             "limit": self.limit,
@@ -541,29 +648,90 @@ class SearchVector(SearchExpression):
         return {"$vectorSearch": params}
 
 
-class SearchScoreOption:
-    """Class to mutate scoring on a search operation"""
-
-    def __init__(self, definitions=None):
-        self.definitions = definitions
-
-
 class CompoundExpression(SearchExpression):
-    def __init__(self, must=None, must_not=None, should=None, filter=None, score=None):
+    def __init__(
+        self,
+        must=None,
+        must_not=None,
+        should=None,
+        filter=None,
+        score=None,
+        minimum_should_match=None,
+    ):
         self.must = must or []
         self.must_not = must_not or []
         self.should = should or []
         self.filter = filter or []
         self.score = score
+        self.minimum_should_match = minimum_should_match
+
+    def get_search_fields(self):
+        fields = set()
+        for clause in self.must + self.should + self.filter + self.must_not:
+            fields.update(clause.get_search_fields())
+        return fields
+
+    def search_operator(self):
+        params = {}
+        if self.must:
+            params["must"] = [clause.search_operator() for clause in self.must]
+        if self.must_not:
+            params["mustNot"] = [clause.search_operator() for clause in self.must_not]
+        if self.should:
+            params["should"] = [clause.search_operator() for clause in self.should]
+        if self.filter:
+            params["filter"] = [clause.search_operator() for clause in self.filter]
+        if self.minimum_should_match is not None:
+            params["minimumShouldMatch"] = self.minimum_should_match
+
+        return {"compound": params}
+
+    def negate(self):
+        return CompoundExpression(must_not=[self])
+
+
+class CombinedSearchExpression(SearchExpression):
+    def __init__(self, lhs, operator, rhs):
+        self.lhs = lhs
+        self.operator = operator
+        self.rhs = rhs
+
+    @staticmethod
+    def resolve(node, negated=False):
+        if node is None:
+            return None
+        # Leaf, resolve the compoundExpression
+        if isinstance(node, CompoundExpression):
+            return node.negate() if negated else node
+        # Apply De Morgan's Laws.
+        operator = node.operator.negate() if negated else node.operator
+        negated = negated != (node.operator == Operator.NOT)
+        lhs_compound = node.resolve(node.lhs, negated)
+        rhs_compound = node.resolve(node.rhs, negated)
+        if operator == Operator.OR:
+            return CompoundExpression(should=[lhs_compound, rhs_compound], minimum_should_match=1)
+        if operator == Operator.AND:
+            # NOTE: we can't just do the code below, think about this case (A | B) & (C | D)
+            # return CompoundExpression(
+            #     must=lhs_compound.must + rhs_compound.must,
+            #     must_not=lhs_compound.must_not + rhs_compound.must_not,
+            #     should=lhs_compound.should + rhs_compound.should,
+            #     filter=lhs_compound.filter + rhs_compound.filter,
+            # )
+            return CompoundExpression(must=[lhs_compound, rhs_compound])
+        # not operator
+        return lhs_compound
 
     def as_mql(self, compiler, connection):
-        params = {}
-        for param in ["must", "must_not", "should", "filter"]:
-            clauses = getattr(self, param)
-            if clauses:
-                params[param] = [clause.as_mql(compiler, connection) for clause in clauses]
+        expression = self.resolve(self)
+        return expression.as_mql(compiler, connection)
 
-        return {"$compound": params}
+
+class SearchScoreOption:
+    """Class to mutate scoring on a search operation"""
+
+    def __init__(self, definitions=None):
+        self.definitions = definitions
 
 
 def register_expressions():

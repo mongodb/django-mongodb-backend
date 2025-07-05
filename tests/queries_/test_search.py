@@ -5,6 +5,7 @@ from django.test import TestCase
 from pymongo.operations import SearchIndexModel
 
 from django_mongodb_backend.expressions.builtins import (
+    CompoundExpression,
     SearchAutocomplete,
     SearchEquals,
     SearchExists,
@@ -23,11 +24,13 @@ from .models import Article
 
 
 class CreateIndexMixin:
-    def _get_collection(self, model):
+    @staticmethod
+    def _get_collection(model):
         return connection.database.get_collection(model._meta.db_table)
 
-    def create_search_index(self, model, index_name, definition):
-        collection = self._get_collection(model)
+    @staticmethod
+    def create_search_index(model, index_name, definition):
+        collection = CreateIndexMixin._get_collection(model)
         idx = SearchIndexModel(definition=definition, name=index_name)
         collection.create_search_index(idx)
 
@@ -296,3 +299,69 @@ class SearchMoreLikeThisTest(TestCase, CreateIndexMixin):
         self.assertQuerySetEqual(
             qs, ["space exploration", "The commodities fall"], lambda a: a.headline
         )
+
+
+class CompoundSearchTest(TestCase, CreateIndexMixin):
+    @classmethod
+    def setUpTestData(cls):
+        cls.create_search_index(
+            Article,
+            "compound_index",
+            {
+                "mappings": {
+                    "dynamic": False,
+                    "fields": {
+                        "headline": {"type": "token"},
+                        "body": {"type": "string"},
+                        "number": {"type": "number"},
+                    },
+                }
+            },
+        )
+        cls.mars_mission = Article.objects.create(
+            number=1,
+            headline="space exploration",
+            body="NASA launches a new mission to Mars, aiming to study surface geology",
+        )
+
+        cls.exoplanet = Article.objects.create(
+            number=2,
+            headline="space exploration",
+            body="Astronomers discover exoplanets orbiting distant stars using Webb telescope",
+        )
+
+        cls.icy_moons = Article.objects.create(
+            number=3,
+            headline="space exploration",
+            body="ESA prepares a robotic expedition to explore the icy moons of Jupiter",
+        )
+
+        cls.comodities_drop = Article.objects.create(
+            number=4,
+            headline="astronomy news",
+            body="Commodities dropped sharply due to inflation concerns",
+        )
+
+        time.sleep(1)
+
+    def test_compound_expression(self):
+        must_expr = SearchEquals(path="headline", value="space exploration")
+        must_not_expr = SearchPhrase(path="body", query="icy moons")
+        should_expr = SearchPhrase(path="body", query="exoplanets")
+
+        compound = CompoundExpression(
+            must=[must_expr or should_expr],
+            must_not=[must_not_expr],
+            should=[should_expr],
+            minimum_should_match=1,
+        )
+
+        qs = Article.objects.annotate(score=compound).order_by("score")
+        self.assertCountEqual(qs, [self.exoplanet])
+
+    def test_compound_operations(self):
+        expr = SearchEquals(path="headline", value="space exploration") & ~SearchEquals(
+            path="number", value=3
+        )
+        qs = Article.objects.annotate(score=expr)
+        self.assertCountEqual(qs, [self.mars_mission, self.exoplanet])
