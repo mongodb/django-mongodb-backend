@@ -213,7 +213,56 @@ def value(self, compiler, connection):  # noqa: ARG001
     return value
 
 
-class SearchExpression(Expression):
+class Operator:
+    AND = "AND"
+    OR = "OR"
+    NOT = "NOT"
+
+    def __init__(self, operator):
+        self.operator = operator
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return self.operator == other
+        return self.operator == other.operator
+
+    def negate(self):
+        if self.operator == self.AND:
+            return Operator(self.OR)
+        if self.operator == self.OR:
+            return Operator(self.AND)
+        return Operator(self.operator)
+
+
+class SearchCombinable:
+    def _combine(self, other, connector, reversed):
+        if not isinstance(self, CompoundExpression | CombinedSearchExpression):
+            lhs = CompoundExpression(must=[self])
+        else:
+            lhs = self
+        if not isinstance(other, CompoundExpression | CombinedSearchExpression):
+            rhs = CompoundExpression(must=[other])
+        else:
+            rhs = other
+        return CombinedSearchExpression(lhs, connector, rhs)
+
+    def __invert__(self):
+        return CombinedSearchExpression(self, Operator(Operator.NOT), None)
+
+    def __and__(self, other):
+        return CombinedSearchExpression(self, Operator(Operator.AND), other)
+
+    def __rand__(self, other):
+        return CombinedSearchExpression(self, Operator(Operator.AND), other)
+
+    def __or__(self, other):
+        return CombinedSearchExpression(self, Operator(Operator.OR), other)
+
+    def __ror__(self, other):
+        return CombinedSearchExpression(self, Operator(Operator.OR), other)
+
+
+class SearchExpression(SearchCombinable, Expression):
     output_field = FloatField()
 
     def get_source_expressions(self):
@@ -530,6 +579,21 @@ class SearchVector(SearchExpression):
         self.filter = filter
         super().__init__()
 
+    def __invert__(self):
+        return ValueError("SearchVector cannot be negated")
+
+    def __and__(self, other):
+        raise NotSupportedError("SearchVector cannot be combined")
+
+    def __rand__(self, other):
+        raise NotSupportedError("SearchVector cannot be combined")
+
+    def __or__(self, other):
+        raise NotSupportedError("SearchVector cannot be combined")
+
+    def __ror__(self, other):
+        raise NotSupportedError("SearchVector cannot be combined")
+
     def as_mql(self, compiler, connection):
         params = {
             "index": self.index,
@@ -546,15 +610,16 @@ class SearchVector(SearchExpression):
         return {"$vectorSearch": params}
 
 
-class SearchScoreOption:
-    """Class to mutate scoring on a search operation"""
-
-    def __init__(self, definitions=None):
-        self.definitions = definitions
-
-
 class CompoundExpression(SearchExpression):
-    def __init__(self, must=None, must_not=None, should=None, filter=None, score=None):
+    def __init__(
+        self,
+        must=None,
+        must_not=None,
+        should=None,
+        filter=None,
+        score=None,
+        minimum_should_match=None,
+    ):
         self.must = must or []
         self.must_not = must_not or []
         self.should = should or []
@@ -563,12 +628,66 @@ class CompoundExpression(SearchExpression):
 
     def as_mql(self, compiler, connection):
         params = {}
-        for param in ["must", "must_not", "should", "filter"]:
-            clauses = getattr(self, param)
-            if clauses:
-                params[param] = [clause.as_mql(compiler, connection) for clause in clauses]
+        if self.must:
+            params["must"] = [clause.as_mql(compiler, connection) for clause in self.must]
+        if self.must_not:
+            params["mustNot"] = [clause.as_mql(compiler, connection) for clause in self.must_not]
+        if self.should:
+            params["should"] = [clause.as_mql(compiler, connection) for clause in self.should]
+        if self.filter:
+            params["filter"] = [clause.as_mql(compiler, connection) for clause in self.filter]
+        if self.minimum_should_match is not None:
+            params["minimumShouldMatch"] = self.minimum_should_match
 
         return {"$compound": params}
+
+    def negate(self):
+        return CompoundExpression(must=self.must_not, must_not=self.must + self.filter)
+
+
+class CombinedSearchExpression(SearchExpression):
+    def __init__(self, lhs, operator, rhs):
+        self.lhs = lhs
+        self.operator = operator
+        self.rhs = rhs
+
+    @staticmethod
+    def _flatten(node, negated=False):
+        if node is None:
+            return None
+        # Leaf, resolve the compoundExpression
+        if isinstance(node, CompoundExpression):
+            return node.negate() if negated else node
+        # Apply De Morgan's Laws.
+        operator = node.operator.negate() if negated else node.operator
+        negated = negated != (node.operator == Operator.NOT)
+        lhs_compound = node._flatten(node.lhs, negated)
+        rhs_compound = node._flatten(node.rhs, negated)
+        if operator == Operator.OR:
+            return CompoundExpression(should=[lhs_compound, rhs_compound], minimum_should_match=1)
+        if node.operator == Operator.AND:
+            return CompoundExpression(
+                must=lhs_compound.must + rhs_compound.must,
+                must_not=lhs_compound.must_not + rhs_compound.must_not,
+                should=lhs_compound.should + rhs_compound.should,
+                filter=lhs_compound.filter + rhs_compound.filter,
+            )
+            # it also can be written as:
+            # this way is more consistent with OR, but the above is shorter in the debug query.
+            # return CompoundExpression(must=[lhs_compound, rhs_compound])
+        # not operator
+        return lhs_compound
+
+    def as_mql(self, compiler, connection):
+        expression = self._flatten(self)
+        return expression.as_mql(compiler, connection)
+
+
+class SearchScoreOption:
+    """Class to mutate scoring on a search operation"""
+
+    def __init__(self, definitions=None):
+        self.definitions = definitions
 
 
 def register_expressions():
