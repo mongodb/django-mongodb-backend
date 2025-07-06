@@ -236,6 +236,12 @@ class Operator:
     def __hash__(self):
         return hash(self.operator)
 
+    def __str__(self):
+        return self.operator
+
+    def __repr__(self):
+        return self.operator
+
 
 class SearchCombinable:
     def _combine(self, other, connector):
@@ -288,12 +294,12 @@ class SearchExpression(SearchCombinable, Expression):
                 return search_indexes["name"]
         return "default"
 
-    def search_operator(self, compiler, connection):
+    def search_operator(self):
         raise NotImplementedError
 
     def as_mql(self, compiler, connection):
         index = self._get_query_index(self.get_search_fields(), compiler)
-        return {"$search": {**self.search_operator(compiler, connection), "index": index}}
+        return {"$search": {**self.search_operator(), "index": index}}
 
 
 class SearchAutocomplete(SearchExpression):
@@ -307,7 +313,7 @@ class SearchAutocomplete(SearchExpression):
     def get_search_fields(self):
         return {self.path}
 
-    def search_operator(self, compiler, connection):
+    def search_operator(self):
         params = {
             "path": self.path,
             "query": self.query,
@@ -329,7 +335,7 @@ class SearchEquals(SearchExpression):
     def get_search_fields(self):
         return {self.path}
 
-    def search_operator(self, compiler, connection):
+    def search_operator(self):
         params = {
             "path": self.path,
             "value": self.value,
@@ -348,7 +354,7 @@ class SearchExists(SearchExpression):
     def get_search_fields(self):
         return {self.path}
 
-    def search_operator(self, compiler, connection):
+    def search_operator(self):
         params = {
             "path": self.path,
         }
@@ -367,7 +373,7 @@ class SearchIn(SearchExpression):
     def get_search_fields(self):
         return {self.path}
 
-    def search_operator(self, compiler, connection):
+    def search_operator(self):
         params = {
             "path": self.path,
             "value": self.value,
@@ -389,7 +395,7 @@ class SearchPhrase(SearchExpression):
     def get_search_fields(self):
         return {self.path}
 
-    def search_operator(self, compiler, connection):
+    def search_operator(self):
         params = {
             "path": self.path,
             "query": self.query,
@@ -413,7 +419,7 @@ class SearchQueryString(SearchExpression):
     def get_search_fields(self):
         return {self.path}
 
-    def search_operator(self, compiler, connection):
+    def search_operator(self):
         params = {
             "defaultPath": self.path,
             "query": self.query,
@@ -436,7 +442,7 @@ class SearchRange(SearchExpression):
     def get_search_fields(self):
         return {self.path}
 
-    def search_operator(self, compiler, connection):
+    def search_operator(self):
         params = {
             "path": self.path,
         }
@@ -464,7 +470,7 @@ class SearchRegex(SearchExpression):
     def get_search_fields(self):
         return {self.path}
 
-    def search_operator(self, compiler, connection):
+    def search_operator(self):
         params = {
             "path": self.path,
             "query": self.query,
@@ -489,7 +495,7 @@ class SearchText(SearchExpression):
     def get_search_fields(self):
         return {self.path}
 
-    def search_operator(self, compiler, connection):
+    def search_operator(self):
         params = {
             "path": self.path,
             "query": self.query,
@@ -516,7 +522,7 @@ class SearchWildcard(SearchExpression):
     def get_search_fields(self):
         return {self.path}
 
-    def search_operator(self, compiler, connection):
+    def search_operator(self):
         params = {
             "path": self.path,
             "query": self.query,
@@ -539,7 +545,7 @@ class SearchGeoShape(SearchExpression):
     def get_search_fields(self):
         return {self.path}
 
-    def search_operator(self, compiler, connection):
+    def search_operator(self):
         params = {
             "path": self.path,
             "relation": self.relation,
@@ -558,7 +564,7 @@ class SearchGeoWithin(SearchExpression):
         self.score = score
         super().__init__()
 
-    def search_operator(self, compiler, connection):
+    def search_operator(self):
         params = {
             "path": self.path,
             self.kind: self.geo_object,
@@ -577,7 +583,7 @@ class SearchMoreLikeThis(SearchExpression):
         self.score = score
         super().__init__()
 
-    def search_operator(self, compiler, connection):
+    def search_operator(self):
         params = {
             "like": self.documents,
         }
@@ -670,29 +676,23 @@ class CompoundExpression(SearchExpression):
             fields.update(clause.get_search_fields())
         return fields
 
-    def search_operator(self, compiler, connection):
+    def search_operator(self):
         params = {}
         if self.must:
-            params["must"] = [clause.search_operator(compiler, connection) for clause in self.must]
+            params["must"] = [clause.search_operator() for clause in self.must]
         if self.must_not:
-            params["mustNot"] = [
-                clause.search_operator(compiler, connection) for clause in self.must_not
-            ]
+            params["mustNot"] = [clause.search_operator() for clause in self.must_not]
         if self.should:
-            params["should"] = [
-                clause.search_operator(compiler, connection) for clause in self.should
-            ]
+            params["should"] = [clause.search_operator() for clause in self.should]
         if self.filter:
-            params["filter"] = [
-                clause.search_operator(compiler, connection) for clause in self.filter
-            ]
+            params["filter"] = [clause.search_operator() for clause in self.filter]
         if self.minimum_should_match is not None:
             params["minimumShouldMatch"] = self.minimum_should_match
 
         return {"compound": params}
 
     def negate(self):
-        return CompoundExpression(must=self.must_not, must_not=self.must + self.filter)
+        return CompoundExpression(must_not=[self])
 
 
 class CombinedSearchExpression(SearchExpression):
@@ -702,7 +702,7 @@ class CombinedSearchExpression(SearchExpression):
         self.rhs = rhs
 
     @staticmethod
-    def _flatten(node, negated=False):
+    def resolve(node, negated=False):
         if node is None:
             return None
         # Leaf, resolve the compoundExpression
@@ -711,25 +711,24 @@ class CombinedSearchExpression(SearchExpression):
         # Apply De Morgan's Laws.
         operator = node.operator.negate() if negated else node.operator
         negated = negated != (node.operator == Operator.NOT)
-        lhs_compound = node._flatten(node.lhs, negated)
-        rhs_compound = node._flatten(node.rhs, negated)
+        lhs_compound = node.resolve(node.lhs, negated)
+        rhs_compound = node.resolve(node.rhs, negated)
         if operator == Operator.OR:
             return CompoundExpression(should=[lhs_compound, rhs_compound], minimum_should_match=1)
-        if node.operator == Operator.AND:
-            return CompoundExpression(
-                must=lhs_compound.must + rhs_compound.must,
-                must_not=lhs_compound.must_not + rhs_compound.must_not,
-                should=lhs_compound.should + rhs_compound.should,
-                filter=lhs_compound.filter + rhs_compound.filter,
-            )
-            # it also can be written as:
-            # this way is more consistent with OR, but the above is shorter in the debug query.
-            # return CompoundExpression(must=[lhs_compound, rhs_compound])
+        if operator == Operator.AND:
+            # NOTE: we can't just do the code below, think about this case (A | B) & (C | D)
+            # return CompoundExpression(
+            #     must=lhs_compound.must + rhs_compound.must,
+            #     must_not=lhs_compound.must_not + rhs_compound.must_not,
+            #     should=lhs_compound.should + rhs_compound.should,
+            #     filter=lhs_compound.filter + rhs_compound.filter,
+            # )
+            return CompoundExpression(must=[lhs_compound, rhs_compound])
         # not operator
         return lhs_compound
 
     def as_mql(self, compiler, connection):
-        expression = self._flatten(self)
+        expression = self.resolve(self)
         return expression.as_mql(compiler, connection)
 
 
