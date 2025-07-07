@@ -449,10 +449,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         return {
             "fields": [
                 {
-                    # (Pdb) fields[2].db_column
-                    # (Pdb) fields[2].name
-                    # 'ssn'
-                    "path": field.name,
+                    "path": field.column,
                     "bsonType": field.db_type(conn),
                     # Specify queries in the field definition as a list of query
                     # types e.g. queries=["equality", "range"]
