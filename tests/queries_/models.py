@@ -1,6 +1,6 @@
 from django.db import models
 
-from django_mongodb_backend.fields import ObjectIdAutoField, ObjectIdField
+from django_mongodb_backend.fields import ArrayField, ObjectIdAutoField, ObjectIdField
 
 
 class Author(models.Model):
@@ -60,3 +60,4 @@ class Article(models.Model):
     number = models.IntegerField()
     body = models.TextField()
     location = models.JSONField(null=True)
+    plot_embedding = ArrayField(models.FloatField(), size=3)
