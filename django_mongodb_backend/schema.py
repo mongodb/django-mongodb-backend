@@ -427,7 +427,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         """
 
         db = self.get_database()
-        if hasattr(model, "encrypted") and model.encrypted:
+        if getattr(model, "encrypted", False):
             client = self.connection.connection
             ce = get_client_encryption(
                 client,
