@@ -109,9 +109,7 @@ class SQLCompiler(compiler.SQLCompiler):
             replacements[sub_expr] = self._get_replace_expr(sub_expr, group, alias)
         return replacements, group
 
-    def _prepare_search_expressions_for_pipeline(
-        self, expression, target, search_idx, replacements
-    ):
+    def _prepare_search_expressions_for_pipeline(self, expression, search_idx, replacements):
         searches = {}
         for sub_expr in self._get_search_expressions(expression):
             if sub_expr not in replacements:
@@ -121,18 +119,14 @@ class SQLCompiler(compiler.SQLCompiler):
     def _prepare_search_query_for_aggregation_pipeline(self, order_by):
         replacements = {}
         annotation_group_idx = itertools.count(start=1)
-        for target, expr in self.query.annotation_select.items():
-            self._prepare_search_expressions_for_pipeline(
-                expr, target, annotation_group_idx, replacements
-            )
+        for expr in self.query.annotation_select.values():
+            self._prepare_search_expressions_for_pipeline(expr, annotation_group_idx, replacements)
 
         for expr, _ in order_by:
-            self._prepare_search_expressions_for_pipeline(
-                expr, None, annotation_group_idx, replacements
-            )
+            self._prepare_search_expressions_for_pipeline(expr, annotation_group_idx, replacements)
 
         self._prepare_search_expressions_for_pipeline(
-            self.having, None, annotation_group_idx, replacements
+            self.having, annotation_group_idx, replacements
         )
         return replacements
 
