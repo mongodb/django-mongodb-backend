@@ -455,7 +455,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                     # types e.g. queries=["equality", "range"]
                     **(
                         {"queries": [{"queryType": query} for query in field.queries]}
-                        if hasattr(field, "queries") and field.queries
+                        if getattr(field, "queries", None)
                         else {}
                     ),
                 }
