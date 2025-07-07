@@ -427,9 +427,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         """
 
         db = self.get_database()
-        if not hasattr(model, "encrypted"):
-            db.create_collection(model._meta.db_table)
-        else:
+        if hasattr(model, "encrypted") and model.encrypted:
             client = self.connection.connection
             ce = get_client_encryption(
                 client,
@@ -442,6 +440,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 self._get_encrypted_fields_map(model),
                 settings.KMS_PROVIDER,
             )
+        else:
+            db.create_collection(model._meta.db_table)
 
     def _get_encrypted_fields_map(self, model):
         conn = self.connection
@@ -449,7 +449,10 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         return {
             "fields": [
                 {
-                    "path": field.db_column,
+                    # (Pdb) fields[2].db_column
+                    # (Pdb) fields[2].name
+                    # 'ssn'
+                    "path": field.name,
                     "bsonType": field.db_type(conn),
                     # Specify queries in the field definition as a list of query
                     # types e.g. queries=["equality", "range"]
