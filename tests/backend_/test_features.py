@@ -47,9 +47,13 @@ class SupportsTransactionsTests(TestCase):
 
 
 class SupportsQueryableEncryptionTests(TestCase):
-    # TODO: Add setUp? `del connection.features.supports_queryable_encryption` returns
-    # `AttributeError: 'DatabasesFeatures' object has no attribute 'supports_queryable_encryption'`
-    # even though it does have it upon inspection in `pdb`.
+    def setUp(self):
+        # Clear the cached property.
+        connection.features.__dict__.pop("supports_queryable_encryption", None)
+
+    def tearDown(self):
+        connection.features.__dict__.pop("supports_queryable_encryption", None)
+
     def test_supports_queryable_encryption(self):
         def mocked_command(command):
             if command == "buildInfo":
