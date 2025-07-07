@@ -9,8 +9,8 @@ class Person(EncryptedModel):
     ssn = EncryptedCharField("ssn", max_length=11, queries=["equality"])
     ssn2 = EncryptedCharField("ssn", max_length=11, queries=["equality"])
 
-+    class Meta:
-+        required_db_features = {"supports_queryable_encryption"}
-+
+    class Meta:
+        required_db_features = {"supports_queryable_encryption"}
+
     def __str__(self):
         return self.name
