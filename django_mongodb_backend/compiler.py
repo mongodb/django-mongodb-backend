@@ -248,12 +248,13 @@ class SQLCompiler(compiler.SQLCompiler):
                 pipeline.append({"$unset": "_id"})
         return pipeline
 
-    def _compound_searches_queries(self, searches):
+    def _compound_searches_queries(self, searches, search_replacements):
         if not searches:
             return []
         if len(searches) > 1:
             raise ValueError("Cannot perform more than one search operation.")
-        return [searches[0], {"$addFields": {"__search_expr.search1": {"$meta": "searchScore"}}}]
+        score_function = "searchScore" if "$search" in searches[0] else "vectorSearchScore"
+        return [searches[0], {"$addFields": {"__search_expr.search1": {"$meta": score_function}}}]
 
     def pre_sql_setup(self, with_col_aliases=False):
         extra_select, order_by, group_by = super().pre_sql_setup(with_col_aliases=with_col_aliases)
@@ -262,7 +263,7 @@ class SQLCompiler(compiler.SQLCompiler):
         )
         group, group_replacements = self._prepare_annotations_for_aggregation_pipeline(order_by)
         all_replacements = {**search_replacements, **group_replacements}
-        self.search_pipeline = self._compound_searches_queries(searches)
+        self.search_pipeline = self._compound_searches_queries(searches, search_replacements)
         # query.group_by is either:
         # - None: no GROUP BY
         # - True: group by select fields

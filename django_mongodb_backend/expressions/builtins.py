@@ -593,61 +593,6 @@ class SearchMoreLikeThis(SearchExpression):
         return needed_fields
 
 
-class SearchVector(SearchExpression):
-    def __init__(
-        self,
-        path,
-        query_vector,
-        limit,
-        num_candidates=None,
-        exact=None,
-        filter=None,
-    ):
-        self.path = path
-        self.query_vector = query_vector
-        self.limit = limit
-        self.num_candidates = num_candidates
-        self.exact = exact
-        self.filter = filter
-        super().__init__()
-
-    def __invert__(self):
-        return ValueError("SearchVector cannot be negated")
-
-    def __and__(self, other):
-        raise NotSupportedError("SearchVector cannot be combined")
-
-    def __rand__(self, other):
-        raise NotSupportedError("SearchVector cannot be combined")
-
-    def __or__(self, other):
-        raise NotSupportedError("SearchVector cannot be combined")
-
-    def __ror__(self, other):
-        raise NotSupportedError("SearchVector cannot be combined")
-
-    def get_search_fields(self):
-        return {self.path}
-
-    def _get_query_index(self, field, compiler):
-        return "default"
-
-    def as_mql(self, compiler, connection):
-        params = {
-            "index": self._get_query_index(self.get_search_fields()),
-            "path": self.path,
-            "queryVector": self.query_vector,
-            "limit": self.limit,
-        }
-        if self.num_candidates is not None:
-            params["numCandidates"] = self.num_candidates
-        if self.exact is not None:
-            params["exact"] = self.exact
-        if self.filter is not None:
-            params["filter"] = self.filter
-        return {"$vectorSearch": params}
-
-
 class CompoundExpression(SearchExpression):
     def __init__(
         self,
@@ -711,20 +656,74 @@ class CombinedSearchExpression(SearchExpression):
         if operator == Operator.OR:
             return CompoundExpression(should=[lhs_compound, rhs_compound], minimum_should_match=1)
         if operator == Operator.AND:
-            # NOTE: we can't just do the code below, think about this case (A | B) & (C | D)
-            # return CompoundExpression(
-            #     must=lhs_compound.must + rhs_compound.must,
-            #     must_not=lhs_compound.must_not + rhs_compound.must_not,
-            #     should=lhs_compound.should + rhs_compound.should,
-            #     filter=lhs_compound.filter + rhs_compound.filter,
-            # )
             return CompoundExpression(must=[lhs_compound, rhs_compound])
-        # not operator
         return lhs_compound
 
     def as_mql(self, compiler, connection):
         expression = self.resolve(self)
         return expression.as_mql(compiler, connection)
+
+
+class SearchVector(SearchExpression):
+    def __init__(
+        self,
+        path,
+        query_vector,
+        limit,
+        num_candidates=None,
+        exact=None,
+        filter=None,
+    ):
+        self.path = path
+        self.query_vector = query_vector
+        self.limit = limit
+        self.num_candidates = num_candidates
+        self.exact = exact
+        self.filter = filter
+        super().__init__()
+
+    def __invert__(self):
+        return ValueError("SearchVector cannot be negated")
+
+    def __and__(self, other):
+        raise NotSupportedError("SearchVector cannot be combined")
+
+    def __rand__(self, other):
+        raise NotSupportedError("SearchVector cannot be combined")
+
+    def __or__(self, other):
+        raise NotSupportedError("SearchVector cannot be combined")
+
+    def __ror__(self, other):
+        raise NotSupportedError("SearchVector cannot be combined")
+
+    def get_search_fields(self):
+        return {self.path}
+
+    def _get_query_index(self, fields, compiler):
+        for search_indexes in compiler.collection.list_search_indexes():
+            if search_indexes["type"] == "vectorSearch":
+                index_field = {
+                    field["path"] for field in search_indexes["latestDefinition"]["fields"]
+                }
+                if fields.issubset(index_field):
+                    return search_indexes["name"]
+        return "default"
+
+    def as_mql(self, compiler, connection):
+        params = {
+            "index": self._get_query_index(self.get_search_fields(), compiler),
+            "path": self.path,
+            "queryVector": self.query_vector,
+            "limit": self.limit,
+        }
+        if self.num_candidates is not None:
+            params["numCandidates"] = self.num_candidates
+        if self.exact is not None:
+            params["exact"] = self.exact
+        if self.filter is not None:
+            params["filter"] = self.filter
+        return {"$vectorSearch": params}
 
 
 class SearchScoreOption:

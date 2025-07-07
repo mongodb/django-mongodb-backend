@@ -17,6 +17,7 @@ from django_mongodb_backend.expressions.builtins import (
     SearchRange,
     SearchRegex,
     SearchText,
+    SearchVector,
     SearchWildcard,
 )
 
@@ -29,9 +30,9 @@ class CreateIndexMixin:
         return connection.database.get_collection(model._meta.db_table)
 
     @staticmethod
-    def create_search_index(model, index_name, definition):
+    def create_search_index(model, index_name, definition, type="search"):
         collection = CreateIndexMixin._get_collection(model)
-        idx = SearchIndexModel(definition=definition, name=index_name)
+        idx = SearchIndexModel(definition=definition, name=index_name, type=type)
         collection.create_search_index(idx)
 
 
@@ -365,3 +366,49 @@ class CompoundSearchTest(TestCase, CreateIndexMixin):
         )
         qs = Article.objects.annotate(score=expr)
         self.assertCountEqual(qs, [self.mars_mission, self.exoplanet])
+
+
+class SearchVectorTest(TestCase, CreateIndexMixin):
+    @classmethod
+    def setUpTestData(cls):
+        cls.create_search_index(
+            Article,
+            "vector_index",
+            {
+                "fields": [
+                    {
+                        "type": "vector",
+                        "path": "plot_embedding",
+                        "numDimensions": 3,
+                        "similarity": "cosine",
+                        "quantization": "scalar",
+                    }
+                ]
+            },
+            type="vectorSearch",
+        )
+
+        cls.mars = Article.objects.create(
+            headline="Mars landing",
+            number=1,
+            body="The rover has landed on Mars",
+            plot_embedding=[0.1, 0.2, 0.3],
+        )
+        Article.objects.create(
+            headline="Cooking tips",
+            number=2,
+            body="This article is about pasta",
+            plot_embedding=[0.9, 0.8, 0.7],
+        )
+        time.sleep(1)
+
+    def test_vector_search(self):
+        vector_query = [0.1, 0.2, 0.3]
+        expr = SearchVector(
+            path="plot_embedding",
+            query_vector=vector_query,
+            num_candidates=5,
+            limit=2,
+        )
+        qs = Article.objects.annotate(score=expr).order_by("-score")
+        self.assertEqual(qs.first(), self.mars)
