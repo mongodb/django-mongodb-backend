@@ -1,5 +1,6 @@
+from django.core import management
 from django.db import connection
-from django.test import TestCase
+from django.test import TestCase, modify_settings
 
 from .models import Person
 
@@ -24,3 +25,13 @@ class EncryptedModelTests(TestCase):
         }
         with connection.schema_editor() as editor:
             self.assertEqual(editor._get_encrypted_fields_map(self.person), expected)
+
+
+@modify_settings(
+    INSTALLED_APPS={"prepend": "django_mongodb_backend"},
+)
+class AutoEncryptionOptsTests(TestCase):
+    databases = {"default", "encrypted"}
+
+    def test_auto_encryption_opts(self):
+        management.call_command("get_encrypted_fields_map", verbosity=0)
