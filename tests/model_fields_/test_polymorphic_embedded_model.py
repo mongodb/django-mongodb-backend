@@ -99,7 +99,7 @@ class QueryingTests(TestCase):
                 pet=Cat(
                     name=f"Cat {x}",
                     weight=f"{x}.5",
-                    toys=Mouse(manufacturer=f"Maker {x}"),
+                    favorite_toy=Mouse(manufacturer=f"Maker {x}"),
                 ),
             )
             for x in range(6)
@@ -110,7 +110,7 @@ class QueryingTests(TestCase):
                 pet=Dog(
                     name=f"Dog {x}",
                     barks=x % 2 == 0,
-                    toys=Bone(brand=f"Brand {x}"),
+                    favorite_toy=Bone(brand=f"Brand {x}"),
                 ),
             )
             for x in range(6)
@@ -147,17 +147,17 @@ class QueryingTests(TestCase):
         )
 
     def test_nested(self):
-        # Cat and Dog both have field toys = PolymorphicEmbeddedModelField(...)
+        # Cat and Dog both have favorite_toy = PolymorphicEmbeddedModelField(...)
         # but with different models. It's possible to query the fields of the
-        # Dog's toys because it's the first model in Person.pet.
+        # Dog's favorite_toy because it's the first model in Person.pet.
         self.assertCountEqual(
-            Person.objects.filter(pet__toys__brand="Brand 1"),
+            Person.objects.filter(pet__favorite_toy__brand="Brand 1"),
             [self.dog_owners[1]],
         )
         # The fields of Cat can't be queried.
-        msg = "The models of field 'toys' have no field named 'manufacturer'."
+        msg = "The models of field 'favorite_toy' have no field named 'manufacturer'."
         with self.assertRaisesMessage(FieldDoesNotExist, msg):
-            (Person.objects.filter(pet__toys__manufacturer="Maker 1"),)
+            (Person.objects.filter(pet__favorite_toy__manufacturer="Maker 1"),)
 
 
 class InvalidLookupTests(SimpleTestCase):
