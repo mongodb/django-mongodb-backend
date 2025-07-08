@@ -10,4 +10,5 @@ know:
 
    cache
    embedded-models
+   encrypted-models
    known-issues

@@ -1,10 +1,11 @@
+from django.conf import settings
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
 from pymongo.operations import SearchIndexModel
 
-from django_mongodb_backend.indexes import SearchIndex
-
+from .encryption import get_client_encryption
 from .fields import EmbeddedModelField
+from .indexes import SearchIndex
 from .query import wrap_database_errors
 from .utils import OperationCollector
 
@@ -41,7 +42,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     @wrap_database_errors
     @ignore_embedded_models
     def create_model(self, model):
-        self.get_database().create_collection(model._meta.db_table)
+        self._create_collection(model)
         self._create_model_indexes(model)
         # Make implicit M2M tables.
         for field in model._meta.local_many_to_many:
@@ -418,3 +419,46 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         db_type = field.db_type(self.connection)
         # The _id column is automatically unique.
         return db_type and field.unique and field.column != "_id"
+
+    def _create_collection(self, model):
+        """
+        If the model is not encrypted, create a normal collection otherwise
+        create an encrypted collection with the encrypted fields map.
+        """
+
+        db = self.get_database()
+        if getattr(model, "encrypted", False):
+            client = self.connection.connection
+            ce = get_client_encryption(
+                client,
+                key_vault_namespace=settings.KEY_VAULT_NAMESPACE,
+                kms_providers=settings.KMS_PROVIDERS,
+            )
+            ce.create_encrypted_collection(
+                db,
+                model._meta.db_table,
+                self._get_encrypted_fields_map(model),
+                settings.KMS_PROVIDER,
+            )
+        else:
+            db.create_collection(model._meta.db_table)
+
+    def _get_encrypted_fields_map(self, model):
+        conn = self.connection
+        fields = model._meta.fields
+
+        return {
+            "fields": [
+                {
+                    "path": field.column,
+                    "bsonType": field.db_type(conn),
+                    **(
+                        {"queries": field.queries[0].to_dict()}
+                        if getattr(field, "queries", None)
+                        else {}
+                    ),
+                }
+                for field in fields
+                if getattr(field, "encrypted", False)
+            ]
+        }

@@ -14,3 +14,10 @@ class EmbeddedModel(models.Model):
 
     def save(self, *args, **kwargs):
         raise NotSupportedError("EmbeddedModels cannot be saved.")
+
+
+class EncryptedModel(models.Model):
+    encrypted = True
+
+    class Meta:
+        abstract = True

@@ -44,3 +44,21 @@ class SupportsTransactionsTests(TestCase):
 
         with patch("pymongo.synchronous.database.Database.command", wraps=mocked_command):
             self.assertIs(connection.features.supports_transactions, False)
+
+
+class SupportsQueryableEncryptionTests(TestCase):
+    def setUp(self):
+        # Clear the cached property.
+        connection.features.__dict__.pop("supports_queryable_encryption", None)
+
+    def tearDown(self):
+        connection.features.__dict__.pop("supports_queryable_encryption", None)
+
+    def test_supports_queryable_encryption(self):
+        def mocked_command(command):
+            if command == "buildInfo":
+                return {"modules": ["enterprise"]}
+            raise Exception("Unexpected command")
+
+        with patch("pymongo.synchronous.database.Database.command", wraps=mocked_command):
+            self.assertIs(connection.features.supports_queryable_encryption, True)
