@@ -1,3 +1,5 @@
+.. _encrypted-models:
+
 Encrypted models
 ================
 
