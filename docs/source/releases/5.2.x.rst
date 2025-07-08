@@ -14,7 +14,7 @@ New features
 - Added the ``options`` parameter to
   :func:`~django_mongodb_backend.utils.parse_uri`.
 - Added support for :ref:`database transactions <transactions>`.
-- Added support for :ref:`Queryable Encryption <encrypted_models>`.
+- Added support for :ref:`Queryable Encryption <encrypted-models>`.
 
 5.2.0 beta 1
 ============
