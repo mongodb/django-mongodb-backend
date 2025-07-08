@@ -446,15 +446,14 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     def _get_encrypted_fields_map(self, model):
         conn = self.connection
         fields = model._meta.fields
+
         return {
             "fields": [
                 {
                     "path": field.column,
                     "bsonType": field.db_type(conn),
-                    # Specify queries in the field definition as a list of query
-                    # types e.g. queries=["equality", "range"]
                     **(
-                        {"queries": [{"queryType": query} for query in field.queries]}
+                        {"queries": field.queries[0].to_dict()}
                         if getattr(field, "queries", None)
                         else {}
                     ),

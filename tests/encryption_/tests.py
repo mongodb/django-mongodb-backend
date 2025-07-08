@@ -15,7 +15,11 @@ class EncryptedModelTests(TestCase):
         """ """
         expected = {
             "fields": [
-                {"path": "ssn", "bsonType": "string", "queries": [{"queryType": "equality"}]}
+                {
+                    "path": "ssn",
+                    "bsonType": "string",
+                    "queries": [{"contention": 1, "queryType": "equality"}],
+                }
             ]
         }
         with connection.schema_editor() as editor:
