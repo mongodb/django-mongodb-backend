@@ -11,6 +11,7 @@ class EncryptedModelTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.person = Person(ssn="123-45-6789")
+        cls.person.save()
 
     def test_encrypted_fields_map(self):
         """ """
