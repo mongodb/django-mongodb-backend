@@ -2,7 +2,7 @@ from django.core import management
 from django.db import connection
 from django.test import TestCase, modify_settings
 
-from django_mongodb_backend.encryption import get_auto_encryption_opts
+from django_mongodb_backend import encryption
 
 from .models import Person
 
@@ -37,9 +37,11 @@ class AutoEncryptionOptsTests(TestCase):
     databases = {"default", "encrypted"}
 
     def test_auto_encryption_opts(self):
-        management.call_command("get_encrypted_fields_map", verbosity=0)
+        management.call_command(
+            "get_encrypted_fields_map", "--database", encryption.ENCRYPTED_DB_ALIAS, verbosity=0
+        )
 
     def test_requires_key_vault_namespace(self):
         with self.assertRaises(TypeError):
             # Should fail because `key_vault_namespace` is a required kwarg
-            get_auto_encryption_opts()
+            encryption.get_auto_encryption_opts()

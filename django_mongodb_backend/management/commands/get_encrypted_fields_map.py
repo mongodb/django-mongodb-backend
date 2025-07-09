@@ -8,8 +8,17 @@ from django.db import DEFAULT_DB_ALIAS, connections
 class Command(BaseCommand):
     help = "Generate an encryptedFieldsMap for MongoDB automatic encryption"
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--database",
+            default=DEFAULT_DB_ALIAS,
+            help="Specify the database to use for generating the encrypted"
+            "fields map. Defaults to the 'default' database.",
+        )
+
     def handle(self, *args, **options):
-        connection = connections[DEFAULT_DB_ALIAS]
+        db = options["database"]
+        connection = connections[db]
 
         schema_map = self.generate_encrypted_fields_schema_map(connection)
 
