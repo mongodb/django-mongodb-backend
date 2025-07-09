@@ -26,7 +26,7 @@ class EncryptedModelTests(TestCase):
                 }
             ]
         }
-        with connection.schema_editor() as editor:
+        with connections["encrypted"].schema_editor() as editor:
             self.assertEqual(editor._get_encrypted_fields_map(self.person), expected)
 
 
