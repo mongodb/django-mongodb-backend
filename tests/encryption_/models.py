@@ -1,12 +1,11 @@
 from django.db import models
 
-from django_mongodb_backend.encryption import QueryTypes
+from django_mongodb_backend.encryption import QueryType
 from django_mongodb_backend.fields import EncryptedCharField
 from django_mongodb_backend.models import EncryptedModel
 
-# Query types for encrypted fields with optional parameters
-query_types = QueryTypes()
-queries = [query_types.equality(contention=1), query_types.range(sparsity=2, precision=3)]
+qt = QueryType()
+queries = [qt.equality(contention=1), qt.range(sparsity=2, precision=3)]
 
 
 class Person(EncryptedModel):

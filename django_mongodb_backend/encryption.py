@@ -22,56 +22,36 @@ class EncryptedRouter:
         return None
 
 
-class EqualityQuery:
+class QueryType:
     """
-    Represents an encrypted equality query for encrypted fields in MongoDB's
-    Queryable Encryption.
-    """
-
-    def __init__(self, contention=None):
-        self.queryType = "equality"
-        self.contention = contention
-
-    def to_dict(self):
-        query_type = {"queryType": self.queryType}
-        if self.contention is not None:
-            query_type["contention"] = self.contention
-        return [query_type]
-
-
-class RangeQuery:
-    """Represents an encrypted range query configuration for encrypted fields in
-    MongoDB's Queryable Encryption.
+    Class that supports building encrypted equality and range queries
+    for MongoDB's Queryable Encryption.
     """
 
-    def __init__(self, sparsity=None, precision=None, trimFactor=None):
-        self.queryType = "range"
-        self.sparsity = sparsity
-        self.precision = precision
-        self.trimFactor = trimFactor
-
-    def to_dict(self):
-        query_type = {"queryType": self.queryType}
-        if self.sparsity is not None:
-            query_type["sparsity"] = self.sparsity
-        if self.precision is not None:
-            query_type["precision"] = self.precision
-        if self.trimFactor is not None:
-            query_type["trimFactor"] = self.trimFactor
-        return query_type
-
-
-class QueryTypes:
-    """
-    Factory class for creating query type configurations for
-    MongoDB Queryable Encryption.
-    """
+    def __init__(self):
+        self.queryType = None
+        self.params = {}
 
     def equality(self, *, contention=None):
-        return EqualityQuery(contention=contention)
+        obj = self.__class__.__new__(self.__class__)
+        obj.queryType = "equality"
+        obj.params = {"contention": contention}
+        return obj
 
     def range(self, *, sparsity=None, precision=None, trimFactor=None):
-        return RangeQuery(sparsity=sparsity, precision=precision, trimFactor=trimFactor)
+        obj = self.__class__.__new__(self.__class__)
+        obj.queryType = "range"
+        obj.params = {
+            "sparsity": sparsity,
+            "precision": precision,
+            "trimFactor": trimFactor,
+        }
+        return obj
+
+    def to_dict(self):
+        query = {"queryType": self.queryType}
+        query.update({k: v for k, v in self.params.items() if v is not None})
+        return [query] if self.queryType == "equality" else query
 
 
 def get_auto_encryption_opts(
