@@ -593,6 +593,10 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         return self.connection.get_database_version() >= (6, 3)
 
     @cached_property
+    def is_mongodb_7_0(self):
+        return self.connection.get_database_version() >= (7, 0)
+
+    @cached_property
     def supports_atlas_search(self):
         """Does the server support Atlas search queries and search indexes?"""
         try:
@@ -638,4 +642,4 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         # `supports_transactions` already checks if the server is a
         # replica set or sharded cluster.
         is_not_single = self.supports_transactions
-        return is_enterprise and is_not_single
+        return is_enterprise and is_not_single and self.is_mongodb_7_0
