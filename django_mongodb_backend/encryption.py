@@ -8,44 +8,16 @@ from bson.codec_options import CodecOptions
 from django.conf import settings
 from pymongo.encryption import AutoEncryptionOpts, ClientEncryption
 
-# Default settings for MongoDB Client-Side Field Level Encryption (CSFLE)
-# which can be imported into user settings and customized as needed. E.g.
-#
-# import os
-# from django_mongodb_backend import encryption, parse_uri
-# KEY_VAULT_NAMESPACE = encryption.get_key_vault_namespace()
-# KMS_PROVIDERS = encryption.get_kms_providers()
-# KMS_PROVIDER = encryption.KMS_PROVIDER
-# AUTO_ENCRYPTION_OPTS = encryption.get_auto_encryption_opts(
-#     key_vault_namespace=KEY_VAULT_NAMESPACE,
-#     kms_providers=KMS_PROVIDERS,
-# )
-# ENCRYPTED_DATABASE_NAME = encryption.ENCRYPTED_DATABASE_NAME
-# ENCRYPTED_APPS = encryption.ENCRYPTED_APPS
-# DATABASE_URL = os.environ.get("MONGODB_URI", "mongodb://localhost:27017")
-# DATABASES = {
-#     "default": parse_uri(
-#         DATABASE_URL,
-#         db_name="test",
-#     ),
-#     ENCRYPTED_DATABASE_NAME: parse_uri(
-#         DATABASE_URL,
-#         options={"auto_encryption_opts": AUTO_ENCRYPTION_OPTS},
-#         db_name=ENCRYPTED_DATABASE_NAME,
-#     ),
-# }
-# DATABASE_ROUTERS = [encryption.EncryptedRouter()]
-
 KEY_VAULT_DATABASE_NAME = "keyvault"
 KEY_VAULT_COLLECTION_NAME = "__keyVault"
 KMS_PROVIDER = "local"  # e.g., "aws", "azure", "gcp", "kmip", or "local"
-ENCRYPTED_DATABASE_NAME = "encrypted"
+ENCRYPTED_DB_ALIAS = "encrypted"
 ENCRYPTED_APPS = ["encryption_"]
 
 
 class EncryptedRouter:
     def allow_migrate(self, db, app_label, model_name=None, **hints):
-        if db == settings.ENCRYPTED_DATABASE_NAME and app_label not in settings.ENCRYPTED_APPS:
+        if db == settings.ENCRYPTED_DB_ALIAS and app_label not in settings.ENCRYPTED_APPS:
             return False
         return None
 
