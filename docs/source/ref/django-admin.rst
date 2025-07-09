@@ -37,3 +37,8 @@ Available commands
     map can be provided to
     :class:`~pymongo.encryption_options.AutoEncryptionOpts` for use with
     production deployments of :class:`~pymongo.encryption.ClientEncryption`.
+
+    .. django-admin-option:: --database DATABASE
+
+        Specifies the database to use to generate an encrypted fields map
+        for all encrypted models. Defaults to ``default``.
