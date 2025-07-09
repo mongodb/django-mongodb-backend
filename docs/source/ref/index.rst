@@ -10,3 +10,4 @@ API reference
    database
    django-admin
    utils
+   encryption
