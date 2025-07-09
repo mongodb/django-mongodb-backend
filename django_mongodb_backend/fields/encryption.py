@@ -2,6 +2,8 @@ from django.db import models
 
 
 class EncryptedCharField(models.CharField):
+    """Field that encrypts its value before saving to the database."""
+
     encrypted = True
     queries = []
 

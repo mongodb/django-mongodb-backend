@@ -299,6 +299,17 @@ These indexes use 0-based indexing.
     As described above for :class:`EmbeddedModelField`,
     :djadmin:`makemigrations` does not yet detect changes to embedded models.
 
+``EncryptedCharField``
+----------------------
+
+.. class:: EncryptedCharField
+
+    Field that encrypts its value before saving to the database.
+
+.. admonition:: Migrations support is limited
+
+    :djadmin:`makemigrations` does not detect changes to encrypted fields.
+
 ``ObjectIdAutoField``
 ---------------------
 
