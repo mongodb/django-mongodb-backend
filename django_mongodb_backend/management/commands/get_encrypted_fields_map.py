@@ -19,27 +19,19 @@ class Command(BaseCommand):
         schema_map = {}
 
         for model in apps.get_models():
-            encrypted_fields = self.get_encrypted_fields(model, conn)
-            if encrypted_fields:
-                collection = model._meta.db_table
-                schema_map[collection] = {"fields": encrypted_fields}
+            if getattr(model, "encrypted", False):
+                encrypted_fields = self.get_encrypted_fields(model, conn)
+                if encrypted_fields:
+                    collection = model._meta.db_table
+                    schema_map[collection] = {"fields": encrypted_fields}
 
         return schema_map
 
     def get_encrypted_fields(self, model, conn):
-        fields = model._meta.fields
         encrypted_fields = []
 
-        for field in fields:
-            if getattr(field, "encrypted", False):
-                field_map = {
-                    "path": field.column,
-                    "bsonType": field.db_type(conn),
-                }
-
-                if getattr(field, "queries", None):
-                    field_map["queries"] = field.queries[0].to_dict()
-
-                encrypted_fields.append(field_map)
+        with conn.schema_editor() as editor:
+            field_map = editor._get_encrypted_fields_map(model)
+            encrypted_fields.append(field_map)
 
         return encrypted_fields
