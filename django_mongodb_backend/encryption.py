@@ -54,7 +54,7 @@ class QueryType:
 
 
 def get_auto_encryption_opts(
-    key_vault_namespace=None, crypt_shared_lib_path=None, kms_providers=None, schema_map=None
+    *, key_vault_namespace, crypt_shared_lib_path=None, kms_providers=None, schema_map=None
 ):
     """
     Returns an `AutoEncryptionOpts` instance for MongoDB Client-Side Field
