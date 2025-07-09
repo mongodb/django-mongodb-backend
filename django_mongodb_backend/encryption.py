@@ -57,8 +57,7 @@ def get_auto_encryption_opts(
     *, key_vault_namespace, crypt_shared_lib_path=None, kms_providers=None, schema_map=None
 ):
     """
-    Returns an `AutoEncryptionOpts` instance for MongoDB Client-Side Field
-    Level Encryption (CSFLE) that can be used to create an encrypted connection.
+    Returns an `AutoEncryptionOpts` instance for use with Queryable Encryption.
     """
     # WARNING: Provide a schema map for production use. You can generate a schema map
     # with the management command `get_encrypted_fields_map` after adding
@@ -73,8 +72,7 @@ def get_auto_encryption_opts(
 
 def get_client_encryption(client, key_vault_namespace=None, kms_providers=None):
     """
-    Returns a `ClientEncryption` instance for MongoDB Client-Side Field Level
-    Encryption (CSFLE) that can be used to create an encrypted collection.
+    Returns a `ClientEncryption` instance for use with Queryable Encryption.
     """
 
     codec_options = CodecOptions(uuid_representation=STANDARD)
@@ -83,9 +81,9 @@ def get_client_encryption(client, key_vault_namespace=None, kms_providers=None):
 
 def get_customer_master_key():
     """
-    Returns a 96-byte local master key for use with MongoDB Client-Side Field Level
-    Encryption (CSFLE). For local testing purposes only. In production, use a secure KMS
-    like AWS, Azure, GCP, or KMIP.
+    Returns a 96-byte local master key for use with Queryable Encryption. For
+    local testing purposes only. In production, use a secure KMS like AWS,
+    Azure, GCP, or KMIP.
     Returns:
         bytes: A 96-byte key.
     """
@@ -110,7 +108,7 @@ def get_key_vault_namespace(
 
 def get_kms_providers():
     """
-    Return supported KMS providers for MongoDB Client-Side Field Level Encryption (CSFLE).
+    Return supported KMS providers for use with Queryable Encryption.
     """
     return {
         "local": {

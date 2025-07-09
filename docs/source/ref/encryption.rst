@@ -17,5 +17,4 @@ Queryable Encryption and are not intended for production use.
    crypt_shared_lib_path=None, kms_providers=None, schema_map=None)
 
     Returns an :class:`~pymongo.encryption_options.AutoEncryptionOpts` instance
-    for MongoDB Client-Side Field Level Encryption (CSFLE) that can be used to
-    create an encrypted connection.
+    for use with Queryable Encryption.
