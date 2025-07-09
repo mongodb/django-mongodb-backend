@@ -5,7 +5,6 @@ class EncryptedCharField(models.CharField):
     """Field that encrypts its value before saving to the database."""
 
     encrypted = True
-    queries = []
 
     def __init__(self, *args, queries=None, **kwargs):
         self.queries = queries
