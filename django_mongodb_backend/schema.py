@@ -422,8 +422,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
 
     def _create_collection(self, model):
         """
-        If the model is not encrypted, create a normal collection otherwise
-        create an encrypted collection with the encrypted fields map.
+        If the model is encrypted create an encrypted collection with the
+        encrypted fields map else create a normal collection.
         """
 
         db = self.get_database()

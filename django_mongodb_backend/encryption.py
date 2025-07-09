@@ -1,21 +1,20 @@
 # Queryable Encryption helpers
-#
-# TODO: Decide if these helpers should even exist, and if so, find a permanent
-# place for them.
 
 from bson.binary import STANDARD
 from bson.codec_options import CodecOptions
 from django.conf import settings
 from pymongo.encryption import AutoEncryptionOpts, ClientEncryption
 
-KEY_VAULT_DATABASE_NAME = "keyvault"
-KEY_VAULT_COLLECTION_NAME = "__keyVault"
-KMS_PROVIDER = "local"  # e.g., "aws", "azure", "gcp", "kmip", or "local"
 ENCRYPTED_DB_ALIAS = "encrypted"
 ENCRYPTED_APPS = ["encryption_"]
+KEY_VAULT_COLLECTION_NAME = "__keyVault"
+KEY_VAULT_DATABASE_NAME = "keyvault"
+KMS_PROVIDER = "local"
 
 
 class EncryptedRouter:
+    """Do not allow migrations to the encrypted database for non-encrypted apps."""
+
     def allow_migrate(self, db, app_label, model_name=None, **hints):
         if db == settings.ENCRYPTED_DB_ALIAS and app_label not in settings.ENCRYPTED_APPS:
             return False
@@ -55,16 +54,20 @@ class QueryType:
 
 
 def get_auto_encryption_opts(
-    key_vault_namespace=None, crypt_shared_lib_path=None, kms_providers=None
+    key_vault_namespace=None, crypt_shared_lib_path=None, kms_providers=None, schema_map=None
 ):
     """
     Returns an `AutoEncryptionOpts` instance for MongoDB Client-Side Field
     Level Encryption (CSFLE) that can be used to create an encrypted connection.
     """
+    # WARNING: Provide a schema map for production use. You can generate a schema map
+    # with the management command `get_encrypted_fields_map` after adding
+    # django_mongodb_backend to INSTALLED_APPS.
     return AutoEncryptionOpts(
         key_vault_namespace=key_vault_namespace,
         kms_providers=kms_providers,
         crypt_shared_lib_path=crypt_shared_lib_path,
+        schema_map=schema_map,
     )
 
 
