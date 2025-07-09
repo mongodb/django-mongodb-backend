@@ -1,5 +1,5 @@
 from django.core import management
-from django.db import connection
+from django.db import connections
 from django.test import TestCase, modify_settings
 
 from django_mongodb_backend import encryption
