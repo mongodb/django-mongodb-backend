@@ -7,6 +7,9 @@ from django_mongodb_backend import encryption
 from .models import Person
 
 
+@modify_settings(
+    INSTALLED_APPS={"prepend": "django_mongodb_backend"},
+)
 class EncryptedModelTests(TestCase):
     databases = {"default", "encrypted"}
 
@@ -28,13 +31,6 @@ class EncryptedModelTests(TestCase):
         }
         with connections["encrypted"].schema_editor() as editor:
             self.assertEqual(editor._get_encrypted_fields_map(self.person), expected)
-
-
-@modify_settings(
-    INSTALLED_APPS={"prepend": "django_mongodb_backend"},
-)
-class AutoEncryptionOptsTests(TestCase):
-    databases = {"default", "encrypted"}
 
     def test_auto_encryption_opts(self):
         management.call_command(

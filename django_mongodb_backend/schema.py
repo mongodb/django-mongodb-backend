@@ -452,11 +452,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 {
                     "path": field.column,
                     "bsonType": field.db_type(conn),
-                    **(
-                        {"queries": field.queries[0].to_dict()}
-                        if getattr(field, "queries", None)
-                        else {}
-                    ),
+                    **({"queries": field.queries} if getattr(field, "queries", None) else {}),
                 }
                 for field in fields
                 if getattr(field, "encrypted", False)

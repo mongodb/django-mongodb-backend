@@ -5,7 +5,7 @@ from django_mongodb_backend.fields import EncryptedCharField
 from django_mongodb_backend.models import EncryptedModel
 
 qt = QueryType()
-queries = [qt.equality(contention=1), qt.range(sparsity=2, precision=3)]
+queries = [qt.equality(contention=1)]
 
 
 class Person(EncryptedModel):
