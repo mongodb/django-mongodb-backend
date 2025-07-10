@@ -43,7 +43,7 @@ E.g.::
             DATABASE_URL,
             db_name="test",
         ),
-        ENCRYPTED_DB_ALIAS: parse_uri(
+        "encrypted": parse_uri(
             DATABASE_URL,
             options={"auto_encryption_opts": AUTO_ENCRYPTION_OPTS},
             db_name="encrypted",
