@@ -48,8 +48,6 @@ intersphinx_mapping = {
     "manual": ("https://www.mongodb.com/docs/manual/", None),
 }
 
-root_doc = "contents"
-
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
