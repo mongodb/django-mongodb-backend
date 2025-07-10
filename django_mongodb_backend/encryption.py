@@ -26,11 +26,6 @@ class EncryptedRouter:
     def db_for_write(self, model, **hints):
         return self._get_db_for_model(model)
 
-    def allow_relation(self, obj1, obj2, **hints):
-        db1 = self._get_db_for_model(obj1.__class__)
-        db2 = self._get_db_for_model(obj2.__class__)
-        return db1 == db2
-
     def allow_migrate(self, db, app_label, model_name=None, model=None, **hints):
         if model:
             return db == self._get_db_for_model(model)
