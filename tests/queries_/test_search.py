@@ -7,7 +7,7 @@ from django.db.utils import DatabaseError
 from django.test import TransactionTestCase
 from pymongo.operations import SearchIndexModel
 
-from django_mongodb_backend.expressions.builtins import (
+from django_mongodb_backend.expressions.search import (
     CompoundExpression,
     SearchAutocomplete,
     SearchEquals,
