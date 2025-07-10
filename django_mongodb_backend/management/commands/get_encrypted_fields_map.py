@@ -37,10 +37,4 @@ class Command(BaseCommand):
         return schema_map
 
     def get_encrypted_fields(self, model, conn):
-        encrypted_fields = []
-
-        with conn.schema_editor() as editor:
-            field_map = editor._get_encrypted_fields_map(model)
-            encrypted_fields.append(field_map)
-
-        return encrypted_fields
+        return conn.schema_editor()._get_encrypted_fields_map(model)
