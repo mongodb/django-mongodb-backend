@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from django_mongodb_backend.expressions.builtins import (
+from django_mongodb_backend.expressions.search import (
     CombinedSearchExpression,
     CompoundExpression,
     SearchEquals,
