@@ -42,6 +42,9 @@ class AutoEncryptionOptsTests(TestCase):
         )
 
     def test_requires_key_vault_namespace(self):
-        with self.assertRaises(TypeError):
-            # Should fail because `key_vault_namespace` is a required kwarg
+        with self.assertRaisesMessage(
+            TypeError,
+            expected_message="get_auto_encryption_opts() missing 1 required"
+            " keyword-only argument: 'key_vault_namespace'",
+        ):
             encryption.get_auto_encryption_opts()
