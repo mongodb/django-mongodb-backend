@@ -27,30 +27,23 @@ class QueryType:
     for MongoDB's Queryable Encryption.
     """
 
-    def __init__(self):
-        self.queryType = None
-        self.params = {}
+    @classmethod
+    def equality(cls, *, contention=None):
+        query = {"queryType": "equality"}
+        if contention is not None:
+            query["contention"] = contention
+        return query
 
-    def equality(self, *, contention=None):
-        obj = self.__class__.__new__(self.__class__)
-        obj.queryType = "equality"
-        obj.params = {"contention": contention}
-        return obj
-
-    def range(self, *, sparsity=None, precision=None, trimFactor=None):
-        obj = self.__class__.__new__(self.__class__)
-        obj.queryType = "range"
-        obj.params = {
-            "sparsity": sparsity,
-            "precision": precision,
-            "trimFactor": trimFactor,
-        }
-        return obj
-
-    def to_dict(self):
-        query = {"queryType": self.queryType}
-        query.update({k: v for k, v in self.params.items() if v is not None})
-        return [query] if self.queryType == "equality" else query
+    @classmethod
+    def range(cls, *, sparsity=None, precision=None, trimFactor=None):
+        query = {"queryType": "range"}
+        if sparsity is not None:
+            query["sparsity"] = sparsity
+        if precision is not None:
+            query["precision"] = precision
+        if trimFactor is not None:
+            query["trimFactor"] = trimFactor
+        return query
 
 
 def get_auto_encryption_opts(
