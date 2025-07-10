@@ -60,4 +60,4 @@ class Article(models.Model):
     number = models.IntegerField()
     body = models.TextField()
     location = models.JSONField(null=True)
-    plot_embedding = ArrayField(models.FloatField(), size=3)
+    plot_embedding = ArrayField(models.FloatField(), size=3, null=True)

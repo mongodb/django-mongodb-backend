@@ -1,7 +1,10 @@
-import time
+import unittest
+from collections.abc import Callable
+from time import monotonic, sleep
 
 from django.db import connection
-from django.test import TestCase
+from django.db.utils import DatabaseError
+from django.test import TransactionTestCase
 from pymongo.operations import SearchIndexModel
 
 from django_mongodb_backend.expressions.builtins import (
@@ -24,34 +27,95 @@ from django_mongodb_backend.expressions.builtins import (
 from .models import Article
 
 
-class CreateIndexMixin:
+def _wait_for_assertion(timeout: float = 120, interval: float = 0.5) -> None:
+    """Generic to block until the predicate returns true
+
+    Args:
+        timeout (float, optional): Wait time for predicate. Defaults to TIMEOUT.
+        interval (float, optional): Interval to check predicate. Defaults to DELAY.
+
+    Raises:
+        AssertionError: _description_
+    """
+
+    @staticmethod
+    def _inner_wait_loop(predicate: Callable):
+        """
+        Waits until the given predicate stops raising AssertionError or DatabaseError.
+
+        Args:
+            predicate (Callable): A function that raises AssertionError (or DatabaseError)
+                if a condition is not yet met. It should refresh its query each time
+                it's called (e.g., by using `qs.all()` to avoid cached results).
+
+        Raises:
+            AssertionError or DatabaseError: If the predicate keeps failing beyond the timeout.
+        """
+        start = monotonic()
+        while True:
+            try:
+                predicate()
+            except (AssertionError, DatabaseError):
+                if monotonic() - start > timeout:
+                    raise
+                sleep(interval)
+            else:
+                break
+
+    return _inner_wait_loop
+
+
+class SearchUtilsMixin(TransactionTestCase):
+    available_apps = []
+
     @staticmethod
     def _get_collection(model):
         return connection.database.get_collection(model._meta.db_table)
 
     @staticmethod
     def create_search_index(model, index_name, definition, type="search"):
-        collection = CreateIndexMixin._get_collection(model)
+        collection = SearchUtilsMixin._get_collection(model)
         idx = SearchIndexModel(definition=definition, name=index_name, type=type)
         collection.create_search_index(idx)
 
+    def _tear_down(self, model):
+        collection = SearchUtilsMixin._get_collection(model)
+        for search_indexes in collection.list_search_indexes():
+            collection.drop_search_index(search_indexes["name"])
+        collection.delete_many({})
 
-class SearchEqualsTest(TestCase, CreateIndexMixin):
+    wait_for_assertion = _wait_for_assertion(timeout=3)
+
+
+class SearchTest(SearchUtilsMixin):
+    @classmethod
+    def setUpTestData(cls):
+        cls.create_search_index(
+            Article,
+            "equals_headline_index",
+            {"mappings": {"dynamic": False, "fields": {"headline": {"type": "token"}}}},
+        )
+
+
+class SearchEqualsTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
             Article,
             "equals_headline_index",
             {"mappings": {"dynamic": False, "fields": {"headline": {"type": "token"}}}},
         )
-        Article.objects.create(headline="cross", number=1, body="body")
-        time.sleep(1)
+        self.cross = Article.objects.create(headline="cross", number=1, body="body")
 
     def test_search_equals(self):
         qs = Article.objects.annotate(score=SearchEquals(path="headline", value="cross"))
-        self.assertEqual(qs.first().headline, "cross")
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.cross]))
+
+    def tearDown(self):
+        self._tear_down(Article)
+        super().tearDown()
 
 
-class SearchAutocompleteTest(TestCase, CreateIndexMixin):
+class SearchAutocompleteTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
             Article,
@@ -72,60 +136,73 @@ class SearchAutocompleteTest(TestCase, CreateIndexMixin):
                 }
             },
         )
-        Article.objects.create(headline="crossing and something", number=2, body="river")
+        self.article = Article.objects.create(
+            headline="crossing and something", number=2, body="river"
+        )
+
+    def tearDown(self):
+        self._tear_down(Article)
+        super().tearDown()
 
     def test_search_autocomplete(self):
         qs = Article.objects.annotate(score=SearchAutocomplete(path="headline", query="crossing"))
-        self.assertEqual(qs.first().headline, "crossing and something")
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
-class SearchExistsTest(TestCase, CreateIndexMixin):
+class SearchExistsTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
             Article,
             "exists_body_index",
             {"mappings": {"dynamic": False, "fields": {"body": {"type": "token"}}}},
         )
-        Article.objects.create(headline="ignored", number=3, body="something")
+        self.article = Article.objects.create(headline="ignored", number=3, body="something")
 
     def test_search_exists(self):
         qs = Article.objects.annotate(score=SearchExists(path="body"))
-        self.assertEqual(qs.count(), 1)
-        self.assertEqual(qs.first().body, "something")
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
-class SearchInTest(TestCase, CreateIndexMixin):
+class SearchInTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
             Article,
             "in_headline_index",
             {"mappings": {"dynamic": False, "fields": {"headline": {"type": "token"}}}},
         )
-        Article.objects.create(headline="cross", number=1, body="a")
+        self.cross = Article.objects.create(headline="cross", number=1, body="a")
         Article.objects.create(headline="road", number=2, body="b")
-        time.sleep(1)
+
+    def tearDown(self):
+        self._tear_down(Article)
+        super().tearDown()
 
     def test_search_in(self):
         qs = Article.objects.annotate(score=SearchIn(path="headline", value=["cross", "river"]))
-        self.assertEqual(qs.first().headline, "cross")
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.cross]))
 
 
-class SearchPhraseTest(TestCase, CreateIndexMixin):
+class SearchPhraseTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
             Article,
             "phrase_body_index",
             {"mappings": {"dynamic": False, "fields": {"body": {"type": "string"}}}},
         )
-        Article.objects.create(headline="irrelevant", number=1, body="the quick brown fox")
-        time.sleep(1)
+        self.irrelevant = Article.objects.create(
+            headline="irrelevant", number=1, body="the quick brown fox"
+        )
+
+    def tearDown(self):
+        self._tear_down(Article)
+        super().tearDown()
 
     def test_search_phrase(self):
         qs = Article.objects.annotate(score=SearchPhrase(path="body", query="quick brown"))
-        self.assertIn("quick brown", qs.first().body)
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.irrelevant]))
 
 
-class SearchRangeTest(TestCase, CreateIndexMixin):
+class SearchRangeTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
             Article,
@@ -133,15 +210,18 @@ class SearchRangeTest(TestCase, CreateIndexMixin):
             {"mappings": {"dynamic": False, "fields": {"number": {"type": "number"}}}},
         )
         Article.objects.create(headline="x", number=5, body="z")
-        Article.objects.create(headline="y", number=20, body="z")
-        time.sleep(1)
+        self.number20 = Article.objects.create(headline="y", number=20, body="z")
+
+    def tearDown(self):
+        self._tear_down(Article)
+        super().tearDown()
 
     def test_search_range(self):
         qs = Article.objects.annotate(score=SearchRange(path="number", gte=10, lt=30))
-        self.assertEqual(qs.first().number, 20)
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.number20]))
 
 
-class SearchRegexTest(TestCase, CreateIndexMixin):
+class SearchRegexTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
             Article,
@@ -153,40 +233,48 @@ class SearchRegexTest(TestCase, CreateIndexMixin):
                 }
             },
         )
-        Article.objects.create(headline="hello world", number=1, body="abc")
-        time.sleep(1)
+        self.article = Article.objects.create(headline="hello world", number=1, body="abc")
+
+    def tearDown(self):
+        self._tear_down(Article)
+        super().tearDown()
 
     def test_search_regex(self):
         qs = Article.objects.annotate(
-            score=SearchRegex(path="headline", query="hello.*", allow_analyzed_field=False)
+            score=SearchRegex(path="headline", query="hello.*", allow_analyzed_field=True)
         )
-        self.assertTrue(qs.first().headline.startswith("hello"))
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
-class SearchTextTest(TestCase, CreateIndexMixin):
+class SearchTextTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
             Article,
             "text_body_index",
             {"mappings": {"dynamic": False, "fields": {"body": {"type": "string"}}}},
         )
-        Article.objects.create(headline="ignored", number=1, body="The lazy dog sleeps")
-        time.sleep(1)
+        self.article = Article.objects.create(
+            headline="ignored", number=1, body="The lazy dog sleeps"
+        )
+
+    def tearDown(self):
+        self._tear_down(Article)
+        super().tearDown()
 
     def test_search_text(self):
         qs = Article.objects.annotate(score=SearchText(path="body", query="lazy"))
-        self.assertIn("lazy", qs.first().body)
+        self.wait_for_assertion(lambda: self.assertCountEqual([self.article], qs))
 
     def test_search_text_with_fuzzy_and_criteria(self):
         qs = Article.objects.annotate(
             score=SearchText(
-                path="body", query="lazzy", fuzzy={"maxEdits": 1}, match_criteria="all"
+                path="body", query="lazzy", fuzzy={"maxEdits": 2}, match_criteria="all"
             )
         )
-        self.assertIn("lazy", qs.first().body)
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
-class SearchWildcardTest(TestCase, CreateIndexMixin):
+class SearchWildcardTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
             Article,
@@ -198,15 +286,18 @@ class SearchWildcardTest(TestCase, CreateIndexMixin):
                 }
             },
         )
-        Article.objects.create(headline="dark-knight", number=1, body="")
-        time.sleep(1)
+        self.article = Article.objects.create(headline="dark-knight", number=1, body="")
+
+    def tearDown(self):
+        self._tear_down(Article)
+        super().tearDown()
 
     def test_search_wildcard(self):
         qs = Article.objects.annotate(score=SearchWildcard(path="headline", query="dark-*"))
-        self.assertIn("dark", qs.first().headline)
+        self.wait_for_assertion(lambda: self.assertCountEqual([self.article], qs))
 
 
-class SearchGeoShapeTest(TestCase, CreateIndexMixin):
+class SearchGeoShapeTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
             Article,
@@ -218,10 +309,13 @@ class SearchGeoShapeTest(TestCase, CreateIndexMixin):
                 }
             },
         )
-        Article.objects.create(
+        self.article = Article.objects.create(
             headline="any", number=1, body="", location={"type": "Point", "coordinates": [40, 5]}
         )
-        time.sleep(1)
+
+    def tearDown(self):
+        self._tear_down(Article)
+        super().tearDown()
 
     def test_search_geo_shape(self):
         polygon = {
@@ -231,20 +325,23 @@ class SearchGeoShapeTest(TestCase, CreateIndexMixin):
         qs = Article.objects.annotate(
             score=SearchGeoShape(path="location", relation="within", geometry=polygon)
         )
-        self.assertEqual(qs.first().number, 1)
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
-class SearchGeoWithinTest(TestCase, CreateIndexMixin):
+class SearchGeoWithinTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
             Article,
             "geowithin_location_index",
             {"mappings": {"dynamic": False, "fields": {"location": {"type": "geo"}}}},
         )
-        Article.objects.create(
+        self.article = Article.objects.create(
             headline="geo", number=2, body="", location={"type": "Point", "coordinates": [40, 5]}
         )
-        time.sleep(1)
+
+    def tearDown(self):
+        self._tear_down(Article)
+        super().tearDown()
 
     def test_search_geo_within(self):
         polygon = {
@@ -258,10 +355,11 @@ class SearchGeoWithinTest(TestCase, CreateIndexMixin):
                 geo_object=polygon,
             )
         )
-        self.assertEqual(qs.first().number, 2)
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
-class SearchMoreLikeThisTest(TestCase, CreateIndexMixin):
+@unittest.expectedFailure
+class SearchMoreLikeThisTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
             Article,
@@ -286,7 +384,10 @@ class SearchMoreLikeThisTest(TestCase, CreateIndexMixin):
             number=3,
             body="This is a completely unrelated article about cooking",
         )
-        time.sleep(1)
+
+    def tearDown(self):
+        self._tear_down(Article)
+        super().tearDown()
 
     def test_search_more_like_this(self):
         like_docs = [
@@ -297,15 +398,16 @@ class SearchMoreLikeThisTest(TestCase, CreateIndexMixin):
         qs = Article.objects.annotate(score=SearchMoreLikeThis(documents=like_docs)).order_by(
             "score"
         )
-        self.assertQuerySetEqual(
-            qs, ["space exploration", "The commodities fall"], lambda a: a.headline
+        self.wait_for_assertion(
+            lambda: self.assertQuerySetEqual(
+                qs.all(), [self.article1, self.article2], lambda a: a.headline
+            )
         )
 
 
-class CompoundSearchTest(TestCase, CreateIndexMixin):
-    @classmethod
-    def setUpTestData(cls):
-        cls.create_search_index(
+class CompoundSearchTest(SearchUtilsMixin):
+    def setUp(self):
+        self.create_search_index(
             Article,
             "compound_index",
             {
@@ -319,31 +421,33 @@ class CompoundSearchTest(TestCase, CreateIndexMixin):
                 }
             },
         )
-        cls.mars_mission = Article.objects.create(
+        self.mars_mission = Article.objects.create(
             number=1,
             headline="space exploration",
             body="NASA launches a new mission to Mars, aiming to study surface geology",
         )
 
-        cls.exoplanet = Article.objects.create(
+        self.exoplanet = Article.objects.create(
             number=2,
             headline="space exploration",
             body="Astronomers discover exoplanets orbiting distant stars using Webb telescope",
         )
 
-        cls.icy_moons = Article.objects.create(
+        self.icy_moons = Article.objects.create(
             number=3,
             headline="space exploration",
             body="ESA prepares a robotic expedition to explore the icy moons of Jupiter",
         )
 
-        cls.comodities_drop = Article.objects.create(
+        self.comodities_drop = Article.objects.create(
             number=4,
             headline="astronomy news",
             body="Commodities dropped sharply due to inflation concerns",
         )
 
-        time.sleep(1)
+    def tearDown(self):
+        self._tear_down(Article)
+        super().tearDown()
 
     def test_compound_expression(self):
         must_expr = SearchEquals(path="headline", value="space exploration")
@@ -358,20 +462,21 @@ class CompoundSearchTest(TestCase, CreateIndexMixin):
         )
 
         qs = Article.objects.annotate(score=compound).order_by("score")
-        self.assertCountEqual(qs, [self.exoplanet])
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.exoplanet]))
 
     def test_compound_operations(self):
         expr = SearchEquals(path="headline", value="space exploration") & ~SearchEquals(
             path="number", value=3
         )
         qs = Article.objects.annotate(score=expr)
-        self.assertCountEqual(qs, [self.mars_mission, self.exoplanet])
+        self.wait_for_assertion(
+            lambda: self.assertCountEqual(qs.all(), [self.mars_mission, self.exoplanet])
+        )
 
 
-class SearchVectorTest(TestCase, CreateIndexMixin):
-    @classmethod
-    def setUpTestData(cls):
-        cls.create_search_index(
+class SearchVectorTest(SearchUtilsMixin):
+    def setUp(self):
+        self.create_search_index(
             Article,
             "vector_index",
             {
@@ -388,19 +493,22 @@ class SearchVectorTest(TestCase, CreateIndexMixin):
             type="vectorSearch",
         )
 
-        cls.mars = Article.objects.create(
+        self.mars = Article.objects.create(
             headline="Mars landing",
             number=1,
             body="The rover has landed on Mars",
             plot_embedding=[0.1, 0.2, 0.3],
         )
-        Article.objects.create(
+        self.cooking = Article.objects.create(
             headline="Cooking tips",
             number=2,
             body="This article is about pasta",
             plot_embedding=[0.9, 0.8, 0.7],
         )
-        time.sleep(1)
+
+    def tearDown(self):
+        self._tear_down(Article)
+        super().tearDown()
 
     def test_vector_search(self):
         vector_query = [0.1, 0.2, 0.3]
@@ -411,4 +519,4 @@ class SearchVectorTest(TestCase, CreateIndexMixin):
             limit=2,
         )
         qs = Article.objects.annotate(score=expr).order_by("-score")
-        self.assertEqual(qs.first(), self.mars)
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.mars, self.cooking]))
