@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
 from pymongo.operations import SearchIndexModel
@@ -429,16 +428,18 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         db = self.get_database()
         if getattr(model, "encrypted", False):
             client = self.connection.connection
+
+            options = client._options.auto_encryption_opts
+            key_vault_namespace = options._key_vault_namespace
+            kms_providers = options._kms_providers
+
             ce = get_client_encryption(
                 client,
-                key_vault_namespace=settings.KEY_VAULT_NAMESPACE,
-                kms_providers=settings.KMS_PROVIDERS,
+                key_vault_namespace=key_vault_namespace,
+                kms_providers=kms_providers,
             )
             ce.create_encrypted_collection(
-                db,
-                model._meta.db_table,
-                self._get_encrypted_fields_map(model),
-                settings.KMS_PROVIDER,
+                db, model._meta.db_table, self._get_encrypted_fields_map(model), model.kms_provider
             )
         else:
             db.create_collection(model._meta.db_table)

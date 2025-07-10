@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.db import NotSupportedError, models
 
 from .managers import EmbeddedModelManager
@@ -19,10 +18,8 @@ class EmbeddedModel(models.Model):
 
 class EncryptedModel(models.Model):
     encrypted = True
+    db_name = None
+    kms_provider = None
 
     class Meta:
         abstract = True
-
-    def save(self, *args, **kwargs):
-        kwargs.setdefault("using", settings.ENCRYPTED_DB_ALIAS)
-        super().save(*args, **kwargs)

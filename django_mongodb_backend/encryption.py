@@ -2,7 +2,6 @@
 
 from bson.binary import STANDARD
 from bson.codec_options import CodecOptions
-from django.conf import settings
 from pymongo.encryption import AutoEncryptionOpts, ClientEncryption
 
 ENCRYPTED_APPS = ["encryption_"]
@@ -13,12 +12,31 @@ KMS_PROVIDER = "local"
 
 
 class EncryptedRouter:
-    """Do not allow migrations to the encrypted database for non-encrypted apps."""
+    """
+    Routes encrypted models to their configured `db_name`,
+    everything else goes to 'default'.
+    """
 
-    def allow_migrate(self, db, app_label, model_name=None, **hints):
-        if db == settings.ENCRYPTED_DB_ALIAS and app_label not in settings.ENCRYPTED_APPS:
-            return False
-        return None
+    def _get_db_for_model(self, model):
+        if getattr(model, "encrypted", False):
+            return getattr(model, "db_name", "default")
+        return "default"
+
+    def db_for_read(self, model, **hints):
+        return self._get_db_for_model(model)
+
+    def db_for_write(self, model, **hints):
+        return self._get_db_for_model(model)
+
+    def allow_relation(self, obj1, obj2, **hints):
+        db1 = self._get_db_for_model(obj1.__class__)
+        db2 = self._get_db_for_model(obj2.__class__)
+        return db1 == db2
+
+    def allow_migrate(self, db, app_label, model_name=None, model=None, **hints):
+        if model:
+            return db == self._get_db_for_model(model)
+        return db == "default"
 
 
 class QueryType:

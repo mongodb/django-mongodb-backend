@@ -9,6 +9,9 @@ queries = [qt.equality(contention=1)]
 
 
 class Person(EncryptedModel):
+    db_name = "encrypted"
+    kms_provider = "local"
+
     name = models.CharField("name", max_length=100)
     ssn = EncryptedCharField("ssn", max_length=11, queries=queries)
 
