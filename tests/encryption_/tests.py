@@ -36,7 +36,7 @@ class EncryptedModelTests(TestCase):
 
     def test_auto_encryption_opts(self):
         management.call_command(
-            "get_encrypted_fields_map", "--database", encryption.ENCRYPTED_DB_ALIAS, verbosity=0
+            "get_encrypted_fields_map", "--database", self.person._meta.model.db_name, verbosity=0
         )
 
     def test_requires_key_vault_namespace(self):

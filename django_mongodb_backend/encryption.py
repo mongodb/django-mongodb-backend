@@ -4,8 +4,6 @@ from bson.binary import STANDARD
 from bson.codec_options import CodecOptions
 from pymongo.encryption import AutoEncryptionOpts, ClientEncryption
 
-ENCRYPTED_APPS = ["encryption_"]
-ENCRYPTED_DB_ALIAS = "encrypted"
 KEY_VAULT_COLLECTION_NAME = "__keyVault"
 KEY_VAULT_DATABASE_NAME = "keyvault"
 KMS_PROVIDER = "local"
