@@ -2,7 +2,7 @@ import json
 
 from django.apps import apps
 from django.core.management.base import BaseCommand
-from django.db import DEFAULT_DB_ALIAS, connections
+from django.db import DEFAULT_DB_ALIAS, connections, router
 
 
 class Command(BaseCommand):
@@ -27,12 +27,15 @@ class Command(BaseCommand):
     def generate_encrypted_fields_schema_map(self, conn):
         schema_map = {}
 
-        for model in apps.get_models():
-            if getattr(model, "encrypted", False):
-                encrypted_fields = self.get_encrypted_fields(model, conn)
-                if encrypted_fields:
-                    collection = model._meta.db_table
-                    schema_map[collection] = {"fields": encrypted_fields}
+        for app_config in apps.get_app_configs():
+            for model in router.get_migratable_models(
+                app_config, conn.alias, include_auto_created=False
+            ):
+                if getattr(model, "encrypted", False):
+                    encrypted_fields = self.get_encrypted_fields(model, conn)
+                    if encrypted_fields:
+                        collection = model._meta.db_table
+                        schema_map[collection] = {"fields": encrypted_fields}
 
         return schema_map
 
