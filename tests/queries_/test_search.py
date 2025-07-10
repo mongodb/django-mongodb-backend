@@ -104,11 +104,12 @@ class SearchEqualsTest(SearchUtilsMixin):
             "equals_headline_index",
             {"mappings": {"dynamic": False, "fields": {"headline": {"type": "token"}}}},
         )
-        self.cross = Article.objects.create(headline="cross", number=1, body="body")
+        self.article = Article.objects.create(headline="cross", number=1, body="body")
+        Article.objects.create(headline="other thing", number=2, body="body")
 
     def test_search_equals(self):
         qs = Article.objects.annotate(score=SearchEquals(path="headline", value="cross"))
-        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.cross]))
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
     def tearDown(self):
         self._tear_down(Article)
@@ -139,6 +140,7 @@ class SearchAutocompleteTest(SearchUtilsMixin):
         self.article = Article.objects.create(
             headline="crossing and something", number=2, body="river"
         )
+        Article.objects.create(headline="Some random text", number=3, body="river")
 
     def tearDown(self):
         self._tear_down(Article)
@@ -170,7 +172,7 @@ class SearchInTest(SearchUtilsMixin):
             "in_headline_index",
             {"mappings": {"dynamic": False, "fields": {"headline": {"type": "token"}}}},
         )
-        self.cross = Article.objects.create(headline="cross", number=1, body="a")
+        self.article = Article.objects.create(headline="cross", number=1, body="a")
         Article.objects.create(headline="road", number=2, body="b")
 
     def tearDown(self):
@@ -179,7 +181,7 @@ class SearchInTest(SearchUtilsMixin):
 
     def test_search_in(self):
         qs = Article.objects.annotate(score=SearchIn(path="headline", value=["cross", "river"]))
-        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.cross]))
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
 class SearchPhraseTest(SearchUtilsMixin):
@@ -189,9 +191,10 @@ class SearchPhraseTest(SearchUtilsMixin):
             "phrase_body_index",
             {"mappings": {"dynamic": False, "fields": {"body": {"type": "string"}}}},
         )
-        self.irrelevant = Article.objects.create(
+        self.article = Article.objects.create(
             headline="irrelevant", number=1, body="the quick brown fox"
         )
+        Article.objects.create(headline="cheetah", number=2, body="fastest animal")
 
     def tearDown(self):
         self._tear_down(Article)
@@ -199,7 +202,7 @@ class SearchPhraseTest(SearchUtilsMixin):
 
     def test_search_phrase(self):
         qs = Article.objects.annotate(score=SearchPhrase(path="body", query="quick brown"))
-        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.irrelevant]))
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
 class SearchRangeTest(SearchUtilsMixin):
@@ -234,6 +237,7 @@ class SearchRegexTest(SearchUtilsMixin):
             },
         )
         self.article = Article.objects.create(headline="hello world", number=1, body="abc")
+        Article.objects.create(headline="hola mundo", number=2, body="abc")
 
     def tearDown(self):
         self._tear_down(Article)
@@ -256,6 +260,7 @@ class SearchTextTest(SearchUtilsMixin):
         self.article = Article.objects.create(
             headline="ignored", number=1, body="The lazy dog sleeps"
         )
+        Article.objects.create(headline="ignored", number=2, body="The sleepy bear")
 
     def tearDown(self):
         self._tear_down(Article)
@@ -287,6 +292,7 @@ class SearchWildcardTest(SearchUtilsMixin):
             },
         )
         self.article = Article.objects.create(headline="dark-knight", number=1, body="")
+        Article.objects.create(headline="batman", number=2, body="")
 
     def tearDown(self):
         self._tear_down(Article)
@@ -311,6 +317,9 @@ class SearchGeoShapeTest(SearchUtilsMixin):
         )
         self.article = Article.objects.create(
             headline="any", number=1, body="", location={"type": "Point", "coordinates": [40, 5]}
+        )
+        Article.objects.create(
+            headline="any", number=2, body="", location={"type": "Point", "coordinates": [400, 50]}
         )
 
     def tearDown(self):
@@ -337,6 +346,9 @@ class SearchGeoWithinTest(SearchUtilsMixin):
         )
         self.article = Article.objects.create(
             headline="geo", number=2, body="", location={"type": "Point", "coordinates": [40, 5]}
+        )
+        Article.objects.create(
+            headline="geo2", number=3, body="", location={"type": "Point", "coordinates": [-40, -5]}
         )
 
     def tearDown(self):
