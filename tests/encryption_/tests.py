@@ -1,15 +1,17 @@
 from django.core import management
 from django.db import connections
-from django.test import TestCase, modify_settings
+from django.test import TestCase, modify_settings, override_settings
 
 from django_mongodb_backend import encryption
 
 from .models import Person
+from .routers import TestEncryptedRouter
 
 
 @modify_settings(
     INSTALLED_APPS={"prepend": "django_mongodb_backend"},
 )
+@override_settings(DATABASE_ROUTERS=[TestEncryptedRouter()])
 class EncryptedModelTests(TestCase):
     databases = {"default", "encrypted"}
 
