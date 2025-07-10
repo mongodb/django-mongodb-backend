@@ -1,8 +1,10 @@
 import pickle
 from datetime import datetime, timezone
+from base64 import b64encode, b64decode
 
 from django.core.cache.backends.base import DEFAULT_TIMEOUT, BaseCache
 from django.core.cache.backends.db import Options
+from django.core.signing import Signer, BadSignature
 from django.db import connections, router
 from django.utils.functional import cached_property
 from pymongo import ASCENDING, DESCENDING, IndexModel, ReturnDocument
@@ -10,18 +12,22 @@ from pymongo.errors import DuplicateKeyError, OperationFailure
 
 
 class MongoSerializer:
-    def __init__(self, protocol=None):
+    def __init__(self, protocol=None, signer=True, salt=None):
         self.protocol = pickle.HIGHEST_PROTOCOL if protocol is None else protocol
+        self.signer = Signer(salt=salt) if signer else None
 
     def dumps(self, obj):
         # For better incr() and decr() atomicity, don't pickle integers.
         # Using type() rather than isinstance() matches only integers and not
         # subclasses like bool.
         if type(obj) is int:  # noqa: E721
-            return obj
-        return pickle.dumps(obj, self.protocol)
+            return obj if self.signer is None else self.signer.sign(b64encode(obj))
+        pickled_data = pickle.dumps(obj, protocol=self.protocol)  # noqa: S301
+        return self.signer.sign(b64encode(pickled_data).decode()) if self.signer else pickled_data
 
     def loads(self, data):
+        if self.signer is not None:
+            data = b64decode(self.signer.unsign(data))
         try:
             return int(data)
         except (ValueError, TypeError):
@@ -39,6 +45,8 @@ class MongoDBCache(BaseCache):
             _meta = Options(collection_name)
 
         self.cache_model_class = CacheEntry
+        self._sign_cache = params.get("ENABLE_SIGNING", True)
+        self._salt = params.get("SALT", None)
 
     def create_indexes(self):
         expires_index = IndexModel("expires_at", expireAfterSeconds=0)
@@ -47,7 +55,7 @@ class MongoDBCache(BaseCache):
 
     @cached_property
     def serializer(self):
-        return MongoSerializer(self.pickle_protocol)
+        return MongoSerializer(self.pickle_protocol, self._sign_cache, self._salt)
 
     @property
     def collection_for_read(self):
@@ -84,7 +92,13 @@ class MongoDBCache(BaseCache):
         with self.collection_for_read.find(
             {"key": {"$in": tuple(keys_map)}, **self._filter_expired(expired=False)}
         ) as cursor:
-            return {keys_map[row["key"]]: self.serializer.loads(row["value"]) for row in cursor}
+            results = {}
+            for row in cursor:
+                try:
+                    results[keys_map[row["key"]]] = self.serializer.loads(row["value"])
+                except (BadSignature, TypeError):
+                    self.delete(row["key"])
+            return results
 
     def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
         key = self.make_and_validate_key(key, version=version)
