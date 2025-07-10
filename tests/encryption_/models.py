@@ -1,10 +1,9 @@
 from django.db import models
 
-from django_mongodb_backend.encryption import QueryType
+from django_mongodb_backend.encryption import QueryType as qt
 from django_mongodb_backend.fields import EncryptedCharField
 from django_mongodb_backend.models import EncryptedModel
 
-qt = QueryType()
 queries = [qt.equality(contention=1)]
 
 
