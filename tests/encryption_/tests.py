@@ -4,7 +4,7 @@ from django.test import TestCase, modify_settings, override_settings
 
 from django_mongodb_backend import encryption
 
-from .models import Person
+from .models import Patient
 from .routers import TestEncryptedRouter
 
 
@@ -17,8 +17,8 @@ class EncryptedModelTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.person = Person(ssn="123-45-6789")
-        cls.person.save()
+        cls.patient = Patient(ssn="123-45-6789")
+        cls.patient.save()
 
     def test_encrypted_fields_map(self):
         """ """
@@ -32,11 +32,11 @@ class EncryptedModelTests(TestCase):
             ]
         }
         with connections["encrypted"].schema_editor() as editor:
-            self.assertEqual(editor._get_encrypted_fields_map(self.person), expected)
+            self.assertEqual(editor._get_encrypted_fields_map(self.patient), expected)
 
     def test_auto_encryption_opts(self):
         management.call_command(
-            "get_encrypted_fields_map", "--database", self.person._meta.model.db_name, verbosity=0
+            "get_encrypted_fields_map", "--database", self.patient._meta.model.db_name, verbosity=0
         )
 
     def test_requires_key_vault_namespace(self):

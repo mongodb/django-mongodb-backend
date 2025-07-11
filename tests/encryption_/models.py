@@ -7,7 +7,7 @@ from django_mongodb_backend.models import EncryptedModel
 queries = [qt.equality(contention=1)]
 
 
-class Person(EncryptedModel):
+class Patient(EncryptedModel):
     db_name = "encrypted"
     kms_provider = "local"
 
