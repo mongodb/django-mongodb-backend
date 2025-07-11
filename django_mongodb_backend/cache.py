@@ -21,16 +21,16 @@ class MongoSerializer:
         # Using type() rather than isinstance() matches only integers and not
         # subclasses like bool.
         if type(obj) is int:  # noqa: E721
-            return obj if self.signer is None else self.signer.sign(b64encode(obj))
+            return obj
         pickled_data = pickle.dumps(obj, protocol=self.protocol)  # noqa: S301
         return self.signer.sign(b64encode(pickled_data).decode()) if self.signer else pickled_data
 
     def loads(self, data):
-        if self.signer is not None:
-            data = b64decode(self.signer.unsign(data))
         try:
             return int(data)
         except (ValueError, TypeError):
+            if self.signer is not None:
+                data = b64decode(self.signer.unsign(data))
             return pickle.loads(data)  # noqa: S301
 
 
