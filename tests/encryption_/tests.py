@@ -27,7 +27,7 @@ class EncryptedModelTests(TestCase):
                 {
                     "path": "ssn",
                     "bsonType": "string",
-                    "queries": [{"contention": 1, "queryType": "equality"}],
+                    "queries": {"contention": 1, "queryType": "equality"},
                 }
             ]
         }
