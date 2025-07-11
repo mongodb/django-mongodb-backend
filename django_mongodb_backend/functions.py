@@ -38,6 +38,7 @@ from django.db.models.functions.text import (
     Trim,
     Upper,
 )
+from django.db.utils import ConnectionRouter
 
 from .query_utils import process_lhs
 
@@ -268,10 +269,15 @@ def trunc_time(self, compiler, connection):
     }
 
 
+def kms_provider(self):  # noqa: ARG001
+    return "local"
+
+
 def register_functions():
     Cast.as_mql = cast
     Concat.as_mql = concat
     ConcatPair.as_mql = concat_pair
+    ConnectionRouter.kms_provider = kms_provider
     Cot.as_mql = cot
     Extract.as_mql = extract
     Func.as_mql = func

@@ -1,3 +1,4 @@
+from django.db import router
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
 from pymongo.operations import SearchIndexModel
@@ -439,7 +440,10 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 kms_providers=kms_providers,
             )
             ce.create_encrypted_collection(
-                db, model._meta.db_table, self._get_encrypted_fields_map(model), model.kms_provider
+                db,
+                model._meta.db_table,
+                self._get_encrypted_fields_map(model),
+                router.kms_provider(),
             )
         else:
             db.create_collection(model._meta.db_table)
