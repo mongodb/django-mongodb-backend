@@ -1,3 +1,4 @@
+from django.core.exceptions import ImproperlyConfigured
 from django.db import router
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
@@ -439,6 +440,10 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 key_vault_namespace=key_vault_namespace,
                 kms_providers=kms_providers,
             )
+            if not router.kms_provider():
+                raise ImproperlyConfigured(
+                    "No KMS_PROVIDER found. Please configure KMS_PROVIDER in settings."
+                )
             ce.create_encrypted_collection(
                 db,
                 model._meta.db_table,

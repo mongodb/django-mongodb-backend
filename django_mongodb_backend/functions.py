@@ -270,7 +270,7 @@ def trunc_time(self, compiler, connection):
 
 
 def kms_provider(self):  # noqa: ARG001
-    return "local"
+    return getattr(settings, "KMS_PROVIDER", None)
 
 
 def register_functions():

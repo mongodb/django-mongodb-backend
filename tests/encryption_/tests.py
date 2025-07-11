@@ -1,4 +1,5 @@
 from django.core import management
+from django.core.exceptions import ImproperlyConfigured
 from django.db import connections
 from django.test import TestCase, modify_settings, override_settings
 
@@ -46,3 +47,11 @@ class EncryptedModelTests(TestCase):
             " keyword-only argument: 'key_vault_namespace'",
         ):
             encryption.get_auto_encryption_opts()
+
+    @override_settings(KMS_PROVIDER=None)
+    def test_kms_provider_not_found(self):
+        with self.assertRaisesMessage(
+            ImproperlyConfigured,
+            expected_message="No KMS_PROVIDER found. Please configure KMS_PROVIDER in settings.",
+        ):
+            connections["encrypted"].schema_editor().create_model(Patient)
