@@ -97,6 +97,7 @@ def caches_setting_for_tests(base=None, exclude=None, **params):
         BACKEND="django_mongodb_backend.cache.MongoDBCache",
         # Spaces are used in the name to ensure quoting/escaping works.
         LOCATION="test cache collection",
+        ENABLE_SIGNING=False,
     ),
 )
 @modify_settings(
@@ -954,6 +955,22 @@ class CacheTests(TestCase):
         self.assertIsInstance(cache.serializer.dumps(True), bytes)
         self.assertIsInstance(cache.serializer.dumps("abc"), bytes)
 
+
+@override_settings(
+    CACHES=caches_setting_for_tests(
+        BACKEND="django_mongodb_backend.cache.MongoDBCache",
+        # Spaces are used in the name to ensure quoting/escaping works.
+        LOCATION="test cache collection",
+        ENABLE_SIGNING=True,
+        SALT="test-salt",
+    ),
+)
+class SignedCacheTests(CacheTests):
+    def test_serializer_dumps(self):
+        # The serializer should return a bytestring for signed caches.
+        self.assertEqual(cache.serializer.dumps(123), 123)
+        self.assertIsInstance(cache.serializer.dumps(True), str)
+        self.assertIsInstance(cache.serializer.dumps("abc"), str)
 
 class DBCacheRouter:
     """A router that puts the cache table on the 'other' database."""
