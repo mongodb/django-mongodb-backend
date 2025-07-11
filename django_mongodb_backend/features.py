@@ -82,6 +82,21 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         # Value.as_mql() doesn't call output_field.get_db_prep_save():
         # https://github.com/mongodb/django-mongodb-backend/issues/282
         "model_fields.test_jsonfield.TestSaveLoad.test_bulk_update_custom_get_prep_value",
+        # This backend overrides DatabaseCreation.create_test_db() so the
+        # deprecation warnings stacklevel points to the wrong file.
+        "backends.base.test_creation.TestDbCreationTests.test_serialize_deprecation",
+        # StringAgg is not supported.
+        "aggregation.tests.AggregateTestCase.test_distinct_on_stringagg",
+        "aggregation.tests.AggregateTestCase.test_string_agg_escapes_delimiter",
+        "aggregation.tests.AggregateTestCase.test_string_agg_filter",
+        "aggregation.tests.AggregateTestCase.test_string_agg_filter_in_subquery",
+        "aggregation.tests.AggregateTestCase.test_stringagg_default_value",
+        # bulk_create() population of _order not implemented.
+        # https://github.com/django/django/commit/953095d1e603fe0f8f01175b1409ca23818dcff9
+        "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_allows_duplicate_order_values",
+        "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_mixed_scenario",
+        "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_respects_mixed_manual_order",
+        "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_with_existing_children",
     }
     # $bitAnd, #bitOr, and $bitXor are new in MongoDB 6.3.
     _django_test_expected_failures_bitwise = {
