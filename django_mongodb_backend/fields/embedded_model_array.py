@@ -224,6 +224,8 @@ class EmbeddedModelArrayFieldLessThanOrEqual(
 
 
 class KeyTransform(Transform):
+    field_class_name = "EmbeddedModelArrayField"
+
     def __init__(self, key_name, array_field, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.array_field = array_field
@@ -269,7 +271,7 @@ class KeyTransform(Transform):
             suggestion = ""
         raise FieldDoesNotExist(
             f"Unsupported lookup '{name}' for "
-            f"EmbeddedModelArrayField of '{output_field.__class__.__name__}'"
+            f"{self.field_class_name} of '{output_field.__class__.__name__}'"
             f"{suggestion}"
         )
 

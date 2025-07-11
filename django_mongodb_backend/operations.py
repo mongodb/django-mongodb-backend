@@ -124,6 +124,15 @@ class DatabaseOperations(BaseDatabaseOperations):
             converters.append(self.convert_jsonfield_value)
         elif internal_type == "PolymorphicEmbeddedModelField":
             converters.append(self.convert_polymorphicembeddedmodelfield_value)
+        elif internal_type == "PolymorphicEmbeddedModelArrayField":
+            converters.extend(
+                [
+                    self._get_arrayfield_converter(converter)
+                    for converter in self.get_db_converters(
+                        Expression(output_field=expression.output_field.base_field)
+                    )
+                ]
+            )
         elif internal_type == "TimeField":
             # Trunc(... output_field="TimeField") values must remain datetime
             # until Trunc.convert_value() so they can be converted from UTC
