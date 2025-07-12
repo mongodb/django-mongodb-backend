@@ -36,9 +36,7 @@ class EncryptedModelTests(TestCase):
             self.assertEqual(editor._get_encrypted_fields_map(self.patient), expected)
 
     def test_auto_encryption_opts(self):
-        management.call_command(
-            "get_encrypted_fields_map", "--database", self.patient._meta.model.db_name, verbosity=0
-        )
+        management.call_command("get_encrypted_fields_map", "--database", "encrypted", verbosity=0)
 
     def test_requires_key_vault_namespace(self):
         with self.assertRaisesMessage(

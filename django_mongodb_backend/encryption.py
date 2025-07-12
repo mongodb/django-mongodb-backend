@@ -68,7 +68,7 @@ class EncryptedRouter:
 
     def _get_db_for_model(self, model):
         if getattr(model, "encrypted", False):
-            return getattr(model, "db_name", "default")
+            return "encrypted"
         return "default"
 
     def db_for_read(self, model, **hints):

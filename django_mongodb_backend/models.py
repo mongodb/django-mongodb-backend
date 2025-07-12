@@ -18,8 +18,6 @@ class EmbeddedModel(models.Model):
 
 class EncryptedModel(models.Model):
     encrypted = True
-    db_name = None
-    kms_provider = None
 
     class Meta:
         abstract = True
