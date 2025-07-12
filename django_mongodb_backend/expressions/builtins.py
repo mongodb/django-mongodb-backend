@@ -74,10 +74,6 @@ def col(self, compiler, connection, as_path=False):  # noqa: ARG001
     return f"{prefix}{self.target.column}" if as_path else f"${prefix}{self.target.column}"
 
 
-def col_as_path(self, compiler, connection):
-    return col(self, compiler, connection).lstrip("$")
-
-
 def col_pairs(self, compiler, connection):
     cols = self.get_cols()
     if len(cols) > 1:
