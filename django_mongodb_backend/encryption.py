@@ -61,11 +61,6 @@ KMS_PROVIDERS = {
 
 
 class EncryptedRouter:
-    """
-    Routes encrypted models to their configured `db_name`,
-    everything else goes to 'default'.
-    """
-
     def _get_db_for_model(self, model):
         if getattr(model, "encrypted", False):
             return "encrypted"
