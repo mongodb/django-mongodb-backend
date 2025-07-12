@@ -81,6 +81,8 @@ class SearchExpression(SearchCombinable, Expression):
 
     @staticmethod
     def cast_as_value(value):
+        if value is None:
+            return None
         return Value(value) if not hasattr(value, "resolve_expression") else value
 
     @staticmethod
@@ -131,14 +133,14 @@ class SearchAutocomplete(SearchExpression):
     def search_operator(self, compiler, connection):
         params = {
             "path": self.path.as_mql(compiler, connection, as_path=True),
-            "query": self.query.as_mql(compiler, connection),
+            "query": self.query.value,
         }
         if self.score is not None:
             params["score"] = self.score.as_mql(compiler, connection)
         if self.fuzzy is not None:
-            params["fuzzy"] = self.fuzzy.as_mql(compiler, connection)
+            params["fuzzy"] = self.fuzzy.value
         if self.token_order is not None:
-            params["tokenOrder"] = self.token_order.as_mql(compiler, connection)
+            params["tokenOrder"] = self.token_order.value
         return {"autocomplete": params}
 
 
@@ -161,7 +163,7 @@ class SearchEquals(SearchExpression):
     def search_operator(self, compiler, connection):
         params = {
             "path": self.path.as_mql(compiler, connection, as_path=True),
-            "value": self.value.as_mql(compiler, connection),
+            "value": self.value.value,
         }
         if self.score is not None:
             params["score"] = self.score.as_mql(compiler, connection)
@@ -211,10 +213,10 @@ class SearchIn(SearchExpression):
     def search_operator(self, compiler, connection):
         params = {
             "path": self.path.as_mql(compiler, connection, as_path=True),
-            "value": self.value.as_mql(compiler, connection),
+            "value": self.value.value,
         }
         if self.score is not None:
-            params["score"] = self.score.definitions
+            params["score"] = self.score.as_mql(compiler, connection)
         return {"in": params}
 
 
@@ -239,14 +241,14 @@ class SearchPhrase(SearchExpression):
     def search_operator(self, compiler, connection):
         params = {
             "path": self.path.as_mql(compiler, connection, as_path=True),
-            "query": self.query.as_mql(compiler, connection),
+            "query": self.query.value,
         }
         if self.score is not None:
             params["score"] = self.score.as_mql(compiler, connection)
         if self.slop is not None:
-            params["slop"] = self.slop.as_mql(compiler, connection)
+            params["slop"] = self.slop.value
         if self.synonyms is not None:
-            params["synonyms"] = self.synonyms.as_mql(compiler, connection)
+            params["synonyms"] = self.synonyms.value
         return {"phrase": params}
 
 
@@ -269,10 +271,10 @@ class SearchQueryString(SearchExpression):
     def search_operator(self, compiler, connection):
         params = {
             "defaultPath": self.path.as_mql(compiler, connection, as_path=True),
-            "query": self.query.as_mql(compiler, connection),
+            "query": self.query.value,
         }
         if self.score is not None:
-            params["score"] = self.score.definitions
+            params["score"] = self.score.as_mql(compiler, connection)
         return {"queryString": params}
 
 
@@ -300,15 +302,15 @@ class SearchRange(SearchExpression):
             "path": self.path.as_mql(compiler, connection, as_path=True),
         }
         if self.score is not None:
-            params["score"] = self.score.definitions
+            params["score"] = self.score.as_mql(compiler, connection)
         if self.lt is not None:
-            params["lt"] = self.lt.as_mql(compiler, connection)
+            params["lt"] = self.lt.value
         if self.lte is not None:
-            params["lte"] = self.lte.as_mql(compiler, connection)
+            params["lte"] = self.lte.value
         if self.gt is not None:
-            params["gt"] = self.gt.as_mql(compiler, connection)
+            params["gt"] = self.gt.value
         if self.gte is not None:
-            params["gte"] = self.gte.as_mql(compiler, connection)
+            params["gte"] = self.gte.value
         return {"range": params}
 
 
@@ -332,12 +334,12 @@ class SearchRegex(SearchExpression):
     def search_operator(self, compiler, connection):
         params = {
             "path": self.path.as_mql(compiler, connection, as_path=True),
-            "query": self.query.as_mql(compiler, connection, as_path=True),
+            "query": self.query.value,
         }
         if self.score:
-            params["score"] = self.score.definitions
+            params["score"] = self.score.as_mql(compiler, connection)
         if self.allow_analyzed_field is not None:
-            params["allowAnalyzedField"] = self.allow_analyzed_field
+            params["allowAnalyzedField"] = self.allow_analyzed_field.value
         return {"regex": params}
 
 
@@ -363,16 +365,16 @@ class SearchText(SearchExpression):
     def search_operator(self, compiler, connection):
         params = {
             "path": self.path.as_mql(compiler, connection, as_path=True),
-            "query": self.query.as_mql(compiler, connection, as_path=True),
+            "query": self.query.value,
         }
         if self.score:
-            params["score"] = self.score.definitions
+            params["score"] = self.score.as_mql(compiler, connection)
         if self.fuzzy is not None:
-            params["fuzzy"] = self.fuzzy
+            params["fuzzy"] = self.fuzzy.value
         if self.match_criteria is not None:
-            params["matchCriteria"] = self.match_criteria
+            params["matchCriteria"] = self.match_criteria.value
         if self.synonyms is not None:
-            params["synonyms"] = self.synonyms
+            params["synonyms"] = self.synonyms.value
         return {"text": params}
 
 
@@ -396,12 +398,12 @@ class SearchWildcard(SearchExpression):
     def search_operator(self, compiler, connection):
         params = {
             "path": self.path.as_mql(compiler, connection, as_path=True),
-            "query": self.query.as_mql(compiler, connection, as_path=True),
+            "query": self.query.value,
         }
         if self.score:
-            params["score"] = self.score.definitions
+            params["score"] = self.score.query.as_mql(compiler, connection)
         if self.allow_analyzed_field is not None:
-            params["allowAnalyzedField"] = self.allow_analyzed_field
+            params["allowAnalyzedField"] = self.allow_analyzed_field.value
         return {"wildcard": params}
 
 
@@ -425,11 +427,11 @@ class SearchGeoShape(SearchExpression):
     def search_operator(self, compiler, connection):
         params = {
             "path": self.path.as_mql(compiler, connection, as_path=True),
-            "relation": self.relation,
-            "geometry": self.geometry,
+            "relation": self.relation.value,
+            "geometry": self.geometry.value,
         }
         if self.score:
-            params["score"] = self.score.definitions
+            params["score"] = self.score.as_mql(compiler, connection)
         return {"geoShape": params}
 
 
@@ -453,10 +455,10 @@ class SearchGeoWithin(SearchExpression):
     def search_operator(self, compiler, connection):
         params = {
             "path": self.path.as_mql(compiler, connection, as_path=True),
-            self.kind: self.geo_object,
+            self.kind.value: self.geo_object.value,
         }
         if self.score:
-            params["score"] = self.score.definitions
+            params["score"] = self.score.as_mql(compiler, connection)
         return {"geoWithin": params}
 
 
@@ -474,10 +476,10 @@ class SearchMoreLikeThis(SearchExpression):
 
     def search_operator(self, compiler, connection):
         params = {
-            "like": self.documents,
+            "like": self.documents.as_mql(compiler, connection),
         }
         if self.score:
-            params["score"] = self.score.definitions
+            params["score"] = self.score.as_mql(compiler, connection)
         return {"moreLikeThis": params}
 
     def get_search_fields(self, compiler, connection):
@@ -507,7 +509,7 @@ class CompoundExpression(SearchExpression):
     def get_search_fields(self, compiler, connection):
         fields = set()
         for clause in self.must + self.should + self.filter + self.must_not:
-            fields.update(clause.get_search_fields())
+            fields.update(clause.get_search_fields(compiler, connection))
         return fields
 
     def resolve_expression(
@@ -532,13 +534,19 @@ class CompoundExpression(SearchExpression):
     def search_operator(self, compiler, connection):
         params = {}
         if self.must:
-            params["must"] = [clause.search_operator() for clause in self.must]
+            params["must"] = [clause.search_operator(compiler, connection) for clause in self.must]
         if self.must_not:
-            params["mustNot"] = [clause.search_operator() for clause in self.must_not]
+            params["mustNot"] = [
+                clause.search_operator(compiler, connection) for clause in self.must_not
+            ]
         if self.should:
-            params["should"] = [clause.search_operator() for clause in self.should]
+            params["should"] = [
+                clause.search_operator(compiler, connection) for clause in self.should
+            ]
         if self.filter:
-            params["filter"] = [clause.search_operator() for clause in self.filter]
+            params["filter"] = [
+                clause.search_operator(compiler, connection) for clause in self.filter
+            ]
         if self.minimum_should_match is not None:
             params["minimumShouldMatch"] = self.minimum_should_match
         return {"compound": params}
@@ -650,15 +658,15 @@ class SearchVector(SearchExpression):
 
     def as_mql(self, compiler, connection):
         params = {
-            "index": self._get_query_index(self.get_search_fields(), compiler),
+            "index": self._get_query_index(self.get_search_fields(compiler, connection), compiler),
             "path": self.path.as_mql(compiler, connection, as_path=True),
-            "queryVector": self.query_vector.as_mql(compiler, connection),
-            "limit": self.limit.as_mql(compiler, connection),
+            "queryVector": self.query_vector.value,
+            "limit": self.limit.value,
         }
         if self.num_candidates is not None:
-            params["numCandidates"] = self.num_candidates.as_mql(compiler, connection)
+            params["numCandidates"] = self.num_candidates.value
         if self.exact is not None:
-            params["exact"] = self.exact.as_mql(compiler, connection)
+            params["exact"] = self.exact.value
         if self.filter is not None:
             params["filter"] = self.filter.as_mql(compiler, connection)
         return {"$vectorSearch": params}
