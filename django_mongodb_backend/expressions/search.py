@@ -76,6 +76,9 @@ class SearchExpression(SearchCombinable, Expression):
     def as_sql(self, compiler, connection):
         return "", []
 
+    def get_source_expressions(self):
+        return []
+
     def _get_indexed_fields(self, mappings):
         for field, definition in mappings.get("fields", {}).items():
             yield field
@@ -111,6 +114,12 @@ class SearchAutocomplete(SearchExpression):
         self.token_order = token_order
         self.score = score
         super().__init__()
+
+    def get_source_expressions(self):
+        return [self.path, self.query, self.fuzzy, self.token_order]
+
+    def set_source_expressions(self, exprs):
+        self.path, self.query, self.fuzzy, self.token_order = exprs
 
     def get_search_fields(self, compiler, connection):
         # Shall i implement resolve_something? I think I have to do
