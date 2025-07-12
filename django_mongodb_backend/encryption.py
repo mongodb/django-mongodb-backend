@@ -7,7 +7,18 @@ from pymongo.encryption import AutoEncryptionOpts, ClientEncryption
 KEY_VAULT_COLLECTION_NAME = "__keyVault"
 KEY_VAULT_DATABASE_NAME = "keyvault"
 KEY_VAULT_NAMESPACE = f"{KEY_VAULT_DATABASE_NAME}.{KEY_VAULT_COLLECTION_NAME}"
-KMS_PROVIDER = "local"
+KMS_PROVIDERS = {
+    "local": {
+        "key": bytes.fromhex(
+            "000102030405060708090a0b0c0d0e0f"
+            "101112131415161718191a1b1c1d1e1f"
+            "202122232425262728292a2b2c2d2e2f"
+            "303132333435363738393a3b3c3d3e3f"
+            "404142434445464748494a4b4c4d4e4f"
+            "505152535455565758595a5b5c5d5e5f"
+        )
+    },
+}
 
 
 class EncryptedRouter:
@@ -82,34 +93,3 @@ def get_client_encryption(client, key_vault_namespace=None, kms_providers=None):
 
     codec_options = CodecOptions(uuid_representation=STANDARD)
     return ClientEncryption(kms_providers, key_vault_namespace, client, codec_options)
-
-
-def get_customer_master_key():
-    """
-    Returns a 96-byte local master key for use with Queryable Encryption. For
-    local testing purposes only. In production, use a secure KMS like AWS,
-    Azure, GCP, or KMIP.
-    Returns:
-        bytes: A 96-byte key.
-    """
-    # WARNING: This is a static key for testing only.
-    # Generate with: os.urandom(96)
-    return bytes.fromhex(
-        "000102030405060708090a0b0c0d0e0f"
-        "101112131415161718191a1b1c1d1e1f"
-        "202122232425262728292a2b2c2d2e2f"
-        "303132333435363738393a3b3c3d3e3f"
-        "404142434445464748494a4b4c4d4e4f"
-        "505152535455565758595a5b5c5d5e5f"
-    )
-
-
-def get_kms_providers():
-    """
-    Return supported KMS providers for use with Queryable Encryption.
-    """
-    return {
-        "local": {
-            "key": get_customer_master_key(),
-        },
-    }
