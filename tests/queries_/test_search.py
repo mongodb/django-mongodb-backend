@@ -97,13 +97,13 @@ class SearchEqualsTest(SearchUtilsMixin):
         self.article = Article.objects.create(headline="cross", number=1, body="body")
         Article.objects.create(headline="other thing", number=2, body="body")
 
-    def test_search_equals(self):
-        qs = Article.objects.annotate(score=SearchEquals(path="headline", value="cross"))
-        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
-
     def tearDown(self):
         self._tear_down(Article)
         super().tearDown()
+
+    def test_search_equals(self):
+        qs = Article.objects.annotate(score=SearchEquals(path="headline", value="cross"))
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
 class SearchAutocompleteTest(SearchUtilsMixin):

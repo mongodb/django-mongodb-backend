@@ -161,10 +161,10 @@ class SearchEquals(SearchExpression):
     def search_operator(self, compiler, connection):
         params = {
             "path": self.path.as_mql(compiler, connection, as_path=True),
-            "value": self.value.as_mql(compiler, connection, as_path=True),
+            "value": self.value.as_mql(compiler, connection),
         }
         if self.score is not None:
-            params["score"] = self.score.as_mql(compiler, connection, as_path=True)
+            params["score"] = self.score.as_mql(compiler, connection)
         return {"equals": params}
 
 
@@ -211,7 +211,7 @@ class SearchIn(SearchExpression):
     def search_operator(self, compiler, connection):
         params = {
             "path": self.path.as_mql(compiler, connection, as_path=True),
-            "value": self.value.as_mql(compiler, connection, as_path=True),
+            "value": self.value.as_mql(compiler, connection),
         }
         if self.score is not None:
             params["score"] = self.score.definitions
@@ -234,19 +234,19 @@ class SearchPhrase(SearchExpression):
         return [self.path, self.query, self.slop, self.synonyms]
 
     def set_source_expressions(self, exprs):
-        self.path, self.query, self.score, self.slop, self.synonyms = exprs
+        self.path, self.query, self.slop, self.synonyms = exprs
 
     def search_operator(self, compiler, connection):
         params = {
             "path": self.path.as_mql(compiler, connection, as_path=True),
-            "query": self.query.as_mql(compiler, connection, as_path=True),
+            "query": self.query.as_mql(compiler, connection),
         }
         if self.score is not None:
-            params["score"] = self.score.as_mql(compiler, connection, as_path=True)
+            params["score"] = self.score.as_mql(compiler, connection)
         if self.slop is not None:
-            params["slop"] = self.slop.as_mql(compiler, connection, as_path=True)
+            params["slop"] = self.slop.as_mql(compiler, connection)
         if self.synonyms is not None:
-            params["synonyms"] = self.synonyms.as_mql(compiler, connection, as_path=True)
+            params["synonyms"] = self.synonyms.as_mql(compiler, connection)
         return {"phrase": params}
 
 
@@ -268,8 +268,8 @@ class SearchQueryString(SearchExpression):
 
     def search_operator(self, compiler, connection):
         params = {
-            "defaultPath": self.path,
-            "query": self.query.as_mql(compiler, connection, as_path=True),
+            "defaultPath": self.path.as_mql(compiler, connection, as_path=True),
+            "query": self.query.as_mql(compiler, connection),
         }
         if self.score is not None:
             params["score"] = self.score.definitions
@@ -290,10 +290,10 @@ class SearchRange(SearchExpression):
         return {self.path.as_mql(compiler, connection, as_path=True)}
 
     def get_source_expressions(self):
-        return [self.path, self.query, self.lt, self.lte, self.gt, self.gte]
+        return [self.path, self.lt, self.lte, self.gt, self.gte]
 
     def set_source_expressions(self, exprs):
-        self.path, self.query, self.lt, self.lte, self.gt, self.gte = exprs
+        self.path, self.lt, self.lte, self.gt, self.gte = exprs
 
     def search_operator(self, compiler, connection):
         params = {
@@ -302,13 +302,13 @@ class SearchRange(SearchExpression):
         if self.score is not None:
             params["score"] = self.score.definitions
         if self.lt is not None:
-            params["lt"] = self.lt
+            params["lt"] = self.lt.as_mql(compiler, connection)
         if self.lte is not None:
-            params["lte"] = self.lte
+            params["lte"] = self.lte.as_mql(compiler, connection)
         if self.gt is not None:
-            params["gt"] = self.gt
+            params["gt"] = self.gt.as_mql(compiler, connection)
         if self.gte is not None:
-            params["gte"] = self.gte
+            params["gte"] = self.gte.as_mql(compiler, connection)
         return {"range": params}
 
 
