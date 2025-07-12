@@ -4,7 +4,7 @@ from time import monotonic, sleep
 
 from django.db import connection
 from django.db.utils import DatabaseError
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, skipUnlessDBFeature
 from pymongo.operations import SearchIndexModel
 
 from django_mongodb_backend.expressions.search import (
@@ -65,6 +65,7 @@ def _wait_for_assertion(timeout: float = 120, interval: float = 0.5) -> None:
     return _inner_wait_loop
 
 
+@skipUnlessDBFeature("supports_atlas_search")
 class SearchUtilsMixin(TransactionTestCase):
     available_apps = []
 
@@ -87,6 +88,7 @@ class SearchUtilsMixin(TransactionTestCase):
     wait_for_assertion = _wait_for_assertion(timeout=3)
 
 
+@skipUnlessDBFeature("supports_atlas_search")
 class SearchEqualsTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
@@ -105,6 +107,7 @@ class SearchEqualsTest(SearchUtilsMixin):
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
+@skipUnlessDBFeature("supports_atlas_search")
 class SearchAutocompleteTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
@@ -168,6 +171,7 @@ class SearchAutocompleteTest(SearchUtilsMixin):
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
+@skipUnlessDBFeature("supports_atlas_search")
 class SearchExistsTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
@@ -182,6 +186,7 @@ class SearchExistsTest(SearchUtilsMixin):
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
+@skipUnlessDBFeature("supports_atlas_search")
 class SearchInTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
@@ -201,6 +206,7 @@ class SearchInTest(SearchUtilsMixin):
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.cross]))
 
 
+@skipUnlessDBFeature("supports_atlas_search")
 class SearchPhraseTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
@@ -221,6 +227,7 @@ class SearchPhraseTest(SearchUtilsMixin):
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.irrelevant]))
 
 
+@skipUnlessDBFeature("supports_atlas_search")
 class SearchRangeTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
@@ -240,6 +247,7 @@ class SearchRangeTest(SearchUtilsMixin):
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.number20]))
 
 
+@skipUnlessDBFeature("supports_atlas_search")
 class SearchRegexTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
@@ -265,6 +273,7 @@ class SearchRegexTest(SearchUtilsMixin):
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
+@skipUnlessDBFeature("supports_atlas_search")
 class SearchTextTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
@@ -293,6 +302,7 @@ class SearchTextTest(SearchUtilsMixin):
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
+@skipUnlessDBFeature("supports_atlas_search")
 class SearchWildcardTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
@@ -316,6 +326,7 @@ class SearchWildcardTest(SearchUtilsMixin):
         self.wait_for_assertion(lambda: self.assertCountEqual([self.article], qs))
 
 
+@skipUnlessDBFeature("supports_atlas_search")
 class SearchGeoShapeTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
@@ -347,6 +358,7 @@ class SearchGeoShapeTest(SearchUtilsMixin):
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
+@skipUnlessDBFeature("supports_atlas_search")
 class SearchGeoWithinTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
@@ -377,6 +389,7 @@ class SearchGeoWithinTest(SearchUtilsMixin):
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
+@skipUnlessDBFeature("supports_atlas_search")
 @unittest.expectedFailure
 class SearchMoreLikeThisTest(SearchUtilsMixin):
     def setUp(self):
@@ -424,6 +437,7 @@ class SearchMoreLikeThisTest(SearchUtilsMixin):
         )
 
 
+@skipUnlessDBFeature("supports_atlas_search")
 class CompoundSearchTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
@@ -493,6 +507,7 @@ class CompoundSearchTest(SearchUtilsMixin):
         )
 
 
+@skipUnlessDBFeature("supports_atlas_search")
 class SearchVectorTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
