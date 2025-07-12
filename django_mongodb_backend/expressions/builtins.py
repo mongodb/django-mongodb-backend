@@ -13,7 +13,6 @@ from django.db.models.expressions import (
     Exists,
     ExpressionList,
     ExpressionWrapper,
-    F,
     NegatedExpression,
     OrderBy,
     RawSQL,
@@ -96,13 +95,6 @@ def combined_expression(self, compiler, connection):
 
 def expression_wrapper(self, compiler, connection):
     return self.expression.as_mql(compiler, connection)
-
-
-def f(self, compiler, connection, as_path=False):
-    expression = self.resolve_expression(compiler.query)
-    if as_path:
-        return expression.as_mql(compiler, connection, as_path=as_path)
-    return expression.as_mql(compiler, connection)
 
 
 def negated_expression(self, compiler, connection):
@@ -227,7 +219,6 @@ def register_expressions():
     Exists.as_mql = exists
     ExpressionList.as_mql = process_lhs
     ExpressionWrapper.as_mql = expression_wrapper
-    F.as_mql = f
     NegatedExpression.as_mql = negated_expression
     OrderBy.as_mql = order_by
     Query.as_mql = query
