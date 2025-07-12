@@ -8,6 +8,24 @@ from pymongo.encryption import AutoEncryptionOpts, ClientEncryption
 KEY_VAULT_COLLECTION_NAME = "__keyVault"
 KEY_VAULT_DATABASE_NAME = "keyvault"
 KEY_VAULT_NAMESPACE = f"{KEY_VAULT_DATABASE_NAME}.{KEY_VAULT_COLLECTION_NAME}"
+KMS_CREDENTIALS = {
+    "aws": {
+        "key": os.getenv("AWS_KEY_ARN", ""),
+        "region": os.getenv("AWS_KEY_REGION", ""),
+    },
+    "azure": {
+        "keyName": os.getenv("AZURE_KEY_NAME", ""),
+        "keyVaultEndpoint": os.getenv("AZURE_KEY_VAULT_ENDPOINT", ""),
+    },
+    "gcp": {
+        "projectId": os.getenv("GCP_PROJECT_ID", ""),
+        "location": os.getenv("GCP_LOCATION", ""),
+        "keyRing": os.getenv("GCP_KEY_RING", ""),
+        "keyName": os.getenv("GCP_KEY_NAME", ""),
+    },
+    "kmip": {},
+    "local": {},
+}
 KMS_PROVIDERS = {
     "aws": {
         "accessKeyId": os.getenv("AWS_ACCESS_KEY_ID", "not an access key"),

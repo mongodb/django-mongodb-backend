@@ -444,11 +444,14 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 raise ImproperlyConfigured(
                     "No KMS_PROVIDER found. Please configure KMS_PROVIDER in settings."
                 )
+            provider = router.kms_provider()
+            credentials = router.kms_credentials(provider)
             ce.create_encrypted_collection(
                 db,
                 model._meta.db_table,
                 self._get_encrypted_fields_map(model),
-                router.kms_provider(),
+                provider,
+                credentials,
             )
         else:
             db.create_collection(model._meta.db_table)
