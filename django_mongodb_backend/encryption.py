@@ -6,6 +6,7 @@ from pymongo.encryption import AutoEncryptionOpts, ClientEncryption
 
 KEY_VAULT_COLLECTION_NAME = "__keyVault"
 KEY_VAULT_DATABASE_NAME = "keyvault"
+KEY_VAULT_NAMESPACE = f"{KEY_VAULT_DATABASE_NAME}.{KEY_VAULT_COLLECTION_NAME}"
 KMS_PROVIDER = "local"
 
 
@@ -101,13 +102,6 @@ def get_customer_master_key():
         "404142434445464748494a4b4c4d4e4f"
         "505152535455565758595a5b5c5d5e5f"
     )
-
-
-def get_key_vault_namespace(
-    key_vault_database_name=KEY_VAULT_DATABASE_NAME,
-    key_vault_collection_name=KEY_VAULT_COLLECTION_NAME,
-):
-    return f"{key_vault_database_name}.{key_vault_collection_name}"
 
 
 def get_kms_providers():
