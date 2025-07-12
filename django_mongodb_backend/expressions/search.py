@@ -62,6 +62,14 @@ class SearchCombinable:
 
 
 class SearchExpression(SearchCombinable, Expression):
+    """Base expression node for MongoDB Atlas **$search** stages.
+
+    This class bridges Django's ``Expression`` API with the MongoDB Atlas
+    Search engine.  Subclasses produce the operator document placed under
+    **$search** and expose the stage to queryset methods such as
+    ``annotate()``, ``filter()``, or ``order_by()``.
+    """
+
     output_field = FloatField()
 
     def __str__(self):
@@ -113,6 +121,29 @@ class SearchExpression(SearchCombinable, Expression):
 
 
 class SearchAutocomplete(SearchExpression):
+    """
+    Atlas Search expression that matches input using the **autocomplete** operator.
+
+    This expression enables autocomplete behavior by querying against a field
+    indexed as `"type": "autocomplete"` in MongoDB Atlas. It can be used in
+    `filter()`, `annotate()` or any context that accepts a Django expression.
+
+    Example:
+        SearchAutocomplete("title", "harry", fuzzy={"maxEdits": 1})
+
+    Args:
+        path: The document path to search (as string or expression).
+        query: The input string to autocomplete.
+        fuzzy: Optional dictionary of fuzzy matching parameters.
+        token_order: Optional value for `"tokenOrder"`; controls sequential vs.
+            any-order token matching.
+        score: Optional expression to adjust score relevance (e.g., `{"boost": {"value": 5}}`).
+
+    Notes:
+        * Requires an Atlas Search index with `autocomplete` mappings.
+        * The operator is injected under the `$search` stage in the aggregation pipeline.
+    """
+
     def __init__(self, path, query, fuzzy=None, token_order=None, score=None):
         self.path = self.cast_as_field(path)
         self.query = self.cast_as_value(query)
@@ -145,6 +176,26 @@ class SearchAutocomplete(SearchExpression):
 
 
 class SearchEquals(SearchExpression):
+    """
+    Atlas Search expression that matches documents with a field equal to the given value.
+
+    This expression uses the **equals** operator to perform exact matches
+    on fields indexed in a MongoDB Atlas Search index.
+
+    Example:
+        SearchEquals("category", "fiction")
+
+    Args:
+        path: The document path to compare (as string or expression).
+        value: The exact value to match against.
+        score: Optional expression to modify the relevance score.
+
+    Notes:
+        * The field must be indexed with a supported type for `equals`.
+        * Supports numeric, string, boolean, and date values.
+        * Score boosting can be applied using the `score` parameter.
+    """
+
     def __init__(self, path, value, score=None):
         self.path = self.cast_as_field(path)
         self.value = self.cast_as_value(value)
@@ -171,6 +222,25 @@ class SearchEquals(SearchExpression):
 
 
 class SearchExists(SearchExpression):
+    """
+    Atlas Search expression that matches documents where a field exists.
+
+    This expression uses the **exists** operator to check whether a given
+    path is present in the document. Useful for filtering documents that
+    include (or exclude) optional fields.
+
+    Example:
+        SearchExists("metadata__author")
+
+    Args:
+        path: The document path to check (as string or expression).
+        score: Optional expression to modify the relevance score.
+
+    Notes:
+        * The target field must be mapped in the Atlas Search index.
+        * This does not test for null—only for presence.
+    """
+
     def __init__(self, path, score=None):
         self.path = self.cast_as_field(path)
         self.score = score
@@ -221,6 +291,28 @@ class SearchIn(SearchExpression):
 
 
 class SearchPhrase(SearchExpression):
+    """
+    Atlas Search expression that matches a phrase in the specified field.
+
+    This expression uses the **phrase** operator to search for exact or near-exact
+    sequences of terms. It supports optional slop (word distance) and synonym sets.
+
+    Example:
+        SearchPhrase("description__text", "climate change", slop=2)
+
+    Args:
+        path: The document path to search (as string or expression).
+        query: The phrase to match as a single string or list of terms.
+        slop: Optional maximum word distance allowed between phrase terms.
+        synonyms: Optional name of a synonym mapping defined in the Atlas index.
+        score: Optional expression to modify the relevance score.
+
+    Notes:
+        * The field must be mapped as `"type": "string"` with appropriate analyzers.
+        * Slop allows flexibility in word positioning, like `"quick brown fox"`
+            matching `"quick fox"` if `slop=1`.
+    """
+
     def __init__(self, path, query, slop=None, synonyms=None, score=None):
         self.path = self.cast_as_field(path)
         self.query = self.cast_as_value(query)
@@ -253,6 +345,26 @@ class SearchPhrase(SearchExpression):
 
 
 class SearchQueryString(SearchExpression):
+    """
+    Atlas Search expression that matches using a Lucene-style query string.
+
+    This expression uses the **queryString** operator to parse and execute
+    full-text queries written in a simplified Lucene syntax. It supports
+    advanced constructs like boolean operators, wildcards, and field-specific terms.
+
+    Example:
+        SearchQueryString("content__text", "django AND (search OR query)")
+
+    Args:
+        path: The document path to query (as string or expression).
+        query: The Lucene-style query string.
+        score: Optional expression to modify the relevance score.
+
+    Notes:
+        * The query string syntax must conform to Atlas Search rules.
+        * This operator is powerful but can be harder to validate or sanitize.
+    """
+
     def __init__(self, path, query, score=None):
         self.path = self.cast_as_field(path)
         self.query = self.cast_as_value(query)
@@ -279,6 +391,28 @@ class SearchQueryString(SearchExpression):
 
 
 class SearchRange(SearchExpression):
+    """
+    Atlas Search expression that filters documents within a range of values.
+
+    This expression uses the **range** operator to match numeric, date, or
+    other comparable fields based on upper and/or lower bounds.
+
+    Example:
+        SearchRange("published__year", gte=2000, lt=2020)
+
+    Args:
+        path: The document path to filter (as string or expression).
+        lt: Optional exclusive upper bound (`<`).
+        lte: Optional inclusive upper bound (`<=`).
+        gt: Optional exclusive lower bound (`>`).
+        gte: Optional inclusive lower bound (`>=`).
+        score: Optional expression to modify the relevance score.
+
+    Notes:
+        * At least one of `lt`, `lte`, `gt`, or `gte` must be provided.
+        * The field must be mapped in the Atlas Search index as a comparable type.
+    """
+
     def __init__(self, path, lt=None, lte=None, gt=None, gte=None, score=None):
         self.path = self.cast_as_field(path)
         self.lt = self.cast_as_value(lt)
@@ -315,6 +449,27 @@ class SearchRange(SearchExpression):
 
 
 class SearchRegex(SearchExpression):
+    """
+    Atlas Search expression that matches strings using a regular expression.
+
+    This expression uses the **regex** operator to apply a regular expression
+    against the contents of a specified field.
+
+    Example:
+        SearchRegex("username", r"^admin_")
+
+    Args:
+        path: The document path to match (as string or expression).
+        query: The regular expression pattern to apply.
+        allow_analyzed_field: Whether to allow matching against analyzed fields (default is False).
+        score: Optional expression to modify the relevance score.
+
+    Notes:
+        * Regular expressions must follow JavaScript regex syntax.
+        * By default, the field must be mapped as `"analyzer": "keyword"`
+            unless `allow_analyzed_field=True`.
+    """
+
     def __init__(self, path, query, allow_analyzed_field=None, score=None):
         self.path = self.cast_as_field(path)
         self.query = self.cast_as_value(query)
@@ -344,6 +499,28 @@ class SearchRegex(SearchExpression):
 
 
 class SearchText(SearchExpression):
+    """
+    Atlas Search expression that performs full-text search using the **text** operator.
+
+    This expression matches terms in a specified field with options for
+    fuzzy matching, match criteria, and synonyms.
+
+    Example:
+        SearchText("description__content", "mongodb", fuzzy={"maxEdits": 1}, match_criteria="all")
+
+    Args:
+        path: The document path to search (as string or expression).
+        query: The search term or phrase.
+        fuzzy: Optional dictionary to configure fuzzy matching parameters.
+        match_criteria: Optional criteria for term matching (e.g., "all" or "any").
+        synonyms: Optional name of a synonym mapping defined in the Atlas index.
+        score: Optional expression to adjust relevance scoring.
+
+    Notes:
+        * The target field must be indexed for full-text search in Atlas.
+        * Fuzzy matching helps match terms with minor typos or variations.
+    """
+
     def __init__(self, path, query, fuzzy=None, match_criteria=None, synonyms=None, score=None):
         self.path = self.cast_as_field(path)
         self.query = self.cast_as_value(query)
@@ -379,6 +556,28 @@ class SearchText(SearchExpression):
 
 
 class SearchWildcard(SearchExpression):
+    """
+    Atlas Search expression that matches strings using wildcard patterns.
+
+    This expression uses the **wildcard** operator to search for terms
+    matching a pattern with `*` and `?` wildcards.
+
+    Example:
+        SearchWildcard("filename", "report_202?_final*")
+
+    Args:
+        path: The document path to search (as string or expression).
+        query: The wildcard pattern to match.
+        allow_analyzed_field: Whether to allow matching against analyzed fields (default is False).
+        score: Optional expression to modify the relevance score.
+
+    Notes:
+        * Wildcard patterns follow standard syntax, where `*` matches any sequence of characters
+            and `?` matches a single character.
+        * By default, the field should be keyword or unanalyzed
+            unless `allow_analyzed_field=True`.
+    """
+
     def __init__(self, path, query, allow_analyzed_field=None, score=None):
         self.path = self.cast_as_field(path)
         self.query = self.cast_as_value(query)
@@ -408,6 +607,26 @@ class SearchWildcard(SearchExpression):
 
 
 class SearchGeoShape(SearchExpression):
+    """
+    Atlas Search expression that filters documents by spatial relationship with a geometry.
+
+    This expression uses the **geoShape** operator to match documents where
+    a geo field relates to a specified geometry by a spatial relation.
+
+    Example:
+        SearchGeoShape("location", "within", {"type": "Polygon", "coordinates": [...]})
+
+    Args:
+        path: The document path to the geo field (as string or expression).
+        relation: The spatial relation to test (e.g., "within", "intersects", "disjoint").
+        geometry: The GeoJSON geometry to compare against.
+        score: Optional expression to modify the relevance score.
+
+    Notes:
+        * The field must be indexed as a geo shape type in Atlas Search.
+        * Geometry must conform to GeoJSON specification.
+    """
+
     def __init__(self, path, relation, geometry, score=None):
         self.path = self.cast_as_field(path)
         self.relation = self.cast_as_value(relation)
@@ -436,6 +655,27 @@ class SearchGeoShape(SearchExpression):
 
 
 class SearchGeoWithin(SearchExpression):
+    """
+    Atlas Search expression that filters documents with geo fields
+    contained within a specified shape.
+
+    This expression uses the **geoWithin** operator to match documents where
+    the geo field lies entirely within the given geometry.
+
+    Example:
+        SearchGeoWithin("location", "Polygon", {"type": "Polygon", "coordinates": [...]})
+
+    Args:
+        path: The document path to the geo field (as string or expression).
+        kind: The GeoJSON geometry type (e.g., "Polygon", "MultiPolygon").
+        geo_object: The GeoJSON geometry defining the boundary.
+        score: Optional expression to adjust the relevance score.
+
+    Notes:
+        * The geo field must be indexed appropriately in the Atlas Search index.
+        * The geometry must follow GeoJSON format.
+    """
+
     def __init__(self, path, kind, geo_object, score=None):
         self.path = self.cast_as_field(path)
         self.kind = self.cast_as_value(kind)
@@ -463,6 +703,24 @@ class SearchGeoWithin(SearchExpression):
 
 
 class SearchMoreLikeThis(SearchExpression):
+    """
+    Atlas Search expression that finds documents similar to given examples.
+
+    This expression uses the **moreLikeThis** operator to search for documents
+    that resemble the specified sample documents.
+
+    Example:
+        SearchMoreLikeThis([{"_id": ObjectId("...")}, {"title": "Example"}])
+
+    Args:
+        documents: A list of example documents or expressions to find similar documents.
+        score: Optional expression to modify the relevance scoring.
+
+    Notes:
+        * The documents should be representative examples to base similarity on.
+        * Supports various field types depending on the Atlas Search configuration.
+    """
+
     def __init__(self, documents, score=None):
         self.documents = self.cast_as_value(documents)
         self.score = score
@@ -490,6 +748,34 @@ class SearchMoreLikeThis(SearchExpression):
 
 
 class CompoundExpression(SearchExpression):
+    """
+    Compound expression that combines multiple search clauses using boolean logic.
+
+    This expression corresponds to the **compound** operator in MongoDB Atlas Search,
+    allowing fine-grained control by combining multiple sub-expressions with
+    `must`, `must_not`, `should`, and `filter` clauses.
+
+    Example:
+        CompoundExpression(
+            must=[expr1, expr2],
+            must_not=[expr3],
+            should=[expr4],
+            minimum_should_match=1
+        )
+
+    Args:
+        must: List of expressions that **must** match.
+        must_not: List of expressions that **must not** match.
+        should: List of expressions that **should** match (optional relevance boost).
+        filter: List of expressions to filter results without affecting relevance.
+        score: Optional expression to adjust scoring.
+        minimum_should_match: Minimum number of `should` clauses that must match.
+
+    Notes:
+        * This is the most flexible way to build complex Atlas Search queries.
+        * Supports nesting of expressions to any depth.
+    """
+
     def __init__(
         self,
         must=None,
@@ -556,6 +842,26 @@ class CompoundExpression(SearchExpression):
 
 
 class CombinedSearchExpression(SearchExpression):
+    """
+    Combines two search expressions with a logical operator.
+
+    This expression allows combining two Atlas Search expressions
+    (left-hand side and right-hand side) using a boolean operator
+    such as `and`, `or`, or `not`.
+
+    Example:
+        CombinedSearchExpression(expr1, "and", expr2)
+
+    Args:
+        lhs: The left-hand search expression.
+        operator: The boolean operator as a string (e.g., "and", "or", "not").
+        rhs: The right-hand search expression.
+
+    Notes:
+        * The operator must be supported by MongoDB Atlas Search boolean logic.
+        * This class enables building complex nested search queries.
+    """
+
     def __init__(self, lhs, operator, rhs):
         self.lhs = lhs
         self.operator = operator
@@ -591,6 +897,29 @@ class CombinedSearchExpression(SearchExpression):
 
 
 class SearchVector(SearchExpression):
+    """
+    Atlas Search expression that performs vector similarity search on embedded vectors.
+
+    This expression uses the **knnBeta** operator to find documents whose vector
+    embeddings are most similar to a given query vector.
+
+    Example:
+        SearchVector("embedding", [0.1, 0.2, 0.3], limit=10, num_candidates=100)
+
+    Args:
+        path: The document path to the vector field (as string or expression).
+        query_vector: The query vector to compare against.
+        limit: Maximum number of matching documents to return.
+        num_candidates: Optional number of candidates to consider during search.
+        exact: Optional flag to enforce exact matching.
+        filter: Optional filter expression to narrow candidate documents.
+
+    Notes:
+        * The vector field must be indexed as a vector type in Atlas Search.
+        * Parameters like `num_candidates` and `exact` control search
+            performance and accuracy trade-offs.
+    """
+
     def __init__(
         self,
         path,
