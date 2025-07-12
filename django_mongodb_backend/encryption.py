@@ -1,4 +1,5 @@
 # Queryable Encryption helpers
+import os
 
 from bson.binary import STANDARD
 from bson.codec_options import CodecOptions
@@ -8,6 +9,26 @@ KEY_VAULT_COLLECTION_NAME = "__keyVault"
 KEY_VAULT_DATABASE_NAME = "keyvault"
 KEY_VAULT_NAMESPACE = f"{KEY_VAULT_DATABASE_NAME}.{KEY_VAULT_COLLECTION_NAME}"
 KMS_PROVIDERS = {
+    "aws": {
+        "accessKeyId": os.getenv("AWS_ACCESS_KEY_ID", "not an access key"),
+        "secretAccessKey": os.getenv("AWS_SECRET_ACCESS_KEY", "not a secret key"),
+    },
+    "azure": {
+        "tenantId": os.getenv("AZURE_TENANT_ID", "not a tenant ID"),
+        "clientId": os.getenv("AZURE_CLIENT_ID", "not a client ID"),
+        "clientSecret": os.getenv("AZURE_CLIENT_SECRET", "not a client secret"),
+    },
+    # TODO: Provide a valid test key
+    #
+    # "Failed to parse KMS provider gcp: unable to parse base64 from UTF-8 field privateKey"
+    #
+    # "gcp": {
+    #     "email": os.getenv("GCP_EMAIL", "not an email"),
+    #     "privateKey": os.getenv("GCP_PRIVATE_KEY", "not a private key"),
+    # },
+    "kmip": {
+        "endpoint": os.getenv("KMIP_KMS_ENDPOINT", "not a valid endpoint"),
+    },
     "local": {
         "key": bytes.fromhex(
             "000102030405060708090a0b0c0d0e0f"
