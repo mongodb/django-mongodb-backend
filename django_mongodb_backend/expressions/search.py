@@ -3,6 +3,16 @@ from django.db.models import Expression, FloatField
 from django.db.models.expressions import F, Value
 
 
+def cast_as_value(value):
+    if value is None:
+        return None
+    return Value(value) if not hasattr(value, "resolve_expression") else value
+
+
+def cast_as_field(path):
+    return F(path) if isinstance(path, str) else path
+
+
 class Operator:
     AND = "AND"
     OR = "OR"
@@ -87,16 +97,6 @@ class SearchExpression(SearchCombinable, Expression):
     def get_source_expressions(self):
         return []
 
-    @staticmethod
-    def cast_as_value(value):
-        if value is None:
-            return None
-        return Value(value) if not hasattr(value, "resolve_expression") else value
-
-    @staticmethod
-    def cast_as_field(path):
-        return F(path) if isinstance(path, str) else path
-
     def _get_indexed_fields(self, mappings):
         for field, definition in mappings.get("fields", {}).items():
             yield field
@@ -145,10 +145,10 @@ class SearchAutocomplete(SearchExpression):
     """
 
     def __init__(self, path, query, fuzzy=None, token_order=None, score=None):
-        self.path = self.cast_as_field(path)
-        self.query = self.cast_as_value(query)
-        self.fuzzy = self.cast_as_value(fuzzy)
-        self.token_order = self.cast_as_value(token_order)
+        self.path = cast_as_field(path)
+        self.query = cast_as_value(query)
+        self.fuzzy = cast_as_value(fuzzy)
+        self.token_order = cast_as_value(token_order)
         self.score = score
         super().__init__()
 
@@ -197,8 +197,8 @@ class SearchEquals(SearchExpression):
     """
 
     def __init__(self, path, value, score=None):
-        self.path = self.cast_as_field(path)
-        self.value = self.cast_as_value(value)
+        self.path = cast_as_field(path)
+        self.value = cast_as_value(value)
         self.score = score
         super().__init__()
 
@@ -242,7 +242,7 @@ class SearchExists(SearchExpression):
     """
 
     def __init__(self, path, score=None):
-        self.path = self.cast_as_field(path)
+        self.path = cast_as_field(path)
         self.score = score
         super().__init__()
 
@@ -266,8 +266,8 @@ class SearchExists(SearchExpression):
 
 class SearchIn(SearchExpression):
     def __init__(self, path, value, score=None):
-        self.path = self.cast_as_field(path)
-        self.value = self.cast_as_value(value)
+        self.path = cast_as_field(path)
+        self.value = cast_as_value(value)
         self.score = score
         super().__init__()
 
@@ -314,10 +314,10 @@ class SearchPhrase(SearchExpression):
     """
 
     def __init__(self, path, query, slop=None, synonyms=None, score=None):
-        self.path = self.cast_as_field(path)
-        self.query = self.cast_as_value(query)
-        self.slop = self.cast_as_value(slop)
-        self.synonyms = self.cast_as_value(synonyms)
+        self.path = cast_as_field(path)
+        self.query = cast_as_value(query)
+        self.slop = cast_as_value(slop)
+        self.synonyms = cast_as_value(synonyms)
         self.score = score
         super().__init__()
 
@@ -366,8 +366,8 @@ class SearchQueryString(SearchExpression):
     """
 
     def __init__(self, path, query, score=None):
-        self.path = self.cast_as_field(path)
-        self.query = self.cast_as_value(query)
+        self.path = cast_as_field(path)
+        self.query = cast_as_value(query)
         self.score = score
         super().__init__()
 
@@ -414,11 +414,11 @@ class SearchRange(SearchExpression):
     """
 
     def __init__(self, path, lt=None, lte=None, gt=None, gte=None, score=None):
-        self.path = self.cast_as_field(path)
-        self.lt = self.cast_as_value(lt)
-        self.lte = self.cast_as_value(lte)
-        self.gt = self.cast_as_value(gt)
-        self.gte = self.cast_as_value(gte)
+        self.path = cast_as_field(path)
+        self.lt = cast_as_value(lt)
+        self.lte = cast_as_value(lte)
+        self.gt = cast_as_value(gt)
+        self.gte = cast_as_value(gte)
         self.score = score
         super().__init__()
 
@@ -471,9 +471,9 @@ class SearchRegex(SearchExpression):
     """
 
     def __init__(self, path, query, allow_analyzed_field=None, score=None):
-        self.path = self.cast_as_field(path)
-        self.query = self.cast_as_value(query)
-        self.allow_analyzed_field = self.cast_as_value(allow_analyzed_field)
+        self.path = cast_as_field(path)
+        self.query = cast_as_value(query)
+        self.allow_analyzed_field = cast_as_value(allow_analyzed_field)
         self.score = score
         super().__init__()
 
@@ -522,11 +522,11 @@ class SearchText(SearchExpression):
     """
 
     def __init__(self, path, query, fuzzy=None, match_criteria=None, synonyms=None, score=None):
-        self.path = self.cast_as_field(path)
-        self.query = self.cast_as_value(query)
-        self.fuzzy = self.cast_as_value(fuzzy)
-        self.match_criteria = self.cast_as_value(match_criteria)
-        self.synonyms = self.cast_as_value(synonyms)
+        self.path = cast_as_field(path)
+        self.query = cast_as_value(query)
+        self.fuzzy = cast_as_value(fuzzy)
+        self.match_criteria = cast_as_value(match_criteria)
+        self.synonyms = cast_as_value(synonyms)
         self.score = score
         super().__init__()
 
@@ -579,9 +579,9 @@ class SearchWildcard(SearchExpression):
     """
 
     def __init__(self, path, query, allow_analyzed_field=None, score=None):
-        self.path = self.cast_as_field(path)
-        self.query = self.cast_as_value(query)
-        self.allow_analyzed_field = self.cast_as_value(allow_analyzed_field)
+        self.path = cast_as_field(path)
+        self.query = cast_as_value(query)
+        self.allow_analyzed_field = cast_as_value(allow_analyzed_field)
         self.score = score
         super().__init__()
 
@@ -628,9 +628,9 @@ class SearchGeoShape(SearchExpression):
     """
 
     def __init__(self, path, relation, geometry, score=None):
-        self.path = self.cast_as_field(path)
-        self.relation = self.cast_as_value(relation)
-        self.geometry = self.cast_as_value(geometry)
+        self.path = cast_as_field(path)
+        self.relation = cast_as_value(relation)
+        self.geometry = cast_as_value(geometry)
         self.score = score
         super().__init__()
 
@@ -677,9 +677,9 @@ class SearchGeoWithin(SearchExpression):
     """
 
     def __init__(self, path, kind, geo_object, score=None):
-        self.path = self.cast_as_field(path)
-        self.kind = self.cast_as_value(kind)
-        self.geo_object = self.cast_as_value(geo_object)
+        self.path = cast_as_field(path)
+        self.kind = cast_as_value(kind)
+        self.geo_object = cast_as_value(geo_object)
         self.score = score
         super().__init__()
 
@@ -722,7 +722,7 @@ class SearchMoreLikeThis(SearchExpression):
     """
 
     def __init__(self, documents, score=None):
-        self.documents = self.cast_as_value(documents)
+        self.documents = cast_as_value(documents)
         self.score = score
         super().__init__()
 
@@ -929,12 +929,12 @@ class SearchVector(SearchExpression):
         exact=None,
         filter=None,
     ):
-        self.path = self.cast_as_field(path)
-        self.query_vector = self.cast_as_value(query_vector)
-        self.limit = self.cast_as_value(limit)
-        self.num_candidates = self.cast_as_value(num_candidates)
-        self.exact = self.cast_as_value(exact)
-        self.filter = self.cast_as_value(filter)
+        self.path = cast_as_field(path)
+        self.query_vector = cast_as_value(query_vector)
+        self.limit = cast_as_value(limit)
+        self.num_candidates = cast_as_value(num_candidates)
+        self.exact = cast_as_value(exact)
+        self.filter = cast_as_value(filter)
         super().__init__()
 
     def __invert__(self):
@@ -1001,8 +1001,11 @@ class SearchVector(SearchExpression):
         return {"$vectorSearch": params}
 
 
-class SearchScoreOption:
+class SearchScoreOption(Expression):
     """Class to mutate scoring on a search operation"""
 
     def __init__(self, definitions=None):
         self.definitions = definitions
+
+    def as_mql(self, compiler, connection):
+        return self.definitions

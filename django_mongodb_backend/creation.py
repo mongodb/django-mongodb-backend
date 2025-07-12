@@ -22,9 +22,10 @@ class DatabaseCreation(BaseDatabaseCreation):
 
         for collection in self.connection.introspection.table_names():
             if not collection.startswith("system."):
-                db_collection = self.connection.database.get_collection(collection)
-                for search_indexes in db_collection.list_search_indexes():
-                    db_collection.drop_search_index(search_indexes["name"])
+                if self.connection.features.supports_atlas_search:
+                    db_collection = self.connection.database.get_collection(collection)
+                    for search_indexes in db_collection.list_search_indexes():
+                        db_collection.drop_search_index(search_indexes["name"])
                 self.connection.database.drop_collection(collection)
 
     def create_test_db(self, *args, **kwargs):
