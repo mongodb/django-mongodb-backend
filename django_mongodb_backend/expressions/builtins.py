@@ -54,7 +54,7 @@ def case(self, compiler, connection):
     }
 
 
-def col(self, compiler, connection):  # noqa: ARG001
+def col(self, compiler, connection, as_path=False):  # noqa: ARG001
     # If the column is part of a subquery and belongs to one of the parent
     # queries, it will be stored for reference using $let in a $lookup stage.
     # If the query is built with `alias_cols=False`, treat the column as
@@ -72,7 +72,11 @@ def col(self, compiler, connection):  # noqa: ARG001
     # Add the column's collection's alias for columns in joined collections.
     has_alias = self.alias and self.alias != compiler.collection_name
     prefix = f"{self.alias}." if has_alias else ""
-    return f"${prefix}{self.target.column}"
+    return f"{prefix}{self.target.column}" if as_path else f"${prefix}{self.target.column}"
+
+
+def col_as_path(self, compiler, connection):
+    return col(self, compiler, connection).lstrip("$")
 
 
 def col_pairs(self, compiler, connection):
@@ -94,8 +98,11 @@ def expression_wrapper(self, compiler, connection):
     return self.expression.as_mql(compiler, connection)
 
 
-def f(self, compiler, connection):  # noqa: ARG001
-    return f"${self.name}"
+def f(self, compiler, connection, as_path=False):
+    expression = self.resolve_expression(compiler.query)
+    if as_path:
+        return expression.as_mql(compiler, connection, as_path=as_path)
+    return expression.as_mql(compiler, connection)
 
 
 def negated_expression(self, compiler, connection):
