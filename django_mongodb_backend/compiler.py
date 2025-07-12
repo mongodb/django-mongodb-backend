@@ -128,6 +128,9 @@ class SQLCompiler(compiler.SQLCompiler):
         self._prepare_search_expressions_for_pipeline(
             self.having, annotation_group_idx, replacements
         )
+        self._prepare_search_expressions_for_pipeline(
+            self.get_where(), annotation_group_idx, replacements
+        )
         return replacements
 
     def _prepare_annotations_for_aggregation_pipeline(self, order_by):
@@ -206,9 +209,6 @@ class SQLCompiler(compiler.SQLCompiler):
             ids = self.get_project_fields(tuple(columns), force_expression=True)
         return ids, replacements
 
-    def _build_search_pipeline(self, search_queries):
-        pass
-
     def _build_aggregation_pipeline(self, ids, group):
         """Build the aggregation pipeline for grouping."""
         pipeline = []
@@ -241,7 +241,28 @@ class SQLCompiler(compiler.SQLCompiler):
         if not search_replacements:
             return []
         if len(search_replacements) > 1:
-            raise ValueError("Cannot perform more than one search operation.")
+            has_search = any(not isinstance(search, SearchVector) for search in search_replacements)
+            has_vector_search = any(
+                isinstance(search, SearchVector) for search in search_replacements
+            )
+            if has_search and has_vector_search:
+                raise ValueError(
+                    "Cannot combine a `$vectorSearch` with a `$search` operator. "
+                    "If you need to combine them, consider restructuring your query logic or "
+                    "running them as separate queries."
+                )
+            if not has_search:
+                raise ValueError(
+                    "Cannot combine two `$vectorSearch` operator. "
+                    "If you need to combine them, consider restructuring your query logic or "
+                    "running them as separate queries."
+                )
+            raise ValueError(
+                "Only one $search operation is allowed per query. "
+                f"Received {len(search_replacements)} search expressions. "
+                "To combine multiple search expressions, use either a CompoundExpression for "
+                "fine-grained control or CombinedSearchExpression for simple logical combinations."
+            )
         pipeline = []
         for search, result_col in search_replacements.items():
             score_function = (
@@ -252,7 +273,7 @@ class SQLCompiler(compiler.SQLCompiler):
                     search.as_mql(self, self.connection),
                     {
                         "$addFields": {
-                            result_col.as_mql(self, self.connection).removeprefix("$"): {
+                            result_col.as_mql(self, self.connection, as_path=True): {
                                 "$meta": score_function
                             }
                         }
@@ -291,6 +312,9 @@ class SQLCompiler(compiler.SQLCompiler):
             for target, expr in self.query.annotation_select.items()
         }
         self.order_by_objs = [expr.replace_expressions(all_replacements) for expr, _ in order_by]
+        if (where := self.get_where()) and search_replacements:
+            where = where.replace_expressions(search_replacements)
+            self.set_where(where)
         return extra_select, order_by, group_by
 
     def execute_sql(
@@ -691,6 +715,9 @@ class SQLCompiler(compiler.SQLCompiler):
 
     def get_where(self):
         return getattr(self, "where", self.query.where)
+
+    def set_where(self, value):
+        self.where = value
 
     def explain_query(self):
         # Validate format (none supported) and options.
