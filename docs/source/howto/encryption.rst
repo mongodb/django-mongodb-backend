@@ -19,33 +19,20 @@ For development and testing, users may use the helper functions in
 :mod:`~django_mongodb_backend.encryption` to generate the necessary
 settings for Queryable Encryption.
 
+Helper Functions and Settings
+=============================
+
+``KEY_VAULT_NAMESPACE``
+-----------------------
+
+``KMS_PROVIDERS``
+------------------
+
+``get_auto_encryption_opts``
+----------------------------
+
 Django settings
 ===============
 
-``AUTO_ENCRYPTION_OPTS``
-------------------------
-
-E.g.::
-
-    from django_mongodb_backend import encryption, parse_uri
-
-    KEY_VAULT_NAMESPACE = encryption.get_key_vault_namespace()
-    KMS_PROVIDERS = encryption.get_kms_providers()
-
-    AUTO_ENCRYPTION_OPTS = encryption.get_auto_encryption_opts(
-        key_vault_namespace=KEY_VAULT_NAMESPACE,
-        kms_providers=KMS_PROVIDERS,
-    )
-
-    DATABASE_URL = os.environ.get("MONGODB_URI", "mongodb://localhost:27017")
-    DATABASES = {
-        "default": parse_uri(
-            DATABASE_URL,
-            db_name="test",
-        ),
-        "encrypted": parse_uri(
-            DATABASE_URL,
-            options={"auto_encryption_opts": AUTO_ENCRYPTION_OPTS},
-            db_name="encrypted",
-        ),
-    }
+``KMS_PROVIDER``
+----------------
