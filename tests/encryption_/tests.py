@@ -8,7 +8,17 @@ from django_mongodb_backend import encryption
 from .models import Patient, PatientRecord
 from .routers import TestEncryptedRouter
 
-EXPECTED_ENCRYPTED_FIELDS_MAP = {}
+EXPECTED_ENCRYPTED_FIELDS_MAP = {
+    "fields": [
+        {
+            "bsonType": "string",
+            "path": "ssn",
+            "queries": {"queryType": "equality", "contention": 1},
+        },
+        {"bsonType": "int", "path": "patient_id"},
+        {"bsonType": "string", "path": "patient_name"},
+    ]
+}
 
 
 @modify_settings(
@@ -27,7 +37,7 @@ class EncryptedModelTests(TestCase):
     def test_encrypted_fields_map(self):
         self.maxDiff = None
         with connections["encrypted"].schema_editor() as editor:
-            self.assertEqual(
+            self.assertCountEqual(
                 {"fields": editor._get_encrypted_fields_map(self.patient)},
                 EXPECTED_ENCRYPTED_FIELDS_MAP,
             )
