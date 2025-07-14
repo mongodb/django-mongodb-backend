@@ -107,7 +107,7 @@ def get_auto_encryption_opts(
     *, key_vault_namespace, crypt_shared_lib_path=None, kms_providers=None, schema_map=None
 ):
     """
-    Returns an `AutoEncryptionOpts` instance for use with Queryable Encryption.
+    Return an `AutoEncryptionOpts` instance for use with Queryable Encryption.
     """
     # WARNING: Provide a schema map for production use. You can generate a schema map
     # with the management command `get_encrypted_fields_map` after adding
@@ -122,7 +122,7 @@ def get_auto_encryption_opts(
 
 def get_client_encryption(client, key_vault_namespace=None, kms_providers=None):
     """
-    Returns a `ClientEncryption` instance for use with Queryable Encryption.
+    Return a `ClientEncryption` instance for use with Queryable Encryption.
     """
 
     codec_options = CodecOptions(uuid_representation=STANDARD)
