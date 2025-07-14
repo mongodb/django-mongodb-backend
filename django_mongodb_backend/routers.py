@@ -1,6 +1,8 @@
 from django.apps import apps
+from django.conf import settings
+from django.db.utils import ConnectionRouter
 
-from django_mongodb_backend.models import EmbeddedModel
+from .encryption import KMS_CREDENTIALS
 
 
 class MongoRouter:
@@ -9,10 +11,32 @@ class MongoRouter:
         EmbeddedModels don't have their own collection and must be ignored by
         dumpdata.
         """
+
         if not model_name:
             return None
         try:
             model = apps.get_model(app_label, model_name)
         except LookupError:
             return None
+
+        # Delay import for `register_routers` patching.
+        from django_mongodb_backend.models import EmbeddedModel
+
         return False if issubclass(model, EmbeddedModel) else None
+
+
+def kms_credentials(self, provider):  # noqa: ARG001
+    return KMS_CREDENTIALS.get(provider, None)
+
+
+def kms_provider(self):  # noqa: ARG001
+    return getattr(settings, "KMS_PROVIDER", None)
+
+
+def register_routers():
+    """
+    Patch the ConnectionRouter with methods to get KMS credentials and provider
+    from the SchemaEditor.
+    """
+    ConnectionRouter.kms_credentials = kms_credentials
+    ConnectionRouter.kms_provider = kms_provider
