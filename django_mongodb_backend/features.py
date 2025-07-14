@@ -642,4 +642,5 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         # `supports_transactions` already checks if the server is a
         # replica set or sharded cluster.
         is_not_single = self.supports_transactions
+        # TODO: check if the server is Atlas
         return is_enterprise and is_not_single and self.is_mongodb_7_0
