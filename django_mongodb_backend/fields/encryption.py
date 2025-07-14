@@ -1,7 +1,7 @@
 from django.db import models
 
 
-class EncryptedCharField(models.CharField):
+class EncryptedFieldMixin(models.Field):
     encrypted = True
 
     def __init__(self, *args, queries=None, **kwargs):
@@ -21,3 +21,11 @@ class EncryptedCharField(models.CharField):
             )
 
         return name, path, args, kwargs
+
+
+class EncryptedCharField(EncryptedFieldMixin, models.CharField):
+    pass
+
+
+class EncryptedIntegerField(EncryptedFieldMixin, models.IntegerField):
+    pass

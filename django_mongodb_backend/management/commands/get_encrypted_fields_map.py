@@ -27,7 +27,7 @@ class Command(BaseCommand):
         self.stdout.write(json.dumps(schema_map, indent=2))
 
     def generate_encrypted_fields_schema_map(self, connection):
-        schema_map = {}
+        schema_map = {"fields": {}}
 
         for app_config in apps.get_app_configs():
             for model in router.get_migratable_models(
@@ -37,7 +37,7 @@ class Command(BaseCommand):
                     encrypted_fields = self.get_encrypted_fields(model, connection)
                     if encrypted_fields:
                         collection = model._meta.db_table
-                        schema_map[collection] = {"fields": encrypted_fields}
+                        schema_map["fields"][collection] = encrypted_fields
 
         return schema_map
 

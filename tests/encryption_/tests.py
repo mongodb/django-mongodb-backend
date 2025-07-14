@@ -5,8 +5,10 @@ from django.test import TestCase, modify_settings, override_settings
 
 from django_mongodb_backend import encryption
 
-from .models import Patient
+from .models import Patient, PatientRecord
 from .routers import TestEncryptedRouter
+
+EXPECTED_ENCRYPTED_FIELDS_MAP = {}
 
 
 @modify_settings(
@@ -18,22 +20,17 @@ class EncryptedModelTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.patient = Patient(ssn="123-45-6789")
+        cls.patient_record = PatientRecord(ssn="123-45-6789")
+        cls.patient = Patient(patient_id=1)
         cls.patient.save()
 
     def test_encrypted_fields_map(self):
-        """ """
-        expected = {
-            "fields": [
-                {
-                    "path": "ssn",
-                    "bsonType": "string",
-                    "queries": {"contention": 1, "queryType": "equality"},
-                }
-            ]
-        }
+        self.maxDiff = None
         with connections["encrypted"].schema_editor() as editor:
-            self.assertEqual(editor._get_encrypted_fields_map(self.patient), expected)
+            self.assertEqual(
+                {"fields": editor._get_encrypted_fields_map(self.patient)},
+                EXPECTED_ENCRYPTED_FIELDS_MAP,
+            )
 
     def test_auto_encryption_opts(self):
         management.call_command("get_encrypted_fields_map", "--database", "encrypted", verbosity=0)

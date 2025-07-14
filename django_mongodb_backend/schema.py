@@ -444,12 +444,14 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 raise ImproperlyConfigured(
                     "No KMS_PROVIDER found. Please configure KMS_PROVIDER in settings."
                 )
+            table = model._meta.db_table
+            fields = {"fields": self._get_encrypted_fields_map(model)}
             provider = router.kms_provider()
             credentials = router.kms_credentials(provider)
             ce.create_encrypted_collection(
                 db,
-                model._meta.db_table,
-                self._get_encrypted_fields_map(model),
+                table,
+                fields,
                 provider,
                 credentials,
             )
@@ -460,14 +462,12 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         connection = self.connection
         fields = model._meta.fields
 
-        return {
-            "fields": [
-                {
-                    "path": field.column,
-                    "bsonType": field.db_type(connection),
-                    **({"queries": field.queries} if getattr(field, "queries", None) else {}),
-                }
-                for field in fields
-                if getattr(field, "encrypted", False)
-            ]
-        }
+        return [
+            {
+                "bsonType": field.db_type(connection),
+                "path": field.column,
+                **({"queries": field.queries} if getattr(field, "queries", None) else {}),
+            }
+            for field in fields
+            if getattr(field, "encrypted", False)
+        ]
