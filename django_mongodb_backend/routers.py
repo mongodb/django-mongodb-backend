@@ -1,5 +1,4 @@
 from django.apps import apps
-from django.conf import settings
 from django.db.utils import ConnectionRouter
 
 from .encryption import KMS_CREDENTIALS
@@ -29,14 +28,10 @@ def kms_credentials(self, provider):  # noqa: ARG001
     return KMS_CREDENTIALS.get(provider, None)
 
 
-def kms_provider(self):  # noqa: ARG001
-    return getattr(settings, "KMS_PROVIDER", None)
-
-
 def register_routers():
     """
     Patch the ConnectionRouter with methods to get KMS credentials and provider
     from the SchemaEditor.
     """
     ConnectionRouter.kms_credentials = kms_credentials
-    ConnectionRouter.kms_provider = kms_provider
+    ConnectionRouter.kms_provider = ConnectionRouter._router_func("kms_provider")

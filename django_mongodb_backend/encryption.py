@@ -3,6 +3,7 @@ import os
 
 from bson.binary import STANDARD
 from bson.codec_options import CodecOptions
+from django.conf import settings
 from pymongo.encryption import AutoEncryptionOpts, ClientEncryption
 
 KEY_VAULT_COLLECTION_NAME = "__keyVault"
@@ -76,6 +77,9 @@ class EncryptedRouter:
         if model:
             return db == self._get_db_for_model(model)
         return db == "default"
+
+    def kms_provider(self, model):
+        return getattr(settings, "KMS_PROVIDER", None)
 
 
 class QueryType:
