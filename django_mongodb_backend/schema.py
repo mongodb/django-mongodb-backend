@@ -457,14 +457,14 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             db.create_collection(model._meta.db_table)
 
     def _get_encrypted_fields_map(self, model):
-        conn = self.connection
+        connection = self.connection
         fields = model._meta.fields
 
         return {
             "fields": [
                 {
                     "path": field.column,
-                    "bsonType": field.db_type(conn),
+                    "bsonType": field.db_type(connection),
                     **({"queries": field.queries} if getattr(field, "queries", None) else {}),
                 }
                 for field in fields
