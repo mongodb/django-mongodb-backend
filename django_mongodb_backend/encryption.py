@@ -81,6 +81,10 @@ class EncryptedRouter:
     def kms_provider(self, model):
         return getattr(settings, "KMS_PROVIDER", None)
 
+    def kms_credentials(self, model):
+        # return KMS_CREDENTIALS.get(provider, None)
+        return {}
+
 
 class QueryType:
     """

@@ -431,6 +431,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             client = self.connection.connection
 
             options = client._options.auto_encryption_opts
+
             key_vault_namespace = options._key_vault_namespace
             kms_providers = options._kms_providers
 
@@ -442,7 +443,11 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             table = model._meta.db_table
             fields = {"fields": self._get_encrypted_fields_map(model)}
             provider = router.kms_provider(model)
-            credentials = router.kms_credentials(provider)
+            # TODO: Remove this ternary condition when the `master_key`
+            # option is not inadvertently set to "default" somewhere
+            # which then causes the `master_key.copy` in libmongocrypt
+            # to fail.
+            credentials = router.kms_credentials(model) if provider != "local" else None
             ce.create_encrypted_collection(
                 db,
                 table,
