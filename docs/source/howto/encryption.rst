@@ -22,14 +22,11 @@ settings for Queryable Encryption.
 Helper Functions and Settings
 =============================
 
-``KEY_VAULT_NAMESPACE``
------------------------
+``encryption.EncryptedRouter``
+------------------------------
 
-``KMS_PROVIDERS``
-------------------
-
-``get_auto_encryption_opts``
-----------------------------
+``encryption.get_auto_encryption_opts``
+---------------------------------------
 
 Django settings
 ===============
