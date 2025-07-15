@@ -25,14 +25,8 @@ Helper Functions and Settings
 ``encryption.EncryptedRouter``
 ------------------------------
 
-``encryption.get_auto_encryption_opts``
----------------------------------------
-
 Django settings
 ===============
-
-``KMS_PROVIDER``
-----------------
 
 DATABASES["encrypted"]["KMS_CREDENTIALS"]
 -----------------------------------------

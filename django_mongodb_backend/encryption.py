@@ -3,8 +3,7 @@ import os
 
 from bson.binary import STANDARD
 from bson.codec_options import CodecOptions
-from django.conf import settings
-from pymongo.encryption import AutoEncryptionOpts, ClientEncryption
+from pymongo.encryption import ClientEncryption
 
 KEY_VAULT_COLLECTION_NAME = "__keyVault"
 KEY_VAULT_DATABASE_NAME = "keyvault"
@@ -79,7 +78,7 @@ class EncryptedRouter:
         return db == "default"
 
     def kms_provider(self, model):
-        return getattr(settings, "KMS_PROVIDER", None)
+        return "local"
 
     def kms_credentials(self, model):
         # return KMS_CREDENTIALS.get(provider, None)
@@ -109,23 +108,6 @@ class QueryType:
         if trimFactor is not None:
             query["trimFactor"] = trimFactor
         return query
-
-
-def get_auto_encryption_opts(
-    *, key_vault_namespace, crypt_shared_lib_path=None, kms_providers=None, schema_map=None
-):
-    """
-    Return an `AutoEncryptionOpts` instance for use with Queryable Encryption.
-    """
-    # WARNING: Provide a schema map for production use. You can generate a schema map
-    # with the management command `get_encrypted_fields_map` after adding
-    # django_mongodb_backend to INSTALLED_APPS.
-    return AutoEncryptionOpts(
-        key_vault_namespace=key_vault_namespace,
-        kms_providers=kms_providers,
-        crypt_shared_lib_path=crypt_shared_lib_path,
-        schema_map=schema_map,
-    )
 
 
 def get_client_encryption(client, key_vault_namespace=None, kms_providers=None):
