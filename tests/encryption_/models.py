@@ -40,3 +40,7 @@ class Patient(EncryptedModel):
 class Post(EncryptedModel):
     title = EncryptedCharField(max_length=100)
     body = models.TextField()
+
+
+class IntegerModel(EncryptedModel):
+    value = EncryptedIntegerField()
