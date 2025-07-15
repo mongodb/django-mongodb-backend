@@ -56,6 +56,9 @@ class EncryptedModelTests(TestCase):
 
     def test_equality_query(self):
         self.assertEqual(PatientRecord.objects.get(ssn="123-45-6789").ssn, "123-45-6789")
+        with self.assertRaises(PatientRecord.DoesNotExist):
+            PatientRecord.objects.get(ssn="000-00-0000")
 
     def test_range_query(self):
         self.assertTrue(Patient.objects.filter(patient_age__gte=40).exists())
+        self.assertFalse(Patient.objects.filter(patient_age__gte=200).exists())
