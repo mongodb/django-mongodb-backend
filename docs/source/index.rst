@@ -61,3 +61,17 @@ Miscellaneous
 
 - :doc:`releases/index`
 - :doc:`internals`
+
+.. Keep this toctree in sync with contents.rst.
+
+.. toctree::
+    :hidden:
+    :maxdepth: 2
+
+    intro/index
+    topics/index
+    ref/index
+    howto/index
+    faq
+    releases/index
+    internals
