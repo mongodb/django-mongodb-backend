@@ -304,11 +304,10 @@ These indexes use 0-based indexing.
 
 .. class:: EncryptedCharField
 
-    Field that encrypts its value before saving to the database.
+``EncryptedIntegerField``
+-------------------------
 
-.. admonition:: Migrations support is limited
-
-    :djadmin:`makemigrations` does not detect changes to encrypted fields.
+.. class:: EncryptedIntegerField
 
 ``ObjectIdAutoField``
 ---------------------
