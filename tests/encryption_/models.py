@@ -1,3 +1,5 @@
+from django.db import models
+
 from django_mongodb_backend.encryption import QueryType as qt
 from django_mongodb_backend.fields import EncryptedCharField, EncryptedIntegerField
 from django_mongodb_backend.models import EncryptedModel
@@ -32,3 +34,9 @@ class Patient(EncryptedModel):
 
     # TODO: Embed PatientRecord model
     # patient_record =
+
+
+# Via django/tests/model_fields/models.py
+class Post(EncryptedModel):
+    title = EncryptedCharField(max_length=100)
+    body = models.TextField()
