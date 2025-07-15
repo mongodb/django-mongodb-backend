@@ -34,7 +34,7 @@ class EncryptedModelTests(TestCase):
         cls.patient = Patient(patient_id=1)
         cls.patient.save()
 
-    def test_encrypted_fields_map(self):
+    def test_get_encrypted_fields_map_method(self):
         self.maxDiff = None
         with connections["encrypted"].schema_editor() as editor:
             self.assertCountEqual(
@@ -42,7 +42,7 @@ class EncryptedModelTests(TestCase):
                 EXPECTED_ENCRYPTED_FIELDS_MAP,
             )
 
-    def test_auto_encryption_opts(self):
+    def test_get_encrypted_fields_map_command(self):
         out = StringIO()
         call_command("get_encrypted_fields_map", "--database", "encrypted", verbosity=0, stdout=out)
         self.assertIn(json.dumps(EXPECTED_ENCRYPTED_FIELDS_MAP, indent=2), out.getvalue())
