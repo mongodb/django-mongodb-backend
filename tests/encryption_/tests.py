@@ -1,4 +1,6 @@
-from django.core import management
+from io import StringIO
+
+from django.core.management import call_command
 from django.db import connections
 from django.test import TestCase, modify_settings, override_settings
 
@@ -40,4 +42,6 @@ class EncryptedModelTests(TestCase):
             )
 
     def test_auto_encryption_opts(self):
-        management.call_command("get_encrypted_fields_map", "--database", "encrypted", verbosity=0)
+        out = StringIO()
+        call_command("get_encrypted_fields_map", "--database", "encrypted", verbosity=0, stdout=out)
+        self.assertIn("fields", out.getvalue())
