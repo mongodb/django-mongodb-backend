@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import router
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
@@ -447,7 +448,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             # option is not inadvertently set to "default" somewhere
             # which then causes the `master_key.copy` in libmongocrypt
             # to fail.
-            credentials = router.kms_credentials(model) if provider != "local" else None
+            credentials = settings.DATABASES[db].KMS_CREDENTIALS if provider != "local" else None
             ce.create_encrypted_collection(
                 db,
                 table,

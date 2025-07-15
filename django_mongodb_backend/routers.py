@@ -27,5 +27,4 @@ def register_routers():
     Patch the ConnectionRouter with methods to get KMS credentials and provider
     from the SchemaEditor.
     """
-    ConnectionRouter.kms_credentials = ConnectionRouter._router_func("kms_credentials")
     ConnectionRouter.kms_provider = ConnectionRouter._router_func("kms_provider")

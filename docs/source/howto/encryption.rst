@@ -33,3 +33,6 @@ Django settings
 
 ``KMS_PROVIDER``
 ----------------
+
+DATABASES["encrypted"]["KMS_CREDENTIALS"]
+-----------------------------------------
