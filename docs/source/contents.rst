@@ -4,10 +4,7 @@
 Table of contents
 =================
 
-.. toctree::
-    :hidden:
-
-    index
+.. Keep this toctree in sync with the one at the bottom of index.rst.
 
 .. toctree::
     :maxdepth: 2
