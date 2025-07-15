@@ -10,17 +10,12 @@ from .routers import TestEncryptedRouter
 
 EXPECTED_ENCRYPTED_FIELDS_MAP = {
     "encryption_.encryption__patientrecord": {
-        "fields": [
-            {
-                "bsonType": "string",
-                "path": "ssn",
-                "queries": {"queryType": "equality", "contention": 1},
-            }
-        ]
+        "fields": [{"bsonType": "string", "path": "ssn", "queries": {"queryType": "equality"}}]
     },
     "encryption_.encryption__patient": {
         "fields": [
             {"bsonType": "int", "path": "patient_id"},
+            {"bsonType": "int", "path": "patient_age", "queries": {"queryType": "range"}},
             {"bsonType": "string", "path": "patient_name"},
         ]
     },
@@ -39,7 +34,8 @@ class EncryptedModelTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.patient_record = PatientRecord(ssn="123-45-6789")
-        cls.patient = Patient(patient_id=1)
+        cls.patient_record.save()
+        cls.patient = Patient(patient_id=1, patient_age=47)
         cls.patient.save()
 
     def test_get_encrypted_fields_map_method(self):
@@ -57,3 +53,9 @@ class EncryptedModelTests(TestCase):
         out = StringIO()
         call_command("get_encrypted_fields_map", "--database", "encrypted", verbosity=0, stdout=out)
         self.assertIn(json.dumps(EXPECTED_ENCRYPTED_FIELDS_MAP, indent=2), out.getvalue())
+
+    def test_equality_query(self):
+        self.assertEqual(PatientRecord.objects.get(ssn="123-45-6789").ssn, "123-45-6789")
+
+    def test_range_query(self):
+        self.assertTrue(Patient.objects.filter(patient_age__gte=40).exists())
