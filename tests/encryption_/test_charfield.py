@@ -1,3 +1,5 @@
+# Copied from django/tests/model_fields/models.py and adapted to test EncryptedCharField
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.test import SimpleTestCase, TestCase

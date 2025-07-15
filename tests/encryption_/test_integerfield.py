@@ -1,3 +1,5 @@
+# Copied from django/tests/model_fields/models.py and adapted to test EncryptedIntegerField
+
 from unittest import SkipTest
 
 from django.core import validators
