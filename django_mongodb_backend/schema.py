@@ -2,9 +2,9 @@ from django.conf import settings
 from django.db import router
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
+from pymongo.encryption import ClientEncryption, CodecOptions
 from pymongo.operations import SearchIndexModel
 
-from .encryption import get_client_encryption
 from .fields import EmbeddedModelField
 from .indexes import SearchIndex
 from .query import wrap_database_errors
@@ -435,12 +435,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
 
             key_vault_namespace = options._key_vault_namespace
             kms_providers = options._kms_providers
-
-            ce = get_client_encryption(
-                client,
-                key_vault_namespace=key_vault_namespace,
-                kms_providers=kms_providers,
-            )
+            codec_options = CodecOptions()
+            ce = ClientEncryption(kms_providers, key_vault_namespace, client, codec_options)
             table = model._meta.db_table
             fields = {"fields": self._get_encrypted_fields_map(model)}
             provider = router.kms_provider(model)

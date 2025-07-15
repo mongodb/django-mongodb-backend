@@ -1,10 +1,6 @@
 # Queryable Encryption helpers
 import os
 
-from bson.binary import STANDARD
-from bson.codec_options import CodecOptions
-from pymongo.encryption import ClientEncryption
-
 KEY_VAULT_COLLECTION_NAME = "__keyVault"
 KEY_VAULT_DATABASE_NAME = "keyvault"
 KEY_VAULT_NAMESPACE = f"{KEY_VAULT_DATABASE_NAME}.{KEY_VAULT_COLLECTION_NAME}"
@@ -108,12 +104,3 @@ class QueryType:
         if trimFactor is not None:
             query["trimFactor"] = trimFactor
         return query
-
-
-def get_client_encryption(client, key_vault_namespace=None, kms_providers=None):
-    """
-    Return a `ClientEncryption` instance for use with Queryable Encryption.
-    """
-
-    codec_options = CodecOptions(uuid_representation=STANDARD)
-    return ClientEncryption(kms_providers, key_vault_namespace, client, codec_options)
