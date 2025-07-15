@@ -22,11 +22,26 @@ settings for Queryable Encryption.
 Helper Functions and Settings
 =============================
 
-``encryption.EncryptedRouter``
-------------------------------
+``KEY_VAULT_COLLECTION_NAME``
+-----------------------------
+
+``KEY_VAULT_DATABASE_NAME``
+---------------------------
+
+``KEY_VAULT_NAMESPACE``
+-----------------------
+
+``KMS_CREDENTIALS``
+-------------------
+
+``KMS_PROVIDERS``
+-----------------
+
+``QueryType``
+-------------
 
 Django settings
 ===============
 
-DATABASES["encrypted"]["KMS_CREDENTIALS"]
------------------------------------------
+``DATABASES["encrypted"]["KMS_CREDENTIALS"]``
+---------------------------------------------
