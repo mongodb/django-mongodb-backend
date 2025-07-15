@@ -589,12 +589,16 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     }
 
     @cached_property
+    def mongodb_version(self):
+        return self.connection.get_database_version()  # e.g., (6, 3, 0)
+
+    @cached_property
     def is_mongodb_6_3(self):
-        return self.connection.get_database_version() >= (6, 3)
+        return self.mongodb_version >= (6, 3)
 
     @cached_property
     def is_mongodb_7_0(self):
-        return self.connection.get_database_version() >= (7, 0)
+        return self.mongodb_version >= (7, 0)
 
     @cached_property
     def supports_atlas_search(self):
