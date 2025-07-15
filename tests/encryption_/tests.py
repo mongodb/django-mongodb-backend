@@ -1,3 +1,4 @@
+import json
 from io import StringIO
 
 from django.core.management import call_command
@@ -44,4 +45,4 @@ class EncryptedModelTests(TestCase):
     def test_auto_encryption_opts(self):
         out = StringIO()
         call_command("get_encrypted_fields_map", "--database", "encrypted", verbosity=0, stdout=out)
-        self.assertIn("fields", out.getvalue())
+        self.assertIn(json.dumps(EXPECTED_ENCRYPTED_FIELDS_MAP, indent=2), out.getvalue())
