@@ -17,6 +17,8 @@ EXPECTED_ENCRYPTED_FIELDS_MAP = {
         },
         {"bsonType": "int", "path": "patient_id"},
         {"bsonType": "string", "path": "patient_name"},
+        {"bsonType": "string", "path": "title"},
+        {"bsonType": "int", "path": "value"},
     ]
 }
 
