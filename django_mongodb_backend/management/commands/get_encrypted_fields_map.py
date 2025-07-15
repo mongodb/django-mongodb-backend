@@ -7,7 +7,7 @@ from django.db import DEFAULT_DB_ALIAS, connections, router
 
 class Command(BaseCommand):
     help = "Generate a `schema_map` of encrypted fields for all encrypted"
-    " models in the database for use with `get_autoencryption_opts` in"
+    " models in the database for use with `AutoEncryptionOpts` in"
     " production environments."
 
     def add_arguments(self, parser):
