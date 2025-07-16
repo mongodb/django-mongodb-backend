@@ -2,7 +2,7 @@ import itertools
 import pprint
 from collections import defaultdict
 
-from bson import SON
+from bson import json_util, SON
 from django.core.exceptions import EmptyResultSet, FieldError, FullResultSet
 from django.db import IntegrityError, NotSupportedError
 from django.db.models import Count
@@ -652,12 +652,8 @@ class SQLCompiler(compiler.SQLCompiler):
             {"aggregate": self.collection_name, "pipeline": pipeline, "cursor": {}},
             **kwargs,
         )
-        # Generate the output: a list of lines that Django joins with newlines.
-        result = []
-        for key, value in explain.items():
-            formatted_value = pprint.pformat(value, indent=4)
-            result.append(f"{key}: {formatted_value}")
-        return result
+        # explain() expects a list and joins on a newline. Concatenate no lines
+        return [json_util.dumps(explain)]
 
 
 class SQLInsertCompiler(SQLCompiler):
