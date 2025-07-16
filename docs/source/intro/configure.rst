@@ -159,6 +159,9 @@ This constructs a :setting:`DATABASES` setting equivalent to the first example.
 Configuring the ``DATABASE_ROUTERS`` setting
 ============================================
 
+Embedded models
+---------------
+
 If you intend to use :doc:`embedded models </topics/embedded-models>`, you must
 configure the :setting:`DATABASE_ROUTERS` setting so that a collection for
 these models isn't created and so that embedded models won't be treated as
@@ -168,6 +171,19 @@ normal models by :djadmin:`dumpdata`::
 
 (If you've used the :djadmin:`startproject` template, this line is already
 present.)
+
+Queryable Encryption
+--------------------
+
+If you intend to use :doc:`encrypted models </topics/encrypted-models>`, you may
+optionally configure the :setting:`DATABASE_ROUTERS` setting so that a collection
+for encrypted models is created in an encrypted database.
+
+Router configuration is unique to a project and beyond the scope of Django database
+backends, but an example is included that routes encrypted models to a database named
+"encrypted"::
+
+    DATABASE_ROUTERS = ["django_mongodb_backend.encryption.EncryptedRouter"]
 
 Congratulations, your project is ready to go!
 
