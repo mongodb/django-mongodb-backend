@@ -23,8 +23,8 @@ class EmbeddedModelArrayField(ArrayField):
         super().contribute_to_class(cls, name, private_only=private_only, **kwargs)
 
         if not cls._meta.abstract:
-            # If the embedded_model argument is a string, resolve it to the
-            # actual model class.
+            # If embedded_models contains any strings, replace them with the actual
+            # model classes.
             def _resolve_lookup(_, resolved_model):
                 self.embedded_model = resolved_model
 
