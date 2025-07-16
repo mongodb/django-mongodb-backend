@@ -1,8 +1,7 @@
 import itertools
-import pprint
 from collections import defaultdict
 
-from bson import json_util, SON
+from bson import SON, json_util
 from django.core.exceptions import EmptyResultSet, FieldError, FullResultSet
 from django.db import IntegrityError, NotSupportedError
 from django.db.models import Count
