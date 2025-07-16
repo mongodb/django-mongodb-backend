@@ -33,13 +33,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'mongodb-forks/django'
-          ref: 'mongodb-5.2.x'
+          ref: 'mongogis'
           path: 'django_repo'
           persist-credentials: false
       - name: Install system packages for Django's Python test dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install libmemcached-dev
+          sudo apt-get install gdal-bin libmemcached-dev
       - name: Install Django and its Python test dependencies
         run: |
           cd django_repo/tests/
