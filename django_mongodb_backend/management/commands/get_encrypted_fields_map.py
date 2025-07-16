@@ -31,9 +31,6 @@ class Command(BaseCommand):
                 app_config, connection.alias, include_auto_created=False
             ):
                 if getattr(model, "encrypted", False):
-                    app_label = model._meta.app_label
-                    collection_name = model._meta.db_table
-                    namespace = f"{app_label}.{collection_name}"
                     fields = connection.schema_editor()._get_encrypted_fields_map(model)
-                    schema_map[namespace] = fields
+                    schema_map[model._meta.db_table] = fields
         return schema_map

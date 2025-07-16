@@ -10,24 +10,22 @@ from .models import Patient, PatientRecord
 from .routers import TestEncryptedRouter
 
 EXPECTED_ENCRYPTED_FIELDS_MAP = {
-    "encryption_.encryption__billing": {
+    "billing": {
         "fields": [
             {"bsonType": "string", "path": "cc_type", "queries": {"queryType": "equality"}},
             {"bsonType": "int", "path": "cc_number", "queries": {"queryType": "equality"}},
         ]
     },
-    "encryption_.encryption__patientrecord": {
+    "patient_record": {
         "fields": [{"bsonType": "string", "path": "ssn", "queries": {"queryType": "equality"}}]
     },
-    "encryption_.encryption__patient": {
+    "patient": {
         "fields": [
             {"bsonType": "int", "path": "patient_id"},
             {"bsonType": "int", "path": "patient_age", "queries": {"queryType": "range"}},
             {"bsonType": "string", "path": "patient_name"},
         ]
     },
-    "encryption_.encryption__post": {"fields": [{"bsonType": "string", "path": "title"}]},
-    "encryption_.encryption__integermodel": {"fields": [{"bsonType": "int", "path": "value"}]},
 }
 
 
@@ -48,12 +46,10 @@ class EncryptedModelTests(TestCase):
     def test_get_encrypted_fields_map_method(self):
         self.maxDiff = None
         with connections["encrypted"].schema_editor() as editor:
-            app_name = self.patient._meta.app_label
             collection_name = self.patient._meta.db_table
-            namespace = f"{app_name}.{collection_name}"
             self.assertCountEqual(
                 {"fields": editor._get_encrypted_fields_map(self.patient)},
-                EXPECTED_ENCRYPTED_FIELDS_MAP[namespace],
+                EXPECTED_ENCRYPTED_FIELDS_MAP[collection_name],
             )
 
     def test_get_encrypted_fields_map_command(self):

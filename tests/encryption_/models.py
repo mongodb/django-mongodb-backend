@@ -1,5 +1,3 @@
-from django.db import models
-
 from django_mongodb_backend.encryption import QueryType
 from django_mongodb_backend.fields import EncryptedCharField, EncryptedIntegerField
 from django_mongodb_backend.models import EncryptedModel
@@ -7,7 +5,7 @@ from django_mongodb_backend.models import EncryptedModel
 
 class Billing(EncryptedModel):
     class Meta:
-        required_db_features = {"supports_queryable_encryption"}
+        db_table = "billing"
 
     cc_type = EncryptedCharField("cc_type", max_length=20, queries=QueryType.equality())
     cc_number = EncryptedIntegerField("cc_number", queries=QueryType.equality())
@@ -15,7 +13,7 @@ class Billing(EncryptedModel):
 
 class PatientRecord(EncryptedModel):
     class Meta:
-        required_db_features = {"supports_queryable_encryption"}
+        db_table = "patient_record"
 
     ssn = EncryptedCharField("ssn", max_length=11, queries=QueryType.equality())
 
@@ -25,10 +23,7 @@ class PatientRecord(EncryptedModel):
 
 class Patient(EncryptedModel):
     class Meta:
-        required_db_features = {"supports_queryable_encryption"}
-
-    def __str__(self):
-        return self.name
+        db_table = "patient"
 
     patient_id = EncryptedIntegerField("patient_id")
     patient_age = EncryptedIntegerField("patient_age", queries=QueryType.range())
@@ -36,13 +31,3 @@ class Patient(EncryptedModel):
 
     # TODO: Embed PatientRecord model
     # patient_record =
-
-
-# Via django/tests/model_fields/models.py
-class Post(EncryptedModel):
-    title = EncryptedCharField(max_length=100)
-    body = models.TextField()
-
-
-class IntegerModel(EncryptedModel):
-    value = EncryptedIntegerField()

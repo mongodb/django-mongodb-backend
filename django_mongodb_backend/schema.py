@@ -447,7 +447,6 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             # E.g. encrypted_fields_map = []
             encrypted_fields_map = self._get_encrypted_fields_map(model)
             provider = router.kms_provider(model)
-            table = model._meta.db_table
 
             # TODO: Remove ternary condition when `master_key` option is not
             # inadvertently set to "default" somewhere, which then causes the
@@ -456,7 +455,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
 
             ce.create_encrypted_collection(
                 db,
-                table,
+                model._meta.db_table,
                 encrypted_fields_map,
                 provider,
                 credentials,
