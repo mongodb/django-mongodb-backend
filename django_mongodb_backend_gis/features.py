@@ -29,6 +29,12 @@ class DatabaseFeatures(BaseSpatialFeatures, MongoFeatures):
                 "gis_tests.geoapp.tests.GeoModelTest.test_gis_query_as_string",
                 # No lookups are supported (yet?)
                 "gis_tests.geoapp.tests.GeoLookupTest.test_gis_lookups_with_complex_expressions",
+                # LinearRing requires at least 4 points, got 1.
+                "gis_tests.geoapp.tests.GeoLookupTest.test_null_geometries",
+                "gis_tests.geoapp.tests.GeoModelTest.test_geometryfield",
+                # Trying to remove spatial index fails:
+                # "index not found with name [gis_neighborhood_geom_id]"
+                "gis_tests.gis_migrations.test_operations.OperationTests.test_alter_field_remove_spatial_index",
             }
         )
         return expected_failures
@@ -43,6 +49,21 @@ class DatabaseFeatures(BaseSpatialFeatures, MongoFeatures):
                 },
                 "Raw SQL not supported": {
                     "gis_tests.geoapp.tests.GeoModelTest.test_raw_sql_query",
+                },
+                "MongoDB doesn't support the SRID(s) used in this test.": {
+                    # Error messages:
+                    # - Can't extract geo keys
+                    # - Longitude/latitude is out of bounds
+                    "gis_tests.geoapp.test_expressions.GeoExpressionsTests.test_update_from_other_field",
+                    "gis_tests.layermap.tests.LayerMapTest.test_encoded_name",
+                    # SouthTexasCity fixture objects use SRID 2278 which is ignored
+                    # by the patched version of loaddata in the Django fork.
+                    "gis_tests.distapp.tests.DistanceTest.test_init",
+                },
+                "ImproperlyConfigured isn't raised when using RasterField": {
+                    # Normally RasterField.db_type() raises an error, but MongoDB
+                    # migrations don't need to call it, so the check doesn't happen.
+                    "gis_tests.gis_migrations.test_operations.NoRasterSupportTests",
                 },
             },
         )

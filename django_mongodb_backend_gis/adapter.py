@@ -17,5 +17,6 @@ class Adapter(collections.UserDict):
     def get_data(self, obj):
         return {
             "type": obj.__class__.__name__,
-            "coordinates": obj.coords[0] if obj.__class__.__name__ == "Polygon" else obj.coords,
+            "coordinates": obj.coords,
+            # obj.coords[0] if obj.__class__.__name__ == "Polygon" else obj.coords,
         }
