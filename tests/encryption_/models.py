@@ -9,7 +9,8 @@ class Billing(EncryptedModel):
     class Meta:
         required_db_features = {"supports_queryable_encryption"}
 
-    # TODO: Add fields for billing information
+    cc_type = EncryptedCharField("cc_type", max_length=20, queries=QueryType.equality())
+    cc_number = EncryptedIntegerField("cc_number", queries=QueryType.equality())
 
 
 class PatientRecord(EncryptedModel):

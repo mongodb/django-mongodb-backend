@@ -1,4 +1,5 @@
 import json
+import sys
 from io import StringIO
 
 from django.core.management import call_command
@@ -9,7 +10,12 @@ from .models import Patient, PatientRecord
 from .routers import TestEncryptedRouter
 
 EXPECTED_ENCRYPTED_FIELDS_MAP = {
-    "encryption_.encryption__billing": {"fields": []},
+    "encryption_.encryption__billing": {
+        "fields": [
+            {"bsonType": "string", "path": "cc_type", "queries": {"queryType": "equality"}},
+            {"bsonType": "int", "path": "cc_number", "queries": {"queryType": "equality"}},
+        ]
+    },
     "encryption_.encryption__patientrecord": {
         "fields": [{"bsonType": "string", "path": "ssn", "queries": {"queryType": "equality"}}]
     },
@@ -51,7 +57,14 @@ class EncryptedModelTests(TestCase):
             )
 
     def test_get_encrypted_fields_map_command(self):
-        out = StringIO()
+        class Tee(StringIO):
+            """Print the output of management commands to stdout."""
+
+            def write(self, txt):
+                sys.stdout.write(txt)
+                super().write(txt)
+
+        out = Tee()
         call_command("get_encrypted_fields_map", "--database", "encrypted", verbosity=0, stdout=out)
         self.assertIn(json.dumps(EXPECTED_ENCRYPTED_FIELDS_MAP, indent=2), out.getvalue())
 
