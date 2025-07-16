@@ -1,4 +1,10 @@
-# Queryable Encryption helpers
+# Queryable Encryption helper functions and constants for MongoDB
+#
+# These helper functions and constants are optional and Queryable
+# Encryption can be used in Django without them. They are provided
+# to make it easier configure Queryable Encryption in Django.
+
+import base64
 import os
 
 KEY_VAULT_COLLECTION_NAME = "__keyVault"
@@ -32,14 +38,13 @@ KMS_PROVIDERS = {
         "clientId": os.getenv("AZURE_CLIENT_ID", "not a client ID"),
         "clientSecret": os.getenv("AZURE_CLIENT_SECRET", "not a client secret"),
     },
-    # TODO: Provide a valid test key
-    #
-    # "Failed to parse KMS provider gcp: unable to parse base64 from UTF-8 field privateKey"
-    #
-    # "gcp": {
-    #     "email": os.getenv("GCP_EMAIL", "not an email"),
-    #     "privateKey": os.getenv("GCP_PRIVATE_KEY", "not a private key"),
-    # },
+    "gcp": {
+        "email": os.getenv("GCP_EMAIL", "not an email"),
+        "privateKey": os.getenv(
+            "GCP_PRIVATE_KEY",
+            base64.b64encode(b"not a private key").decode("ascii"),
+        ),
+    },
     "kmip": {
         "endpoint": os.getenv("KMIP_KMS_ENDPOINT", "not a valid endpoint"),
     },
@@ -57,28 +62,22 @@ KMS_PROVIDERS = {
 
 
 class EncryptedRouter:
-    def _get_db_for_model(self, model):
+    """A sample database router for Django that routes encrypted
+    models to an encrypted database with a local KMS provider.
+    """
+
+    def allow_migrate(self, db, app_label, model_name=None, model=None, **hints):
+        if model:
+            return db == getattr(model, "encrypted", None)
+        return db == "default"
+
+    def db_for_read(self, model, **hints):
         if getattr(model, "encrypted", False):
             return "encrypted"
         return "default"
 
-    def db_for_read(self, model, **hints):
-        return self._get_db_for_model(model)
-
-    def db_for_write(self, model, **hints):
-        return self._get_db_for_model(model)
-
-    def allow_migrate(self, db, app_label, model_name=None, model=None, **hints):
-        if model:
-            return db == self._get_db_for_model(model)
-        return db == "default"
-
     def kms_provider(self, model):
         return "local"
-
-    def kms_credentials(self, model):
-        # return KMS_CREDENTIALS.get(provider, None)
-        return {}
 
 
 class QueryType:
@@ -95,12 +94,17 @@ class QueryType:
         return query
 
     @classmethod
-    def range(cls, *, sparsity=None, precision=None, trimFactor=None):
+    def range(
+        cls, *, contention=None, max=None, min=None, precision=None, sparsity=None, trimFactor=None
+    ):
         query = {"queryType": "range"}
-        if sparsity is not None:
-            query["sparsity"] = sparsity
-        if precision is not None:
-            query["precision"] = precision
-        if trimFactor is not None:
-            query["trimFactor"] = trimFactor
+        options = {
+            "contention": contention,
+            "max": max,
+            "min": min,
+            "precision": precision,
+            "sparsity": sparsity,
+            "trimFactor": trimFactor,
+        }
+        query.update({k: v for k, v in options.items() if v is not None})
         return query
