@@ -9,6 +9,7 @@ from .models import Patient, PatientRecord
 from .routers import TestEncryptedRouter
 
 EXPECTED_ENCRYPTED_FIELDS_MAP = {
+    "encryption_.encryption__billing": {"fields": []},
     "encryption_.encryption__patientrecord": {
         "fields": [{"bsonType": "string", "path": "ssn", "queries": {"queryType": "equality"}}]
     },

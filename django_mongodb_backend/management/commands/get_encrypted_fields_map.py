@@ -34,7 +34,6 @@ class Command(BaseCommand):
                     app_label = model._meta.app_label
                     collection_name = model._meta.db_table
                     namespace = f"{app_label}.{collection_name}"
-                    fields = list(connection.schema_editor()._get_encrypted_fields_map(model))
-                    if fields:
-                        schema_map[namespace] = {"fields": fields}
+                    fields = connection.schema_editor()._get_encrypted_fields_map(model)
+                    schema_map[namespace] = fields
         return schema_map

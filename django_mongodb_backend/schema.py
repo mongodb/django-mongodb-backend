@@ -427,28 +427,37 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         encrypted fields map else create a normal collection.
         """
 
+    def _create_collection(self, model):
+        """
+        If the model is encrypted, create an encrypted collection with the
+        encrypted fields map; else, create a normal collection.
+        """
         db = self.get_database()
         if getattr(model, "encrypted", False):
             client = self.connection.connection
-
             options = client._options.auto_encryption_opts
-
             key_vault_namespace = options._key_vault_namespace
             kms_providers = options._kms_providers
             codec_options = CodecOptions()
+
             ce = ClientEncryption(kms_providers, key_vault_namespace, client, codec_options)
-            table = model._meta.db_table
-            fields = {"fields": self._get_encrypted_fields_map(model)}
+
+            # TODO: Validate schema! `create_encrypted_collection` appears to
+            # succeed no matter what you give it, as long as it's valid JSON.
+            # E.g. encrypted_fields_map = []
+            encrypted_fields_map = self._get_encrypted_fields_map(model)
             provider = router.kms_provider(model)
-            # TODO: Remove this ternary condition when the `master_key`
-            # option is not inadvertently set to "default" somewhere
-            # which then causes the `master_key.copy` in libmongocrypt
-            # to fail.
+            table = model._meta.db_table
+
+            # TODO: Remove ternary condition when `master_key` option is not
+            # inadvertently set to "default" somewhere, which then causes the
+            # `master_key.copy` in libmongocrypt to fail.
             credentials = settings.DATABASES[db].KMS_CREDENTIALS if provider != "local" else None
+
             ce.create_encrypted_collection(
                 db,
                 table,
-                fields,
+                encrypted_fields_map,
                 provider,
                 credentials,
             )
@@ -459,12 +468,14 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         connection = self.connection
         fields = model._meta.fields
 
-        return [
-            {
-                "bsonType": field.db_type(connection),
-                "path": field.column,
-                **({"queries": field.queries} if getattr(field, "queries", None) else {}),
-            }
-            for field in fields
-            if getattr(field, "encrypted", False)
-        ]
+        return {
+            "fields": [
+                {
+                    "bsonType": field.db_type(connection),
+                    "path": field.column,
+                    **({"queries": field.queries} if getattr(field, "queries", None) else {}),
+                }
+                for field in fields
+                if getattr(field, "encrypted", False)
+            ]
+        }
