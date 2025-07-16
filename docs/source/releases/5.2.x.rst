@@ -22,6 +22,8 @@ Bug fixes
 
 - Fixed ``RecursionError`` when using ``Trunc`` database functions on non-MongoDB
   databases.
+- :meth:`QuerySet.explain() <django.db.models.query.QuerySet.explain>` now
+  :ref:`returns a string that can be parsed as JSON <queryset-explain>`.
 
 5.2.0 beta 1
 ============
