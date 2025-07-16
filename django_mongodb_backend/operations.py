@@ -89,7 +89,7 @@ class DatabaseOperations(BaseDatabaseOperations):
     def get_db_converters(self, expression):
         converters = super().get_db_converters(expression)
         internal_type = expression.output_field.get_internal_type()
-        if internal_type == "ArrayField":
+        if internal_type.endswith("ArrayField"):
             converters.extend(
                 [
                     self._get_arrayfield_converter(converter)
@@ -111,15 +111,6 @@ class DatabaseOperations(BaseDatabaseOperations):
             converters.append(self.convert_decimalfield_value)
         elif internal_type == "EmbeddedModelField":
             converters.append(self.convert_embeddedmodelfield_value)
-        elif internal_type == "EmbeddedModelArrayField":
-            converters.extend(
-                [
-                    self._get_arrayfield_converter(converter)
-                    for converter in self.get_db_converters(
-                        Expression(output_field=expression.output_field.base_field)
-                    )
-                ]
-            )
         elif internal_type == "JSONField":
             converters.append(self.convert_jsonfield_value)
         elif internal_type == "PolymorphicEmbeddedModelField":
