@@ -1,10 +1,10 @@
-from django.conf import settings
 from django.db import router
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
 from pymongo.encryption import ClientEncryption, CodecOptions
 from pymongo.operations import SearchIndexModel
 
+from .encryption import KMS_CREDENTIALS
 from .fields import EmbeddedModelField
 from .indexes import SearchIndex
 from .query import wrap_database_errors
@@ -447,12 +447,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             # E.g. encrypted_fields_map = []
             encrypted_fields_map = self._get_encrypted_fields_map(model)
             provider = router.kms_provider(model)
-
-            # TODO: Remove ternary condition when `master_key` option is not
-            # inadvertently set to "default" somewhere, which then causes the
-            # `master_key.copy` in libmongocrypt to fail.
-            credentials = self.connection.settings_dict["KMS_CREDENTIALS"] if provider != "local" else None
-
+            credentials = KMS_CREDENTIALS[provider]
             ce.create_encrypted_collection(
                 db,
                 model._meta.db_table,
