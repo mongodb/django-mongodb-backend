@@ -22,27 +22,7 @@ settings for Queryable Encryption.
 Helper functions and settings
 =============================
 
-Key vault configuration
------------------------
-
-:class:`~pymongo.encryption_options.AutoEncryptionOpts` requires a key vault
-namespace to store encryption keys. The key vault namespace is typically a
-combination of a database and collection name. ``KEY_VAULT_COLLECTION_NAME``
-and ``KEY_VAULT_DATABASE_NAME`` are defined in :mod:`~django_mongodb_backend.encryption`
-and used to create the key vault namespace with can be imported and used as follows.
-
-``KEY_VAULT_NAMESPACE``
-~~~~~~~~~~~~~~~~~~~~~~~
-
-E.g.::
-
-    AutoEncryptionOpts(
-        key_vault_namespace=encryption.KEY_VAULT_NAMESPACE,
-        ...
-    )
-
-
-KMS Providers
+KMS providers
 -------------
 
 KMS_PROVIDERS

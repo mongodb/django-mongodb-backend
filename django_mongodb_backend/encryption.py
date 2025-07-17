@@ -7,9 +7,6 @@
 import base64
 import os
 
-KEY_VAULT_COLLECTION_NAME = "__keyVault"
-KEY_VAULT_DATABASE_NAME = "keyvault"
-KEY_VAULT_NAMESPACE = f"{KEY_VAULT_DATABASE_NAME}.{KEY_VAULT_COLLECTION_NAME}"
 KMS_CREDENTIALS = {
     "aws": {
         "key": os.getenv("AWS_KEY_ARN", ""),
