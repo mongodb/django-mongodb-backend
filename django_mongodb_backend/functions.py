@@ -200,6 +200,9 @@ def trunc(self, compiler, connection):
     return {"$dateTrunc": lhs_mql}
 
 
+_trunc_convert_value = TruncBase.convert_value
+
+
 def trunc_convert_value(self, value, expression, connection):
     if connection.vendor == "mongodb":
         # A custom TruncBase.convert_value() for MongoDB.
@@ -224,7 +227,7 @@ def trunc_convert_value(self, value, expression, connection):
                 # Truncate for Trunc(..., output_field=TimeField)
                 value = value.time()
         return value
-    return self.convert_value(value, expression, connection)
+    return _trunc_convert_value(self, value, expression, connection)
 
 
 def trunc_date(self, compiler, connection):

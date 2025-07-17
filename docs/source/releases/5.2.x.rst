@@ -17,6 +17,12 @@ New features
 - Added :class:`~.fields.PolymorphicEmbeddedModelField` for storing a model
   instance that may be of more than one model class.
 
+Bug fixes
+---------
+
+- Fixed ``RecursionError`` when using ``Trunc`` database functions on non-MongoDB
+  databases.
+
 5.2.0 beta 1
 ============
 
