@@ -1,7 +1,7 @@
 from django.db import router
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
-from pymongo.encryption import ClientEncryption, CodecOptions
+from pymongo.encryption import ClientEncryption
 from pymongo.operations import SearchIndexModel
 
 from .encryption import KMS_CREDENTIALS
@@ -438,9 +438,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             options = client._options.auto_encryption_opts
             key_vault_namespace = options._key_vault_namespace
             kms_providers = options._kms_providers
-            codec_options = CodecOptions()
-
-            ce = ClientEncryption(kms_providers, key_vault_namespace, client, codec_options)
+            ce = ClientEncryption(kms_providers, key_vault_namespace, client, client.codec_options)
 
             # TODO: Validate schema! `create_encrypted_collection` appears to
             # succeed no matter what you give it, as long as it's valid JSON.
