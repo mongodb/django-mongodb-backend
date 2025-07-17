@@ -159,6 +159,11 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         super().__init__(settings_dict, alias=alias)
         self.session = None
 
+    def check_settings(self):
+        super().check_settings()
+        if not self.settings_dict["AUTOCOMMIT"]:
+            raise ImproperlyConfigured("MongoDB does not support AUTOCOMMIT=False.")
+
     def get_collection(self, name, **kwargs):
         collection = Collection(self.database, name, **kwargs)
         if self.queries_logged:

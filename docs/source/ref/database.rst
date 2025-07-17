@@ -58,6 +58,10 @@ default behavior of autocommit mode. Each query is immediately committed to the
 database. Django's transaction management APIs, such as
 :func:`~django.db.transaction.atomic`, function as no-ops.
 
+:ref:`Deactivating transaction management <django:deactivate-transaction-management>`
+by setting :setting:`AUTOCOMMIT <DATABASE-AUTOCOMMIT>` to ``False`` in the
+:setting:`DATABASES` setting isn't supported.
+
 .. _transactions-limitations:
 
 Limitations

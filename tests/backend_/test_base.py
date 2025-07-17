@@ -1,3 +1,5 @@
+import copy
+
 from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
 from django.db.backends.signals import connection_created
@@ -13,6 +15,14 @@ class DatabaseWrapperTests(SimpleTestCase):
         msg = 'settings.DATABASES is missing the "NAME" value.'
         with self.assertRaisesMessage(ImproperlyConfigured, msg):
             DatabaseWrapper(settings).get_connection_params()
+
+    def test_autocommit_false(self):
+        new_connection = connection.copy()
+        new_connection.settings_dict = copy.deepcopy(connection.settings_dict)
+        new_connection.settings_dict["AUTOCOMMIT"] = False
+        msg = "MongoDB does not support AUTOCOMMIT=False."
+        with self.assertRaisesMessage(ImproperlyConfigured, msg):
+            new_connection.check_settings()
 
 
 class DatabaseWrapperConnectionTests(TransactionTestCase):
