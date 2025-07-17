@@ -52,7 +52,7 @@ class SupportsQueryableEncryptionTests(TestCase):
         connection.features.__dict__.pop("supports_queryable_encryption", None)
 
     def tearDown(self):
-        connection.features.__dict__.pop("supports_queryable_encryption", None)
+        del connection.features.supports_queryable_encryption
 
     def test_supports_queryable_encryption(self):
         def mocked_command(command):
