@@ -30,8 +30,4 @@ def register_routers():
     from the SchemaEditor.
     """
 
-    # TODO: write a custom function similar to _router_func instead of using it,
-    # since it falls back to returning DEFAULT_DB_ALIAS (which is the string
-    # "default") and that's not a useful behavior for kms_provider.
-
     ConnectionRouter.kms_provider = _router_func("kms_provider")
