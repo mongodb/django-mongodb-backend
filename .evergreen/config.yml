@@ -48,12 +48,31 @@ functions:
         args:
           - ./.evergreen/run-tests.sh
 
+  "run encryption tests":
+    - command: ec2.assume_role
+      params:
+        role_arn: ${aws_role_arn}
+      type: test
+    - command: subprocess.exec
+      params:
+        binary: bash
+        args:
+          - .evergreen/run-encryption-tests.sh
+        working_dir: src
+        include_expansions_in_env:
+          - AWS_ACCESS_KEY_ID
+          - AWS_SECRET_ACCESS_KEY
+          - AWS_SESSION_TOKEN
+
   "teardown":
     - command: subprocess.exec
       params:
         binary: bash
         args:
           - ${DRIVERS_TOOLS}/.evergreen/teardown.sh
+
+
+
 
 pre:
   - func: setup
