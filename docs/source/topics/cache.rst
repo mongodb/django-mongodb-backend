@@ -40,6 +40,7 @@ function, making Key sizes limited to 64 bytes, and salt sizes limited to 16
 bytes. If a key is not provided, cache entries will be signed using the 
 ``SECRET_KEY``.
 
+In this example, the cache collection is configured with a key and salt::
     CACHES = {
         "default": {
             "BACKEND": "django_mongodb_backend.cache.MongoDBCache",
