@@ -1,6 +1,8 @@
 from django.apps import apps
 from django.db.utils import ConnectionRouter
 
+from .utils import _router_func
+
 
 class MongoRouter:
     def allow_migrate(self, db, app_label, model_name=None, **hints):
@@ -32,4 +34,4 @@ def register_routers():
     # since it falls back to returning DEFAULT_DB_ALIAS (which is the string
     # "default") and that's not a useful behavior for kms_provider.
 
-    ConnectionRouter.kms_provider = ConnectionRouter._router_func("kms_provider")
+    ConnectionRouter.kms_provider = _router_func("kms_provider")
