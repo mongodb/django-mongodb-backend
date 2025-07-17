@@ -32,6 +32,23 @@ In addition, the cache is culled based on ``CULL_FREQUENCY`` when  ``add()``
 or ``set()`` is called, if ``MAX_ENTRIES`` is exceeded. See
 :ref:`django:cache_arguments` for an explanation of these two options.
 
+Cache entries include a HMAC signature to ensure data integrity by default.
+You can disable this by setting ``ENABLE_SIGNING`` to ``False``.  
+Signatures can also include an optional key and salt parameter by setting 
+``KEY`` and ``SALT`` repectively. Signatures are provided by the Blake2 hash
+function, making Key sizes limited to 64 bytes, and salt sizes limited to 16 
+bytes. If a key is not provided, cache entries will be signed using the 
+``SECRET_KEY``.
+
+    CACHES = {
+        "default": {
+            "BACKEND": "django_mongodb_backend.cache.MongoDBCache",
+            "LOCATION": "my_cache_collection",
+            "KEY": "my_secret_key",
+            "SALT": "my_salt",
+        },
+    }
+
 Creating the cache collection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
