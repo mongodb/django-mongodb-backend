@@ -451,7 +451,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             # TODO: Remove ternary condition when `master_key` option is not
             # inadvertently set to "default" somewhere, which then causes the
             # `master_key.copy` in libmongocrypt to fail.
-            credentials = settings.DATABASES[db].KMS_CREDENTIALS if provider != "local" else None
+            credentials = self.connection.settings_dict["KMS_CREDENTIALS"] if provider != "local" else None
 
             ce.create_encrypted_collection(
                 db,
