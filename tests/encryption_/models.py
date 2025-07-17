@@ -4,30 +4,30 @@ from django_mongodb_backend.models import EncryptedModel
 
 
 class Billing(EncryptedModel):
+    cc_type = EncryptedCharField(max_length=20, queries=QueryType.equality())
+    cc_number = EncryptedIntegerField(queries=QueryType.equality())
+
     class Meta:
         db_table = "billing"
 
-    cc_type = EncryptedCharField("cc_type", max_length=20, queries=QueryType.equality())
-    cc_number = EncryptedIntegerField("cc_number", queries=QueryType.equality())
-
 
 class PatientRecord(EncryptedModel):
-    class Meta:
-        db_table = "patient_record"
-
-    ssn = EncryptedCharField("ssn", max_length=11, queries=QueryType.equality())
+    ssn = EncryptedCharField(max_length=11, queries=QueryType.equality())
 
     # TODO: Embed Billing model
     # billing =
 
+    class Meta:
+        db_table = "patientrecord"
+
 
 class Patient(EncryptedModel):
-    class Meta:
-        db_table = "patient"
-
-    patient_id = EncryptedIntegerField("patient_id")
     patient_age = EncryptedIntegerField("patient_age", queries=QueryType.range())
-    patient_name = EncryptedCharField("name", max_length=100)
+    patient_id = EncryptedIntegerField("patient_id")
+    patient_name = EncryptedCharField(max_length=100)
 
     # TODO: Embed PatientRecord model
     # patient_record =
+
+    class Meta:
+        db_table = "patient"

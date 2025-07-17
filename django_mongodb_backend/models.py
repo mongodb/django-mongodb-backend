@@ -21,4 +21,3 @@ class EncryptedModel(models.Model):
 
     class Meta:
         abstract = True
-        required_db_features = {"supports_queryable_encryption"}

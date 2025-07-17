@@ -32,5 +32,5 @@ class Command(BaseCommand):
             ):
                 if getattr(model, "encrypted", False):
                     fields = connection.schema_editor()._get_encrypted_fields_map(model)
-                    schema_map[model._meta.db_table] = fields
+                    schema_map[f"{connection.alias}.{model._meta.db_table}"] = fields
         return schema_map

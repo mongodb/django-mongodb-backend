@@ -1,4 +1,10 @@
 class TestEncryptedRouter:
+    """Router for testing encrypted models in Django. `kms_provider`
+    must be set on the global test router since table creation happens
+    at the start of the test suite, before @override_settings(
+    DATABASE_ROUTERS=[TestEncryptedRouter()]) takes effect.
+    """
+
     def allow_migrate(self, db, app_label, model_name=None, model=None, **hints):
         return getattr(model, "encrypted", False)
 
@@ -8,8 +14,3 @@ class TestEncryptedRouter:
         return None
 
     db_for_write = db_for_read
-
-    # FIXME: Possibly because it is patched in routers.py, this is not called
-    # from schema.py.
-    def kms_provider(self, model):
-        return "aws"
