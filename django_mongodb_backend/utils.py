@@ -5,7 +5,7 @@ import django
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db.backends.utils import logger
-from django.utils import DEFAULT_DB_ALIAS
+from django.db.utils import DEFAULT_DB_ALIAS
 from django.utils.functional import SimpleLazyObject
 from django.utils.text import format_lazy
 from django.utils.version import get_version_tuple
