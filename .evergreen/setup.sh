@@ -2,6 +2,14 @@
 
 set -eux
 
+
+# On Evergreen jobs, "CI" will be set, and if "CI" is set, add
+# "/opt/python/Current/bin" to PATH to pick up `just` and `uv`.
+if [ "${CI:-}" == "true" ]; then
+    PATH_EXT="opt/python/Current/bin:\$PATH"
+
+export PATH="$PATH_EXT"
+
 # Get the current unique version of this checkout
 # shellcheck disable=SC2154
 if [ "${is_patch}" = "true" ]; then
