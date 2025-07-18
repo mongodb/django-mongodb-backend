@@ -79,6 +79,10 @@ class EncryptedModelTests(TransactionTestCase):
         with self.assertRaises(PatientRecord.DoesNotExist):
             PatientRecord.objects.get(ssn="000-00-0000")
 
-    def test_patient_records_exist(self):
+    def test_patient_records_exist_and_are_encrypted(self):
         patients = connections[self.db_name].database.patient.find()
         self.assertEqual(len(list(patients)), 1)
+
+        # Check for decrypted content
+        records = connections[self.db_name].database.patientrecord.find()
+        self.assertTrue("__safeContent__" in records[0])
