@@ -9,14 +9,16 @@ from django.db.models.aggregates import Aggregate, Variance
 from django.db.models.expressions import Case, Col, OrderBy, Ref, Value, When
 from django.db.models.functions.comparison import Coalesce
 from django.db.models.functions.math import Power
-from django.db.models.lookups import IsNull
+from django.db.models.lookups import IsNull, Lookup
 from django.db.models.sql import compiler
 from django.db.models.sql.constants import GET_ITERATOR_CHUNK_SIZE, MULTI, SINGLE
 from django.db.models.sql.datastructures import BaseTable
+from django.db.models.sql.where import AND
 from django.utils.functional import cached_property
 from pymongo import ASCENDING, DESCENDING
 
 from .query import MongoQuery, wrap_database_errors
+from .query_utils import is_direct_value
 
 
 class SQLCompiler(compiler.SQLCompiler):
@@ -549,10 +551,22 @@ class SQLCompiler(compiler.SQLCompiler):
 
     def get_lookup_pipeline(self):
         result = []
+        where = self.get_where()
+        promote_filters = defaultdict(list)
+        for expr in where.children if where and where.connector == AND else ():
+            if (
+                isinstance(expr, Lookup)
+                and isinstance(expr.lhs, Col)
+                and (is_direct_value(expr.rhs) or isinstance(expr.rhs, Value))
+            ):
+                promote_filters[expr.lhs.alias].append(expr)
+
         for alias in tuple(self.query.alias_map):
             if not self.query.alias_refcount[alias] or self.collection_name == alias:
                 continue
-            result += self.query.alias_map[alias].as_mql(self, self.connection)
+            result += self.query.alias_map[alias].as_mql(
+                self, self.connection, promote_filters[alias]
+            )
         return result
 
     def _get_aggregate_expressions(self, expr):
