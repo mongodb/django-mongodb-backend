@@ -28,6 +28,8 @@ def f():
 class C:
     def m(n):
         return 24
+    def __eq__(self, other):
+        return isinstance(other, type(self))
 
 
 class Unpicklable:
@@ -97,6 +99,7 @@ def caches_setting_for_tests(base=None, exclude=None, **params):
         BACKEND="django_mongodb_backend.cache.MongoDBCache",
         # Spaces are used in the name to ensure quoting/escaping works.
         LOCATION="test cache collection",
+        ENABLE_SIGNING=False,
     ),
 )
 @modify_settings(
@@ -950,10 +953,59 @@ class CacheTests(TestCase):
         )
 
     def test_serializer_dumps(self):
-        self.assertEqual(cache.serializer.dumps(123), 123)
-        self.assertIsInstance(cache.serializer.dumps(True), bytes)
-        self.assertIsInstance(cache.serializer.dumps("abc"), bytes)
+        self.assertTupleEqual(cache.serializer.dumps(123), (123, False, None))
+        self.assertTupleEqual(cache.serializer.dumps(True), (True, False, None))
+        self.assertTupleEqual(cache.serializer.dumps("abc"), ("abc", False, None))
+        self.assertTupleEqual(cache.serializer.dumps(b"abc"), (b"abc", False, None))
 
+        c = C()
+        pickled_c = pickle.dumps(c, protocol=pickle.HIGHEST_PROTOCOL)
+        self.assertTupleEqual(cache.serializer.dumps(c), (pickled_c, True, None))
+
+    def test_serializer_loads(self):
+        self.assertEqual(cache.serializer.loads(123, False, None), 123)
+        self.assertEqual(cache.serializer.loads(True, False, None), True)
+        self.assertEqual(cache.serializer.loads("abc", False, None), "abc")
+        self.assertEqual(cache.serializer.loads(b"abc", False, None), b"abc")
+
+        c = C()
+        pickled_c = pickle.dumps(c, protocol=pickle.HIGHEST_PROTOCOL)
+        self.assertEqual(cache.serializer.loads(pickled_c, True, None), c)
+
+
+
+@override_settings(
+    CACHES=caches_setting_for_tests(
+        BACKEND="django_mongodb_backend.cache.MongoDBCache",
+        # Spaces are used in the name to ensure quoting/escaping works.
+        LOCATION="test cache collection",
+        ENABLE_SIGNING=True,
+        SALT="test-salt",
+    ),
+)
+class SignedCacheTests(CacheTests):
+    def test_serializer_dumps(self):
+        self.assertTupleEqual(cache.serializer.dumps(123), (123, False, None))
+        self.assertTupleEqual(cache.serializer.dumps(True), (True, False, None))
+        self.assertTupleEqual(cache.serializer.dumps("abc"), ("abc", False, None))
+        self.assertTupleEqual(cache.serializer.dumps(b"abc"), (b"abc", False, None))
+
+        c = C()
+        pickled_c = pickle.dumps(c, protocol=pickle.HIGHEST_PROTOCOL)
+        self.assertTupleEqual(cache.serializer.dumps(c), (pickled_c, True, cache.serializer._get_signature(pickled_c)))
+
+    def test_serializer_loads(self):
+        self.assertEqual(cache.serializer.loads(123, False, None), 123)
+        self.assertEqual(cache.serializer.loads(True, False, None), True)
+        self.assertEqual(cache.serializer.loads("abc", False, None), "abc")
+        self.assertEqual(cache.serializer.loads(b"abc", False, None), b"abc")
+        
+        c = C()
+        pickled_c = pickle.dumps(c, protocol=pickle.HIGHEST_PROTOCOL)
+        self.assertEqual(cache.serializer.loads(pickled_c, True, cache.serializer._get_signature(pickled_c)), c)
+
+        with self.assertRaises(Exception):
+            cache.serializer.loads(pickled_c, True, "invalid-signature")
 
 class DBCacheRouter:
     """A router that puts the cache table on the 'other' database."""
