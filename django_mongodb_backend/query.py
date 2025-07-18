@@ -129,25 +129,12 @@ def extra_where(self, compiler, connection):  # noqa: ARG001
     raise NotSupportedError("QuerySet.extra() is not supported on MongoDB.")
 
 
-def join(self, compiler, connection):
-    lookup_pipeline = []
-    lhs_fields = []
-    rhs_fields = []
-    # Add a join condition for each pair of joining fields.
-    parent_template = "parent__field__"
-    for lhs, rhs in self.join_fields:
-        lhs, rhs = connection.ops.prepare_join_on_clause(
-            self.parent_alias, lhs, compiler.collection_name, rhs
-        )
-        lhs_fields.append(lhs.as_mql(compiler, connection))
-        # In the lookup stage, the reference to this column doesn't include
-        # the collection name.
-        rhs_fields.append(rhs.as_mql(compiler, connection))
-    # Handle any join conditions besides matching field pairs.
-    extra = self.join_field.get_extra_restriction(self.table_alias, self.parent_alias)
-    if extra:
+def join(self, compiler, connection, pushed_expressions=None):
+    def _get_reroot_replacements(expressions):
+        if not expressions:
+            return []
         columns = []
-        for expr in extra.leaves():
+        for expr in expressions:
             # Determine whether the column needs to be transformed or rerouted
             # as part of the subquery.
             for hand_side in ["lhs", "rhs"]:
@@ -165,7 +152,7 @@ def join(self, compiler, connection):
         # based on their rerouted positions in the join pipeline.
         replacements = {}
         for col, parent_pos in columns:
-            column_target = Col(compiler.collection_name, expr.output_field.__class__())
+            column_target = Col(compiler.collection_name, col.target, col.output_field)
             if parent_pos is not None:
                 target_col = f"${parent_template}{parent_pos}"
                 column_target.target.db_column = target_col
@@ -173,10 +160,37 @@ def join(self, compiler, connection):
             else:
                 column_target.target = col.target
             replacements[col] = column_target
-        # Apply the transformed expressions in the extra condition.
+        return replacements
+
+    lookup_pipeline = []
+    lhs_fields = []
+    rhs_fields = []
+    # Add a join condition for each pair of joining fields.
+    parent_template = "parent__field__"
+    for lhs, rhs in self.join_fields:
+        lhs, rhs = connection.ops.prepare_join_on_clause(
+            self.parent_alias, lhs, compiler.collection_name, rhs
+        )
+        lhs_fields.append(lhs.as_mql(compiler, connection))
+        # In the lookup stage, the reference to this column doesn't include
+        # the collection name.
+        rhs_fields.append(rhs.as_mql(compiler, connection))
+    # Handle any join conditions besides matching field pairs.
+    extra = self.join_field.get_extra_restriction(self.table_alias, self.parent_alias)
+
+    if extra:
+        replacements = _get_reroot_replacements(extra.leaves())
         extra_condition = [extra.replace_expressions(replacements).as_mql(compiler, connection)]
     else:
         extra_condition = []
+    if self.join_type == INNER:
+        rerooted_replacement = _get_reroot_replacements(pushed_expressions)
+        resolved_pushed_expressions = [
+            expr.replace_expressions(rerooted_replacement).as_mql(compiler, connection)
+            for expr in pushed_expressions
+        ]
+    else:
+        resolved_pushed_expressions = []
 
     lookup_pipeline = [
         {
@@ -204,6 +218,7 @@ def join(self, compiler, connection):
                                     for i, field in enumerate(rhs_fields)
                                 ]
                                 + extra_condition
+                                + resolved_pushed_expressions
                             }
                         }
                     }
