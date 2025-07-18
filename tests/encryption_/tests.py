@@ -4,7 +4,7 @@ from io import StringIO
 
 from django.core.management import call_command
 from django.db import connections
-from django.test import TestCase, modify_settings, override_settings
+from django.test import TransactionTestCase, modify_settings, override_settings
 
 from .models import Patient, PatientRecord
 from .routers import TestEncryptedRouter
@@ -33,24 +33,29 @@ EXPECTED_ENCRYPTED_FIELDS_MAP = {
     INSTALLED_APPS={"prepend": "django_mongodb_backend"},
 )
 @override_settings(DATABASE_ROUTERS=[TestEncryptedRouter()])
-class EncryptedModelTests(TestCase):
+class EncryptedModelTests(TransactionTestCase):
     databases = {"default", "encrypted"}
+    available_apps = ["django_mongodb_backend", "encryption_"]
 
     @classmethod
-    def setUpTestData(cls):
-        cls.patient_record = PatientRecord(ssn="123-45-6789")
-        cls.patient_record.save()
-        cls.patient = Patient(patient_id=1, patient_age=47)
-        cls.patient.save()
+    def setUp(self):
+        self.db_name = "encrypted"
+
+        self.patient_record = PatientRecord(ssn="123-45-6789")
+        self.patient_record.save()
+
+        self.patient = Patient(patient_id=1, patient_age=47, patient_name="John Doe")
+        self.patient.save()
+
+        # TODO: Embed billing and patient_record in patient then test
 
     def test_get_encrypted_fields_map_method(self):
         self.maxDiff = None
-        db_name = "encrypted"
-        with connections[db_name].schema_editor() as editor:
+        with connections[self.db_name].schema_editor() as editor:
             collection_name = self.patient._meta.db_table
             self.assertCountEqual(
                 {"fields": editor._get_encrypted_fields_map(self.patient)},
-                EXPECTED_ENCRYPTED_FIELDS_MAP[f"{db_name}.{collection_name}"],
+                EXPECTED_ENCRYPTED_FIELDS_MAP[f"{self.db_name}.{collection_name}"],
             )
 
     def test_get_encrypted_fields_map_command(self):
@@ -65,11 +70,15 @@ class EncryptedModelTests(TestCase):
         call_command("get_encrypted_fields_map", "--database", "encrypted", verbosity=0, stdout=out)
         self.assertIn(json.dumps(EXPECTED_ENCRYPTED_FIELDS_MAP, indent=2), out.getvalue())
 
-    def test_equality_query(self):
+    def test_patientrecord(self):
+        self.assertTrue(Patient.objects.filter(patient_age__gte=40).exists())
+        self.assertFalse(Patient.objects.filter(patient_age__gte=200).exists())
+
+    def test_patient(self):
         self.assertEqual(PatientRecord.objects.get(ssn="123-45-6789").ssn, "123-45-6789")
         with self.assertRaises(PatientRecord.DoesNotExist):
             PatientRecord.objects.get(ssn="000-00-0000")
 
-    def test_range_query(self):
-        self.assertTrue(Patient.objects.filter(patient_age__gte=40).exists())
-        self.assertFalse(Patient.objects.filter(patient_age__gte=200).exists())
+    def test_patient_records_exist(self):
+        patients = connections[self.db_name].database.patient.find()
+        self.assertEqual(len(list(patients)), 1)
