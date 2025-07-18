@@ -652,7 +652,7 @@ class SQLCompiler(compiler.SQLCompiler):
             **kwargs,
         )
         # explain() expects a list and joins on a newline. Concatenate no lines
-        return [json_util.dumps(explain)]
+        return [json_util.dumps(explain, indent=4)]
 
 
 class SQLInsertCompiler(SQLCompiler):

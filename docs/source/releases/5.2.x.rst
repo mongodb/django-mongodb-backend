@@ -16,6 +16,8 @@ New features
 - Added support for :ref:`database transactions <transactions>`.
 - Added :class:`~.fields.PolymorphicEmbeddedModelField` for storing a model
   instance that may be of more than one model class.
+- ``Query.explain()`` now returns a parseable JSON string instead of a list of
+  formatted lines.
 
 5.2.0 beta 1
 ============
