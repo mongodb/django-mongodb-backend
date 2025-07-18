@@ -53,3 +53,18 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return str(self.pk)
+
+
+class Reader(models.Model):
+    name = models.CharField(max_length=20)
+
+    def __str__(self):
+        return self.name
+
+
+class Library(models.Model):
+    name = models.CharField(max_length=20)
+    readers = models.ManyToManyField(Reader, related_name="libraries")
+
+    def __str__(self):
+        return self.name

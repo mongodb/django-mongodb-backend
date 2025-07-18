@@ -123,25 +123,21 @@ def extra_where(self, compiler, connection):  # noqa: ARG001
     raise NotSupportedError("QuerySet.extra() is not supported on MongoDB.")
 
 
-def join(self, compiler, connection):
-    lookup_pipeline = []
-    lhs_fields = []
-    rhs_fields = []
-    # Add a join condition for each pair of joining fields.
+def join(self, compiler, connection, pushed_filter_expression=None):
+    """
+    Generate a MongoDB $lookup stage for a join.
+
+    `pushed_filter_expression` is a Where expression involving fields from the
+    joined collection which can be pushed from the WHERE ($match) clause to the
+    JOIN ($lookup) clause to improve performance.
+    """
     parent_template = "parent__field__"
-    for lhs, rhs in self.join_fields:
-        lhs, rhs = connection.ops.prepare_join_on_clause(
-            self.parent_alias, lhs, compiler.collection_name, rhs
-        )
-        lhs_fields.append(lhs.as_mql(compiler, connection))
-        # In the lookup stage, the reference to this column doesn't include
-        # the collection name.
-        rhs_fields.append(rhs.as_mql(compiler, connection))
-    # Handle any join conditions besides matching field pairs.
-    extra = self.join_field.get_extra_restriction(self.table_alias, self.parent_alias)
-    if extra:
+
+    def _get_reroot_replacements(expression):
+        if not expression:
+            return None
         columns = []
-        for expr in extra.leaves():
+        for expr in expression.leaves():
             # Determine whether the column needs to be transformed or rerouted
             # as part of the subquery.
             for hand_side in ["lhs", "rhs"]:
@@ -151,7 +147,7 @@ def join(self, compiler, connection):
                     # lhs_fields.
                     if hand_side_value.alias != self.table_alias:
                         pos = len(lhs_fields)
-                        lhs_fields.append(expr.lhs.as_mql(compiler, connection))
+                        lhs_fields.append(hand_side_value.as_mql(compiler, connection))
                     else:
                         pos = None
                     columns.append((hand_side_value, pos))
@@ -159,7 +155,9 @@ def join(self, compiler, connection):
         # based on their rerouted positions in the join pipeline.
         replacements = {}
         for col, parent_pos in columns:
-            column_target = Col(compiler.collection_name, expr.output_field.__class__())
+            target = col.target.clone()
+            target.remote_field = col.target.remote_field
+            column_target = Col(compiler.collection_name, target)
             if parent_pos is not None:
                 target_col = f"${parent_template}{parent_pos}"
                 column_target.target.db_column = target_col
@@ -167,11 +165,43 @@ def join(self, compiler, connection):
             else:
                 column_target.target = col.target
             replacements[col] = column_target
-        # Apply the transformed expressions in the extra condition.
-        extra_condition = [extra.replace_expressions(replacements).as_mql(compiler, connection)]
-    else:
-        extra_condition = []
+        return replacements
 
+    lookup_pipeline = []
+    lhs_fields = []
+    rhs_fields = []
+    # Add a join condition for each pair of joining fields.
+    for lhs, rhs in self.join_fields:
+        lhs, rhs = connection.ops.prepare_join_on_clause(
+            self.parent_alias, lhs, compiler.collection_name, rhs
+        )
+        lhs_fields.append(lhs.as_mql(compiler, connection))
+        # In the lookup stage, the reference to this column doesn't include the
+        # collection name.
+        rhs_fields.append(rhs.as_mql(compiler, connection))
+    # Handle any join conditions besides matching field pairs.
+    extra = self.join_field.get_extra_restriction(self.table_alias, self.parent_alias)
+    extra_conditions = []
+    if extra:
+        replacements = _get_reroot_replacements(extra)
+        extra_conditions.append(
+            extra.replace_expressions(replacements).as_mql(compiler, connection)
+        )
+    # pushed_filter_expression is a Where expression from the outer WHERE
+    # clause that involves fields from the joined (right-hand) table and
+    # possibly the outer (left-hand) table. If it can be safely evaluated
+    # within the $lookup pipeline (e.g., field comparisons like
+    # right.status = left.id), it is "pushed" into the join's $match stage to
+    # reduce the volume of joined documents. This only applies to INNER JOINs,
+    # as pushing filters into a LEFT JOIN can change the semantics of the
+    # result. LEFT JOINs may rely on null checks to detect missing RHS.
+    if pushed_filter_expression and self.join_type == INNER:
+        rerooted_replacement = _get_reroot_replacements(pushed_filter_expression)
+        extra_conditions.append(
+            pushed_filter_expression.replace_expressions(rerooted_replacement).as_mql(
+                compiler, connection
+            )
+        )
     lookup_pipeline = [
         {
             "$lookup": {
@@ -197,7 +227,7 @@ def join(self, compiler, connection):
                                     {"$eq": [f"$${parent_template}{i}", field]}
                                     for i, field in enumerate(rhs_fields)
                                 ]
-                                + extra_condition
+                                + extra_conditions
                             }
                         }
                     }
