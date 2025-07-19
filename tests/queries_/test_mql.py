@@ -20,7 +20,8 @@ class MQLTests(TestCase):
             "{'$lookup': {'from': 'queries__author', "
             "'let': {'parent__field__0': '$author_id'}, "
             "'pipeline': [{'$match': {'$expr': "
-            "{'$and': [{'$eq': ['$$parent__field__0', '$_id']}]}}}], 'as': 'queries__author'}}, "
+            "{'$and': [{'$eq': ['$$parent__field__0', '$_id']}, "
+            "{'$eq': ['$name', 'Bob']}]}}}], 'as': 'queries__author'}}, "
             "{'$unwind': '$queries__author'}, "
             "{'$match': {'$expr': {'$eq': ['$queries__author.name', 'Bob']}}}])",
         )
