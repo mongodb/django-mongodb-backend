@@ -25,7 +25,7 @@ from django.db.models.expressions import (
 )
 from django.db.models.sql import Query
 
-from .query_utils import process_lhs
+from ..query_utils import process_lhs
 
 
 def case(self, compiler, connection):
@@ -53,7 +53,7 @@ def case(self, compiler, connection):
     }
 
 
-def col(self, compiler, connection):  # noqa: ARG001
+def col(self, compiler, connection, as_path=False):  # noqa: ARG001
     # If the column is part of a subquery and belongs to one of the parent
     # queries, it will be stored for reference using $let in a $lookup stage.
     # If the query is built with `alias_cols=False`, treat the column as
@@ -71,7 +71,7 @@ def col(self, compiler, connection):  # noqa: ARG001
     # Add the column's collection's alias for columns in joined collections.
     has_alias = self.alias and self.alias != compiler.collection_name
     prefix = f"{self.alias}." if has_alias else ""
-    return f"${prefix}{self.target.column}"
+    return f"{prefix}{self.target.column}" if as_path else f"${prefix}{self.target.column}"
 
 
 def col_pairs(self, compiler, connection):
