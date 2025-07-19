@@ -24,7 +24,7 @@ from django_mongodb_backend.expressions.search import (
     SearchWildcard,
 )
 
-from .models import Article
+from .models import Article, Writer
 
 
 def _wait_for_assertion(timeout: float = 120, interval: float = 0.5) -> None:
@@ -87,16 +87,6 @@ class SearchUtilsMixin(TransactionTestCase):
     wait_for_assertion = _wait_for_assertion(timeout=3)
 
 
-class SearchTest(SearchUtilsMixin):
-    @classmethod
-    def setUpTestData(cls):
-        cls.create_search_index(
-            Article,
-            "equals_headline_index",
-            {"mappings": {"dynamic": False, "fields": {"headline": {"type": "token"}}}},
-        )
-
-
 class SearchEqualsTest(SearchUtilsMixin):
     def setUp(self):
         self.create_search_index(
@@ -131,13 +121,29 @@ class SearchAutocompleteTest(SearchUtilsMixin):
                             "minGrams": 3,
                             "maxGrams": 5,
                             "foldDiacritics": False,
-                        }
+                        },
+                        "writer": {
+                            "type": "document",
+                            "fields": {
+                                "name": {
+                                    "type": "autocomplete",
+                                    "analyzer": "lucene.standard",
+                                    "tokenization": "edgeGram",
+                                    "minGrams": 3,
+                                    "maxGrams": 5,
+                                    "foldDiacritics": False,
+                                }
+                            },
+                        },
                     },
                 }
             },
         )
         self.article = Article.objects.create(
-            headline="crossing and something", number=2, body="river"
+            headline="crossing and something",
+            number=2,
+            body="river",
+            writer=Writer(name="Joselina A. Ramirez"),
         )
 
     def tearDown(self):
@@ -145,7 +151,20 @@ class SearchAutocompleteTest(SearchUtilsMixin):
         super().tearDown()
 
     def test_search_autocomplete(self):
-        qs = Article.objects.annotate(score=SearchAutocomplete(path="headline", query="crossing"))
+        qs = Article.objects.annotate(
+            score=SearchAutocomplete(
+                path="headline",
+                query="crossing",
+                token_order="sequential",  # noqa: S106
+                fuzzy={"maxEdits": 2},
+            )
+        )
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+
+    def test_search_autocomplete_embedded_model(self):
+        qs = Article.objects.annotate(
+            score=SearchAutocomplete(path="writer__name", query="Joselina")
+        )
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
 
