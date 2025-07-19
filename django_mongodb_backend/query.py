@@ -132,7 +132,7 @@ def extra_where(self, compiler, connection):  # noqa: ARG001
 def join(self, compiler, connection, pushed_expressions=None):
     def _get_reroot_replacements(expressions):
         if not expressions:
-            return []
+            return None
         columns = []
         for expr in expressions:
             # Determine whether the column needs to be transformed or rerouted
@@ -152,7 +152,9 @@ def join(self, compiler, connection, pushed_expressions=None):
         # based on their rerouted positions in the join pipeline.
         replacements = {}
         for col, parent_pos in columns:
-            column_target = Col(compiler.collection_name, col.target, col.output_field)
+            target = col.target.clone()
+            target.remote_field = col.target.remote_field
+            column_target = Col(compiler.collection_name, target)
             if parent_pos is not None:
                 target_col = f"${parent_template}{parent_pos}"
                 column_target.target.db_column = target_col
