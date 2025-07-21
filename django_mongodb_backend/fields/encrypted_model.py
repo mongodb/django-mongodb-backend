@@ -29,3 +29,7 @@ class EncryptedCharField(EncryptedFieldMixin, models.CharField):
 
 class EncryptedIntegerField(EncryptedFieldMixin, models.IntegerField):
     pass
+
+
+class EncryptedBigIntegerField(EncryptedFieldMixin, models.BigIntegerField):
+    pass

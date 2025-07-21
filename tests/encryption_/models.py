@@ -1,11 +1,15 @@
 from django_mongodb_backend.encryption import QueryType
-from django_mongodb_backend.fields import EncryptedCharField, EncryptedIntegerField
+from django_mongodb_backend.fields import (
+    EncryptedBigIntegerField,
+    EncryptedCharField,
+    EncryptedIntegerField,
+)
 from django_mongodb_backend.models import EncryptedModel
 
 
 class Billing(EncryptedModel):
     cc_type = EncryptedCharField(max_length=20, queries=QueryType.equality())
-    cc_number = EncryptedIntegerField(queries=QueryType.equality())
+    cc_number = EncryptedBigIntegerField(queries=QueryType.equality())
 
     class Meta:
         db_table = "billing"

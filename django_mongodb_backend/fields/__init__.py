@@ -3,7 +3,7 @@ from .auto import ObjectIdAutoField
 from .duration import register_duration_field
 from .embedded_model import EmbeddedModelField
 from .embedded_model_array import EmbeddedModelArrayField
-from .encrypted_model import EncryptedCharField, EncryptedIntegerField
+from .encrypted_model import EncryptedBigIntegerField, EncryptedCharField, EncryptedIntegerField
 from .json import register_json_field
 from .objectid import ObjectIdField
 
@@ -12,6 +12,7 @@ __all__ = [
     "ArrayField",
     "EmbeddedModelArrayField",
     "EmbeddedModelField",
+    "EncryptedBigIntegerField",
     "EncryptedCharField",
     "EncryptedIntegerField",
     "ObjectIdAutoField",

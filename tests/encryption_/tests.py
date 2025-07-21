@@ -8,14 +8,14 @@ from django.core.management import call_command
 from django.db import connections
 from django.test import TransactionTestCase, modify_settings, override_settings
 
-from .models import Patient, PatientRecord
+from .models import Billing, Patient, PatientRecord
 from .routers import TestEncryptedRouter
 
 EXPECTED_ENCRYPTED_FIELDS_MAP = {
     "encrypted.billing": {
         "fields": [
             {"bsonType": "string", "path": "cc_type", "queries": {"queryType": "equality"}},
-            {"bsonType": "int", "path": "cc_number", "queries": {"queryType": "equality"}},
+            {"bsonType": "long", "path": "cc_number", "queries": {"queryType": "equality"}},
         ]
     },
     "encrypted.patientrecord": {
@@ -41,13 +41,16 @@ class EncryptedModelTests(TransactionTestCase):
 
     @classmethod
     def setUp(self):
+        self.billing = Billing(cc_type="Visa", cc_number=1234567890123456)
+        self.billing.save()
+
         self.patient_record = PatientRecord(ssn="123-45-6789")
         self.patient_record.save()
 
         self.patient = Patient(patient_id=1, patient_age=47, patient_name="John Doe")
         self.patient.save()
 
-        # TODO: Embed billing and patient_record in patient then test
+        # TODO: Embed billing and patient_record models in patient model then add tests
 
     def test_get_encrypted_fields_map_method(self):
         self.maxDiff = None
@@ -69,6 +72,12 @@ class EncryptedModelTests(TransactionTestCase):
         out = Tee()
         call_command("get_encrypted_fields_map", "--database", "encrypted", verbosity=0, stdout=out)
         self.assertIn(json.dumps(EXPECTED_ENCRYPTED_FIELDS_MAP, indent=2), out.getvalue())
+
+    def test_billing(self):
+        self.assertEqual(
+            Billing.objects.get(cc_number=1234567890123456).cc_number, 1234567890123456
+        )
+        self.assertEqual(Billing.objects.get(cc_type="Visa").cc_type, "Visa")
 
     def test_patientrecord(self):
         self.assertTrue(Patient.objects.filter(patient_age__gte=40).exists())
