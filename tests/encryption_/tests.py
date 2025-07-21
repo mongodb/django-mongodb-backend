@@ -73,6 +73,7 @@ class EncryptedModelTests(TransactionTestCase):
         # TODO: Embed billing and patient_record models in patient model then add tests
 
     def test_get_encrypted_fields_map_method(self):
+        # Test the class method for getting encrypted fields map.
         self.maxDiff = None
         with connections["encrypted"].schema_editor() as editor:
             collection_name = self.patient._meta.db_table
@@ -94,18 +95,21 @@ class EncryptedModelTests(TransactionTestCase):
         self.assertIn(json.dumps(EXPECTED_ENCRYPTED_FIELDS_MAP, indent=2), out.getvalue())
 
     def test_billing(self):
+        # Test equality queries on encrypted fields.
         self.assertEqual(
             Billing.objects.get(cc_number=1234567890123456).cc_number, 1234567890123456
         )
         self.assertEqual(Billing.objects.get(cc_type="Visa").cc_type, "Visa")
 
     def test_patientrecord(self):
+        # Test range queries and equality queries on encrypted fields.
         self.assertEqual(PatientRecord.objects.get(ssn="123-45-6789").ssn, "123-45-6789")
         with self.assertRaises(PatientRecord.DoesNotExist):
             PatientRecord.objects.get(ssn="000-00-0000")
         self.assertTrue(PatientRecord.objects.filter(birth_date__gte="1969-01-01").exists())
 
     def test_patient(self):
+        # Test range queries and equality queries on encrypted fields.
         self.assertTrue(Patient.objects.filter(patient_age__gte=40).exists())
         self.assertFalse(Patient.objects.filter(patient_age__gte=200).exists())
         self.assertEqual(
@@ -118,16 +122,15 @@ class EncryptedModelTests(TransactionTestCase):
             datetime(2023, 10, 1, 12, 0, 0),
         )
 
-    def test_patient_record_exists(self):
+        # Test that the patient record exists in the encrypted database.
         patients = connections["encrypted"].database.patient.find()
         self.assertEqual(len(list(patients)), 1)
 
-        # Check for decrypted content
+        # Test for decrypted patient record in the encrypted database.
         records = connections["encrypted"].database.patientrecord.find()
         self.assertTrue("__safeContent__" in records[0])
 
-    def test_patient_record_exists_and_is_encrypted(self):
-        # Check that the patient record is encrypted from an unencrypted connection.
+        # Test for encrypted patient record in unencrypted database.
         conn_params = connections["encrypted"].get_connection_params()
         if conn_params.pop("auto_encryption_opts", False):
             # Call MongoClient instead of get_new_connection because
