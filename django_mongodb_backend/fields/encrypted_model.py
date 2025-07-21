@@ -14,9 +14,9 @@ class EncryptedFieldMixin(models.Field):
         if self.queries is not None:
             kwargs["queries"] = self.queries
 
-        if path.startswith("django_mongodb_backend.fields.encryption"):
+        if path.startswith("django_mongodb_backend.fields.encrypted_model"):
             path = path.replace(
-                "django_mongodb_backend.fields.encryption",
+                "django_mongodb_backend.fields.encrypted_model",
                 "django_mongodb_backend.fields",
             )
 
@@ -24,6 +24,10 @@ class EncryptedFieldMixin(models.Field):
 
 
 class EncryptedBigIntegerField(EncryptedFieldMixin, models.BigIntegerField):
+    pass
+
+
+class EncryptedBooleanField(EncryptedFieldMixin, models.BooleanField):
     pass
 
 

@@ -1,6 +1,7 @@
 from django_mongodb_backend.encryption import QueryType
 from django_mongodb_backend.fields import (
     EncryptedBigIntegerField,
+    EncryptedBooleanField,
     EncryptedCharField,
     EncryptedDateField,
     EncryptedDateTimeField,
@@ -36,11 +37,12 @@ class PatientRecord(EncryptedModel):
 
 class Patient(EncryptedModel):
     patient_age = EncryptedIntegerField("patient_age", queries=QueryType.range())
-    patient_id = EncryptedIntegerField("patient_id")
+    patient_id = EncryptedIntegerField("patient_id", queries=QueryType.equality())
     patient_name = EncryptedCharField(max_length=100)
     patient_notes = EncryptedTextField(queries=QueryType.equality())
     registration_date = EncryptedDateTimeField(queries=QueryType.equality())
     weight = EncryptedFloatField(queries=QueryType.range())
+    is_active = EncryptedBooleanField(queries=QueryType.equality())
 
     # TODO: Embed PatientRecord model
     # patient_record =

@@ -29,11 +29,12 @@ EXPECTED_ENCRYPTED_FIELDS_MAP = {
     "encrypted.patient": {
         "fields": [
             {"bsonType": "int", "path": "patient_age", "queries": {"queryType": "range"}},
-            {"bsonType": "int", "path": "patient_id"},
+            {"bsonType": "int", "path": "patient_id", "queries": {"queryType": "equality"}},
             {"bsonType": "string", "path": "patient_name"},
             {"bsonType": "string", "path": "patient_notes", "queries": {"queryType": "equality"}},
             {"bsonType": "date", "path": "registration_date", "queries": {"queryType": "equality"}},
             {"bsonType": "double", "path": "weight", "queries": {"queryType": "range"}},
+            {"bsonType": "bool", "path": "is_active", "queries": {"queryType": "equality"}},
         ]
     },
 }
@@ -70,6 +71,7 @@ class EncryptedModelTests(TransactionTestCase):
             patient_notes=PATIENT_NOTES,
             registration_date=datetime(2023, 10, 1, 12, 0, 0),
             weight=175.5,
+            is_active=True,
         )
         self.patient.save()
 
@@ -126,6 +128,7 @@ class EncryptedModelTests(TransactionTestCase):
             datetime(2023, 10, 1, 12, 0, 0),
         )
         self.assertTrue(Patient.objects.filter(weight__gte=175.0).exists())
+        self.assertTrue(Patient.objects.get(patient_id=1).is_active)
 
         # Test that the patient record exists in the encrypted database.
         patients = connections["encrypted"].database.patient.find()
