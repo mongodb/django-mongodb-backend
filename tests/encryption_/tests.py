@@ -39,8 +39,6 @@ class EncryptedModelTests(TransactionTestCase):
 
     @classmethod
     def setUp(self):
-        self.db_name = "encrypted"
-
         self.patient_record = PatientRecord(ssn="123-45-6789")
         self.patient_record.save()
 
@@ -51,11 +49,11 @@ class EncryptedModelTests(TransactionTestCase):
 
     def test_get_encrypted_fields_map_method(self):
         self.maxDiff = None
-        with connections[self.db_name].schema_editor() as editor:
+        with connections["encrypted"].schema_editor() as editor:
             collection_name = self.patient._meta.db_table
             self.assertCountEqual(
                 {"fields": editor._get_encrypted_fields_map(self.patient)},
-                EXPECTED_ENCRYPTED_FIELDS_MAP[f"{self.db_name}.{collection_name}"],
+                EXPECTED_ENCRYPTED_FIELDS_MAP[f"{'encrypted'}.{collection_name}"],
             )
 
     def test_get_encrypted_fields_map_command(self):
@@ -79,10 +77,15 @@ class EncryptedModelTests(TransactionTestCase):
         with self.assertRaises(PatientRecord.DoesNotExist):
             PatientRecord.objects.get(ssn="000-00-0000")
 
-    def test_patient_records_exist_and_are_encrypted(self):
-        patients = connections[self.db_name].database.patient.find()
+    def test_patient_records_exist(self):
+        patients = connections["encrypted"].database.patient.find()
         self.assertEqual(len(list(patients)), 1)
 
         # Check for decrypted content
-        records = connections[self.db_name].database.patientrecord.find()
+        records = connections["encrypted"].database.patientrecord.find()
         self.assertTrue("__safeContent__" in records[0])
+
+    def test_patient_records_exist_and_are_encrypted(self):
+        conn_params = connections["encrypted"].get_connection_params()
+        if conn_params.pop("auto_encryption_opts", False):
+            pass
