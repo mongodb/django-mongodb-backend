@@ -3,6 +3,7 @@ from django_mongodb_backend.fields import (
     EncryptedBigIntegerField,
     EncryptedCharField,
     EncryptedDateField,
+    EncryptedDateTimeField,
     EncryptedIntegerField,
     EncryptedTextField,
 )
@@ -33,6 +34,7 @@ class Patient(EncryptedModel):
     patient_id = EncryptedIntegerField("patient_id")
     patient_name = EncryptedCharField(max_length=100)
     patient_notes = EncryptedTextField(queries=QueryType.equality())
+    registration_date = EncryptedDateTimeField(queries=QueryType.equality())
 
     # TODO: Embed PatientRecord model
     # patient_record =

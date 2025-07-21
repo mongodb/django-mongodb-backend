@@ -1,5 +1,6 @@
 import json
 import sys
+from datetime import datetime
 from io import StringIO
 
 import bson
@@ -30,6 +31,7 @@ EXPECTED_ENCRYPTED_FIELDS_MAP = {
             {"bsonType": "int", "path": "patient_id"},
             {"bsonType": "string", "path": "patient_name"},
             {"bsonType": "string", "path": "patient_notes", "queries": {"queryType": "equality"}},
+            {"bsonType": "date", "path": "registration_date", "queries": {"queryType": "equality"}},
         ]
     },
 }
@@ -60,7 +62,11 @@ class EncryptedModelTests(TransactionTestCase):
         self.patientrecord.save()
 
         self.patient = Patient(
-            patient_id=1, patient_age=47, patient_name="John Doe", patient_notes=PATIENT_NOTES
+            patient_id=1,
+            patient_age=47,
+            patient_name="John Doe",
+            patient_notes=PATIENT_NOTES,
+            registration_date=datetime(2023, 10, 1, 12, 0, 0),
         )
         self.patient.save()
 
@@ -104,6 +110,12 @@ class EncryptedModelTests(TransactionTestCase):
         self.assertFalse(Patient.objects.filter(patient_age__gte=200).exists())
         self.assertEqual(
             Patient.objects.get(patient_notes=PATIENT_NOTES).patient_notes, PATIENT_NOTES
+        )
+        self.assertTrue(
+            Patient.objects.get(
+                registration_date=datetime(2023, 10, 1, 12, 0, 0)
+            ).registration_date,
+            datetime(2023, 10, 1, 12, 0, 0),
         )
 
     def test_patient_record_exists(self):
