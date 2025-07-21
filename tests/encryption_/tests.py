@@ -17,6 +17,7 @@ EXPECTED_ENCRYPTED_FIELDS_MAP = {
         "fields": [
             {"bsonType": "string", "path": "cc_type", "queries": {"queryType": "equality"}},
             {"bsonType": "long", "path": "cc_number", "queries": {"queryType": "equality"}},
+            {"bsonType": "decimal", "path": "account_balance", "queries": {"queryType": "range"}},
         ]
     },
     "encrypted.patientrecord": {
@@ -56,7 +57,7 @@ class EncryptedModelTests(TransactionTestCase):
 
     @classmethod
     def setUp(self):
-        self.billing = Billing(cc_type="Visa", cc_number=1234567890123456)
+        self.billing = Billing(cc_type="Visa", cc_number=1234567890123456, account_balance=100.50)
         self.billing.save()
 
         self.patientrecord = PatientRecord(ssn="123-45-6789", birth_date="1970-01-01")
@@ -102,6 +103,7 @@ class EncryptedModelTests(TransactionTestCase):
             Billing.objects.get(cc_number=1234567890123456).cc_number, 1234567890123456
         )
         self.assertEqual(Billing.objects.get(cc_type="Visa").cc_type, "Visa")
+        self.assertTrue(Billing.objects.filter(account_balance__gte=100.0).exists())
 
     def test_patientrecord(self):
         # Test range queries and equality queries on encrypted fields.
@@ -123,7 +125,6 @@ class EncryptedModelTests(TransactionTestCase):
             ).registration_date,
             datetime(2023, 10, 1, 12, 0, 0),
         )
-
         self.assertTrue(Patient.objects.filter(weight__gte=175.0).exists())
 
         # Test that the patient record exists in the encrypted database.

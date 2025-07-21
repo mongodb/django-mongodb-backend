@@ -39,6 +39,10 @@ class EncryptedDateTimeField(EncryptedFieldMixin, models.DateTimeField):
     pass
 
 
+class EncryptedDecimalField(EncryptedFieldMixin, models.DecimalField):
+    pass
+
+
 class EncryptedFloatField(EncryptedFieldMixin, models.FloatField):
     pass
 

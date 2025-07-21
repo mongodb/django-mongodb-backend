@@ -4,6 +4,7 @@ from django_mongodb_backend.fields import (
     EncryptedCharField,
     EncryptedDateField,
     EncryptedDateTimeField,
+    EncryptedDecimalField,
     EncryptedFloatField,
     EncryptedIntegerField,
     EncryptedTextField,
@@ -14,6 +15,9 @@ from django_mongodb_backend.models import EncryptedModel
 class Billing(EncryptedModel):
     cc_type = EncryptedCharField(max_length=20, queries=QueryType.equality())
     cc_number = EncryptedBigIntegerField(queries=QueryType.equality())
+    account_balance = EncryptedDecimalField(
+        max_digits=10, decimal_places=2, queries=QueryType.range()
+    )
 
     class Meta:
         db_table = "billing"
