@@ -106,7 +106,7 @@ class QueryingTests(TestCase):
                 ),
             ],
         )
-        cls.new_descoveries = Exhibit.objects.create(
+        cls.new_discoveries = Exhibit.objects.create(
             name="New Discoveries",
             sections=[
                 Section(
@@ -175,7 +175,7 @@ class QueryingTests(TestCase):
 
     def test_array_slice(self):
         self.assertSequenceEqual(
-            Exhibit.objects.filter(sections__0_1__number=2), [self.new_descoveries]
+            Exhibit.objects.filter(sections__0_1__number=2), [self.new_discoveries]
         )
 
     def test_filter_unsupported_lookups_in_json(self):
@@ -190,7 +190,7 @@ class QueryingTests(TestCase):
         self.assertCountEqual(Exhibit.objects.filter(sections__len=10), [])
         self.assertCountEqual(
             Exhibit.objects.filter(sections__len=1),
-            [self.egypt, self.new_descoveries],
+            [self.egypt, self.new_discoveries],
         )
         # Nested EMF
         self.assertCountEqual(
@@ -210,26 +210,26 @@ class QueryingTests(TestCase):
         )
         self.assertCountEqual(
             Exhibit.objects.filter(sections__number__in=[2]),
-            [self.new_descoveries, self.wonders],
+            [self.new_discoveries, self.wonders],
         )
         self.assertCountEqual(Exhibit.objects.filter(sections__number__in=[3]), [])
 
     def test_iexact(self):
         self.assertCountEqual(
             Exhibit.objects.filter(sections__artifacts__0__name__iexact="lightHOuse of aLexandriA"),
-            [self.new_descoveries, self.wonders],
+            [self.new_discoveries, self.wonders],
         )
 
     def test_gt(self):
         self.assertCountEqual(
             Exhibit.objects.filter(sections__number__gt=1),
-            [self.new_descoveries, self.wonders],
+            [self.new_discoveries, self.wonders],
         )
 
     def test_gte(self):
         self.assertCountEqual(
             Exhibit.objects.filter(sections__number__gte=1),
-            [self.egypt, self.new_descoveries, self.wonders],
+            [self.egypt, self.new_discoveries, self.wonders],
         )
 
     def test_lt(self):
@@ -240,7 +240,7 @@ class QueryingTests(TestCase):
     def test_lte(self):
         self.assertCountEqual(
             Exhibit.objects.filter(sections__number__lte=2),
-            [self.egypt, self.wonders, self.new_descoveries],
+            [self.egypt, self.wonders, self.new_discoveries],
         )
 
     def test_querying_array_not_allowed(self):
@@ -296,11 +296,11 @@ class QueryingTests(TestCase):
             section_number__in=models.OuterRef("sections__number")
         ).values("section_number")[:1]
         tests = [
-            ("exact", [self.egypt, self.new_descoveries, self.wonders]),
+            ("exact", [self.egypt, self.new_discoveries, self.wonders]),
             ("lt", []),
-            ("lte", [self.egypt, self.new_descoveries, self.wonders]),
+            ("lte", [self.egypt, self.new_discoveries, self.wonders]),
             ("gt", [self.wonders]),
-            ("gte", [self.egypt, self.new_descoveries, self.wonders]),
+            ("gte", [self.egypt, self.new_discoveries, self.wonders]),
         ]
         for lookup, expected in tests:
             with self.subTest(lookup=lookup):
@@ -310,28 +310,28 @@ class QueryingTests(TestCase):
     def test_subquery_in_lookup(self):
         subquery = Audit.objects.filter(reviewed=True).values_list("section_number", flat=True)
         result = Exhibit.objects.filter(sections__number__in=subquery)
-        self.assertCountEqual(result, [self.wonders, self.new_descoveries, self.egypt])
+        self.assertCountEqual(result, [self.wonders, self.new_discoveries, self.egypt])
 
     def test_array_as_rhs(self):
         result = Exhibit.objects.filter(main_section__number__in=models.F("sections__number"))
-        self.assertCountEqual(result, [self.new_descoveries])
+        self.assertCountEqual(result, [self.new_discoveries])
 
     def test_array_annotation_lookup(self):
         result = Exhibit.objects.annotate(section_numbers=models.F("main_section__number")).filter(
             section_numbers__in=models.F("sections__number")
         )
-        self.assertCountEqual(result, [self.new_descoveries])
+        self.assertCountEqual(result, [self.new_discoveries])
 
     def test_array_as_rhs_for_arrayfield_lookups(self):
         tests = [
             ("exact", [self.wonders]),
-            ("lt", [self.new_descoveries]),
-            ("lte", [self.wonders, self.new_descoveries]),
+            ("lt", [self.new_discoveries]),
+            ("lte", [self.wonders, self.new_discoveries]),
             ("gt", [self.egypt, self.lost_empires]),
             ("gte", [self.egypt, self.wonders, self.lost_empires]),
-            ("overlap", [self.egypt, self.wonders, self.new_descoveries]),
+            ("overlap", [self.egypt, self.wonders, self.new_discoveries]),
             ("contained_by", [self.wonders]),
-            ("contains", [self.egypt, self.wonders, self.new_descoveries, self.lost_empires]),
+            ("contains", [self.egypt, self.wonders, self.new_discoveries, self.lost_empires]),
         ]
         for lookup, expected in tests:
             with self.subTest(lookup=lookup):
@@ -350,7 +350,7 @@ class QueryingTests(TestCase):
         result = Exhibit.objects.annotate(section_numbers=models.F("sections__number")).filter(
             section_numbers__0=1
         )
-        self.assertCountEqual(result, [self.new_descoveries, self.egypt])
+        self.assertCountEqual(result, [self.new_discoveries, self.egypt])
 
     def test_array_annotation(self):
         qs = Exhibit.objects.annotate(section_numbers=models.F("sections__number")).order_by("name")
