@@ -15,6 +15,8 @@ In addition, :meth:`QuerySet.delete() <django.db.models.query.QuerySet.delete>`
 and :meth:`update() <django.db.models.query.QuerySet.update>` do not support
 queries that span multiple collections.
 
+.. _queryset-explain:
+
 ``QuerySet.explain()``
 ======================
 
@@ -28,6 +30,24 @@ Example::
 
 Valid values for ``verbosity`` are ``"queryPlanner"`` (default),
 ``"executionStats"``, and ``"allPlansExecution"``.
+
+The result of ``explain()`` is a string::
+
+    >>> print(Model.objects.explain())
+    {
+        "explainVersion": "1",
+        "queryPlanner": {
+            ...
+        },
+        ...
+    }
+
+that can be parsed as JSON::
+
+    >>> from bson import json_util
+    >>> result = Model.objects.filter(name="MongoDB").explain()
+    >>> json_util.loads(result)['command']["pipeline"]
+    [{'$match': {'$expr': {'$eq': ['$name', 'MongoDB']}}}]
 
 MongoDB-specific ``QuerySet`` methods
 =====================================
