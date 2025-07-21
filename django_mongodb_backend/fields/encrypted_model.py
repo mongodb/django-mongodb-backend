@@ -33,3 +33,7 @@ class EncryptedIntegerField(EncryptedFieldMixin, models.IntegerField):
 
 class EncryptedBigIntegerField(EncryptedFieldMixin, models.BigIntegerField):
     pass
+
+
+class EncryptedTextField(EncryptedFieldMixin, models.TextField):
+    pass

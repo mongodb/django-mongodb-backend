@@ -3,6 +3,7 @@ from django_mongodb_backend.fields import (
     EncryptedBigIntegerField,
     EncryptedCharField,
     EncryptedIntegerField,
+    EncryptedTextField,
 )
 from django_mongodb_backend.models import EncryptedModel
 
@@ -17,6 +18,7 @@ class Billing(EncryptedModel):
 
 class PatientRecord(EncryptedModel):
     ssn = EncryptedCharField(max_length=11, queries=QueryType.equality())
+    notes = EncryptedTextField(queries=QueryType.equality())
 
     # TODO: Embed Billing model
     # billing =
