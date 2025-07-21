@@ -27,6 +27,14 @@ class EncryptedCharField(EncryptedFieldMixin, models.CharField):
     pass
 
 
+class EncryptedDateField(EncryptedFieldMixin, models.DateField):
+    pass
+
+
+class EncryptedDateTimeField(EncryptedFieldMixin, models.DateTimeField):
+    pass
+
+
 class EncryptedIntegerField(EncryptedFieldMixin, models.IntegerField):
     pass
 

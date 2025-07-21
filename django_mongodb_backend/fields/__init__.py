@@ -6,6 +6,8 @@ from .embedded_model_array import EmbeddedModelArrayField
 from .encrypted_model import (
     EncryptedBigIntegerField,
     EncryptedCharField,
+    EncryptedDateField,
+    EncryptedDateTimeField,
     EncryptedIntegerField,
     EncryptedTextField,
 )
@@ -19,6 +21,8 @@ __all__ = [
     "EmbeddedModelField",
     "EncryptedBigIntegerField",
     "EncryptedCharField",
+    "EncryptedDateTimeField",
+    "EncryptedDateField",
     "EncryptedIntegerField",
     "EncryptedTextField",
     "ObjectIdAutoField",

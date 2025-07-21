@@ -21,7 +21,7 @@ EXPECTED_ENCRYPTED_FIELDS_MAP = {
     "encrypted.patientrecord": {
         "fields": [
             {"bsonType": "string", "path": "ssn", "queries": {"queryType": "equality"}},
-            {"bsonType": "string", "path": "notes", "queries": {"queryType": "equality"}},
+            {"bsonType": "date", "path": "birth_date", "queries": {"queryType": "range"}},
         ]
     },
     "encrypted.patient": {
@@ -29,6 +29,7 @@ EXPECTED_ENCRYPTED_FIELDS_MAP = {
             {"bsonType": "int", "path": "patient_age", "queries": {"queryType": "range"}},
             {"bsonType": "int", "path": "patient_id"},
             {"bsonType": "string", "path": "patient_name"},
+            {"bsonType": "string", "path": "patient_notes", "queries": {"queryType": "equality"}},
         ]
     },
 }
@@ -55,10 +56,12 @@ class EncryptedModelTests(TransactionTestCase):
         self.billing = Billing(cc_type="Visa", cc_number=1234567890123456)
         self.billing.save()
 
-        self.patientrecord = PatientRecord(ssn="123-45-6789", notes=PATIENT_NOTES)
+        self.patientrecord = PatientRecord(ssn="123-45-6789", birth_date="1970-01-01")
         self.patientrecord.save()
 
-        self.patient = Patient(patient_id=1, patient_age=47, patient_name="John Doe")
+        self.patient = Patient(
+            patient_id=1, patient_age=47, patient_name="John Doe", patient_notes=PATIENT_NOTES
+        )
         self.patient.save()
 
         # TODO: Embed billing and patient_record models in patient model then add tests
@@ -94,11 +97,14 @@ class EncryptedModelTests(TransactionTestCase):
         self.assertEqual(PatientRecord.objects.get(ssn="123-45-6789").ssn, "123-45-6789")
         with self.assertRaises(PatientRecord.DoesNotExist):
             PatientRecord.objects.get(ssn="000-00-0000")
-        self.assertEqual(PatientRecord.objects.get(notes=PATIENT_NOTES).notes, PATIENT_NOTES)
+        self.assertTrue(PatientRecord.objects.filter(birth_date__gte="1969-01-01").exists())
 
     def test_patient(self):
         self.assertTrue(Patient.objects.filter(patient_age__gte=40).exists())
         self.assertFalse(Patient.objects.filter(patient_age__gte=200).exists())
+        self.assertEqual(
+            Patient.objects.get(patient_notes=PATIENT_NOTES).patient_notes, PATIENT_NOTES
+        )
 
     def test_patient_record_exists(self):
         patients = connections["encrypted"].database.patient.find()
