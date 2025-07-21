@@ -23,6 +23,10 @@ class EncryptedFieldMixin(models.Field):
         return name, path, args, kwargs
 
 
+class EncryptedBigIntegerField(EncryptedFieldMixin, models.BigIntegerField):
+    pass
+
+
 class EncryptedCharField(EncryptedFieldMixin, models.CharField):
     pass
 
@@ -35,11 +39,11 @@ class EncryptedDateTimeField(EncryptedFieldMixin, models.DateTimeField):
     pass
 
 
-class EncryptedIntegerField(EncryptedFieldMixin, models.IntegerField):
+class EncryptedFloatField(EncryptedFieldMixin, models.FloatField):
     pass
 
 
-class EncryptedBigIntegerField(EncryptedFieldMixin, models.BigIntegerField):
+class EncryptedIntegerField(EncryptedFieldMixin, models.IntegerField):
     pass
 
 

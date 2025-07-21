@@ -8,6 +8,7 @@ from .encrypted_model import (
     EncryptedCharField,
     EncryptedDateField,
     EncryptedDateTimeField,
+    EncryptedFloatField,
     EncryptedIntegerField,
     EncryptedTextField,
 )
@@ -23,6 +24,7 @@ __all__ = [
     "EncryptedCharField",
     "EncryptedDateTimeField",
     "EncryptedDateField",
+    "EncryptedFloatField",
     "EncryptedIntegerField",
     "EncryptedTextField",
     "ObjectIdAutoField",
