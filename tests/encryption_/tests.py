@@ -2,6 +2,8 @@ import json
 import sys
 from io import StringIO
 
+import bson
+import pymongo
 from django.core.management import call_command
 from django.db import connections
 from django.test import TransactionTestCase, modify_settings, override_settings
@@ -77,7 +79,7 @@ class EncryptedModelTests(TransactionTestCase):
         with self.assertRaises(PatientRecord.DoesNotExist):
             PatientRecord.objects.get(ssn="000-00-0000")
 
-    def test_patient_records_exist(self):
+    def test_patient_record_exists(self):
         patients = connections["encrypted"].database.patient.find()
         self.assertEqual(len(list(patients)), 1)
 
@@ -85,7 +87,15 @@ class EncryptedModelTests(TransactionTestCase):
         records = connections["encrypted"].database.patientrecord.find()
         self.assertTrue("__safeContent__" in records[0])
 
-    def test_patient_records_exist_and_are_encrypted(self):
+    def test_patient_record_exists_and_is_encrypted(self):
+        # Check that the patient record is encrypted from an unencrypted connection.
         conn_params = connections["encrypted"].get_connection_params()
         if conn_params.pop("auto_encryption_opts", False):
-            pass
+            # Call MongoClient instead of get_new_connection because
+            # get_new_connection will return the encrypted connection
+            # from the connection pool.
+            connection = pymongo.MongoClient(**conn_params)
+            patientrecords = connection["test_encrypted"].patientrecord.find()
+            ssn = patientrecords[0]["ssn"]
+            self.assertTrue(isinstance(ssn, bson.binary.Binary))
+            connection.close()
