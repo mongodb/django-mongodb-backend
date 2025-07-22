@@ -38,8 +38,8 @@ class MongoSerializer:
                 pickled_data = self._get_pickled(obj)
                 return (pickled_data, True, self._get_signature(pickled_data) if self.signer else None)
 
-    def loads(self, data:Any, pickled:bool, signature=None) -> Any:
-        if pickled:
+    def loads(self, data:Any, is_pickled:bool, signature=None) -> Any:
+        if is_pickled:
             try:
                 if self.signer is not None:
                     # constant time compare is not required due to how data is retrieved
