@@ -12,7 +12,65 @@ def cast_as_field(path):
     return F(path) if isinstance(path, str) else path
 
 
-class SearchExpression(Expression):
+class Operator:
+    AND = "AND"
+    OR = "OR"
+    NOT = "NOT"
+
+    def __init__(self, operator):
+        self.operator = operator
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return self.operator == other
+        return self.operator == other.operator
+
+    def negate(self):
+        if self.operator == self.AND:
+            return Operator(self.OR)
+        if self.operator == self.OR:
+            return Operator(self.AND)
+        return Operator(self.operator)
+
+    def __hash__(self):
+        return hash(self.operator)
+
+    def __str__(self):
+        return self.operator
+
+    def __repr__(self):
+        return self.operator
+
+
+class SearchCombinable:
+    def _combine(self, other, connector):
+        if not isinstance(self, CompoundExpression | CombinedSearchExpression):
+            lhs = CompoundExpression(must=[self])
+        else:
+            lhs = self
+        if other and not isinstance(other, CompoundExpression | CombinedSearchExpression):
+            rhs = CompoundExpression(must=[other])
+        else:
+            rhs = other
+        return CombinedSearchExpression(lhs, connector, rhs)
+
+    def __invert__(self):
+        return self._combine(None, Operator(Operator.NOT))
+
+    def __and__(self, other):
+        return self._combine(other, Operator(Operator.AND))
+
+    def __rand__(self, other):
+        return self._combine(other, Operator(Operator.AND))
+
+    def __or__(self, other):
+        return self._combine(other, Operator(Operator.OR))
+
+    def __ror__(self, other):
+        return self._combine(other, Operator(Operator.OR))
+
+
+class SearchExpression(SearchCombinable, Expression):
     """Base expression node for MongoDB Atlas `$search` stages.
 
     This class bridges Django's `Expression` API with the MongoDB Atlas
@@ -675,6 +733,149 @@ class SearchMoreLikeThis(SearchExpression):
         for doc in self.documents.value:
             needed_fields.update(set(doc.keys()))
         return needed_fields
+
+
+class CompoundExpression(SearchExpression):
+    """
+    Compound expression that combines multiple search clauses using boolean logic.
+
+    This expression corresponds to the `compound` operator in MongoDB Atlas Search,
+    allowing fine-grained control by combining multiple sub-expressions with
+    `must`, `must_not`, `should`, and `filter` clauses.
+
+    Example:
+        CompoundExpression(
+            must=[expr1, expr2],
+            must_not=[expr3],
+            should=[expr4],
+            minimum_should_match=1
+        )
+
+    Args:
+        must: List of expressions that **must** match.
+        must_not: List of expressions that **must not** match.
+        should: List of expressions that **should** match (optional relevance boost).
+        filter: List of expressions to filter results without affecting relevance.
+        score: Optional expression to adjust scoring.
+        minimum_should_match: Minimum number of `should` clauses that must match.
+
+    Reference: https://www.mongodb.com/docs/atlas/atlas-search/compound/
+    """
+
+    def __init__(
+        self,
+        must=None,
+        must_not=None,
+        should=None,
+        filter=None,
+        score=None,
+        minimum_should_match=None,
+    ):
+        self.must = must or []
+        self.must_not = must_not or []
+        self.should = should or []
+        self.filter = filter or []
+        self.score = score
+        self.minimum_should_match = minimum_should_match
+
+    def get_search_fields(self, compiler, connection):
+        fields = set()
+        for clause in self.must + self.should + self.filter + self.must_not:
+            fields.update(clause.get_search_fields(compiler, connection))
+        return fields
+
+    def resolve_expression(
+        self, query=None, allow_joins=True, reuse=None, summarize=False, for_save=False
+    ):
+        c = self.copy()
+        c.is_summary = summarize
+        c.must = [
+            expr.resolve_expression(query, allow_joins, reuse, summarize) for expr in self.must
+        ]
+        c.must_not = [
+            expr.resolve_expression(query, allow_joins, reuse, summarize) for expr in self.must_not
+        ]
+        c.should = [
+            expr.resolve_expression(query, allow_joins, reuse, summarize) for expr in self.should
+        ]
+        c.filter = [
+            expr.resolve_expression(query, allow_joins, reuse, summarize) for expr in self.filter
+        ]
+        return c
+
+    def search_operator(self, compiler, connection):
+        params = {}
+        if self.must:
+            params["must"] = [clause.search_operator(compiler, connection) for clause in self.must]
+        if self.must_not:
+            params["mustNot"] = [
+                clause.search_operator(compiler, connection) for clause in self.must_not
+            ]
+        if self.should:
+            params["should"] = [
+                clause.search_operator(compiler, connection) for clause in self.should
+            ]
+        if self.filter:
+            params["filter"] = [
+                clause.search_operator(compiler, connection) for clause in self.filter
+            ]
+        if self.minimum_should_match is not None:
+            params["minimumShouldMatch"] = self.minimum_should_match
+        return {"compound": params}
+
+    def negate(self):
+        return CompoundExpression(must_not=[self])
+
+
+class CombinedSearchExpression(SearchExpression):
+    """
+    Combines two search expressions with a logical operator.
+
+    This expression allows combining two Atlas Search expressions
+    (left-hand side and right-hand side) using a boolean operator
+    such as `and`, `or`, or `not`.
+
+    Example:
+        CombinedSearchExpression(expr1, "and", expr2)
+
+    Args:
+        lhs: The left-hand search expression.
+        operator: The boolean operator as a string (e.g., "and", "or", "not").
+        rhs: The right-hand search expression.
+    """
+
+    def __init__(self, lhs, operator, rhs):
+        self.lhs = lhs
+        self.operator = operator
+        self.rhs = rhs
+
+    def get_source_expressions(self):
+        return [self.lhs, self.rhs]
+
+    def set_source_expressions(self, exprs):
+        self.lhs, self.rhs = exprs
+
+    @staticmethod
+    def resolve(node, negated=False):
+        if node is None:
+            return None
+        # Leaf, resolve the compoundExpression
+        if isinstance(node, CompoundExpression):
+            return node.negate() if negated else node
+        # Apply De Morgan's Laws.
+        operator = node.operator.negate() if negated else node.operator
+        negated = negated != (node.operator == Operator.NOT)
+        lhs_compound = node.resolve(node.lhs, negated)
+        rhs_compound = node.resolve(node.rhs, negated)
+        if operator == Operator.OR:
+            return CompoundExpression(should=[lhs_compound, rhs_compound], minimum_should_match=1)
+        if operator == Operator.AND:
+            return CompoundExpression(must=[lhs_compound, rhs_compound])
+        return lhs_compound
+
+    def as_mql(self, compiler, connection):
+        expression = self.resolve(self)
+        return expression.as_mql(compiler, connection)
 
 
 class SearchScoreOption(Expression):
