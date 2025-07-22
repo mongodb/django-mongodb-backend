@@ -19,48 +19,21 @@ For development and testing, users may use the helper functions in
 :mod:`~django_mongodb_backend.encryption` to generate the necessary
 settings for Queryable Encryption.
 
-Helper functions and settings
-=============================
+Helper classes and settings
+===========================
 
-KMS providers
--------------
+Queryable Encryption helper classes and settings are provided to make it easier
+configure Queryable Encryption in Django. They are optional, and Queryable
+Encryption can be used in Django without them.
 
-KMS_PROVIDERS
-~~~~~~~~~~~~~
+``KMS_CREDENTIALS``
+-------------------
 
-E.g.::
-
-    import os
-
-    from django_mongodb_backend import encryption, parse_uri
-    from pymongo.encryption import AutoEncryptionOpts
-
-    DATABASE_URL = os.environ.get("MONGODB_URI", "mongodb://localhost:27017")
-    DATABASES = {
-        "default": parse_uri(
-            DATABASE_URL,
-            db_name="default",
-        ),
-        "encrypted": parse_uri(
-            DATABASE_URL,
-            options={
-                "auto_encryption_opts": AutoEncryptionOpts(
-                    key_vault_namespace=encryption.KEY_VAULT_NAMESPACE,
-                    kms_providers=encryption.KMS_PROVIDERS,
-                )
-            },
-            db_name="encrypted",
-        ),
-    }
-
-KMS_CREDENTIALS
-~~~~~~~~~~~~~~~
-
-Python Classes
---------------
+``KMS_PROVIDERS``
+-----------------
 
 ``EncryptedRouter``
-~~~~~~~~~~~~~~~~~~~
+-------------------
 
 ``QueryType``
-~~~~~~~~~~~~~
+-------------

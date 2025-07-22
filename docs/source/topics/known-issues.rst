@@ -98,3 +98,26 @@ Caching
 Secondly, you must use the :class:`django_mongodb_backend.cache.MongoDBCache`
 backend rather than Django's built-in database cache backend,
 ``django.core.cache.backends.db.DatabaseCache``.
+
+Queryable Encryption
+====================
+
++------------------------------+----------------------------------------------------------------------------------------------+
+| Limitation                   | Description                                                                                  |
++==============================+==============================================================================================+
+| Query Operator Restrictions  | Only $eq, $lt, $lte, $gt, $gte supported; many operators (e.g., $in, $regex) not supported.  |
++------------------------------+----------------------------------------------------------------------------------------------+
+| Schema/Data Type Limits      | Up to 3 encrypted fields per collection; not all BSON types, arrays, or documents supported. |
++------------------------------+----------------------------------------------------------------------------------------------+
+| Index Restrictions           | Only one encrypted field index per collection; no compound/unique indexes on encrypted data. |
++------------------------------+----------------------------------------------------------------------------------------------+
+| Driver/Deployment Needs      | Requires MongoDB 7.0+, supported drivers, and extra deployment configuration.                |
++------------------------------+----------------------------------------------------------------------------------------------+
+| Performance/Storage Overhead | Increased CPU and storage costs due to encryption and metadata.                              |
++------------------------------+----------------------------------------------------------------------------------------------+
+| No Text/Fuzzy Search         | No support for $regex, text, wildcard, or Atlas Search on encrypted fields.                  |
++------------------------------+----------------------------------------------------------------------------------------------+
+| Maintenance Complexity       | Key rotation and schema updates require careful planning and possible data migration.        |
++------------------------------+----------------------------------------------------------------------------------------------+
+| Transaction/Bulk Limitations | Some limitations in multi-document operations and transactions on encrypted fields.          |
++------------------------------+----------------------------------------------------------------------------------------------+
