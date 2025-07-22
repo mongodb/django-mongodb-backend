@@ -79,24 +79,18 @@ class EncryptedRouter:
         return "local"
 
 
-class QueryType:
-    """
-    Class that supports building encrypted equality and range queries
-    for MongoDB's Queryable Encryption.
-    """
-
-    @classmethod
-    def equality(cls, *, contention=None):
-        query = {"queryType": "equality"}
+class EqualityQuery(dict):
+    def __init__(self, *, contention=None):
+        super().__init__(queryType="equality")
         if contention is not None:
-            query["contention"] = contention
-        return query
+            self["contention"] = contention
 
-    @classmethod
-    def range(
-        cls, *, contention=None, max=None, min=None, precision=None, sparsity=None, trimFactor=None
+
+class RangeQuery(dict):
+    def __init__(
+        self, *, contention=None, max=None, min=None, precision=None, sparsity=None, trimFactor=None
     ):
-        query = {"queryType": "range"}
+        super().__init__(queryType="range")
         options = {
             "contention": contention,
             "max": max,
@@ -105,5 +99,4 @@ class QueryType:
             "sparsity": sparsity,
             "trimFactor": trimFactor,
         }
-        query.update({k: v for k, v in options.items() if v is not None})
-        return query
+        self.update({k: v for k, v in options.items() if v is not None})

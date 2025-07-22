@@ -1,4 +1,4 @@
-from django_mongodb_backend.encryption import QueryType
+from django_mongodb_backend.encryption import EqualityQuery, RangeQuery
 from django_mongodb_backend.fields import (
     EncryptedBigIntegerField,
     EncryptedBinaryField,
@@ -15,22 +15,20 @@ from django_mongodb_backend.models import EncryptedModel
 
 
 class Billing(EncryptedModel):
-    cc_type = EncryptedCharField(max_length=20, queries=QueryType.equality())
-    cc_number = EncryptedBigIntegerField(queries=QueryType.equality())
-    account_balance = EncryptedDecimalField(
-        max_digits=10, decimal_places=2, queries=QueryType.range()
-    )
+    cc_type = EncryptedCharField(max_length=20, queries=EqualityQuery())
+    cc_number = EncryptedBigIntegerField(queries=EqualityQuery())
+    account_balance = EncryptedDecimalField(max_digits=10, decimal_places=2, queries=RangeQuery())
 
     class Meta:
         db_table = "billing"
 
 
 class PatientRecord(EncryptedModel):
-    ssn = EncryptedCharField(max_length=11, queries=QueryType.equality())
-    birth_date = EncryptedDateField(queries=QueryType.range())
-    profile_picture = EncryptedBinaryField(queries=QueryType.equality())
-    patient_age = EncryptedIntegerField("patient_age", queries=QueryType.range())
-    weight = EncryptedFloatField(queries=QueryType.range())
+    ssn = EncryptedCharField(max_length=11, queries=EqualityQuery())
+    birth_date = EncryptedDateField(queries=RangeQuery())
+    profile_picture = EncryptedBinaryField(queries=EqualityQuery())
+    patient_age = EncryptedIntegerField("patient_age", queries=RangeQuery())
+    weight = EncryptedFloatField(queries=RangeQuery())
 
     # TODO: Embed Billing model
     # billing =
@@ -40,11 +38,11 @@ class PatientRecord(EncryptedModel):
 
 
 class Patient(EncryptedModel):
-    patient_id = EncryptedIntegerField("patient_id", queries=QueryType.equality())
+    patient_id = EncryptedIntegerField("patient_id", queries=EqualityQuery())
     patient_name = EncryptedCharField(max_length=100)
-    patient_notes = EncryptedTextField(queries=QueryType.equality())
-    registration_date = EncryptedDateTimeField(queries=QueryType.equality())
-    is_active = EncryptedBooleanField(queries=QueryType.equality())
+    patient_notes = EncryptedTextField(queries=EqualityQuery())
+    registration_date = EncryptedDateTimeField(queries=EqualityQuery())
+    is_active = EncryptedBooleanField(queries=EqualityQuery())
 
     # TODO: Embed PatientRecord model
     # patient_record =
