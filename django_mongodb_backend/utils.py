@@ -5,7 +5,6 @@ import django
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db.backends.utils import logger
-from django.db.utils import DEFAULT_DB_ALIAS
 from django.utils.functional import SimpleLazyObject
 from django.utils.text import format_lazy
 from django.utils.version import get_version_tuple
@@ -92,29 +91,6 @@ def prefix_validation_error(error, prefix, code, params):
     return ValidationError(
         [prefix_validation_error(e, prefix, code, params) for e in error.error_list]
     )
-
-
-def _router_func(action):
-    def _route_db(self, model, **hints):
-        chosen_db = None
-        for router in self.routers:
-            try:
-                method = getattr(router, action)
-            except AttributeError:
-                # If the router doesn't have a method, skip to the next one.
-                pass
-            else:
-                chosen_db = method(model, **hints)
-                if chosen_db:
-                    return chosen_db
-        instance = hints.get("instance")
-        if instance is not None and instance._state.db:
-            return instance._state.db
-        if getattr(model, "encrypted", False):
-            raise ImproperlyConfigured("No kms_provider found in database router.")
-        return DEFAULT_DB_ALIAS
-
-    return _route_db
 
 
 def set_wrapped_methods(cls):

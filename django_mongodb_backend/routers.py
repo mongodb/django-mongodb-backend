@@ -1,7 +1,6 @@
 from django.apps import apps
+from django.core.exceptions import ImproperlyConfigured
 from django.db.utils import ConnectionRouter
-
-from .utils import _router_func
 
 
 class MongoRouter:
@@ -24,10 +23,21 @@ class MongoRouter:
         return False if issubclass(model, EmbeddedModel) else None
 
 
+def kms_provider(self, model, *args, **kwargs):
+    for router in self.routers:
+        func = getattr(router, "kms_provider", None)
+        if func and callable(func):
+            result = func(model, *args, **kwargs)
+            if result is not None:
+                return result
+    if getattr(model, "encrypted", False):
+        raise ImproperlyConfigured("No kms_provider found in database router.")
+    return None
+
+
 def register_routers():
     """
     Patch the ConnectionRouter with methods to get KMS credentials and provider
     from the SchemaEditor.
     """
-
-    ConnectionRouter.kms_provider = _router_func("kms_provider")
+    ConnectionRouter.kms_provider = kms_provider
