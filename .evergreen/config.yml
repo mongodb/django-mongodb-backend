@@ -111,7 +111,7 @@ buildvariants:
       - name: run-tests
 
   - name: tests-7-noauth-nossl
-    display_name: Run Tests 6.0 NoAuth NoSSL
+    display_name: Run Tests 7.0 NoAuth NoSSL
     run_on: rhel87-small
     expansions:
       MONGODB_VERSION: "7.0"
@@ -122,7 +122,7 @@ buildvariants:
       - name: run-tests
 
   - name: tests-7-auth-ssl
-    display_name: Run Tests 6.0 Auth SSL
+    display_name: Run Tests 7.0 Auth SSL
     run_on: rhel87-small
     expansions:
       MONGODB_VERSION: "7.0"
