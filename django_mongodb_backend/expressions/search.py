@@ -1,3 +1,4 @@
+from django.db import NotSupportedError
 from django.db.models import Expression, FloatField
 from django.db.models.expressions import F, Value
 
@@ -876,6 +877,108 @@ class CombinedSearchExpression(SearchExpression):
     def as_mql(self, compiler, connection):
         expression = self.resolve(self)
         return expression.as_mql(compiler, connection)
+
+
+class SearchVector(SearchExpression):
+    """
+    Atlas Search expression that performs vector similarity search on embedded vectors.
+
+    This expression uses the **knnBeta** operator to find documents whose vector
+    embeddings are most similar to a given query vector.
+
+    Example:
+        SearchVector("embedding", [0.1, 0.2, 0.3], limit=10, num_candidates=100)
+
+    Args:
+        path: The document path to the vector field (as string or expression).
+        query_vector: The query vector to compare against.
+        limit: Maximum number of matching documents to return.
+        num_candidates: Optional number of candidates to consider during search.
+        exact: Optional flag to enforce exact matching.
+        filter: Optional filter expression to narrow candidate documents.
+
+    Reference: https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-stage/
+    """
+
+    def __init__(
+        self,
+        path,
+        query_vector,
+        limit,
+        num_candidates=None,
+        exact=None,
+        filter=None,
+    ):
+        self.path = cast_as_field(path)
+        self.query_vector = cast_as_value(query_vector)
+        self.limit = cast_as_value(limit)
+        self.num_candidates = cast_as_value(num_candidates)
+        self.exact = cast_as_value(exact)
+        self.filter = cast_as_value(filter)
+        super().__init__()
+
+    def __invert__(self):
+        return ValueError("SearchVector cannot be negated")
+
+    def __and__(self, other):
+        raise NotSupportedError("SearchVector cannot be combined")
+
+    def __rand__(self, other):
+        raise NotSupportedError("SearchVector cannot be combined")
+
+    def __or__(self, other):
+        raise NotSupportedError("SearchVector cannot be combined")
+
+    def __ror__(self, other):
+        raise NotSupportedError("SearchVector cannot be combined")
+
+    def get_search_fields(self, compiler, connection):
+        return {self.path.as_mql(compiler, connection, as_path=True)}
+
+    def get_source_expressions(self):
+        return [
+            self.path,
+            self.query_vector,
+            self.limit,
+            self.num_candidates,
+            self.exact,
+            self.filter,
+        ]
+
+    def set_source_expressions(self, exprs):
+        (
+            self.path,
+            self.query_vector,
+            self.limit,
+            self.num_candidates,
+            self.exact,
+            self.filter,
+        ) = exprs
+
+    def _get_query_index(self, fields, compiler):
+        for search_indexes in compiler.collection.list_search_indexes():
+            if search_indexes["type"] == "vectorSearch":
+                index_field = {
+                    field["path"] for field in search_indexes["latestDefinition"]["fields"]
+                }
+                if fields.issubset(index_field):
+                    return search_indexes["name"]
+        return "default"
+
+    def as_mql(self, compiler, connection):
+        params = {
+            "index": self._get_query_index(self.get_search_fields(compiler, connection), compiler),
+            "path": self.path.as_mql(compiler, connection, as_path=True),
+            "queryVector": self.query_vector.value,
+            "limit": self.limit.value,
+        }
+        if self.num_candidates is not None:
+            params["numCandidates"] = self.num_candidates.value
+        if self.exact is not None:
+            params["exact"] = self.exact.value
+        if self.filter is not None:
+            params["filter"] = self.filter.as_mql(compiler, connection)
+        return {"$vectorSearch": params}
 
 
 class SearchScoreOption(Expression):
