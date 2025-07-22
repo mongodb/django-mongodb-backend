@@ -25,11 +25,9 @@ KMS_CREDENTIALS = {
     "kmip": {},
     "local": {},
 }
+
 KMS_PROVIDERS = {
-    "aws": {
-        "accessKeyId": os.getenv("AWS_ACCESS_KEY_ID", "not an access key"),
-        "secretAccessKey": os.getenv("AWS_SECRET_ACCESS_KEY", "not a secret key"),
-    },
+    "aws": {},
     "azure": {
         "tenantId": os.getenv("AZURE_TENANT_ID", "not a tenant ID"),
         "clientId": os.getenv("AZURE_CLIENT_ID", "not a client ID"),

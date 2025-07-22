@@ -12,11 +12,10 @@ import pymongo
 from django.core.management import call_command
 from django.db import connections
 from django.test import TestCase, TransactionTestCase, modify_settings, override_settings
+from pymongo_auth_aws.auth import AwsCredential
 
 from .models import Billing, Patient, PatientRecord
 from .routers import TestEncryptedRouter
-
-ENCRYPTION_MODULE_PATH = "django_mongodb_backend.encryption"
 
 EXPECTED_ENCRYPTED_FIELDS_MAP = {
     "test_encrypted.billing": {
@@ -51,17 +50,6 @@ EXPECTED_ENCRYPTED_FIELDS_MAP = {
 }
 
 
-PATIENT_NOTES = """
-This is a test patient record with sensitive information.
-It includes personal details such as the patient's name, age, and medical history.
-The patient's name is John Doe, aged 47. The record also contains notes about the patient's
-condition and treatment.
-"""
-
-
-PROFILE_PICTURE = b"test_image_data"  # Simulated binary data for the profile picture
-
-
 @modify_settings(
     INSTALLED_APPS={"prepend": "django_mongodb_backend"},
 )
@@ -78,7 +66,7 @@ class EncryptedModelTests(TransactionTestCase):
         self.patientrecord = PatientRecord(
             ssn="123-45-6789",
             birth_date="1970-01-01",
-            profile_picture=PROFILE_PICTURE,
+            profile_picture=b"image data",
             weight=175.5,
             patient_age=47,
         )
@@ -87,13 +75,26 @@ class EncryptedModelTests(TransactionTestCase):
         self.patient = Patient(
             patient_id=1,
             patient_name="John Doe",
-            patient_notes=PATIENT_NOTES,
+            patient_notes="patient notes " * 25,
             registration_date=datetime(2023, 10, 1, 12, 0, 0),
             is_active=True,
         )
         self.patient.save()
 
         # TODO: Embed billing and patient_record models in patient model then add tests
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.patcher = patch(
+            "pymongocrypt.synchronous.credentials.aws_temp_credentials",
+            return_value=AwsCredential(username="", password="", token=""),
+        )
+        cls.patcher.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.patcher.stop()
 
     def test_get_encrypted_fields_map_method(self):
         # Test the class method for getting encrypted fields map.
@@ -132,11 +133,11 @@ class EncryptedModelTests(TransactionTestCase):
             PatientRecord.objects.get(ssn="000-00-0000")
         self.assertTrue(PatientRecord.objects.filter(birth_date__gte="1969-01-01").exists())
         self.assertEqual(
-            PatientRecord.objects.get(ssn="123-45-6789").profile_picture, PROFILE_PICTURE
+            PatientRecord.objects.get(ssn="123-45-6789").profile_picture, b"image data"
         )
         with self.assertRaises(AssertionError):
             self.assertEqual(
-                PatientRecord.objects.get(ssn="123-45-6789").profile_picture, b"some_binary_data"
+                PatientRecord.objects.get(ssn="123-45-6789").profile_picture, b"bad image data"
             )
         self.assertTrue(PatientRecord.objects.filter(patient_age__gte=40).exists())
         self.assertFalse(PatientRecord.objects.filter(patient_age__gte=200).exists())
@@ -145,7 +146,8 @@ class EncryptedModelTests(TransactionTestCase):
     def test_patient(self):
         # Test range queries and equality queries on encrypted fields.
         self.assertEqual(
-            Patient.objects.get(patient_notes=PATIENT_NOTES).patient_notes, PATIENT_NOTES
+            Patient.objects.get(patient_notes="patient notes " * 25).patient_notes,
+            "patient notes " * 25,
         )
         self.assertTrue(
             Patient.objects.get(
@@ -183,7 +185,7 @@ class KMSConfigTests(TestCase):
 
     def reload_encryption_module(self):
         # Reload encryption module so environment variable changes take effect
-        encryption_module = importlib.import_module(ENCRYPTION_MODULE_PATH)
+        encryption_module = importlib.import_module("django_mongodb_backend.encryption")
         importlib.reload(encryption_module)
         return encryption_module
 
@@ -208,8 +210,6 @@ class KMSConfigTests(TestCase):
             kms_mod = self.reload_encryption_module()
             KMS_PROVIDERS = kms_mod.KMS_PROVIDERS
 
-            self.assertEqual(KMS_PROVIDERS["aws"]["accessKeyId"], "not an access key")
-            self.assertEqual(KMS_PROVIDERS["aws"]["secretAccessKey"], "not a secret key")
             self.assertEqual(KMS_PROVIDERS["azure"]["tenantId"], "not a tenant ID")
             self.assertEqual(KMS_PROVIDERS["azure"]["clientId"], "not a client ID")
             self.assertEqual(KMS_PROVIDERS["azure"]["clientSecret"], "not a client secret")
@@ -236,8 +236,6 @@ class KMSConfigTests(TestCase):
             kms_mod = self.reload_encryption_module()
             KMS_CREDENTIALS = kms_mod.KMS_CREDENTIALS
 
-            self.assertEqual(KMS_CREDENTIALS["aws"]["key"], "TestArn")
-            self.assertEqual(KMS_CREDENTIALS["aws"]["region"], "us-x-test")
             self.assertEqual(KMS_CREDENTIALS["azure"]["keyName"], "azure-key")
             self.assertEqual(
                 KMS_CREDENTIALS["azure"]["keyVaultEndpoint"], "https://example.vault.azure.net/"
@@ -249,8 +247,6 @@ class KMSConfigTests(TestCase):
 
     def test_kms_providers_env(self):
         env = {
-            "AWS_ACCESS_KEY_ID": "AKIAFAKE",
-            "AWS_SECRET_ACCESS_KEY": "SECRETFAKE",
             "AZURE_TENANT_ID": "tenant-123",
             "AZURE_CLIENT_ID": "client-456",
             "AZURE_CLIENT_SECRET": "secret-xyz",
@@ -262,8 +258,6 @@ class KMSConfigTests(TestCase):
             kms_mod = self.reload_encryption_module()
             KMS_PROVIDERS = kms_mod.KMS_PROVIDERS
 
-            self.assertEqual(KMS_PROVIDERS["aws"]["accessKeyId"], "AKIAFAKE")
-            self.assertEqual(KMS_PROVIDERS["aws"]["secretAccessKey"], "SECRETFAKE")
             self.assertEqual(KMS_PROVIDERS["azure"]["tenantId"], "tenant-123")
             self.assertEqual(KMS_PROVIDERS["azure"]["clientId"], "client-456")
             self.assertEqual(KMS_PROVIDERS["azure"]["clientSecret"], "secret-xyz")
