@@ -10,6 +10,7 @@ Django MongoDB Backend 5.2.x
 New features
 ------------
 
+- Added support for :doc:`Atlas Search queries </ref/models/search>`.
 - Added subquery support for :class:`~.fields.EmbeddedModelArrayField`.
 - Added the ``options`` parameter to
   :func:`~django_mongodb_backend.utils.parse_uri`.

@@ -11,3 +11,4 @@ Model API reference.
    querysets
    models
    indexes
+   search

@@ -184,12 +184,16 @@ class KeyTransform(Transform):
             f"{suggestion}"
         )
 
-    def as_mql(self, compiler, connection):
+    def as_mql(self, compiler, connection, as_path=False):
         previous = self
         key_transforms = []
         while isinstance(previous, KeyTransform):
             key_transforms.insert(0, previous.key_name)
             previous = previous.lhs
+        if as_path:
+            mql = previous.as_mql(compiler, connection, as_path=True)
+            mql_path = ".".join(key_transforms)
+            return f"{mql}.{mql_path}"
         mql = previous.as_mql(compiler, connection)
         for key in key_transforms:
             mql = {"$getField": {"input": mql, "field": key}}
