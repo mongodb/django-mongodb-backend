@@ -439,10 +439,6 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             key_vault_namespace = options._key_vault_namespace
             kms_providers = options._kms_providers
             ce = ClientEncryption(kms_providers, key_vault_namespace, client, client.codec_options)
-
-            # TODO: Validate schema! `create_encrypted_collection` appears to
-            # succeed no matter what you give it, as long as it's valid JSON.
-            # E.g. encrypted_fields_map = []
             encrypted_fields_map = self._get_encrypted_fields_map(model)
             provider = router.kms_provider(model)
             credentials = KMS_CREDENTIALS[provider]
