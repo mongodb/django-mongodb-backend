@@ -4,7 +4,6 @@ from django.db.models import Index, UniqueConstraint
 from pymongo.encryption import ClientEncryption
 from pymongo.operations import SearchIndexModel
 
-from .encryption import KMS_CREDENTIALS
 from .fields import EmbeddedModelField
 from .indexes import SearchIndex
 from .query import wrap_database_errors
@@ -435,7 +434,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             ce = ClientEncryption(kms_providers, key_vault_namespace, client, client.codec_options)
             encrypted_fields_map = self._get_encrypted_fields_map(model)
             provider = router.kms_provider(model)
-            credentials = KMS_CREDENTIALS[provider]
+            credentials = self.connection.settings_dict.get("KMS_CREDENTIALS", {}).get(provider, {})
             ce.create_encrypted_collection(
                 db,
                 model._meta.db_table,
