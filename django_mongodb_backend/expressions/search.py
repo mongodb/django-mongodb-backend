@@ -1,6 +1,9 @@
 from django.db import NotSupportedError
-from django.db.models import Expression, FloatField
+from django.db.models import CharField, Expression, FloatField, TextField
 from django.db.models.expressions import F, Value
+from django.db.models.lookups import Lookup
+
+from ..query_utils import process_lhs, process_rhs
 
 
 def cast_as_value(value):
@@ -989,3 +992,27 @@ class SearchScoreOption(Expression):
 
     def as_mql(self, compiler, connection):
         return self._definitions
+
+
+class SearchTextLookup(Lookup):
+    lookup_name = "search"
+
+    def __init__(self, lhs, rhs):
+        super().__init__(lhs, rhs)
+        self.lhs = SearchText(self.lhs, self.rhs)
+        self.rhs = Value(0)
+
+    def __str__(self):
+        return f"SearchText({self.lhs}, {self.rhs})"
+
+    def __repr__(self):
+        return f"SearchText({self.lhs}, {self.rhs})"
+
+    def as_mql(self, compiler, connection):
+        lhs_mql = process_lhs(self, compiler, connection)
+        value = process_rhs(self, compiler, connection)
+        return {"$gte": [lhs_mql, value]}
+
+
+CharField.register_lookup(SearchTextLookup)
+TextField.register_lookup(SearchTextLookup)
