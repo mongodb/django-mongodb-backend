@@ -28,9 +28,11 @@ class Command(BaseCommand):
         schema_map = {}
         for app_config in apps.get_app_configs():
             for model in router.get_migratable_models(
-                app_config, connection.alias, include_auto_created=False
+                app_config, connection.settings_dict["NAME"], include_auto_created=False
             ):
                 if getattr(model, "encrypted", False):
                     fields = connection.schema_editor()._get_encrypted_fields_map(model)
-                    schema_map[f"{connection.alias}.{model._meta.db_table}"] = fields
+                    schema_map[
+                        f"{connection.settings_dict['NAME']}.{model._meta.db_table}"
+                    ] = fields
         return schema_map

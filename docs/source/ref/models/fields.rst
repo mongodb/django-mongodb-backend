@@ -299,111 +299,6 @@ These indexes use 0-based indexing.
     As described above for :class:`EmbeddedModelField`,
     :djadmin:`makemigrations` does not yet detect changes to embedded models.
 
-``EncryptedBigIntegerField``
-----------------------------
-
-.. class:: EncryptedBigIntegerField(**options)
-
-    Stores a 64-bit integer, with the value encrypted by :doc:`Queryable Encryption <../../howto/encryption>`.
-
-    This field is similar to :class:`~django.db.models.BigIntegerField`, but it
-    encrypts the value before storing it in the database. It uses the same
-    options as :class:`~django.db.models.BigIntegerField`, such as ``null``
-    and ``default``.
-
-``EncryptedBooleanField``
--------------------------
-
-.. class:: EncryptedBooleanField(**options)
-
-    Stores a boolean value, with the value encrypted by :doc:`Queryable Encryption <../../howto/encryption>`.
-
-    This field is similar to :class:`~django.db.models.BooleanField`, but it
-    encrypts the value before storing it in the database. It uses the same
-    options as :class:`~django.db.models.BooleanField`, such as ``null``
-
-``EncryptedCharField``
-----------------------
-
-.. class:: EncryptedCharField(max_length, **options)
-
-    Stores a string, with the value encrypted by :doc:`Queryable Encryption <../../howto/encryption>`.
-
-    This field is similar to :class:`~django.db.models.CharField`, but it
-    encrypts the value before storing it in the database. It uses the same
-    options as :class:`~django.db.models.CharField`, such as ``max_length``
-    and ``blank``.
-
-``EncryptedDateField``
-----------------------
-
-.. class:: EncryptedDateField(**options)
-
-    Stores a date, with the value encrypted by :doc:`Queryable Encryption <../../howto/encryption>`.
-
-    This field is similar to :class:`~django.db.models.DateField`, but it
-    encrypts the value before storing it in the database. It uses the same
-    options as :class:`~django.db.models.DateField`, such as ``auto_now``
-    and ``auto_now_add``.
-
-``EncryptedDateTimeField``
---------------------------
-
-.. class:: EncryptedDateTimeField(**options)
-
-    Stores a date and time, with the value encrypted by :doc:`Queryable Encryption <../../howto/encryption>`.
-
-    This field is similar to :class:`~django.db.models.DateTimeField`, but it
-    encrypts the value before storing it in the database. It uses the same
-    options as :class:`~django.db.models.DateTimeField`, such as ``auto_now``
-    and ``auto_now_add``.
-
-``EncryptedDecimalField``
--------------------------
-
-.. class:: EncryptedDecimalField(max_digits, decimal_places, **options)
-
-    Stores a decimal number, with the value encrypted by :doc:`Queryable Encryption <../../howto/encryption>`.
-
-    This field is similar to :class:`~django.db.models.DecimalField`, but it
-    encrypts the value before storing it in the database. It uses the same
-    options as :class:`~django.db.models.DecimalField`, such as ``max_digits``
-    and ``decimal_places``.
-
-``EncryptedFloatField``
------------------------
-
-.. class:: EncryptedFloatField(**options)
-
-    Stores a floating-point number, with the value encrypted by :doc:`Queryable Encryption <../../howto/encryption>`.
-
-    This field is similar to :class:`~django.db.models.FloatField`, but it
-    encrypts the value before storing it in the database. It uses the same
-    options as :class:`~django.db.models.FloatField`, such as ``null`` and
-    ``default``.
-
-``EncryptedIntegerField``
--------------------------
-
-.. class:: EncryptedIntegerField(**options)
-
-    Stores a 32-bit integer, with the value encrypted by :doc:`Queryable Encryption <../../howto/encryption>`.
-
-    This field is similar to :class:`~django.db.models.IntegerField`, but it
-    encrypts the value before storing it in the database. It uses the same
-    options as :class:`~django.db.models.IntegerField`, such as ``null``
-
-``EncryptedTextField``
-----------------------
-
-.. class:: EncryptedTextField(**options)
-
-    Stores a text value, with the value encrypted by :doc:`Queryable Encryption <../../howto/encryption>`.
-
-    This field is similar to :class:`~django.db.models.TextField`, but it
-    encrypts the value before storing it in the database. It uses the same
-    options as :class:`~django.db.models.TextField`, such as ``blank`` and
-    ``default``.
 
 ``ObjectIdAutoField``
 ---------------------
@@ -419,3 +314,29 @@ These indexes use 0-based indexing.
 .. class:: ObjectIdField
 
     Stores an :class:`~bson.objectid.ObjectId`.
+
+
+Encrypted fields
+----------------
+
++------------------------------+----------------------------------------------------------+-------------------------------------------------------------------+
+| Field                        | Base Django Field                                        | Notable Options                                                   |
++==============================+==========================================================+===================================================================+
+| EncryptedBigIntegerField     | BigIntegerField                                          | null, default                                                     |
++------------------------------+----------------------------------------------------------+-------------------------------------------------------------------+
+| EncryptedBooleanField        | BooleanField                                             | null                                                              |
++------------------------------+----------------------------------------------------------+-------------------------------------------------------------------+
+| EncryptedCharField           | CharField                                                | max_length, blank                                                 |
++------------------------------+----------------------------------------------------------+-------------------------------------------------------------------+
+| EncryptedDateField           | DateField                                                | auto_now, auto_now_add                                            |
++------------------------------+----------------------------------------------------------+-------------------------------------------------------------------+
+| EncryptedDateTimeField       | DateTimeField                                            | auto_now, auto_now_add                                            |
++------------------------------+----------------------------------------------------------+-------------------------------------------------------------------+
+| EncryptedDecimalField        | DecimalField                                             | max_digits, decimal_places                                        |
++------------------------------+----------------------------------------------------------+-------------------------------------------------------------------+
+| EncryptedFloatField          | FloatField                                               | null, default                                                     |
++------------------------------+----------------------------------------------------------+-------------------------------------------------------------------+
+| EncryptedIntegerField        | IntegerField                                             | null                                                              |
++------------------------------+----------------------------------------------------------+-------------------------------------------------------------------+
+| EncryptedTextField           | TextField                                                | blank, default                                                    |
++------------------------------+----------------------------------------------------------+-------------------------------------------------------------------+

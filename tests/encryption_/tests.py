@@ -19,14 +19,14 @@ from .routers import TestEncryptedRouter
 ENCRYPTION_MODULE_PATH = "django_mongodb_backend.encryption"
 
 EXPECTED_ENCRYPTED_FIELDS_MAP = {
-    "encrypted.billing": {
+    "test_encrypted.billing": {
         "fields": [
             {"bsonType": "string", "path": "cc_type", "queries": {"queryType": "equality"}},
             {"bsonType": "long", "path": "cc_number", "queries": {"queryType": "equality"}},
             {"bsonType": "decimal", "path": "account_balance", "queries": {"queryType": "range"}},
         ]
     },
-    "encrypted.patientrecord": {
+    "test_encrypted.patientrecord": {
         "fields": [
             {"bsonType": "string", "path": "ssn", "queries": {"queryType": "equality"}},
             {"bsonType": "date", "path": "birth_date", "queries": {"queryType": "range"}},
@@ -39,7 +39,7 @@ EXPECTED_ENCRYPTED_FIELDS_MAP = {
             {"bsonType": "double", "path": "weight", "queries": {"queryType": "range"}},
         ]
     },
-    "encrypted.patient": {
+    "test_encrypted.patient": {
         "fields": [
             {"bsonType": "int", "path": "patient_id", "queries": {"queryType": "equality"}},
             {"bsonType": "string", "path": "patient_name"},
@@ -102,7 +102,7 @@ class EncryptedModelTests(TransactionTestCase):
             collection_name = self.patient._meta.db_table
             self.assertCountEqual(
                 {"fields": editor._get_encrypted_fields_map(self.patient)},
-                EXPECTED_ENCRYPTED_FIELDS_MAP[f"{'encrypted'}.{collection_name}"],
+                EXPECTED_ENCRYPTED_FIELDS_MAP[f"{'test_encrypted'}.{collection_name}"],
             )
 
     def test_get_encrypted_fields_map_command(self):

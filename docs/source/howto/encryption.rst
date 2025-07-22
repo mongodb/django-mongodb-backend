@@ -52,7 +52,6 @@ E.g.::
             db_name="encrypted",
         ),
     }
-    DATABASES["encrypted"]["KMS_PROVIDERS"] = encryption.KMS_PROVIDERS
 
 KMS_CREDENTIALS
 ~~~~~~~~~~~~~~~
