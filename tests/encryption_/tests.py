@@ -35,16 +35,16 @@ EXPECTED_ENCRYPTED_FIELDS_MAP = {
                 "path": "profile_picture",
                 "queries": {"queryType": "equality"},
             },
+            {"bsonType": "int", "path": "patient_age", "queries": {"queryType": "range"}},
+            {"bsonType": "double", "path": "weight", "queries": {"queryType": "range"}},
         ]
     },
     "encrypted.patient": {
         "fields": [
-            {"bsonType": "int", "path": "patient_age", "queries": {"queryType": "range"}},
             {"bsonType": "int", "path": "patient_id", "queries": {"queryType": "equality"}},
             {"bsonType": "string", "path": "patient_name"},
             {"bsonType": "string", "path": "patient_notes", "queries": {"queryType": "equality"}},
             {"bsonType": "date", "path": "registration_date", "queries": {"queryType": "equality"}},
-            {"bsonType": "double", "path": "weight", "queries": {"queryType": "range"}},
             {"bsonType": "bool", "path": "is_active", "queries": {"queryType": "equality"}},
         ]
     },
@@ -76,17 +76,19 @@ class EncryptedModelTests(TransactionTestCase):
         self.billing.save()
 
         self.patientrecord = PatientRecord(
-            ssn="123-45-6789", birth_date="1970-01-01", profile_picture=PROFILE_PICTURE
+            ssn="123-45-6789",
+            birth_date="1970-01-01",
+            profile_picture=PROFILE_PICTURE,
+            weight=175.5,
+            patient_age=47,
         )
         self.patientrecord.save()
 
         self.patient = Patient(
             patient_id=1,
-            patient_age=47,
             patient_name="John Doe",
             patient_notes=PATIENT_NOTES,
             registration_date=datetime(2023, 10, 1, 12, 0, 0),
-            weight=175.5,
             is_active=True,
         )
         self.patient.save()
@@ -136,11 +138,12 @@ class EncryptedModelTests(TransactionTestCase):
             self.assertEqual(
                 PatientRecord.objects.get(ssn="123-45-6789").profile_picture, b"some_binary_data"
             )
+        self.assertTrue(PatientRecord.objects.filter(patient_age__gte=40).exists())
+        self.assertFalse(PatientRecord.objects.filter(patient_age__gte=200).exists())
+        self.assertTrue(PatientRecord.objects.filter(weight__gte=175.0).exists())
 
     def test_patient(self):
         # Test range queries and equality queries on encrypted fields.
-        self.assertTrue(Patient.objects.filter(patient_age__gte=40).exists())
-        self.assertFalse(Patient.objects.filter(patient_age__gte=200).exists())
         self.assertEqual(
             Patient.objects.get(patient_notes=PATIENT_NOTES).patient_notes, PATIENT_NOTES
         )
@@ -150,7 +153,6 @@ class EncryptedModelTests(TransactionTestCase):
             ).registration_date,
             datetime(2023, 10, 1, 12, 0, 0),
         )
-        self.assertTrue(Patient.objects.filter(weight__gte=175.0).exists())
         self.assertTrue(Patient.objects.get(patient_id=1).is_active)
 
         # Test that the patient record exists in the encrypted database.

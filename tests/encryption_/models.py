@@ -29,6 +29,8 @@ class PatientRecord(EncryptedModel):
     ssn = EncryptedCharField(max_length=11, queries=QueryType.equality())
     birth_date = EncryptedDateField(queries=QueryType.range())
     profile_picture = EncryptedBinaryField(queries=QueryType.equality())
+    patient_age = EncryptedIntegerField("patient_age", queries=QueryType.range())
+    weight = EncryptedFloatField(queries=QueryType.range())
 
     # TODO: Embed Billing model
     # billing =
@@ -38,12 +40,10 @@ class PatientRecord(EncryptedModel):
 
 
 class Patient(EncryptedModel):
-    patient_age = EncryptedIntegerField("patient_age", queries=QueryType.range())
     patient_id = EncryptedIntegerField("patient_id", queries=QueryType.equality())
     patient_name = EncryptedCharField(max_length=100)
     patient_notes = EncryptedTextField(queries=QueryType.equality())
     registration_date = EncryptedDateTimeField(queries=QueryType.equality())
-    weight = EncryptedFloatField(queries=QueryType.range())
     is_active = EncryptedBooleanField(queries=QueryType.equality())
 
     # TODO: Embed PatientRecord model
