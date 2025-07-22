@@ -30,6 +30,11 @@ EXPECTED_ENCRYPTED_FIELDS_MAP = {
         "fields": [
             {"bsonType": "string", "path": "ssn", "queries": {"queryType": "equality"}},
             {"bsonType": "date", "path": "birth_date", "queries": {"queryType": "range"}},
+            {
+                "bsonType": "binData",
+                "path": "profile_picture",
+                "queries": {"queryType": "equality"},
+            },
         ]
     },
     "encrypted.patient": {
@@ -45,12 +50,16 @@ EXPECTED_ENCRYPTED_FIELDS_MAP = {
     },
 }
 
+
 PATIENT_NOTES = """
 This is a test patient record with sensitive information.
 It includes personal details such as the patient's name, age, and medical history.
 The patient's name is John Doe, aged 47. The record also contains notes about the patient's
 condition and treatment.
 """
+
+
+PROFILE_PICTURE = b"test_image_data"  # Simulated binary data for the profile picture
 
 
 @modify_settings(
@@ -66,7 +75,9 @@ class EncryptedModelTests(TransactionTestCase):
         self.billing = Billing(cc_type="Visa", cc_number=1234567890123456, account_balance=100.50)
         self.billing.save()
 
-        self.patientrecord = PatientRecord(ssn="123-45-6789", birth_date="1970-01-01")
+        self.patientrecord = PatientRecord(
+            ssn="123-45-6789", birth_date="1970-01-01", profile_picture=PROFILE_PICTURE
+        )
         self.patientrecord.save()
 
         self.patient = Patient(
@@ -118,6 +129,13 @@ class EncryptedModelTests(TransactionTestCase):
         with self.assertRaises(PatientRecord.DoesNotExist):
             PatientRecord.objects.get(ssn="000-00-0000")
         self.assertTrue(PatientRecord.objects.filter(birth_date__gte="1969-01-01").exists())
+        self.assertEqual(
+            PatientRecord.objects.get(ssn="123-45-6789").profile_picture, PROFILE_PICTURE
+        )
+        with self.assertRaises(AssertionError):
+            self.assertEqual(
+                PatientRecord.objects.get(ssn="123-45-6789").profile_picture, b"some_binary_data"
+            )
 
     def test_patient(self):
         # Test range queries and equality queries on encrypted fields.

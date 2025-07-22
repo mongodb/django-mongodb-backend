@@ -27,6 +27,10 @@ class EncryptedBigIntegerField(EncryptedFieldMixin, models.BigIntegerField):
     pass
 
 
+class EncryptedBinaryField(EncryptedFieldMixin, models.BinaryField):
+    pass
+
+
 class EncryptedBooleanField(EncryptedFieldMixin, models.BooleanField):
     pass
 

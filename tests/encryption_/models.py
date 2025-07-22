@@ -1,6 +1,7 @@
 from django_mongodb_backend.encryption import QueryType
 from django_mongodb_backend.fields import (
     EncryptedBigIntegerField,
+    EncryptedBinaryField,
     EncryptedBooleanField,
     EncryptedCharField,
     EncryptedDateField,
@@ -27,6 +28,7 @@ class Billing(EncryptedModel):
 class PatientRecord(EncryptedModel):
     ssn = EncryptedCharField(max_length=11, queries=QueryType.equality())
     birth_date = EncryptedDateField(queries=QueryType.range())
+    profile_picture = EncryptedBinaryField(queries=QueryType.equality())
 
     # TODO: Embed Billing model
     # billing =
