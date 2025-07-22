@@ -1,16 +1,22 @@
+import base64
+import importlib
 import json
+import os
 import sys
 from datetime import datetime
 from io import StringIO
+from unittest.mock import patch
 
 import bson
 import pymongo
 from django.core.management import call_command
 from django.db import connections
-from django.test import TransactionTestCase, modify_settings, override_settings
+from django.test import TestCase, TransactionTestCase, modify_settings, override_settings
 
 from .models import Billing, Patient, PatientRecord
 from .routers import TestEncryptedRouter
+
+ENCRYPTION_MODULE_PATH = "django_mongodb_backend.encryption"
 
 EXPECTED_ENCRYPTED_FIELDS_MAP = {
     "encrypted.billing": {
@@ -38,7 +44,6 @@ EXPECTED_ENCRYPTED_FIELDS_MAP = {
         ]
     },
 }
-
 
 PATIENT_NOTES = """
 This is a test patient record with sensitive information.
@@ -149,3 +154,101 @@ class EncryptedModelTests(TransactionTestCase):
             ssn = patientrecords[0]["ssn"]
             self.assertTrue(isinstance(ssn, bson.binary.Binary))
             connection.close()
+
+
+class KMSConfigTests(TestCase):
+    # TODO: Consider integration with on-demand KMS configuration
+    # provided by libmongocrypt.
+    # https://pymongo.readthedocs.io/en/stable/examples/encryption.html#csfle-on-demand-credentials
+
+    def reload_encryption_module(self):
+        # Reload encryption module so environment variable changes take effect
+        encryption_module = importlib.import_module(ENCRYPTION_MODULE_PATH)
+        importlib.reload(encryption_module)
+        return encryption_module
+
+    def test_kms_credentials_default(self):
+        with patch.dict(os.environ, {}, clear=True):
+            kms_mod = self.reload_encryption_module()
+            KMS_CREDENTIALS = kms_mod.KMS_CREDENTIALS
+
+            self.assertEqual(KMS_CREDENTIALS["aws"]["key"], "")
+            self.assertEqual(KMS_CREDENTIALS["aws"]["region"], "")
+            self.assertEqual(KMS_CREDENTIALS["azure"]["keyName"], "")
+            self.assertEqual(KMS_CREDENTIALS["azure"]["keyVaultEndpoint"], "")
+            self.assertEqual(KMS_CREDENTIALS["gcp"]["projectId"], "")
+            self.assertEqual(KMS_CREDENTIALS["gcp"]["location"], "")
+            self.assertEqual(KMS_CREDENTIALS["gcp"]["keyRing"], "")
+            self.assertEqual(KMS_CREDENTIALS["gcp"]["keyName"], "")
+            self.assertEqual(KMS_CREDENTIALS["kmip"], {})
+            self.assertEqual(KMS_CREDENTIALS["local"], {})
+
+    def test_kms_providers_default(self):
+        with patch.dict(os.environ, {}, clear=True):
+            kms_mod = self.reload_encryption_module()
+            KMS_PROVIDERS = kms_mod.KMS_PROVIDERS
+
+            self.assertEqual(KMS_PROVIDERS["aws"]["accessKeyId"], "not an access key")
+            self.assertEqual(KMS_PROVIDERS["aws"]["secretAccessKey"], "not a secret key")
+            self.assertEqual(KMS_PROVIDERS["azure"]["tenantId"], "not a tenant ID")
+            self.assertEqual(KMS_PROVIDERS["azure"]["clientId"], "not a client ID")
+            self.assertEqual(KMS_PROVIDERS["azure"]["clientSecret"], "not a client secret")
+            self.assertEqual(KMS_PROVIDERS["gcp"]["email"], "not an email")
+            self.assertEqual(
+                base64.b64decode(KMS_PROVIDERS["gcp"]["privateKey"]), b"not a private key"
+            )
+            self.assertEqual(KMS_PROVIDERS["kmip"]["endpoint"], "not a valid endpoint")
+            self.assertIsInstance(KMS_PROVIDERS["local"]["key"], bytes)
+            self.assertEqual(len(KMS_PROVIDERS["local"]["key"]), 96)
+
+    def test_kms_credentials_env(self):
+        env = {
+            "AWS_KEY_ARN": "TestArn",
+            "AWS_KEY_REGION": "us-x-test",
+            "AZURE_KEY_NAME": "azure-key",
+            "AZURE_KEY_VAULT_ENDPOINT": "https://example.vault.azure.net/",
+            "GCP_PROJECT_ID": "gcp-test-prj",
+            "GCP_LOCATION": "test-loc",
+            "GCP_KEY_RING": "ring1",
+            "GCP_KEY_NAME": "gcp-key",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            kms_mod = self.reload_encryption_module()
+            KMS_CREDENTIALS = kms_mod.KMS_CREDENTIALS
+
+            self.assertEqual(KMS_CREDENTIALS["aws"]["key"], "TestArn")
+            self.assertEqual(KMS_CREDENTIALS["aws"]["region"], "us-x-test")
+            self.assertEqual(KMS_CREDENTIALS["azure"]["keyName"], "azure-key")
+            self.assertEqual(
+                KMS_CREDENTIALS["azure"]["keyVaultEndpoint"], "https://example.vault.azure.net/"
+            )
+            self.assertEqual(KMS_CREDENTIALS["gcp"]["projectId"], "gcp-test-prj")
+            self.assertEqual(KMS_CREDENTIALS["gcp"]["location"], "test-loc")
+            self.assertEqual(KMS_CREDENTIALS["gcp"]["keyRing"], "ring1")
+            self.assertEqual(KMS_CREDENTIALS["gcp"]["keyName"], "gcp-key")
+
+    def test_kms_providers_env(self):
+        env = {
+            "AWS_ACCESS_KEY_ID": "AKIAFAKE",
+            "AWS_SECRET_ACCESS_KEY": "SECRETFAKE",
+            "AZURE_TENANT_ID": "tenant-123",
+            "AZURE_CLIENT_ID": "client-456",
+            "AZURE_CLIENT_SECRET": "secret-xyz",
+            "GCP_EMAIL": "my@google.key",
+            "GCP_PRIVATE_KEY": base64.b64encode(b"keydata").decode("ascii"),
+            "KMIP_KMS_ENDPOINT": "kmip://loc",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            kms_mod = self.reload_encryption_module()
+            KMS_PROVIDERS = kms_mod.KMS_PROVIDERS
+
+            self.assertEqual(KMS_PROVIDERS["aws"]["accessKeyId"], "AKIAFAKE")
+            self.assertEqual(KMS_PROVIDERS["aws"]["secretAccessKey"], "SECRETFAKE")
+            self.assertEqual(KMS_PROVIDERS["azure"]["tenantId"], "tenant-123")
+            self.assertEqual(KMS_PROVIDERS["azure"]["clientId"], "client-456")
+            self.assertEqual(KMS_PROVIDERS["azure"]["clientSecret"], "secret-xyz")
+            self.assertEqual(KMS_PROVIDERS["gcp"]["email"], "my@google.key")
+            self.assertEqual(base64.b64decode(KMS_PROVIDERS["gcp"]["privateKey"]), b"keydata")
+            self.assertEqual(KMS_PROVIDERS["kmip"]["endpoint"], "kmip://loc")
+            self.assertIsInstance(KMS_PROVIDERS["local"]["key"], bytes)
+            self.assertEqual(len(KMS_PROVIDERS["local"]["key"]), 96)
