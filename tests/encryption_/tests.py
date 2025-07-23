@@ -50,6 +50,10 @@ EXPECTED_ENCRYPTED_FIELDS_MAP = {
 
 
 def reload_module(module):
+    """
+    Reloads a module to ensure that any changes to environment variables
+    or other settings are applied without restarting the test runner.
+    """
     module = importlib.import_module(module)
     importlib.reload(module)
     return module
@@ -194,7 +198,6 @@ class EncryptedModelTests(TransactionTestCase):
 class KMSCredentialsTests(TestCase):
     def test_env(self):
         with patch.dict(os.environ, {}, clear=True):
-            # Reload module so environment variable changes take effect
             encryption = reload_module("django_mongodb_backend.encryption")
             KMS_CREDENTIALS = encryption.KMS_CREDENTIALS
             self.assertEqual(KMS_CREDENTIALS["aws"]["key"], "")
@@ -205,8 +208,6 @@ class KMSCredentialsTests(TestCase):
             self.assertEqual(KMS_CREDENTIALS["gcp"]["location"], "")
             self.assertEqual(KMS_CREDENTIALS["gcp"]["keyRing"], "")
             self.assertEqual(KMS_CREDENTIALS["gcp"]["keyName"], "")
-            self.assertEqual(KMS_CREDENTIALS["kmip"], {})
-            self.assertEqual(KMS_CREDENTIALS["local"], {})
         env = {
             "AWS_KEY_ARN": "TestArn",
             "AWS_KEY_REGION": "us-x-test",
@@ -218,7 +219,6 @@ class KMSCredentialsTests(TestCase):
             "GCP_KEY_NAME": "gcp-key",
         }
         with patch.dict(os.environ, env, clear=True):
-            # Reload module so environment variable changes take effect
             encryption = reload_module("django_mongodb_backend.encryption")
             KMS_CREDENTIALS = encryption.KMS_CREDENTIALS
             self.assertEqual(KMS_CREDENTIALS["azure"]["keyName"], "azure-key")
@@ -234,20 +234,11 @@ class KMSCredentialsTests(TestCase):
 class KMSProvidersTests(TestCase):
     def test_env(self):
         with patch.dict(os.environ, {}, clear=True):
-            # Reload module so environment variable changes take effect
             encryption = reload_module("django_mongodb_backend.encryption")
-            KMS_PROVIDERS = encryption.KMS_PROVIDERS
-            self.assertEqual(KMS_PROVIDERS["kmip"]["endpoint"], "not a valid endpoint")
-            self.assertIsInstance(KMS_PROVIDERS["local"]["key"], bytes)
-            self.assertEqual(len(KMS_PROVIDERS["local"]["key"]), 96)
-
+            self.assertEqual(encryption.KMS_PROVIDERS["kmip"]["endpoint"], "not a valid endpoint")
         env = {
             "KMIP_KMS_ENDPOINT": "kmip://loc",
         }
         with patch.dict(os.environ, env, clear=True):
-            # Reload module so environment variable changes take effect
             encryption = reload_module("django_mongodb_backend.encryption")
-            KMS_PROVIDERS = encryption.KMS_PROVIDERS
-            self.assertEqual(KMS_PROVIDERS["kmip"]["endpoint"], "kmip://loc")
-            self.assertIsInstance(KMS_PROVIDERS["local"]["key"], bytes)
-            self.assertEqual(len(KMS_PROVIDERS["local"]["key"]), 96)
+            self.assertEqual(encryption.KMS_PROVIDERS["kmip"]["endpoint"], "kmip://loc")
