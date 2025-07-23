@@ -28,11 +28,7 @@ KMS_CREDENTIALS = {
 
 KMS_PROVIDERS = {
     "aws": {},
-    "azure": {
-        "tenantId": os.getenv("AZURE_TENANT_ID", "not a tenant ID"),
-        "clientId": os.getenv("AZURE_CLIENT_ID", "not a client ID"),
-        "clientSecret": os.getenv("AZURE_CLIENT_SECRET", "not a client secret"),
-    },
+    "azure": {},
     "gcp": {
         "email": os.getenv("GCP_EMAIL", "not an email"),
         "privateKey": os.getenv(

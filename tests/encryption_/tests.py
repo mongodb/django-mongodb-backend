@@ -86,15 +86,22 @@ class EncryptedModelTests(TransactionTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.patcher = patch(
+
+        cls.patch_aws = patch(
             "pymongocrypt.synchronous.credentials.aws_temp_credentials",
             return_value=AwsCredential(username="", password="", token=""),
         )
-        cls.patcher.start()
+        cls.patch_aws.start()
+
+        cls.patch_azure = patch(
+            "pymongocrypt.synchronous.credentials._get_azure_credentials", return_value={}
+        )
+        cls.patch_azure.start()
 
     @classmethod
     def tearDownClass(cls):
-        cls.patcher.stop()
+        cls.patch_aws.stop()
+        cls.patch_azure.stop()
 
     def test_get_encrypted_fields_map_method(self):
         # Test the class method for getting encrypted fields map.
@@ -210,9 +217,6 @@ class KMSConfigTests(TestCase):
             kms_mod = self.reload_encryption_module()
             KMS_PROVIDERS = kms_mod.KMS_PROVIDERS
 
-            self.assertEqual(KMS_PROVIDERS["azure"]["tenantId"], "not a tenant ID")
-            self.assertEqual(KMS_PROVIDERS["azure"]["clientId"], "not a client ID")
-            self.assertEqual(KMS_PROVIDERS["azure"]["clientSecret"], "not a client secret")
             self.assertEqual(KMS_PROVIDERS["gcp"]["email"], "not an email")
             self.assertEqual(
                 base64.b64decode(KMS_PROVIDERS["gcp"]["privateKey"]), b"not a private key"
@@ -235,7 +239,6 @@ class KMSConfigTests(TestCase):
         with patch.dict(os.environ, env, clear=True):
             kms_mod = self.reload_encryption_module()
             KMS_CREDENTIALS = kms_mod.KMS_CREDENTIALS
-
             self.assertEqual(KMS_CREDENTIALS["azure"]["keyName"], "azure-key")
             self.assertEqual(
                 KMS_CREDENTIALS["azure"]["keyVaultEndpoint"], "https://example.vault.azure.net/"
@@ -258,9 +261,6 @@ class KMSConfigTests(TestCase):
             kms_mod = self.reload_encryption_module()
             KMS_PROVIDERS = kms_mod.KMS_PROVIDERS
 
-            self.assertEqual(KMS_PROVIDERS["azure"]["tenantId"], "tenant-123")
-            self.assertEqual(KMS_PROVIDERS["azure"]["clientId"], "client-456")
-            self.assertEqual(KMS_PROVIDERS["azure"]["clientSecret"], "secret-xyz")
             self.assertEqual(KMS_PROVIDERS["gcp"]["email"], "my@google.key")
             self.assertEqual(base64.b64decode(KMS_PROVIDERS["gcp"]["privateKey"]), b"keydata")
             self.assertEqual(KMS_PROVIDERS["kmip"]["endpoint"], "kmip://loc")
