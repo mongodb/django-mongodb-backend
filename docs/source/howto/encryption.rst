@@ -2,29 +2,27 @@
 Configuring Queryable Encryption
 ================================
 
-To use Queryable Encryption with Django MongoDB Backend first ensure the
-following requirements are met:
+Configuring Queryable Encryption in Django is similar to
+`configuring Queryable Encryption in Python <https://www.mongodb.com/docs/manual/core/queryable-encryption/quick-start/>`_
+but with some additional steps to integrate with Django's operations. Below
+are the steps needed to set up Queryable Encryption in a Django project.
 
-- Automatic Encryption Shared Library or libmongocrypt must be installed and
-  configured.
+.. note:: You can use Queryable Encryption on a MongoDB 7.0 or later replica
+    set or sharded cluster, but not a standalone instance.
+    `This table <https://www.mongodb.com/docs/manual/core/queryable-encryption/reference/compatibility/#std-label-qe-compatibility-reference>`_
+    shows which MongoDB server products support which Queryable Encryption mechanisms.
 
-- The MongoDB server must be Atlas or Enterprise version 7.0 or later.
+Prerequisites
+-------------
 
-- Django settings must be updated to include
-  :class:`~pymongo.encryption_options.AutoEncryptionOpts`
-  with the appropriate configuration for your encryption keys and queryable
-  encryption settings.
+In addition to :doc:`installing </intro/install>` and
+:doc:`configuring </intro/configure>` Django MongoDB Backend,
+you will need to install PyMongo with Queryable Encryption support::
+
+    pip install pymongo[aws,encryption]
 
 Helper classes and settings
 ===========================
-
-For development and testing, users may use the helper functions in
-:mod:`~django_mongodb_backend.encryption` to generate the necessary
-settings for Queryable Encryption.
-
-Queryable Encryption helper classes and settings are provided to make it easier
-configure Queryable Encryption in Django. They are optional, and Queryable
-Encryption can be used in Django without them.
 
 ``KMS_CREDENTIALS``
 -------------------
