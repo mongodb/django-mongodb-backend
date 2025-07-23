@@ -4,7 +4,6 @@
 # Encryption can be used in Django without them. They are provided
 # to make it easier configure Queryable Encryption in Django.
 
-import base64
 import os
 
 KMS_CREDENTIALS = {
@@ -29,13 +28,7 @@ KMS_CREDENTIALS = {
 KMS_PROVIDERS = {
     "aws": {},
     "azure": {},
-    "gcp": {
-        "email": os.getenv("GCP_EMAIL", "not an email"),
-        "privateKey": os.getenv(
-            "GCP_PRIVATE_KEY",
-            base64.b64encode(b"not a private key").decode("ascii"),
-        ),
-    },
+    "gcp": {},
     "kmip": {
         "endpoint": os.getenv("KMIP_KMS_ENDPOINT", "not a valid endpoint"),
     },

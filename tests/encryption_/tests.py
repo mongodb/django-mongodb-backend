@@ -1,4 +1,3 @@
-import base64
 import importlib
 import json
 import os
@@ -98,10 +97,16 @@ class EncryptedModelTests(TransactionTestCase):
         )
         cls.patch_azure.start()
 
+        cls.patch_gcp = patch(
+            "pymongocrypt.synchronous.credentials._get_gcp_credentials", return_value={}
+        )
+        cls.patch_gcp.start()
+
     @classmethod
     def tearDownClass(cls):
         cls.patch_aws.stop()
         cls.patch_azure.stop()
+        cls.patch_gcp.stop()
 
     def test_get_encrypted_fields_map_method(self):
         # Test the class method for getting encrypted fields map.
@@ -216,11 +221,6 @@ class KMSConfigTests(TestCase):
         with patch.dict(os.environ, {}, clear=True):
             kms_mod = self.reload_encryption_module()
             KMS_PROVIDERS = kms_mod.KMS_PROVIDERS
-
-            self.assertEqual(KMS_PROVIDERS["gcp"]["email"], "not an email")
-            self.assertEqual(
-                base64.b64decode(KMS_PROVIDERS["gcp"]["privateKey"]), b"not a private key"
-            )
             self.assertEqual(KMS_PROVIDERS["kmip"]["endpoint"], "not a valid endpoint")
             self.assertIsInstance(KMS_PROVIDERS["local"]["key"], bytes)
             self.assertEqual(len(KMS_PROVIDERS["local"]["key"]), 96)
@@ -250,19 +250,11 @@ class KMSConfigTests(TestCase):
 
     def test_kms_providers_env(self):
         env = {
-            "AZURE_TENANT_ID": "tenant-123",
-            "AZURE_CLIENT_ID": "client-456",
-            "AZURE_CLIENT_SECRET": "secret-xyz",
-            "GCP_EMAIL": "my@google.key",
-            "GCP_PRIVATE_KEY": base64.b64encode(b"keydata").decode("ascii"),
             "KMIP_KMS_ENDPOINT": "kmip://loc",
         }
         with patch.dict(os.environ, env, clear=True):
             kms_mod = self.reload_encryption_module()
             KMS_PROVIDERS = kms_mod.KMS_PROVIDERS
-
-            self.assertEqual(KMS_PROVIDERS["gcp"]["email"], "my@google.key")
-            self.assertEqual(base64.b64decode(KMS_PROVIDERS["gcp"]["privateKey"]), b"keydata")
             self.assertEqual(KMS_PROVIDERS["kmip"]["endpoint"], "kmip://loc")
             self.assertIsInstance(KMS_PROVIDERS["local"]["key"], bytes)
             self.assertEqual(len(KMS_PROVIDERS["local"]["key"]), 96)
