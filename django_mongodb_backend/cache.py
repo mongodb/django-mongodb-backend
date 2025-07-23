@@ -1,6 +1,7 @@
 import pickle
 from datetime import datetime, timezone
 from hashlib import blake2b
+from hmac import compare_digest
 from typing import Any, Optional, Tuple
 
 from django.core.cache.backends.base import DEFAULT_TIMEOUT, BaseCache
@@ -43,10 +44,10 @@ class MongoSerializer:
             try:
                 if self.signer is not None:
                     # constant time compare is not required due to how data is retrieved
-                    if signature and (signature == self._get_signature(data)):
+                    if signature and compare_digest(signature, self._get_signature(data)):
                         return pickle.loads(data) # noqa: S301
                     else:
-                        raise SuspiciousOperation(f"Pickeled cache data is missing signature")
+                        raise SuspiciousOperation(f"Pickled cache data is missing signature")
                 else:
                     return pickle.loads(data)
             except (ValueError, TypeError):
