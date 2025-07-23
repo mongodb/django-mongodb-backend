@@ -15,12 +15,12 @@ following requirements are met:
   with the appropriate configuration for your encryption keys and queryable
   encryption settings.
 
+Helper classes and settings
+===========================
+
 For development and testing, users may use the helper functions in
 :mod:`~django_mongodb_backend.encryption` to generate the necessary
 settings for Queryable Encryption.
-
-Helper classes and settings
-===========================
 
 Queryable Encryption helper classes and settings are provided to make it easier
 configure Queryable Encryption in Django. They are optional, and Queryable

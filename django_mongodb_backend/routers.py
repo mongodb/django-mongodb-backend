@@ -37,7 +37,6 @@ def kms_provider(self, model, *args, **kwargs):
 
 def register_routers():
     """
-    Patch the ConnectionRouter with methods to get KMS credentials and provider
-    from the SchemaEditor.
+    Patch the ConnectionRouter to use the custom kms_provider method.
     """
     ConnectionRouter.kms_provider = kms_provider
