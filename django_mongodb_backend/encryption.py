@@ -1,8 +1,4 @@
-# Queryable Encryption helper functions and constants for MongoDB
-#
-# These helper functions and constants are optional and Queryable
-# Encryption can be used in Django without them. They are provided
-# to make it easier configure Queryable Encryption in Django.
+# Queryable Encryption helper classes and settings
 
 import os
 
@@ -46,10 +42,6 @@ KMS_PROVIDERS = {
 
 
 class EncryptedRouter:
-    """A sample database router for Django that routes encrypted
-    models to an encrypted database with a local KMS provider.
-    """
-
     def allow_migrate(self, db, app_label, model_name=None, model=None, **hints):
         if model:
             return db == ("encrypted" if getattr(model, "encrypted", False) else "default")

@@ -49,6 +49,12 @@ EXPECTED_ENCRYPTED_FIELDS_MAP = {
 }
 
 
+def reload_module(module):
+    module = importlib.import_module(module)
+    importlib.reload(module)
+    return module
+
+
 @modify_settings(
     INSTALLED_APPS={"prepend": "django_mongodb_backend"},
 )
@@ -109,7 +115,6 @@ class EncryptedModelTests(TransactionTestCase):
         cls.patch_gcp.stop()
 
     def test_get_encrypted_fields_map_method(self):
-        # Test the class method for getting encrypted fields map.
         self.maxDiff = None
         with connections["encrypted"].schema_editor() as editor:
             collection_name = self.patient._meta.db_table
@@ -119,19 +124,19 @@ class EncryptedModelTests(TransactionTestCase):
             )
 
     def test_get_encrypted_fields_map_command(self):
+        # TODO: Remove before merge
         class Tee(StringIO):
-            """Print the output of management commands to stdout."""
-
             def write(self, txt):
                 sys.stdout.write(txt)
                 super().write(txt)
 
         out = Tee()
+
+        # out = StringIO()
         call_command("get_encrypted_fields_map", "--database", "encrypted", verbosity=0, stdout=out)
         self.assertIn(json.dumps(EXPECTED_ENCRYPTED_FIELDS_MAP, indent=2), out.getvalue())
 
     def test_billing(self):
-        # Test equality queries on encrypted fields.
         self.assertEqual(
             Billing.objects.get(cc_number=1234567890123456).cc_number, 1234567890123456
         )
@@ -139,7 +144,6 @@ class EncryptedModelTests(TransactionTestCase):
         self.assertTrue(Billing.objects.filter(account_balance__gte=100.0).exists())
 
     def test_patientrecord(self):
-        # Test range queries and equality queries on encrypted fields.
         self.assertEqual(PatientRecord.objects.get(ssn="123-45-6789").ssn, "123-45-6789")
         with self.assertRaises(PatientRecord.DoesNotExist):
             PatientRecord.objects.get(ssn="000-00-0000")
@@ -156,7 +160,6 @@ class EncryptedModelTests(TransactionTestCase):
         self.assertTrue(PatientRecord.objects.filter(weight__gte=175.0).exists())
 
     def test_patient(self):
-        # Test range queries and equality queries on encrypted fields.
         self.assertEqual(
             Patient.objects.get(patient_notes="patient notes " * 25).patient_notes,
             "patient notes " * 25,
@@ -169,15 +172,13 @@ class EncryptedModelTests(TransactionTestCase):
         )
         self.assertTrue(Patient.objects.get(patient_id=1).is_active)
 
-        # Test that the patient record exists in the encrypted database.
+        # Test decrypted patient record in encrypted database.
         patients = connections["encrypted"].database.patient.find()
         self.assertEqual(len(list(patients)), 1)
-
-        # Test for decrypted patient record in the encrypted database.
         records = connections["encrypted"].database.patientrecord.find()
         self.assertTrue("__safeContent__" in records[0])
 
-        # Test for encrypted patient record in unencrypted database.
+        # Test encrypted patient record in unencrypted database.
         conn_params = connections["encrypted"].get_connection_params()
         if conn_params.pop("auto_encryption_opts", False):
             # Call MongoClient instead of get_new_connection because
@@ -190,22 +191,12 @@ class EncryptedModelTests(TransactionTestCase):
             connection.close()
 
 
-class KMSConfigTests(TestCase):
-    # TODO: Consider integration with on-demand KMS configuration
-    # provided by libmongocrypt.
-    # https://pymongo.readthedocs.io/en/stable/examples/encryption.html#csfle-on-demand-credentials
-
-    def reload_encryption_module(self):
-        # Reload encryption module so environment variable changes take effect
-        encryption_module = importlib.import_module("django_mongodb_backend.encryption")
-        importlib.reload(encryption_module)
-        return encryption_module
-
-    def test_kms_credentials_default(self):
+class KMSCredentialsTests(TestCase):
+    def test_env(self):
         with patch.dict(os.environ, {}, clear=True):
-            kms_mod = self.reload_encryption_module()
-            KMS_CREDENTIALS = kms_mod.KMS_CREDENTIALS
-
+            # Reload module so environment variable changes take effect
+            encryption = reload_module("django_mongodb_backend.encryption")
+            KMS_CREDENTIALS = encryption.KMS_CREDENTIALS
             self.assertEqual(KMS_CREDENTIALS["aws"]["key"], "")
             self.assertEqual(KMS_CREDENTIALS["aws"]["region"], "")
             self.assertEqual(KMS_CREDENTIALS["azure"]["keyName"], "")
@@ -216,16 +207,6 @@ class KMSConfigTests(TestCase):
             self.assertEqual(KMS_CREDENTIALS["gcp"]["keyName"], "")
             self.assertEqual(KMS_CREDENTIALS["kmip"], {})
             self.assertEqual(KMS_CREDENTIALS["local"], {})
-
-    def test_kms_providers_default(self):
-        with patch.dict(os.environ, {}, clear=True):
-            kms_mod = self.reload_encryption_module()
-            KMS_PROVIDERS = kms_mod.KMS_PROVIDERS
-            self.assertEqual(KMS_PROVIDERS["kmip"]["endpoint"], "not a valid endpoint")
-            self.assertIsInstance(KMS_PROVIDERS["local"]["key"], bytes)
-            self.assertEqual(len(KMS_PROVIDERS["local"]["key"]), 96)
-
-    def test_kms_credentials_env(self):
         env = {
             "AWS_KEY_ARN": "TestArn",
             "AWS_KEY_REGION": "us-x-test",
@@ -237,8 +218,9 @@ class KMSConfigTests(TestCase):
             "GCP_KEY_NAME": "gcp-key",
         }
         with patch.dict(os.environ, env, clear=True):
-            kms_mod = self.reload_encryption_module()
-            KMS_CREDENTIALS = kms_mod.KMS_CREDENTIALS
+            # Reload module so environment variable changes take effect
+            encryption = reload_module("django_mongodb_backend.encryption")
+            KMS_CREDENTIALS = encryption.KMS_CREDENTIALS
             self.assertEqual(KMS_CREDENTIALS["azure"]["keyName"], "azure-key")
             self.assertEqual(
                 KMS_CREDENTIALS["azure"]["keyVaultEndpoint"], "https://example.vault.azure.net/"
@@ -248,13 +230,24 @@ class KMSConfigTests(TestCase):
             self.assertEqual(KMS_CREDENTIALS["gcp"]["keyRing"], "ring1")
             self.assertEqual(KMS_CREDENTIALS["gcp"]["keyName"], "gcp-key")
 
-    def test_kms_providers_env(self):
+
+class KMSProvidersTests(TestCase):
+    def test_env(self):
+        with patch.dict(os.environ, {}, clear=True):
+            # Reload module so environment variable changes take effect
+            encryption = reload_module("django_mongodb_backend.encryption")
+            KMS_PROVIDERS = encryption.KMS_PROVIDERS
+            self.assertEqual(KMS_PROVIDERS["kmip"]["endpoint"], "not a valid endpoint")
+            self.assertIsInstance(KMS_PROVIDERS["local"]["key"], bytes)
+            self.assertEqual(len(KMS_PROVIDERS["local"]["key"]), 96)
+
         env = {
             "KMIP_KMS_ENDPOINT": "kmip://loc",
         }
         with patch.dict(os.environ, env, clear=True):
-            kms_mod = self.reload_encryption_module()
-            KMS_PROVIDERS = kms_mod.KMS_PROVIDERS
+            # Reload module so environment variable changes take effect
+            encryption = reload_module("django_mongodb_backend.encryption")
+            KMS_PROVIDERS = encryption.KMS_PROVIDERS
             self.assertEqual(KMS_PROVIDERS["kmip"]["endpoint"], "kmip://loc")
             self.assertIsInstance(KMS_PROVIDERS["local"]["key"], bytes)
             self.assertEqual(len(KMS_PROVIDERS["local"]["key"]), 96)
