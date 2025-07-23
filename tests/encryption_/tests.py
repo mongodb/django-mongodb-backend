@@ -199,15 +199,14 @@ class KMSCredentialsTests(TestCase):
     def test_env(self):
         with patch.dict(os.environ, {}, clear=True):
             encryption = reload_module("django_mongodb_backend.encryption")
-            KMS_CREDENTIALS = encryption.KMS_CREDENTIALS
-            self.assertEqual(KMS_CREDENTIALS["aws"]["key"], "")
-            self.assertEqual(KMS_CREDENTIALS["aws"]["region"], "")
-            self.assertEqual(KMS_CREDENTIALS["azure"]["keyName"], "")
-            self.assertEqual(KMS_CREDENTIALS["azure"]["keyVaultEndpoint"], "")
-            self.assertEqual(KMS_CREDENTIALS["gcp"]["projectId"], "")
-            self.assertEqual(KMS_CREDENTIALS["gcp"]["location"], "")
-            self.assertEqual(KMS_CREDENTIALS["gcp"]["keyRing"], "")
-            self.assertEqual(KMS_CREDENTIALS["gcp"]["keyName"], "")
+            self.assertEqual(encryption.KMS_CREDENTIALS["aws"]["key"], "")
+            self.assertEqual(encryption.KMS_CREDENTIALS["aws"]["region"], "")
+            self.assertEqual(encryption.KMS_CREDENTIALS["azure"]["keyName"], "")
+            self.assertEqual(encryption.KMS_CREDENTIALS["azure"]["keyVaultEndpoint"], "")
+            self.assertEqual(encryption.KMS_CREDENTIALS["gcp"]["projectId"], "")
+            self.assertEqual(encryption.KMS_CREDENTIALS["gcp"]["location"], "")
+            self.assertEqual(encryption.KMS_CREDENTIALS["gcp"]["keyRing"], "")
+            self.assertEqual(encryption.KMS_CREDENTIALS["gcp"]["keyName"], "")
         env = {
             "AWS_KEY_ARN": "TestArn",
             "AWS_KEY_REGION": "us-x-test",
@@ -220,15 +219,15 @@ class KMSCredentialsTests(TestCase):
         }
         with patch.dict(os.environ, env, clear=True):
             encryption = reload_module("django_mongodb_backend.encryption")
-            KMS_CREDENTIALS = encryption.KMS_CREDENTIALS
-            self.assertEqual(KMS_CREDENTIALS["azure"]["keyName"], "azure-key")
+            self.assertEqual(encryption.KMS_CREDENTIALS["azure"]["keyName"], "azure-key")
             self.assertEqual(
-                KMS_CREDENTIALS["azure"]["keyVaultEndpoint"], "https://example.vault.azure.net/"
+                encryption.KMS_CREDENTIALS["azure"]["keyVaultEndpoint"],
+                "https://example.vault.azure.net/",
             )
-            self.assertEqual(KMS_CREDENTIALS["gcp"]["projectId"], "gcp-test-prj")
-            self.assertEqual(KMS_CREDENTIALS["gcp"]["location"], "test-loc")
-            self.assertEqual(KMS_CREDENTIALS["gcp"]["keyRing"], "ring1")
-            self.assertEqual(KMS_CREDENTIALS["gcp"]["keyName"], "gcp-key")
+            self.assertEqual(encryption.KMS_CREDENTIALS["gcp"]["projectId"], "gcp-test-prj")
+            self.assertEqual(encryption.KMS_CREDENTIALS["gcp"]["location"], "test-loc")
+            self.assertEqual(encryption.KMS_CREDENTIALS["gcp"]["keyRing"], "ring1")
+            self.assertEqual(encryption.KMS_CREDENTIALS["gcp"]["keyName"], "gcp-key")
 
 
 class KMSProvidersTests(TestCase):
