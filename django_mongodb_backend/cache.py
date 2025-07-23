@@ -9,6 +9,7 @@ from django.core.cache.backends.db import Options
 from django.core.exceptions import SuspiciousOperation
 from django.db import connections, router
 from django.utils.functional import cached_property
+from django.utils.crypto import pbkdf2
 from pymongo import ASCENDING, DESCENDING, IndexModel, ReturnDocument
 from pymongo.errors import DuplicateKeyError, OperationFailure
 from django.conf import settings
@@ -70,15 +71,10 @@ class MongoDBCache(BaseCache):
         self.cache_model_class = CacheEntry
         self._sign_cache = params.get("ENABLE_SIGNING", True)
 
-        self._key = params.get("KEY", settings.SECRET_KEY[:64])
-        if len(self._key) == 0:
-            self._key = settings.SECRET_KEY[:64]
-        if isinstance(self._key, str):
-            self._key = self._key.encode()
-
-        self._salt = params.get("SALT", "")
-        if isinstance(self._salt, str):
-            self._salt = self._salt.encode()
+        key = params.get("KEY", settings.SECRET_KEY)
+        if len(key) == 0:
+            key = settings.SECRET_KEY
+        self._key = pbkdf2(key.encode(), self._collection_name.encode(), 100_000, digest=blake2b)
 
     def create_indexes(self):
         expires_index = IndexModel("expires_at", expireAfterSeconds=0)
@@ -89,7 +85,7 @@ class MongoDBCache(BaseCache):
     def serializer(self):
         signer = None
         if self._sign_cache:
-            signer = blake2b(key=self._key[:64], salt=self._salt[:16], person=self._collection_name[:16].encode())
+            signer = blake2b(key=self._key)
         return MongoSerializer(self.pickle_protocol, signer)
 
     @property
