@@ -176,11 +176,13 @@ Queryable Encryption
 --------------------
 
 If you intend to use :doc:`encrypted models </topics/encrypted-models>`, you may
-optionally configure the :setting:`DATABASE_ROUTERS` setting so that a collection
-for encrypted models is created in an encrypted database.
+optionally configure the :setting:`DATABASE_ROUTERS` setting so that collections
+for encrypted models are created in an encrypted database.
 
-Router configuration is unique to a project and beyond the scope of Django database
-backends, but an example is included that routes encrypted models to a database named
+`Router configuration <https://docs.djangoproject.com/en/stable/topics/db/multi-db/#database-routers>`__
+is unique to each project and beyond the scope of Django MongoDB Backend, but an
+example is included in the :doc:`encryption helpers provided </howto/encryption>`
+that routes collection operations for encrypted models to a database named
 "encrypted"::
 
     DATABASE_ROUTERS = ["django_mongodb_backend.encryption.EncryptedRouter"]
