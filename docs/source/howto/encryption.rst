@@ -33,5 +33,8 @@ Helper classes and settings
 ``EncryptedRouter``
 -------------------
 
-``QueryType``
--------------
+Query Types
+-----------
+
+- ``EqualityQuery``
+- ``RangeQuery``
