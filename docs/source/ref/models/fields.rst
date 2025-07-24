@@ -337,6 +337,8 @@ they encrypt the data before storing it in the database.
 +---------------------------------------+--------------------------------------------------------------------------------------------------------+
 | ``EncryptedDecimalField``             | `DecimalField <https://docs.djangoproject.com/en/stable/ref/models/fields/#decimalfield>`__            |
 +---------------------------------------+--------------------------------------------------------------------------------------------------------+
+| ``EncryptedDurationField``            | `DecimalField <https://docs.djangoproject.com/en/stable/ref/models/fields/#durationfield>`__           |
++---------------------------------------+--------------------------------------------------------------------------------------------------------+
 | ``EncryptedFloatField``               | `FloatField <https://docs.djangoproject.com/en/stable/ref/models/fields/#floatfield>`__                |
 +---------------------------------------+--------------------------------------------------------------------------------------------------------+
 | ``EncryptedIntegerField``             | `IntegerField <https://docs.djangoproject.com/en/stable/ref/models/fields/#integerfield>`__            |

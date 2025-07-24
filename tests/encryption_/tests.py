@@ -1,6 +1,6 @@
 import importlib
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import StringIO
 from unittest.mock import patch
 
@@ -12,7 +12,7 @@ from django.db import connections
 from django.test import TestCase, TransactionTestCase, modify_settings, override_settings
 from pymongo_auth_aws.auth import AwsCredential
 
-from .models import Billing, Patient, PatientRecord
+from .models import Appointment, Billing, Patient, PatientRecord
 from .routers import TestEncryptedRouter
 
 EXPECTED_ENCRYPTED_FIELDS_MAP = {
@@ -122,12 +122,13 @@ def reload_module(module):
     INSTALLED_APPS={"prepend": "django_mongodb_backend"},
 )
 @override_settings(DATABASE_ROUTERS=[TestEncryptedRouter()])
-class EncryptedModelTests(TransactionTestCase):
+class EncryptedFieldTests(TransactionTestCase):
     databases = {"default", "my_encrypted_database"}
     available_apps = ["django_mongodb_backend", "encryption_"]
 
     @classmethod
     def setUp(self):
+        self.appointment = Appointment(duration=timedelta(hours=2, minutes=30))
         self.billing = Billing(cc_type="Visa", cc_number=1234567890123456, account_balance=100.50)
         self.billing.save()
 
@@ -187,6 +188,22 @@ class EncryptedModelTests(TransactionTestCase):
             )
 
     def test_get_encrypted_fields_map_command(self):
+        # TODO: Find a way to compare output when the data key changes or
+        # remove test.
+        #         {
+        #           "bsonType": "bool",
+        #           "path": "is_active",
+        #           "queries": {
+        #             "queryType": "equality"
+        #           },
+        #           "keyId": {
+        #             "$binary": {
+        # -             "base64": "srXESzUzQdq5Vqapl5TqOw==",
+        # +             "base64": "j5nkvg1tS66TGoJV/TxbXg==",
+        #               "subType": "04"
+        #             }
+        #           }
+        #         }
         self.maxDiff = None
         out = StringIO()
         call_command(
@@ -206,6 +223,9 @@ class EncryptedModelTests(TransactionTestCase):
         # sync database to ensure encrypted collections are created in both
         # cases.
         pass
+
+    def test_appointment(self):
+        self.assertEqual(self.appointment.duration, timedelta(hours=2, minutes=30))
 
     def test_billing(self):
         self.assertEqual(

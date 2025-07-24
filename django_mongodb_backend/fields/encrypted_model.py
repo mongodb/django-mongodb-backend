@@ -51,6 +51,10 @@ class EncryptedDecimalField(EncryptedFieldMixin, models.DecimalField):
     pass
 
 
+class EncryptedDurationField(EncryptedFieldMixin, models.DurationField):
+    pass
+
+
 class EncryptedFloatField(EncryptedFieldMixin, models.FloatField):
     pass
 
@@ -61,3 +65,15 @@ class EncryptedIntegerField(EncryptedFieldMixin, models.IntegerField):
 
 class EncryptedTextField(EncryptedFieldMixin, models.TextField):
     pass
+
+
+# TODO: Add more encrypted fields
+# - EmailField
+# - GenericIPAddressField
+# - PositiveBigIntegerField
+# - PositiveIntegerField
+# - PositiveSmallIntegerField
+# - SlugField
+# - SmallIntegerField
+# - TimeField
+# - URLField

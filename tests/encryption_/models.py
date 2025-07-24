@@ -7,11 +7,16 @@ from django_mongodb_backend.fields import (
     EncryptedDateField,
     EncryptedDateTimeField,
     EncryptedDecimalField,
+    EncryptedDurationField,
     EncryptedFloatField,
     EncryptedIntegerField,
     EncryptedTextField,
 )
 from django_mongodb_backend.models import EncryptedModel
+
+
+class Appointment(EncryptedModel):
+    duration = EncryptedDurationField("duration", queries=RangeQuery())
 
 
 class Billing(EncryptedModel):
