@@ -426,24 +426,31 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         encrypted fields map; else, create a normal collection.
         """
         db = self.get_database()
+        client = self.connection.connection
+        options = client._options.auto_encryption_opts
+        db_table = model._meta.db_table
         if getattr(model, "encrypted", False):
-            client = self.connection.connection
-            options = client._options.auto_encryption_opts
-            key_vault_namespace = options._key_vault_namespace
-            kms_providers = options._kms_providers
-            ce = ClientEncryption(kms_providers, key_vault_namespace, client, client.codec_options)
-            encrypted_fields_map = self._get_encrypted_fields_map(model)
-            provider = router.kms_provider(model)
-            credentials = self.connection.settings_dict.get("KMS_CREDENTIALS").get(provider)
-            ce.create_encrypted_collection(
-                db,
-                model._meta.db_table,
-                encrypted_fields_map,
-                provider,
-                credentials,
-            )
+            schema_map = options._schema_map
+            if schema_map:
+                db.create_collection(db_table, encryptedFields=schema_map[db_table])
+            else:
+                key_vault_namespace = options._key_vault_namespace
+                kms_providers = options._kms_providers
+                ce = ClientEncryption(
+                    kms_providers, key_vault_namespace, client, client.codec_options
+                )
+                encrypted_fields_map = self._get_encrypted_fields_map(model)
+                provider = router.kms_provider(model)
+                credentials = self.connection.settings_dict.get("KMS_CREDENTIALS").get(provider)
+                ce.create_encrypted_collection(
+                    db,
+                    db_table,
+                    encrypted_fields_map,
+                    provider,
+                    credentials,
+                )
         else:
-            db.create_collection(model._meta.db_table)
+            db.create_collection(db_table)
 
     def _get_encrypted_fields_map(self, model):
         connection = self.connection
