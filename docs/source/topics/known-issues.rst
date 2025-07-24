@@ -103,7 +103,7 @@ Queryable Encryption
 ====================
 
 Consider these
-`limitations and restrications <https://www.mongodb.com/docs/manual/core/queryable-encryption/reference/limitations/>`_
+`limitations and restrictions <https://www.mongodb.com/docs/manual/core/queryable-encryption/reference/limitations/>`_
 before enabling Queryable Encryption. Some operations are unsupported, and others behave differently.
 
 .. TODO Add more details about Queryable Encryption limitations in Django
