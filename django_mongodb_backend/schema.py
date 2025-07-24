@@ -422,8 +422,12 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
 
     def _create_collection(self, model):
         """
-        If the model is encrypted, create an encrypted collection with the
-        encrypted fields map; else, create a normal collection.
+        Create a collection for the model, with encryption if the model has an
+        `encrypted` attribute set to True.
+
+        If provided, use the `_schema_map` in the client's
+        `auto_encryption_opts`. Otherwise, create the encrypted fields map
+        with `_get_encrypted_fields_map`.
         """
         db = self.get_database()
         client = self.connection.connection

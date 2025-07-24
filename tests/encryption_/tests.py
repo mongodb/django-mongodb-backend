@@ -122,7 +122,7 @@ def reload_module(module):
 )
 @override_settings(DATABASE_ROUTERS=[TestEncryptedRouter()])
 class EncryptedModelTests(TransactionTestCase):
-    databases = {"default", "encrypted"}
+    databases = {"default", "my_encrypted_database"}
     available_apps = ["django_mongodb_backend", "encryption_"]
 
     @classmethod
@@ -178,7 +178,7 @@ class EncryptedModelTests(TransactionTestCase):
 
     def test_get_encrypted_fields_map_method(self):
         self.maxDiff = None
-        with connections["encrypted"].schema_editor() as editor:
+        with connections["my_encrypted_database"].schema_editor() as editor:
             db_table = self.patient._meta.db_table
             self.assertCountEqual(
                 {"fields": editor._get_encrypted_fields_map(self.patient)},
@@ -187,7 +187,13 @@ class EncryptedModelTests(TransactionTestCase):
 
     def test_get_encrypted_fields_map_command(self):
         out = StringIO()
-        call_command("get_encrypted_fields_map", "--database", "encrypted", verbosity=0, stdout=out)
+        call_command(
+            "get_encrypted_fields_map",
+            "--database",
+            "my_encrypted_database",
+            verbosity=0,
+            stdout=out,
+        )
         # TODO: Remove `assertRaises` when the command output is fixed.
         with self.assertRaises(AssertionError):
             self.assertEqual(EXPECTED_ENCRYPTED_FIELDS_MAP, out.getvalue())
@@ -235,19 +241,19 @@ class EncryptedModelTests(TransactionTestCase):
         self.assertTrue(Patient.objects.get(patient_id=1).is_active)
 
         # Test decrypted patient record in encrypted database.
-        patients = connections["encrypted"].database.patient.find()
+        patients = connections["my_encrypted_database"].database.patient.find()
         self.assertEqual(len(list(patients)), 1)
-        records = connections["encrypted"].database.patientrecord.find()
+        records = connections["my_encrypted_database"].database.patientrecord.find()
         self.assertTrue("__safeContent__" in records[0])
 
         # Test encrypted patient record in unencrypted database.
-        conn_params = connections["encrypted"].get_connection_params()
+        conn_params = connections["my_encrypted_database"].get_connection_params()
         if conn_params.pop("auto_encryption_opts", False):
             # Call MongoClient instead of get_new_connection because
             # get_new_connection will return the encrypted connection
             # from the connection pool.
             connection = pymongo.MongoClient(**conn_params)
-            patientrecords = connection["test_encrypted"].patientrecord.find()
+            patientrecords = connection["test_my_encrypted_database"].patientrecord.find()
             ssn = patientrecords[0]["ssn"]
             self.assertTrue(isinstance(ssn, Binary))
             connection.close()

@@ -44,12 +44,14 @@ KMS_PROVIDERS = {
 class EncryptedRouter:
     def allow_migrate(self, db, app_label, model_name=None, model=None, **hints):
         if model:
-            return db == ("encrypted" if getattr(model, "encrypted", False) else "default")
+            return db == (
+                "my_encrypted_database" if getattr(model, "encrypted", False) else "default"
+            )
         return db == "default"
 
     def db_for_read(self, model, **hints):
         if getattr(model, "encrypted", False):
-            return "encrypted"
+            return "my_encrypted_database"
         return "default"
 
     db_for_write = db_for_read

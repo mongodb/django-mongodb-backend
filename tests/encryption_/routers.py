@@ -10,7 +10,7 @@ class TestEncryptedRouter:
 
     def db_for_read(self, model, **hints):
         if getattr(model, "encrypted", False):
-            return "encrypted"
+            return "my_encrypted_database"
         return None
 
     db_for_write = db_for_read
