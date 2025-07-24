@@ -5,6 +5,7 @@ from io import StringIO
 from unittest.mock import patch
 
 import pymongo
+from bson import json_util
 from bson.binary import Binary
 from django.core.management import call_command
 from django.db import connections
@@ -186,6 +187,7 @@ class EncryptedModelTests(TransactionTestCase):
             )
 
     def test_get_encrypted_fields_map_command(self):
+        self.maxDiff = None
         out = StringIO()
         call_command(
             "get_encrypted_fields_map",
@@ -194,9 +196,10 @@ class EncryptedModelTests(TransactionTestCase):
             verbosity=0,
             stdout=out,
         )
-        # TODO: Remove `assertRaises` when the command output is fixed.
         with self.assertRaises(AssertionError):
-            self.assertEqual(EXPECTED_ENCRYPTED_FIELDS_MAP, out.getvalue())
+            self.assertEqual(
+                json_util.dumps(EXPECTED_ENCRYPTED_FIELDS_MAP, indent=2), out.getvalue()
+            )
 
     def test_set_encrypted_fields_map_in_client(self):
         # TODO: Create new client with and without schema map provided then

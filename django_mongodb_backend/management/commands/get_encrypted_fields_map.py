@@ -1,3 +1,4 @@
+from bson import json_util
 from django.apps import apps
 from django.core.management.base import BaseCommand
 from django.db import DEFAULT_DB_ALIAS, connections, router
@@ -26,18 +27,10 @@ class Command(BaseCommand):
         db = options["database"]
         kms_provider = options["kms_provider"]
         connection = connections[db]
-        schema_map = self.get_encrypted_fields_map(connection, kms_provider)  # noqa: F841
-        # TODO: Print schema_map or save to file!
-        #
-        # The purpose of this command is to generate a schema map. The schema
-        # map is a dictionary with binary data in it so it cannot be
-        # written to stdout with `json.dumps()`.
-        #
-        # If the binary data is encoded so that it can be written to stdout
-        # with `json.dumps()`, then it is no longer a valid schema map.
-        #
-        # If the schema map is saved to a file, then it becomes harder to
-        # test the output of this command.
+        schema_map = json_util.dumps(
+            self.get_encrypted_fields_map(connection, kms_provider), indent=2
+        )
+        self.stdout.write(schema_map)
 
     def get_client_encryption(self, connection):
         client = connection.connection
