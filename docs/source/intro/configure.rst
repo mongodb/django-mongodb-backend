@@ -181,9 +181,9 @@ for encrypted models are created in an encrypted database.
 
 `Router configuration <https://docs.djangoproject.com/en/stable/topics/db/multi-db/#database-routers>`__
 is unique to each project and beyond the scope of Django MongoDB Backend, but an
-example is included in the :doc:`encryption helpers provided </howto/encryption>`
+example is included in the :doc:`encryption helpers </howto/encryption>`
 that routes collection operations for encrypted models to a database named
-"encrypted"::
+"my_encrypted_database"::
 
     DATABASE_ROUTERS = ["django_mongodb_backend.encryption.EncryptedRouter"]
 
