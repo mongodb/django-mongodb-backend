@@ -32,6 +32,23 @@ In addition, the cache is culled based on ``CULL_FREQUENCY`` when  ``add()``
 or ``set()`` is called, if ``MAX_ENTRIES`` is exceeded. See
 :ref:`django:cache_arguments` for an explanation of these two options.
 
+Cache entries include a HMAC signature to ensure data integrity by default.
+You can disable this by setting ``ENABLE_SIGNING`` to ``False``.
+Signatures can also include an optional custom key parameter by setting ``KEY``, 
+but if a key is not provided, signing will instead use ``SECRET_KEY``.
+The key is then hashed with the collection name to ensure uniqueness
+across collections and the wider code base.
+
+In this example, the cache collection is configured with a key and salt::
+    
+    CACHES = {
+        "default": {
+            "BACKEND": "django_mongodb_backend.cache.MongoDBCache",
+            "LOCATION": "my_cache_collection",
+            "KEY": "my_secret_key",
+        },
+    }
+
 Creating the cache collection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

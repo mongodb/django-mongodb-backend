@@ -1,33 +1,63 @@
 import pickle
 from datetime import datetime, timezone
+from hashlib import blake2b
+from hmac import compare_digest
+from typing import Any, Optional, Tuple
 
 from django.core.cache.backends.base import DEFAULT_TIMEOUT, BaseCache
 from django.core.cache.backends.db import Options
+from django.core.exceptions import SuspiciousOperation
 from django.db import connections, router
 from django.utils.functional import cached_property
+from django.utils.crypto import pbkdf2
 from pymongo import ASCENDING, DESCENDING, IndexModel, ReturnDocument
 from pymongo.errors import DuplicateKeyError, OperationFailure
+from django.conf import settings
 
 
 class MongoSerializer:
-    def __init__(self, protocol=None):
+    def __init__(self, protocol=None, signer=None):
         self.protocol = pickle.HIGHEST_PROTOCOL if protocol is None else protocol
+        self.signer = signer
 
-    def dumps(self, obj):
-        # For better incr() and decr() atomicity, don't pickle integers.
-        # Using type() rather than isinstance() matches only integers and not
-        # subclasses like bool.
-        if type(obj) is int:  # noqa: E721
-            return obj
-        return pickle.dumps(obj, self.protocol)
+    def _get_signature(self, data) -> Optional[bytes]:
+        if self.signer is None:
+            return None
+        s = self.signer.copy()
+        s.update(data)
+        return s.digest()
 
-    def loads(self, data):
-        try:
-            return int(data)
-        except (ValueError, TypeError):
-            return pickle.loads(data)  # noqa: S301
+    def _get_pickled(self, obj: Any) -> bytes:
+        return pickle.dumps(obj, protocol=self.protocol)  # noqa: S301
 
+    def dumps(self, obj) -> Tuple[Any, bool, Optional[str]]:
+        # Serialize the object to a format suitable for MongoDB storage.
+        # The return value is a tuple of (data, pickled, signature).
+        match obj:
+            case int() | str() | bytes():
+                return (obj, False, None)
+            case _:
+                pickled_data = self._get_pickled(obj)
+                return (pickled_data, True, self._get_signature(pickled_data) if self.signer else None)
 
+    def loads(self, data:Any, is_pickled:bool, signature=None) -> Any:
+        if is_pickled:
+            try:
+                if self.signer is not None:
+                    # constant time compare is not required due to how data is retrieved
+                    if signature and compare_digest(signature, self._get_signature(data)):
+                        return pickle.loads(data) # noqa: S301
+                    else:
+                        raise SuspiciousOperation(f"Pickled cache data is missing signature")
+                else:
+                    return pickle.loads(data)
+            except (ValueError, TypeError):
+                # ValueError: Invalid signature
+                # TypeError: Data wasn't a byte string
+                raise SuspiciousOperation(f'Invalid pickle signature: {{"signature": {signature}, "data":{data}}}')
+        else:
+            return data
+                
 class MongoDBCache(BaseCache):
     pickle_protocol = pickle.HIGHEST_PROTOCOL
 
@@ -39,6 +69,12 @@ class MongoDBCache(BaseCache):
             _meta = Options(collection_name)
 
         self.cache_model_class = CacheEntry
+        self._sign_cache = params.get("ENABLE_SIGNING", True)
+
+        key = params.get("KEY", settings.SECRET_KEY)
+        if len(key) == 0:
+            key = settings.SECRET_KEY
+        self._key = pbkdf2(key.encode(), self._collection_name.encode(), 100_000, digest=blake2b)
 
     def create_indexes(self):
         expires_index = IndexModel("expires_at", expireAfterSeconds=0)
@@ -47,7 +83,10 @@ class MongoDBCache(BaseCache):
 
     @cached_property
     def serializer(self):
-        return MongoSerializer(self.pickle_protocol)
+        signer = None
+        if self._sign_cache:
+            signer = blake2b(key=self._key)
+        return MongoSerializer(self.pickle_protocol, signer)
 
     @property
     def collection_for_read(self):
@@ -84,19 +123,30 @@ class MongoDBCache(BaseCache):
         with self.collection_for_read.find(
             {"key": {"$in": tuple(keys_map)}, **self._filter_expired(expired=False)}
         ) as cursor:
-            return {keys_map[row["key"]]: self.serializer.loads(row["value"]) for row in cursor}
+            results = {}
+            for row in cursor:
+                try:
+                    results[keys_map[row["key"]]] = self.serializer.loads(row["value"], row["pickled"], row["signature"])
+                except SuspiciousOperation as e:
+                    self.delete(row["key"])
+                    e.add_note(f"Cache entry with key '{row['key']}' was deleted due to suspicious data")
+                    raise e
+            return results
 
     def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
         key = self.make_and_validate_key(key, version=version)
         num = self.collection_for_write.count_documents({}, hint="_id_")
         if num >= self._max_entries:
             self._cull(num)
+        value, pickled, signature = self.serializer.dumps(value)
         self.collection_for_write.update_one(
             {"key": key},
             {
                 "$set": {
                     "key": key,
-                    "value": self.serializer.dumps(value),
+                    "value": value,
+                    "pickled": pickled,
+                    "signature": signature,
                     "expires_at": self.get_backend_timeout(timeout),
                 }
             },
@@ -109,12 +159,15 @@ class MongoDBCache(BaseCache):
         if num >= self._max_entries:
             self._cull(num)
         try:
+            value, pickled, signature = self.serializer.dumps(value)
             self.collection_for_write.update_one(
                 {"key": key, **self._filter_expired(expired=True)},
                 {
                     "$set": {
                         "key": key,
-                        "value": self.serializer.dumps(value),
+                        "value": value,
+                        "pickled": pickled,
+                        "signature": signature,
                         "expires_at": self.get_backend_timeout(timeout),
                     }
                 },
