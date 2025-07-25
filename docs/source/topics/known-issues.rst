@@ -106,4 +106,4 @@ Consider these
 `limitations and restrictions <https://www.mongodb.com/docs/manual/core/queryable-encryption/reference/limitations/>`_
 before enabling Queryable Encryption. Some operations are unsupported, and others behave differently.
 
-.. TODO Add more details about Queryable Encryption limitations in Django
+Also see :ref:`unsupported fields <encrypted-model-unsupported-fields>`.

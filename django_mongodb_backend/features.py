@@ -637,14 +637,15 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     def supports_queryable_encryption(self):
         """
         Queryable Encryption is supported if the server is Atlas or Enterprise
-        and is configured as a replica set or sharded cluster.
+        and is configured as a replica set or a sharded cluster.
         """
         self.connection.ensure_connection()
         client = self.connection.connection.admin
         build_info = client.command("buildInfo")
         is_enterprise = "enterprise" in build_info.get("modules")
-        # `supports_transactions` already checks if the server is a
-        # replica set or sharded cluster.
-        is_not_single = self.supports_transactions
+        # Queryable Encryption requires transaction support which
+        # is only available on replica sets or sharded clusters
+        # which we already check in `supports_transactions`.
+        supports_transactions = self.supports_transactions
         # TODO: check if the server is Atlas
-        return is_enterprise and is_not_single and self.is_mongodb_7_0
+        return is_enterprise and supports_transactions and self.is_mongodb_7_0
