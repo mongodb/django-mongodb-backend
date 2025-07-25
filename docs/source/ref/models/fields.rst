@@ -322,27 +322,29 @@ Encrypted fields are used to store sensitive data with MongoDB's Queryable
 Encryption feature. They are subclasses of Django's built-in fields, and
 they encrypt the data before storing it in the database.
 
-+---------------------------------------+--------------------------------------------------------------------------------------------------------+
-| Encrypted Field                       | Django Field                                                                                           |
-+=======================================+========================================================================================================+
-| ``EncryptedBigIntegerField``          | `BigIntegerField <https://docs.djangoproject.com/en/stable/ref/models/fields/#bigintegerfield>`__      |
-+---------------------------------------+--------------------------------------------------------------------------------------------------------+
-| ``EncryptedBooleanField``             | `BooleanField <https://docs.djangoproject.com/en/stable/ref/models/fields/#booleanfield>`__            |
-+---------------------------------------+--------------------------------------------------------------------------------------------------------+
-| ``EncryptedCharField``                | `CharField <https://docs.djangoproject.com/en/stable/ref/models/fields/#charfield>`__                  |
-+---------------------------------------+--------------------------------------------------------------------------------------------------------+
-| ``EncryptedDateField``                | `DateField <https://docs.djangoproject.com/en/stable/ref/models/fields/#datefield>`__                  |
-+---------------------------------------+--------------------------------------------------------------------------------------------------------+
-| ``EncryptedDateTimeField``            | `DateTimeField <https://docs.djangoproject.com/en/stable/ref/models/fields/#datetimefield>`__          |
-+---------------------------------------+--------------------------------------------------------------------------------------------------------+
-| ``EncryptedDecimalField``             | `DecimalField <https://docs.djangoproject.com/en/stable/ref/models/fields/#decimalfield>`__            |
-+---------------------------------------+--------------------------------------------------------------------------------------------------------+
-| ``EncryptedFloatField``               | `FloatField <https://docs.djangoproject.com/en/stable/ref/models/fields/#floatfield>`__                |
-+---------------------------------------+--------------------------------------------------------------------------------------------------------+
-| ``EncryptedIntegerField``             | `IntegerField <https://docs.djangoproject.com/en/stable/ref/models/fields/#integerfield>`__            |
-+---------------------------------------+--------------------------------------------------------------------------------------------------------+
-| ``EncryptedTextField``                | `TextField <https://docs.djangoproject.com/en/stable/ref/models/fields/#textfield>`__                  |
-+---------------------------------------+--------------------------------------------------------------------------------------------------------+
++---------------------------------------+---------------------------------------------------------------------------------------------------------------+
+| Encrypted Field                       | Django Field                                                                                                  |
++=======================================+===============================================================================================================+
+| ``EncryptedBigIntegerField``          | `BigIntegerField <https://docs.djangoproject.com/en/stable/ref/models/fields/#bigintegerfield>`__             |
++---------------------------------------+---------------------------------------------------------------------------------------------------------------+
+| ``EncryptedBooleanField``             | `BooleanField <https://docs.djangoproject.com/en/stable/ref/models/fields/#booleanfield>`__                   |
++---------------------------------------+---------------------------------------------------------------------------------------------------------------+
+| ``EncryptedCharField``                | `CharField <https://docs.djangoproject.com/en/stable/ref/models/fields/#charfield>`__                         |
++---------------------------------------+---------------------------------------------------------------------------------------------------------------+
+| ``EncryptedDateField``                | `DateField <https://docs.djangoproject.com/en/stable/ref/models/fields/#datefield>`__                         |
++---------------------------------------+---------------------------------------------------------------------------------------------------------------+
+| ``EncryptedDateTimeField``            | `DateTimeField <https://docs.djangoproject.com/en/stable/ref/models/fields/#datetimefield>`__                 |
++---------------------------------------+---------------------------------------------------------------------------------------------------------------+
+| ``EncryptedDecimalField``             | `DecimalField <https://docs.djangoproject.com/en/stable/ref/models/fields/#decimalfield>`__                   |
++---------------------------------------+---------------------------------------------------------------------------------------------------------------+
+| ``EncryptedFloatField``               | `FloatField <https://docs.djangoproject.com/en/stable/ref/models/fields/#floatfield>`__                       |
++---------------------------------------+---------------------------------------------------------------------------------------------------------------+
+| ``EncryptedGenericIPAddressField``    | `GenericIPAddressField <https://docs.djangoproject.com/en/stable/ref/models/fields/#genericipaddressfield>`__ |
++---------------------------------------+---------------------------------------------------------------------------------------------------------------+
+| ``EncryptedIntegerField``             | `IntegerField <https://docs.djangoproject.com/en/stable/ref/models/fields/#integerfield>`__                   |
++---------------------------------------+---------------------------------------------------------------------------------------------------------------+
+| ``EncryptedTextField``                | `TextField <https://docs.djangoproject.com/en/stable/ref/models/fields/#textfield>`__                         |
++---------------------------------------+---------------------------------------------------------------------------------------------------------------+
 
 .. _encrypted-model-unsupported-fields:
 
@@ -351,4 +353,6 @@ Unsupported fields
 
 +---------------------------------------+--------------------------------------------------------------------------------------------------------+
 | ``EncryptedDurationField``            | `DurationField <https://docs.djangoproject.com/en/stable/ref/models/fields/#durationfield>`__          |
++---------------------------------------+--------------------------------------------------------------------------------------------------------+
+| ``EncryptedSlugField``                | `SlugField <https://docs.djangoproject.com/en/stable/ref/models/fields/#slugfield>`__                  |
 +---------------------------------------+--------------------------------------------------------------------------------------------------------+

@@ -12,7 +12,16 @@ from django.db import connections
 from django.test import TestCase, TransactionTestCase, modify_settings, override_settings
 from pymongo_auth_aws.auth import AwsCredential
 
-from .models import Appointment, Billing, Patient, PatientRecord
+from django_mongodb_backend.encryption import EqualityQuery
+
+from .models import (
+    Appointment,
+    Billing,
+    EncryptedSlugField,
+    Patient,
+    PatientPortalUser,
+    PatientRecord,
+)
 from .routers import TestEncryptedRouter
 
 EXPECTED_ENCRYPTED_FIELDS_MAP = {
@@ -132,6 +141,11 @@ class EncryptedFieldTests(TransactionTestCase):
         self.billing = Billing(cc_type="Visa", cc_number=1234567890123456, account_balance=100.50)
         self.billing.save()
 
+        self.portal_user = PatientPortalUser(
+            ip_address="127.0.0.1",
+        )
+        self.portal_user.save()
+
         self.patientrecord = PatientRecord(
             ssn="123-45-6789",
             birth_date="1970-01-01",
@@ -147,6 +161,7 @@ class EncryptedFieldTests(TransactionTestCase):
             patient_notes="patient notes " * 25,
             registration_date=datetime(2023, 10, 1, 12, 0, 0),
             is_active=True,
+            email="john.doe@example.com",
         )
         self.patient.save()
 
@@ -217,7 +232,6 @@ class EncryptedFieldTests(TransactionTestCase):
     def test_set_encrypted_fields_map_in_client(self):
         # TODO: Create new client with and without schema map provided then
         # sync database to ensure encrypted collections are created in both
-        # cases.
         pass
 
     def test_appointment(self):
@@ -238,6 +252,22 @@ class EncryptedFieldTests(TransactionTestCase):
         )
         self.assertEqual(Billing.objects.get(cc_type="Visa").cc_type, "Visa")
         self.assertTrue(Billing.objects.filter(account_balance__gte=100.0).exists())
+
+    def test_patientportaluser(self):
+        self.assertEqual(
+            PatientPortalUser.objects.get(ip_address="127.0.0.1").ip_address, "127.0.0.1"
+        )
+
+        # FIXME: Or remove if wontfix.
+        #
+        # This test fails due to
+        # pymongo.errors.OperationFailure: Index not allowed on, or a prefix
+        # of, the encrypted field slug
+        with self.assertRaises(AssertionError):  # noqa: SIM117
+            with self.assertRaises(pymongo.errors.OperationFailure):
+
+                class SlugFieldTest(EncryptedSlugField):
+                    slug = EncryptedSlugField(EqualityQuery())
 
     def test_patientrecord(self):
         self.assertEqual(PatientRecord.objects.get(ssn="123-45-6789").ssn, "123-45-6789")
@@ -267,6 +297,7 @@ class EncryptedFieldTests(TransactionTestCase):
             datetime(2023, 10, 1, 12, 0, 0),
         )
         self.assertTrue(Patient.objects.get(patient_id=1).is_active)
+        self.assertTrue(Patient.objects.get(email="john.doe@example.com").email)
 
         # Test decrypted patient record in encrypted database.
         patients = connections["my_encrypted_database"].database.patient.find()

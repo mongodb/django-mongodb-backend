@@ -1,3 +1,5 @@
+from django.db import models
+
 from django_mongodb_backend.encryption import EqualityQuery, RangeQuery
 from django_mongodb_backend.fields import (
     EncryptedBigIntegerField,
@@ -7,12 +9,28 @@ from django_mongodb_backend.fields import (
     EncryptedDateField,
     EncryptedDateTimeField,
     EncryptedDecimalField,
-    EncryptedDurationField,
+    EncryptedEmailField,
+    EncryptedFieldMixin,
     EncryptedFloatField,
+    EncryptedGenericIPAddressField,
     EncryptedIntegerField,
     EncryptedTextField,
 )
 from django_mongodb_backend.models import EncryptedModel
+
+
+class EncryptedDurationField(EncryptedFieldMixin, models.DurationField):
+    """
+    Unsupported by MongoDB when used with Queryable Encryption.
+    Included in tests until fix or wontfix.
+    """
+
+
+class EncryptedSlugField(EncryptedFieldMixin, models.SlugField):
+    """
+    Unsupported by MongoDB when used with Queryable Encryption.
+    Included in tests until fix or wontfix.
+    """
 
 
 class Appointment(EncryptedModel):
@@ -26,6 +44,10 @@ class Billing(EncryptedModel):
 
     class Meta:
         db_table = "billing"
+
+
+class PatientPortalUser(EncryptedModel):
+    ip_address = EncryptedGenericIPAddressField(queries=EqualityQuery())
 
 
 class PatientRecord(EncryptedModel):
@@ -48,6 +70,7 @@ class Patient(EncryptedModel):
     patient_notes = EncryptedTextField(queries=EqualityQuery())
     registration_date = EncryptedDateTimeField(queries=EqualityQuery())
     is_active = EncryptedBooleanField(queries=EqualityQuery())
+    email = EncryptedEmailField(max_length=254, queries=EqualityQuery())
 
     # TODO: Embed PatientRecord model
     # patient_record =
