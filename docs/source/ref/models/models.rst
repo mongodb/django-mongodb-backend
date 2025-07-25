@@ -22,6 +22,3 @@ Two MongoDB-specific models are available in ``django_mongodb_backend.models``.
 
     An abstract model which all :doc:`encrypted models </topics/encrypted-models>`
     must subclass.
-
-    Encrypted models support the use of encrypted fields which are
-    encrypted automatically with MongoDB's Queryable Encryption feature.

@@ -16,8 +16,9 @@ from .encrypted_model import (
     EncryptedFloatField,
     EncryptedGenericIPAddressField,
     EncryptedIntegerField,
-    EncryptedSlugField,
     EncryptedTextField,
+    EncryptedTimeField,
+    EncryptedURLField,
 )
 from .json import register_json_field
 from .objectid import ObjectIdField
@@ -39,8 +40,9 @@ __all__ = [
     "EncryptedFloatField",
     "EncryptedGenericIPAddressField",
     "EncryptedIntegerField",
-    "EncryptedSlugField",
     "EncryptedTextField",
+    "EncryptedTimeField",
+    "EncryptedURLField",
     "ObjectIdAutoField",
     "ObjectIdField",
 ]

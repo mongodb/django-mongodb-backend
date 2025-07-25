@@ -71,7 +71,15 @@ class EncryptedSlugField(EncryptedFieldMixin, models.SlugField):
     pass
 
 
+class EncryptedTimeField(EncryptedFieldMixin, models.TimeField):
+    pass
+
+
 class EncryptedTextField(EncryptedFieldMixin, models.TextField):
+    pass
+
+
+class EncryptedURLField(EncryptedFieldMixin, models.URLField):
     pass
 
 
@@ -80,5 +88,3 @@ class EncryptedTextField(EncryptedFieldMixin, models.TextField):
 # - PositiveIntegerField
 # - PositiveSmallIntegerField
 # - SmallIntegerField
-# - TimeField
-# - URLField

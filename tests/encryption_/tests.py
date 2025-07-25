@@ -8,16 +8,17 @@ import pymongo
 from bson import json_util
 from bson.binary import Binary
 from django.core.management import call_command
-from django.db import connections
+from django.db import connections, models
 from django.test import TestCase, TransactionTestCase, modify_settings, override_settings
 from pymongo_auth_aws.auth import AwsCredential
 
 from django_mongodb_backend.encryption import EqualityQuery
+from django_mongodb_backend.models import EncryptedModel
 
 from .models import (
     Appointment,
     Billing,
-    EncryptedSlugField,
+    EncryptedFieldMixin,
     Patient,
     PatientPortalUser,
     PatientRecord,
@@ -117,6 +118,20 @@ EXPECTED_ENCRYPTED_FIELDS_MAP = {
 }
 
 
+class EncryptedDurationField(EncryptedFieldMixin, models.DurationField):
+    """
+    Unsupported by MongoDB when used with Queryable Encryption.
+    Included in tests until fix or wontfix.
+    """
+
+
+class EncryptedSlugField(EncryptedFieldMixin, models.SlugField):
+    """
+    Unsupported by MongoDB when used with Queryable Encryption.
+    Included in tests until fix or wontfix.
+    """
+
+
 def reload_module(module):
     """
     Reloads a module to ensure that any changes to environment variables
@@ -137,12 +152,15 @@ class EncryptedFieldTests(TransactionTestCase):
 
     @classmethod
     def setUp(self):
-        self.appointment = Appointment(duration=timedelta(hours=2, minutes=30))
+        self.appointment = Appointment(time="8:00")
+        self.appointment.save()
+
         self.billing = Billing(cc_type="Visa", cc_number=1234567890123456, account_balance=100.50)
         self.billing.save()
 
         self.portal_user = PatientPortalUser(
             ip_address="127.0.0.1",
+            url="https://example.com",
         )
         self.portal_user.save()
 
@@ -235,16 +253,30 @@ class EncryptedFieldTests(TransactionTestCase):
         pass
 
     def test_appointment(self):
+        self.assertTrue(Appointment.objects.get(time="8:00").time, "8:00")
+
         # FIXME: Or remove test if wontfix. These tests fail due to
         # pymongocrypt.errors.MongoCryptError: expected lowerBound to match
         # index type INT64, got INT32.
-        # self.assertTrue(Appointment.objects.filter(duration__gte=timedelta(hours=1, minutes=0)))
-        # self.assertFalse(Appointment.objects.filter(duration__lte=timedelta(hours=8, minutes=0)))
-        # self.assertEqual(
-        #     Appointment.objects.get(duration=timedelta(hours=2, minutes=30)).duration,
-        #     timedelta(hours=2, minutes=30),
-        # )
-        pass
+        with self.assertRaises(AssertionError):  # noqa: SIM117
+            with self.assertRaises(pymongo.errors.OperationFailure):
+
+                class DurationFieldTest(EncryptedModel):
+                    duration = EncryptedDurationField(EqualityQuery())
+
+                appointment = DurationFieldTest(duration=timedelta(hours=2, minutes=30))
+                appointment.save()
+
+                self.assertTrue(
+                    DurationFieldTest.objects.filter(duration__gte=timedelta(hours=1, minutes=0))
+                )
+                self.assertFalse(
+                    DurationFieldTest.objects.filter(duration__lte=timedelta(hours=8, minutes=0))
+                )
+                self.assertEqual(
+                    DurationFieldTest.objects.get(duration=timedelta(hours=2, minutes=30)).duration,
+                    timedelta(hours=2, minutes=30),
+                )
 
     def test_billing(self):
         self.assertEqual(
@@ -266,7 +298,7 @@ class EncryptedFieldTests(TransactionTestCase):
         with self.assertRaises(AssertionError):  # noqa: SIM117
             with self.assertRaises(pymongo.errors.OperationFailure):
 
-                class SlugFieldTest(EncryptedSlugField):
+                class SlugFieldTest(EncryptedModel):
                     slug = EncryptedSlugField(EqualityQuery())
 
     def test_patientrecord(self):

@@ -345,11 +345,17 @@ they encrypt the data before storing it in the database.
 +---------------------------------------+---------------------------------------------------------------------------------------------------------------+
 | ``EncryptedTextField``                | `TextField <https://docs.djangoproject.com/en/stable/ref/models/fields/#textfield>`__                         |
 +---------------------------------------+---------------------------------------------------------------------------------------------------------------+
+| ``EncryptedTimeField``                | `TimeField <https://docs.djangoproject.com/en/stable/ref/models/fields/#timefield>`__                         |
++---------------------------------------+---------------------------------------------------------------------------------------------------------------+
+| ``EncryptedURLField``                 | `URLField <https://docs.djangoproject.com/en/stable/ref/models/fields/#urlfield>`__                           |
++---------------------------------------+---------------------------------------------------------------------------------------------------------------+
 
 .. _encrypted-model-unsupported-fields:
 
 Unsupported fields
 ~~~~~~~~~~~~~~~~~~
+
+The following fields are supported by Django MongoDB Backend but not by Queryable Encryption.
 
 +---------------------------------------+--------------------------------------------------------------------------------------------------------+
 | ``EncryptedDurationField``            | `DurationField <https://docs.djangoproject.com/en/stable/ref/models/fields/#durationfield>`__          |

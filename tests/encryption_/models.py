@@ -1,5 +1,3 @@
-from django.db import models
-
 from django_mongodb_backend.encryption import EqualityQuery, RangeQuery
 from django_mongodb_backend.fields import (
     EncryptedBigIntegerField,
@@ -10,31 +8,18 @@ from django_mongodb_backend.fields import (
     EncryptedDateTimeField,
     EncryptedDecimalField,
     EncryptedEmailField,
-    EncryptedFieldMixin,
     EncryptedFloatField,
     EncryptedGenericIPAddressField,
     EncryptedIntegerField,
     EncryptedTextField,
+    EncryptedTimeField,
+    EncryptedURLField,
 )
 from django_mongodb_backend.models import EncryptedModel
 
 
-class EncryptedDurationField(EncryptedFieldMixin, models.DurationField):
-    """
-    Unsupported by MongoDB when used with Queryable Encryption.
-    Included in tests until fix or wontfix.
-    """
-
-
-class EncryptedSlugField(EncryptedFieldMixin, models.SlugField):
-    """
-    Unsupported by MongoDB when used with Queryable Encryption.
-    Included in tests until fix or wontfix.
-    """
-
-
 class Appointment(EncryptedModel):
-    duration = EncryptedDurationField("duration", queries=RangeQuery())
+    time = EncryptedTimeField(queries=EqualityQuery())
 
 
 class Billing(EncryptedModel):
@@ -48,6 +33,7 @@ class Billing(EncryptedModel):
 
 class PatientPortalUser(EncryptedModel):
     ip_address = EncryptedGenericIPAddressField(queries=EqualityQuery())
+    url = EncryptedURLField(queries=EqualityQuery())
 
 
 class PatientRecord(EncryptedModel):
