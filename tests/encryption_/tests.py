@@ -1,6 +1,6 @@
 import importlib
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from io import StringIO
 from unittest.mock import patch
 
@@ -13,12 +13,12 @@ from django.test import TestCase, TransactionTestCase, modify_settings, override
 from pymongo_auth_aws.auth import AwsCredential
 
 from django_mongodb_backend.encryption import EqualityQuery
+from django_mongodb_backend.fields import EncryptedFieldMixin
 from django_mongodb_backend.models import EncryptedModel
 
 from .models import (
     Appointment,
     Billing,
-    EncryptedFieldMixin,
     Patient,
     PatientPortalUser,
     PatientRecord,
@@ -150,7 +150,6 @@ class EncryptedFieldTests(TransactionTestCase):
     databases = {"default", "my_encrypted_database"}
     available_apps = ["django_mongodb_backend", "encryption_"]
 
-    @classmethod
     def setUp(self):
         self.appointment = Appointment(time="8:00")
         self.appointment.save()
@@ -253,7 +252,7 @@ class EncryptedFieldTests(TransactionTestCase):
         pass
 
     def test_appointment(self):
-        self.assertTrue(Appointment.objects.get(time="8:00").time, "8:00")
+        self.assertEqual(Appointment.objects.get(time="8:00").time, time(8, 0))
 
         # FIXME: Or remove test if wontfix. These tests fail due to
         # pymongocrypt.errors.MongoCryptError: expected lowerBound to match
@@ -322,14 +321,16 @@ class EncryptedFieldTests(TransactionTestCase):
             Patient.objects.get(patient_notes="patient notes " * 25).patient_notes,
             "patient notes " * 25,
         )
-        self.assertTrue(
+        self.assertEqual(
             Patient.objects.get(
                 registration_date=datetime(2023, 10, 1, 12, 0, 0)
             ).registration_date,
             datetime(2023, 10, 1, 12, 0, 0),
         )
         self.assertTrue(Patient.objects.get(patient_id=1).is_active)
-        self.assertTrue(Patient.objects.get(email="john.doe@example.com").email)
+        self.assertEqual(
+            Patient.objects.get(email="john.doe@example.com").email, "john.doe@example.com"
+        )
 
         # Test decrypted patient record in encrypted database.
         patients = connections["my_encrypted_database"].database.patient.find()

@@ -49,12 +49,11 @@ class Command(BaseCommand):
                     fields = connection.schema_editor()._get_encrypted_fields_map(model)
                     ce = self.get_client_encryption(connection)
                     master_key = connection.settings_dict.get("KMS_CREDENTIALS").get(kms_provider)
-                    # Via PyMongo's ClientEncryption
-                    for i, field in enumerate(fields["fields"]):  # noqa: B007
+                    for field in fields["fields"]:
                         data_key = ce.create_data_key(
                             kms_provider=kms_provider,
                             master_key=master_key,
                         )
-                        fields["fields"][i]["keyId"] = data_key
+                        field["keyId"] = data_key
                     schema_map[model._meta.db_table] = fields
         return schema_map
