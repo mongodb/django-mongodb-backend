@@ -25,6 +25,7 @@ Bug fixes
   databases.
 - :meth:`QuerySet.explain() <django.db.models.query.QuerySet.explain>` now
   :ref:`returns a string that can be parsed as JSON <queryset-explain>`.
+- Improved ``QuerySet`` performance by removing low limit on server-side chunking.
 
 5.2.0 beta 1
 ============
