@@ -884,10 +884,11 @@ class CombinedSearchExpression(SearchExpression):
 
 class SearchVector(SearchExpression):
     """
-    Atlas Search expression that performs vector similarity search on embedded vectors.
+    Atlas Search expression that performs vector similarity search using `$vectorSearch`.
 
-    This expression uses the **knnBeta** operator to find documents whose vector
-    embeddings are most similar to a given query vector.
+    This expression uses the `$vectorSearch` stage to retrieve documents whose vector
+    embeddings are most similar to a given query vector, according to approximate or
+    exact nearest-neighbor search.
 
     Example:
         SearchVector("embedding", [0.1, 0.2, 0.3], limit=10, num_candidates=100)
@@ -897,7 +898,7 @@ class SearchVector(SearchExpression):
         query_vector: The query vector to compare against.
         limit: Maximum number of matching documents to return.
         num_candidates: Optional number of candidates to consider during search.
-        exact: Optional flag to enforce exact matching.
+        exact: Optional flag to enforce exact matching (default is approximate).
         filter: Optional filter expression to narrow candidate documents.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-stage/
