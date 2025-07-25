@@ -850,7 +850,7 @@ class CombinedSearchExpression(SearchExpression):
 
     def __init__(self, lhs, operator, rhs):
         self.lhs = lhs
-        self.operator = operator
+        self.operator = Operator(operator) if not isinstance(operator, Operator) else operator
         self.rhs = rhs
 
     def get_source_expressions(self):
