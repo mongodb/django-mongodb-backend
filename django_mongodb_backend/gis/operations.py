@@ -2,14 +2,10 @@ from django.contrib.gis import geos
 from django.contrib.gis.db import models
 from django.contrib.gis.db.backends.base.operations import BaseSpatialOperations
 
-from django_mongodb_backend.operations import (
-    DatabaseOperations as MongoOperations,
-)
-
 from .adapter import Adapter
 
 
-class DatabaseOperations(BaseSpatialOperations, MongoOperations):
+class GISOperations(BaseSpatialOperations):
     Adapter = Adapter
 
     disallowed_aggregates = (

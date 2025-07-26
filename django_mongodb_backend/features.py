@@ -1,9 +1,17 @@
+from django.core.exceptions import ImproperlyConfigured
 from django.db.backends.base.features import BaseDatabaseFeatures
 from django.utils.functional import cached_property
 from pymongo.errors import OperationFailure
 
+try:
+    from .gis.features import GISFeatures
+except ImproperlyConfigured:
+    # GIS libraries not installed
+    class GISFeatures:
+        pass
 
-class DatabaseFeatures(BaseDatabaseFeatures):
+
+class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     minimum_database_version = (6, 0)
     allow_sliced_subqueries_with_in = False
     allows_multiple_constraints_on_same_fields = False
@@ -135,7 +143,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             expected_failures.update(self._django_test_expected_failures_no_transactions)
         return expected_failures
 
-    django_test_skips = {
+    _django_test_skips = {
         "Database defaults aren't supported by MongoDB.": {
             # bson.errors.InvalidDocument: cannot encode object:
             # <django.db.models.expressions.DatabaseDefault
@@ -587,6 +595,12 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             "test_utils.tests.DisallowedDatabaseQueriesTests.test_disallowed_thread_database_connection",
         },
     }
+
+    @cached_property
+    def django_test_skips(self):
+        skips = super().django_test_skips
+        skips.update(self._django_test_skips)
+        return skips
 
     @cached_property
     def is_mongodb_6_3(self):

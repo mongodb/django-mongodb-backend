@@ -6,6 +6,7 @@ from decimal import Decimal
 
 from bson.decimal128 import Decimal128
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.db import DataError
 from django.db.backends.base.operations import BaseDatabaseOperations
 from django.db.models import TextField
@@ -14,8 +15,15 @@ from django.db.models.functions import Cast, Trunc
 from django.utils import timezone
 from django.utils.regex_helper import _lazy_re_compile
 
+try:
+    from .gis.operations import GISOperations
+except ImproperlyConfigured:
+    # GIS libraries not installed
+    class GISOperations:
+        pass
 
-class DatabaseOperations(BaseDatabaseOperations):
+
+class DatabaseOperations(GISOperations, BaseDatabaseOperations):
     compiler_module = "django_mongodb_backend.compiler"
     combine_operators = {
         Combinable.ADD: "add",

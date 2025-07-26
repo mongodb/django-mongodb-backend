@@ -1,10 +1,8 @@
 from pymongo import GEOSPHERE
 from pymongo.operations import IndexModel
 
-from django_mongodb_backend.schema import DatabaseSchemaEditor as BaseSchemaEditor
 
-
-class DatabaseSchemaEditor(BaseSchemaEditor):
+class GISSchemaEditor:
     def _field_should_be_indexed(self, model, field):
         if getattr(field, "spatial_index", False):
             return True

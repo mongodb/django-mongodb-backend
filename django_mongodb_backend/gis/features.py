@@ -1,10 +1,8 @@
 from django.contrib.gis.db.backends.base.features import BaseSpatialFeatures
 from django.utils.functional import cached_property
 
-from django_mongodb_backend.features import DatabaseFeatures as MongoFeatures
 
-
-class DatabaseFeatures(BaseSpatialFeatures, MongoFeatures):
+class GISFeatures(BaseSpatialFeatures):
     has_spatialrefsys_table = False
     supports_transform = False
 
@@ -18,6 +16,7 @@ class DatabaseFeatures(BaseSpatialFeatures, MongoFeatures):
                 "gis_tests.geoapp.tests.GeoModelTest.test_proxy",
                 # MongoDB does not support the within lookup
                 "gis_tests.relatedapp.tests.RelatedGeoModelTest.test06_f_expressions",
+                "gis_tests.geoapp.tests.GeoModelTest.test_gis_query_as_string",
                 # 'Adapter' object has no attribute 'srid'
                 "gis_tests.geoapp.test_expressions.GeoExpressionsTests.test_geometry_value_annotation",
                 # Object of type ObjectId is not JSON serializable
@@ -25,13 +24,8 @@ class DatabaseFeatures(BaseSpatialFeatures, MongoFeatures):
                 "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_geometry_field_option",
                 "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_serialization_base",
                 "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_srid_option",
-                # KeyError: 'within' connection.ops.gis_operators[self.lookup_name]
-                "gis_tests.geoapp.tests.GeoModelTest.test_gis_query_as_string",
                 # No lookups are supported (yet?)
                 "gis_tests.geoapp.tests.GeoLookupTest.test_gis_lookups_with_complex_expressions",
-                # Trying to remove spatial index fails:
-                # "index not found with name [gis_neighborhood_geom_id]"
-                "gis_tests.gis_migrations.test_operations.OperationTests.test_alter_field_remove_spatial_index",
             }
         )
         return expected_failures
@@ -61,6 +55,10 @@ class DatabaseFeatures(BaseSpatialFeatures, MongoFeatures):
                     # Normally RasterField.db_type() raises an error, but MongoDB
                     # migrations don't need to call it, so the check doesn't happen.
                     "gis_tests.gis_migrations.test_operations.NoRasterSupportTests",
+                },
+                "MongoDB doesn't support redundant spatial indexes.": {
+                    # Error: Index already exists with a different name
+                    "gis_tests.geoapp.test_indexes.SchemaIndexesTests.test_index_name",
                 },
             },
         )

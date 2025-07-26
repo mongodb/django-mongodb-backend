@@ -3,6 +3,8 @@ import os
 import pathlib
 import sys
 
+from django.core.exceptions import ImproperlyConfigured
+
 test_apps = [
     "admin_changelist",
     "admin_checks",
@@ -157,6 +159,15 @@ test_apps = [
         ]
     ),
 ]
+
+try:
+    from django.contrib.gis.gdal import GDAL_VERSION  # noqa: F401
+except ImproperlyConfigured:
+    # GDAL not installed.
+    pass
+else:
+    test_apps.append("gis_tests")
+
 runtests = pathlib.Path(__file__).parent.resolve() / "runtests.py"
 run_tests_cmd = f"python3 {runtests} %s --settings mongodb_settings -v 2"
 
