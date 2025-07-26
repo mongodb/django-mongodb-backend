@@ -124,7 +124,7 @@ a value from the provided array.
 .. code-block:: pycon
 
     >>> from django_mongodb_backend.expressions.search import SearchIn
-    >>> Article.objects.annotate(score=SearchIn(path="status", value=["pending", "approved"]))
+    >>> Article.objects.annotate(score=SearchIn(path="number", value=[1, 2]))
     <QuerySet [<Article: Article object (6882f074359a4b191381b2e4)>]>
 
 The ``path`` argument can be the name of a field (as a string) or a
@@ -392,7 +392,7 @@ The ``path`` argument specifies the geo field to filter and can be a string or a
 
 Required arguments:
 
-- ``kind``: The GeoJSON geometry type, such as ``"Polygon"`` or ``"MultiPolygon"``.
+- ``kind``: The GeoJSON geometry type ``circle``, ``box``, or ``geometry``.
 - ``geo_object``: The GeoJSON geometry defining the spatial boundary.
 
 Optional:
@@ -454,7 +454,7 @@ It enables fine-grained control over how multiple conditions contribute to docum
     >>> expr1 = SearchText("headline", "mongodb")
     >>> expr2 = SearchText("body", "atlas")
     >>> expr3 = SearchText("body", "deprecated")
-    >>> expr4 = SearchText("tags", "database")
+    >>> expr4 = SearchText("headline", "database")
     >>> Article.objects.annotate(
     ...     score=CompoundExpression(
     ...         must=[expr1, expr2], must_not=[expr3], should=[expr4], minimum_should_match=1
@@ -492,6 +492,8 @@ logical operators such as ``and``, ``or``, and ``not``.
 .. code-block:: pycon
 
     >>> from django_mongodb_backend.expressions.search import CombinedSearchExpression
+    >>> expr1 = SearchText("headline", "mongodb")
+    >>> expr2 = SearchText("body", "atlas")
     >>> CombinedSearchExpression(expr1, "and", expr2)
 
 Args:
@@ -545,7 +547,7 @@ using either approximate or exact nearest-neighbor search.
     ...         query_vector=[0.1, 0.2, 0.3],
     ...         limit=10,
     ...         num_candidates=100,
-    ...         exact=True,
+    ...         exact=False,
     ...     )
     ... )
     <QuerySet [<Article: Article object (6882f074359a4b191381b2e4)>]>
@@ -584,7 +586,7 @@ It directly maps to the ``score`` option of the relevant Atlas Search operator.
     >>> from django_mongodb_backend.expressions.search import SearchText, SearchScoreOption
     >>> boost = SearchScoreOption({"boost": {"value": 5}})
     >>> Article.objects.annotate(score=SearchText(path="body", query="django", score=boost))
-    <QuerySet [...]>
+    <QuerySet [<Article: Article object (6882f074359a4b191381b2e4)>]>
 
 Accepted options depend on the underlying operator and may include:
 
@@ -612,11 +614,8 @@ score with zero to filter matching documents.
 
 .. code-block:: pycon
 
-    >>> from django.db.models import CharField, TextField
-    >>> from django_mongodb_backend.expressions.search import SearchTextLookup
-
-    >>> # Example usage in a filter
     >>> Article.objects.filter(headline__search="mongodb")
+    <QuerySet [<Article: Article object (6882f074359a4b191381b2e4)>]>
 
 The lookup is automatically registered on ``CharField`` and ``TextField``, enabling
 expressions like ``fieldname__search='query'``.
