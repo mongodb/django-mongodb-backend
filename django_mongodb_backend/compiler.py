@@ -260,7 +260,6 @@ class SQLCompiler(compiler.SQLCompiler):
             else:
                 return self._make_result(obj, self.columns)
         # result_type is MULTI
-        cursor.batch_size(chunk_size)
         result = self.cursor_iter(cursor, chunk_size, self.columns)
         if not chunked_fetch:
             # If using non-chunked reads, read data into memory.
