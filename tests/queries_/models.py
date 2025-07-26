@@ -1,6 +1,12 @@
 from django.db import models
 
-from django_mongodb_backend.fields import ObjectIdAutoField, ObjectIdField
+from django_mongodb_backend.fields import (
+    ArrayField,
+    EmbeddedModelField,
+    ObjectIdAutoField,
+    ObjectIdField,
+)
+from django_mongodb_backend.models import EmbeddedModel
 
 
 class Author(models.Model):
@@ -53,3 +59,16 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return str(self.pk)
+
+
+class Writer(EmbeddedModel):
+    name = models.CharField(max_length=10)
+
+
+class Article(models.Model):
+    headline = models.CharField(max_length=100)
+    number = models.IntegerField()
+    body = models.TextField()
+    location = models.JSONField(null=True)
+    plot_embedding = ArrayField(models.FloatField(), size=3, null=True)
+    writer = EmbeddedModelField(Writer, null=True)
