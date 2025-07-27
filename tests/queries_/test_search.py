@@ -60,19 +60,12 @@ def _delayed_assertion(timeout: float = 120, interval: float = 0.5):
 @skipUnlessDBFeature("supports_atlas_search")
 class SearchUtilsMixin(TransactionTestCase):
     available_apps = ["queries_"]
-    models_to_clean = [Article]
 
     delayedAssertCountEqual = _delayed_assertion(timeout=2)(TransactionTestCase.assertCountEqual)
     delayedAssertListEqual = _delayed_assertion(timeout=2)(TransactionTestCase.assertListEqual)
     delayedAssertQuerySetEqual = _delayed_assertion(timeout=2)(
         TransactionTestCase.assertQuerySetEqual
     )
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        # Register the cleanup to run after all tests in this class
-        cls.addClassCleanup(cls.drop_search_indexes)
 
     @staticmethod
     def _get_collection(model):
@@ -84,12 +77,10 @@ class SearchUtilsMixin(TransactionTestCase):
         idx = SearchIndexModel(definition=definition, name=index_name, type=type)
         collection.create_search_index(idx)
 
-    @classmethod
-    def drop_search_indexes(cls):
-        for model in cls.models_to_clean:
-            collection = cls._get_collection(model)
-            for search_indexes in collection.list_search_indexes():
-                collection.drop_search_index(search_indexes["name"])
+        def drop_index():
+            collection.drop_search_index(index_name)
+
+        cls.addClassCleanup(drop_index)
 
 
 @skipUnlessDBFeature("supports_atlas_search")
