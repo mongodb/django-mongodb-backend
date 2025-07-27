@@ -59,7 +59,7 @@ def _delayed_assertion(timeout: float = 120, interval: float = 0.5):
 
 @skipUnlessDBFeature("supports_atlas_search")
 class SearchUtilsMixin(TransactionTestCase):
-    available_apps = []
+    available_apps = ["queries_"]
     models_to_clean = [Article]
 
     delayedAssertCountEqual = _delayed_assertion(timeout=2)(TransactionTestCase.assertCountEqual)
@@ -72,7 +72,7 @@ class SearchUtilsMixin(TransactionTestCase):
     def setUpClass(cls):
         super().setUpClass()
         # Register the cleanup to run after all tests in this class
-        cls.addClassCleanup(cls.drop_search_indexes_and_data)
+        cls.addClassCleanup(cls.drop_search_indexes)
 
     @staticmethod
     def _get_collection(model):
@@ -85,12 +85,11 @@ class SearchUtilsMixin(TransactionTestCase):
         collection.create_search_index(idx)
 
     @classmethod
-    def drop_search_indexes_and_data(cls):
+    def drop_search_indexes(cls):
         for model in cls.models_to_clean:
             collection = cls._get_collection(model)
             for search_indexes in collection.list_search_indexes():
                 collection.drop_search_index(search_indexes["name"])
-            collection.delete_many({})
 
 
 @skipUnlessDBFeature("supports_atlas_search")
@@ -108,7 +107,10 @@ class SearchEqualsTest(SearchUtilsMixin):
                 }
             },
         )
-        cls.article = Article.objects.create(headline="cross", number=1, body="body")
+
+    def setUp(self):
+        super().setUp()
+        self.article = Article.objects.create(headline="cross", number=1, body="body")
         Article.objects.create(headline="other thing", number=2, body="body")
 
     def test_search_equals(self):
@@ -191,7 +193,10 @@ class SearchAutocompleteTest(SearchUtilsMixin):
                 }
             },
         )
-        cls.article = Article.objects.create(
+
+    def setUp(self):
+        super().setUp()
+        self.article = Article.objects.create(
             headline="crossing and something",
             number=2,
             body="river",
@@ -242,7 +247,10 @@ class SearchExistsTest(SearchUtilsMixin):
             "exists_body_index",
             {"mappings": {"dynamic": False, "fields": {"body": {"type": "token"}}}},
         )
-        cls.article = Article.objects.create(headline="ignored", number=3, body="something")
+
+    def setUp(self):
+        super().setUp()
+        self.article = Article.objects.create(headline="ignored", number=3, body="something")
 
     def test_search_exists(self):
         qs = Article.objects.annotate(score=SearchExists(path="body"))
@@ -266,7 +274,10 @@ class SearchInTest(SearchUtilsMixin):
             "in_headline_index",
             {"mappings": {"dynamic": False, "fields": {"headline": {"type": "token"}}}},
         )
-        cls.article = Article.objects.create(headline="cross", number=1, body="a")
+
+    def setUp(self):
+        super().setUp()
+        self.article = Article.objects.create(headline="cross", number=1, body="a")
         Article.objects.create(headline="road", number=2, body="b")
 
     def test_search_in(self):
@@ -293,7 +304,10 @@ class SearchPhraseTest(SearchUtilsMixin):
             "phrase_body_index",
             {"mappings": {"dynamic": False, "fields": {"body": {"type": "string"}}}},
         )
-        cls.article = Article.objects.create(
+
+    def setUp(self):
+        super().setUp()
+        self.article = Article.objects.create(
             headline="irrelevant", number=1, body="the quick brown fox"
         )
         Article.objects.create(headline="cheetah", number=2, body="fastest animal")
@@ -323,7 +337,10 @@ class SearchRangeTest(SearchUtilsMixin):
             {"mappings": {"dynamic": False, "fields": {"number": {"type": "number"}}}},
         )
         Article.objects.create(headline="x", number=5, body="z")
-        cls.number20 = Article.objects.create(headline="y", number=20, body="z")
+
+    def setUp(self):
+        super().setUp()
+        self.number20 = Article.objects.create(headline="y", number=20, body="z")
 
     def test_search_range(self):
         qs = Article.objects.annotate(score=SearchRange(path="number", gte=10, lt=30))
@@ -354,7 +371,10 @@ class SearchRegexTest(SearchUtilsMixin):
                 }
             },
         )
-        cls.article = Article.objects.create(headline="hello world", number=1, body="abc")
+
+    def setUp(self):
+        super().setUp()
+        self.article = Article.objects.create(headline="hello world", number=1, body="abc")
         Article.objects.create(headline="hola mundo", number=2, body="abc")
 
     def test_search_regex(self):
@@ -385,7 +405,10 @@ class SearchTextTest(SearchUtilsMixin):
             "text_body_index",
             {"mappings": {"dynamic": False, "fields": {"body": {"type": "string"}}}},
         )
-        cls.article = Article.objects.create(
+
+    def setUp(self):
+        super().setUp()
+        self.article = Article.objects.create(
             headline="ignored", number=1, body="The lazy dog sleeps"
         )
         Article.objects.create(headline="ignored", number=2, body="The sleepy bear")
@@ -437,7 +460,10 @@ class SearchWildcardTest(SearchUtilsMixin):
                 }
             },
         )
-        cls.article = Article.objects.create(headline="dark-knight", number=1, body="")
+
+    def setUp(self):
+        super().setUp()
+        self.article = Article.objects.create(headline="dark-knight", number=1, body="")
         Article.objects.create(headline="batman", number=2, body="")
 
     def test_search_wildcard(self):
@@ -469,7 +495,10 @@ class SearchGeoShapeTest(SearchUtilsMixin):
                 }
             },
         )
-        cls.article = Article.objects.create(
+
+    def setUp(self):
+        super().setUp()
+        self.article = Article.objects.create(
             headline="any", number=1, body="", location={"type": "Point", "coordinates": [40, 5]}
         )
         Article.objects.create(
@@ -512,7 +541,10 @@ class SearchGeoWithinTest(SearchUtilsMixin):
             "geowithin_location_index",
             {"mappings": {"dynamic": False, "fields": {"location": {"type": "geo"}}}},
         )
-        cls.article = Article.objects.create(
+
+    def setUp(self):
+        super().setUp()
+        self.article = Article.objects.create(
             headline="geo", number=2, body="", location={"type": "Point", "coordinates": [40, 5]}
         )
         Article.objects.create(
@@ -615,25 +647,28 @@ class CompoundSearchTest(SearchUtilsMixin):
                 }
             },
         )
-        cls.mars_mission = Article.objects.create(
+
+    def setUp(self):
+        super().setUp()
+        self.mars_mission = Article.objects.create(
             number=1,
             headline="space exploration",
             body="NASA launches a new mission to Mars, aiming to study surface geology",
         )
 
-        cls.exoplanet = Article.objects.create(
+        self.exoplanet = Article.objects.create(
             number=2,
             headline="space exploration",
             body="Astronomers discover exoplanets orbiting distant stars using Webb telescope",
         )
 
-        cls.icy_moons = Article.objects.create(
+        self.icy_moons = Article.objects.create(
             number=3,
             headline="space exploration",
             body="ESA prepares a robotic expedition to explore the icy moons of Jupiter",
         )
 
-        cls.comodities_drop = Article.objects.create(
+        self.comodities_drop = Article.objects.create(
             number=4,
             headline="astronomy news",
             body="Commodities dropped sharply due to inflation concerns",
@@ -780,13 +815,15 @@ class SearchVectorTest(SearchUtilsMixin):
             type="vectorSearch",
         )
 
-        cls.mars = Article.objects.create(
+    def setUp(self):
+        super().setUp()
+        self.mars = Article.objects.create(
             headline="Mars landing",
             number=1,
             body="The rover has landed on Mars",
             plot_embedding=[0.1, 0.2, 0.3],
         )
-        cls.cooking = Article.objects.create(
+        self.cooking = Article.objects.create(
             headline="Cooking tips",
             number=2,
             body="This article is about pasta",
