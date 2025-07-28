@@ -80,7 +80,12 @@ class NestedIntegerArrayModel(models.Model):
 class OtherTypesArrayModel(models.Model):
     ips = ArrayField(models.GenericIPAddressField(), default=list)
     uuids = ArrayField(models.UUIDField(), default=list)
-    decimals = ArrayField(models.DecimalField(max_digits=5, decimal_places=2), default=list)
+    decimals = ArrayField(
+        models.DecimalField(max_digits=5, decimal_places=2),
+        default=list,
+        null=True,
+        blank=True,
+    )
     tags = ArrayField(TagField(), blank=True, null=True)
     json = ArrayField(models.JSONField(default=dict), default=list)
 
