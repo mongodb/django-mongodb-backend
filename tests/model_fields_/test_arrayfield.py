@@ -179,7 +179,7 @@ class SaveLoadTests(TestCase):
         instance = OtherTypesArrayModel(
             ips=["192.168.0.1", "::1"],
             uuids=[uuid.uuid4()],
-            decimals=[decimal.Decimal(1.25), 1.75],
+            decimals=[decimal.Decimal("1.25"), 1.75],
             tags=[Tag(1), Tag(2), Tag(3)],
             json=[{"a": 1}, {"b": 2}],
         )
@@ -542,11 +542,11 @@ class QueryingTests(TestCase):
         )
 
     def test_unsupported_lookup(self):
-        msg = "Unsupported lookup '0_bar' for ArrayField or join on the field not " "permitted."
+        msg = "Unsupported lookup '0_bar' for ArrayField or join on the field not permitted."
         with self.assertRaisesMessage(FieldError, msg):
             list(NullableIntegerArrayModel.objects.filter(field__0_bar=[2]))
 
-        msg = "Unsupported lookup '0bar' for ArrayField or join on the field not " "permitted."
+        msg = "Unsupported lookup '0bar' for ArrayField or join on the field not permitted."
         with self.assertRaisesMessage(FieldError, msg):
             list(NullableIntegerArrayModel.objects.filter(field__0bar=[2]))
 
@@ -581,7 +581,7 @@ class OtherTypesExactQueryingTests(TestCase):
     def setUpTestData(cls):
         cls.ips = ["192.168.0.1", "::1"]
         cls.uuids = [uuid.uuid4()]
-        cls.decimals = [decimal.Decimal(1.25), 1.75]
+        cls.decimals = [decimal.Decimal("1.25"), 1.75]
         cls.tags = [Tag(1), Tag(2), Tag(3)]
         cls.objs = [
             OtherTypesArrayModel.objects.create(

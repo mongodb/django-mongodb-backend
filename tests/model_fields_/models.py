@@ -39,6 +39,9 @@ class Tag:
     def __eq__(self, other):
         return isinstance(other, Tag) and self.tag_id == other.tag_id
 
+    def __hash__(self):
+        return hash(self.tag_id)
+
 
 class TagField(models.SmallIntegerField):
     def from_db_value(self, value, expression, connection):
@@ -185,7 +188,7 @@ class Section(EmbeddedModel):
     artifacts = EmbeddedModelArrayField("Artifact", null=True)
 
     def __str__(self):
-        return "Section %d" % self.number
+        return f"Section {self.number}"
 
 
 # Details about a specific artifact.

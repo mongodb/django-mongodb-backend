@@ -308,7 +308,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         return f"({sql})::time", params
 
     def format_for_duration_arithmetic(self, sql):
-        return "INTERVAL %s MILLISECOND" % sql
+        return f"INTERVAL {sql} MILLISECOND"
 
     def time_trunc_sql(self, lookup_type, sql, params, tzname=None):
         return f"DATE_TRUNC(%s, {sql})::time", (lookup_type, *params)

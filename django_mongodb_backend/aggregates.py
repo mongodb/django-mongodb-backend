@@ -21,7 +21,7 @@ def aggregate(
         node.filter = None
         source_expressions = node.get_source_expressions()
         condition = When(self.filter, then=source_expressions[0])
-        node.set_source_expressions([Case(condition)] + source_expressions[1:])
+        node.set_source_expressions([Case(condition), *source_expressions[1:]])
     else:
         node = self
     lhs_mql = process_lhs(node, compiler, connection)
@@ -45,7 +45,7 @@ def count(self, compiler, connection, resolve_inner_expression=False, **extra_co
             condition = When(
                 self.filter, then=Case(When(IsNull(source_expressions[0], False), then=Value(1)))
             )
-            node.set_source_expressions([Case(condition)] + source_expressions[1:])
+            node.set_source_expressions([Case(condition), *source_expressions[1:]])
             inner_expression = process_lhs(node, compiler, connection)
         else:
             lhs_mql = process_lhs(self, compiler, connection)

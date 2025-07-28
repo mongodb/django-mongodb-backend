@@ -17,7 +17,7 @@ def check_django_compatability():
     installed version of Django. For example, any django-mongodb-backend 5.0.x is
     compatible with Django 5.0.y.
     """
-    from . import __version__
+    from . import __version__  # noqa: PLC0415
 
     if django.VERSION[:2] != get_version_tuple(__version__)[:2]:
         A = django.VERSION[0]
@@ -145,12 +145,7 @@ class OperationDebugWrapper:
         operation = f"db.{self.collection_name}{op}({args})"
         if len(settings.DATABASES) > 1:
             msg += f"; alias={self.db.alias}"
-        self.db.queries_log.append(
-            {
-                "sql": operation,
-                "time": "%.3f" % duration,
-            }
-        )
+        self.db.queries_log.append({"sql": operation, "time": f"{duration:.3f}"})
         logger.debug(
             msg,
             duration,

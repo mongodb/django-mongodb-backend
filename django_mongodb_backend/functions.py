@@ -99,7 +99,7 @@ def extract(self, compiler, connection):
     lhs_mql = process_lhs(self, compiler, connection)
     operator = EXTRACT_OPERATORS.get(self.lookup_name)
     if operator is None:
-        raise NotSupportedError("%s is not supported." % self.__class__.__name__)
+        raise NotSupportedError(f"{self.__class__.__name__} is not supported.")
     if timezone := self.get_tzname():
         lhs_mql = {"date": lhs_mql, "timezone": timezone}
     return {f"${operator}": lhs_mql}

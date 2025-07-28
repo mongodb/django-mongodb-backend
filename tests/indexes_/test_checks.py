@@ -212,7 +212,7 @@ class InvalidVectorSearchIndexesTests(TestCase):
             errors,
             [
                 checks.Error(
-                    "VectorSearchIndex requires at least one ArrayField to " "store vector data.",
+                    "VectorSearchIndex requires at least one ArrayField to store vector data.",
                     id="django_mongodb_backend.indexes.VectorSearchIndex.E006",
                     obj=NoSearchVectorModel,
                     hint="If you want to perform search operations without vectors, "

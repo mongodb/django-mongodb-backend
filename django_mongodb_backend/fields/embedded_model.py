@@ -26,7 +26,7 @@ class EmbeddedModelField(models.Field):
         return "embeddedDocuments"
 
     def check(self, **kwargs):
-        from ..models import EmbeddedModel
+        from ..models import EmbeddedModel  # noqa: PLC0415
 
         errors = super().check(**kwargs)
         if not issubclass(self.embedded_model, EmbeddedModel):

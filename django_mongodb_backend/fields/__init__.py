@@ -9,14 +9,14 @@ from .polymorphic_embedded_model import PolymorphicEmbeddedModelField
 from .polymorphic_embedded_model_array import PolymorphicEmbeddedModelArrayField
 
 __all__ = [
-    "register_fields",
     "ArrayField",
     "EmbeddedModelArrayField",
     "EmbeddedModelField",
     "ObjectIdAutoField",
     "ObjectIdField",
-    "PolymorphicEmbeddedModelField",
     "PolymorphicEmbeddedModelArrayField",
+    "PolymorphicEmbeddedModelField",
+    "register_fields",
 ]
 
 

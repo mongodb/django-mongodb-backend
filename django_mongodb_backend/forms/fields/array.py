@@ -163,7 +163,7 @@ class SplitArrayWidget(forms.Widget):
             if id_:
                 final_attrs = {**final_attrs, "id": f"{id_}_{i}"}
             context["widget"]["subwidgets"].append(
-                self.widget.get_context(name + "_%s" % i, widget_value, final_attrs)["widget"]
+                self.widget.get_context(name + f"_{i}", widget_value, final_attrs)["widget"]
             )
         return context
 

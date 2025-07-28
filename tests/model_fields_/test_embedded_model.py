@@ -38,7 +38,7 @@ class MethodTests(SimpleTestCase):
         self.assertEqual(kwargs, {"embedded_model": "Data", "null": True})
 
     def test_get_db_prep_save_invalid(self):
-        msg = "Expected instance of type <class 'model_fields_.models.Data'>, " "not <class 'int'>."
+        msg = "Expected instance of type <class 'model_fields_.models.Data'>, not <class 'int'>."
         with self.assertRaisesMessage(TypeError, msg):
             Holder(data=42).save()
 

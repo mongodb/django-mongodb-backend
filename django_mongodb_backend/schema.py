@@ -18,7 +18,7 @@ def ignore_embedded_models(func):
 
     def wrapper(self, model, *args, **kwargs):
         parent_model = kwargs.get("parent_model")
-        from .models import EmbeddedModel
+        from .models import EmbeddedModel  # noqa: PLC0415
 
         if issubclass(model, EmbeddedModel) and parent_model is None:
             return

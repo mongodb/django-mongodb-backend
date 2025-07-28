@@ -33,7 +33,7 @@ class RawAggregateTests(TestCase):
             author=cls.a1,
             paperback=False,
             opening_line=(
-                "It was a bright cold day in April and the clocks were striking " "thirteen."
+                "It was a bright cold day in April and the clocks were striking thirteen."
             ),
         )
         cls.b2 = Book.objects.create(
@@ -166,7 +166,7 @@ class RawAggregateTests(TestCase):
             ("first_name, last_name, dob, id"),
         )
         for select in selects:
-            select = {col: 1 for col in select.split(", ")}
+            select = dict.fromkeys(select.split(", "), 1)
             query = [{"$project": select}]
             authors = Author.objects.all()
             self.assertSuccessfulRawQuery(Author, query, authors)

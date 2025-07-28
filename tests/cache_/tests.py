@@ -1,9 +1,11 @@
 """These tests are forked from Django's tests/cache/tests.py."""
+
 import os
 import pickle
 import time
 from functools import wraps
 from unittest import mock
+from zlib import compress, decompress
 
 from bson import SON
 from django.conf import settings
@@ -344,8 +346,6 @@ class CacheTests(TestCase):
 
     def test_binary_string(self):
         # Binary strings should be cacheable
-        from zlib import compress, decompress
-
         value = "value_to_be_compressed"
         compressed_value = compress(value.encode())
 
@@ -476,11 +476,11 @@ class CacheTests(TestCase):
         # Create initial cache key entries. This will overflow the cache,
         # causing a cull.
         for i in range(1, initial_count):
-            cull_cache.set("cull%d" % i, "value", 1000)
+            cull_cache.set(f"cull{i}", "value", 1000)
         count = 0
         # Count how many keys are left in the cache.
         for i in range(1, initial_count):
-            if cull_cache.has_key("cull%d" % i):
+            if cull_cache.has_key(f"cull{i}"):
                 count += 1
         self.assertEqual(count, final_count)
 
@@ -550,7 +550,7 @@ class CacheTests(TestCase):
         # memcached limits key length to 250.
         key = ("a" * 250) + "清"
         expected_warning = (
-            "Cache key will cause errors if used with memcached: " f"'{key}' (longer than 250)"
+            f"Cache key will cause errors if used with memcached: '{key}' (longer than 250)"
         )
         self._perform_invalid_key_test(key, expected_warning)
 

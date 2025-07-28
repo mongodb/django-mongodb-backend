@@ -156,14 +156,12 @@ class QueryingTests(TestCase):
             Owner.objects.filter(pets__xxx=10).first()
 
     def test_invalid_lookup(self):
-        msg = "Unsupported lookup 'return' for PolymorphicEmbeddedModelArrayField " "of 'CharField'"
+        msg = "Unsupported lookup 'return' for PolymorphicEmbeddedModelArrayField of 'CharField'"
         with self.assertRaisesMessage(FieldDoesNotExist, msg):
             Owner.objects.filter(pets__name__return="xxx")
 
     def test_unsupported_lookup(self):
-        msg = (
-            "Unsupported lookup 'range' for PolymorphicEmbeddedModelArrayField " "of 'DecimalField'"
-        )
+        msg = "Unsupported lookup 'range' for PolymorphicEmbeddedModelArrayField of 'DecimalField'"
         with self.assertRaisesMessage(FieldDoesNotExist, msg):
             Owner.objects.filter(pets__weight__range=[10])
 

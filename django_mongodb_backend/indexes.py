@@ -237,7 +237,7 @@ class VectorSearchIndex(SearchIndex):
         if num_arrayfields == 0:
             errors.append(
                 Error(
-                    "VectorSearchIndex requires at least one ArrayField to " "store vector data.",
+                    "VectorSearchIndex requires at least one ArrayField to store vector data.",
                     obj=model,
                     id=f"{self._error_id_prefix}.E006",
                     hint="If you want to perform search operations without vectors, "

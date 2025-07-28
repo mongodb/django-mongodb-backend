@@ -45,6 +45,6 @@ class Command(BaseCommand):
         connection = connections[database]
         if cache._collection_name in connection.introspection.table_names():
             if self.verbosity > 0:
-                self.stdout.write("Cache collection '%s' already exists." % cache._collection_name)
+                self.stdout.write(f"Cache collection '{cache._collection_name}' already exists.")
             return
         cache.create_indexes()

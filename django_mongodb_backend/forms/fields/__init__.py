@@ -6,8 +6,8 @@ from .objectid import ObjectIdField
 __all__ = [
     "EmbeddedModelArrayField",
     "EmbeddedModelField",
+    "ObjectIdField",
     "SimpleArrayField",
     "SplitArrayField",
     "SplitArrayWidget",
-    "ObjectIdField",
 ]

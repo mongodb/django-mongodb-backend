@@ -668,7 +668,7 @@ class SQLInsertCompiler(SQLCompiler):
                 )
                 if value is None and not field.null and not field.primary_key:
                     raise IntegrityError(
-                        "You can't set %s (a non-nullable field) to None." % field.name
+                        f"You can't set {field.name} (a non-nullable field) to None."
                     )
 
                 field_values[field.column] = value
@@ -728,13 +728,11 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
                 value = value.resolve_expression(self.query, allow_joins=False, for_save=True)
                 if value.contains_aggregate:
                     raise FieldError(
-                        "Aggregate functions are not allowed in this query "
-                        f"({field.name}={value})."
+                        f"Aggregate functions are not allowed in this query ({field.name}={value})."
                     )
                 if value.contains_over_clause:
                     raise FieldError(
-                        "Window expressions are not allowed in this query "
-                        f"({field.name}={value})."
+                        f"Window expressions are not allowed in this query ({field.name}={value})."
                     )
             elif hasattr(value, "prepare_database_save"):
                 if field.remote_field:
