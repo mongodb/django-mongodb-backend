@@ -7,6 +7,10 @@ Django MongoDB Backend 5.1.x
 
 *Unreleased*
 
+- Backward-incompatible: Removed support for database caching as the MongoDB security
+  team considers the cache backend's ``pickle`` encoding of cached values a
+  vulnerability. If an attacker compromises the database, they could run arbitrary
+  commands on the application server.
 - Fixed crash when loading models with a null value for ``ArrayField``\s where
   the ``base_field`` uses a database converter.
 - Fixed ``RecursionError`` when using ``Trunc`` database functions on non-MongoDB
@@ -39,7 +43,7 @@ Django MongoDB Backend 5.1.x
   :attr:`~.ArrayField.size` parameter is renamed to
   :attr:`~.ArrayField.max_size`. The :attr:`~.ArrayField.size` parameter is now
   used to enforce fixed-length arrays.
-- Added support for :doc:`database caching </topics/cache>`.
+- Added support for database caching (later removed in beta 4).
 - Fixed ``QuerySet.raw_aggregate()`` field initialization when the document key
   order doesn't match the order of the model's fields.
 
