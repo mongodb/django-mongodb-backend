@@ -7,10 +7,10 @@ from django.test import TestCase
 class SupportsTransactionsTests(TestCase):
     def setUp(self):
         # Clear the cached property.
-        del connection.features.supports_transactions
+        connection.features.__dict__.pop("_supports_transactions", None)
 
     def tearDown(self):
-        del connection.features.supports_transactions
+        del connection.features._supports_transactions
 
     def test_replica_set(self):
         """A replica set supports transactions."""
@@ -21,7 +21,7 @@ class SupportsTransactionsTests(TestCase):
             raise Exception("Unexpected command")
 
         with patch("pymongo.synchronous.database.Database.command", wraps=mocked_command):
-            self.assertIs(connection.features.supports_transactions, True)
+            self.assertIs(connection.features._supports_transactions, True)
 
     def test_sharded_cluster(self):
         """A sharded cluster supports transactions."""
@@ -32,7 +32,7 @@ class SupportsTransactionsTests(TestCase):
             raise Exception("Unexpected command")
 
         with patch("pymongo.synchronous.database.Database.command", wraps=mocked_command):
-            self.assertIs(connection.features.supports_transactions, True)
+            self.assertIs(connection.features._supports_transactions, True)
 
     def test_no_support(self):
         """No support on a non-replica set, non-sharded cluster."""
@@ -43,4 +43,4 @@ class SupportsTransactionsTests(TestCase):
             raise Exception("Unexpected command")
 
         with patch("pymongo.synchronous.database.Database.command", wraps=mocked_command):
-            self.assertIs(connection.features.supports_transactions, False)
+            self.assertIs(connection.features._supports_transactions, False)

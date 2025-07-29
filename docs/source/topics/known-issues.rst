@@ -80,7 +80,11 @@ Database functions
 Transaction management
 ======================
 
-See :ref:`transactions` for details.
+Query execution uses Django and MongoDB's default behavior of autocommit mode.
+Each query is immediately committed to the database.
+
+Django's :doc:`transaction management APIs <django:topics/db/transactions>`
+are not supported.
 
 Database introspection
 ======================
