@@ -95,10 +95,6 @@ Due to the lack of ability to introspect MongoDB collection schema,
 Caching
 =======
 
-:doc:`Database caching </topics/cache>` uses this library's
-:djadmin:`createcachecollection` command rather Django's SQL-specific
-:djadmin:`createcachetable` command.
-
-Secondly, you must use the :class:`django_mongodb_backend.cache.MongoDBCache`
-backend rather than Django's built-in database cache backend,
-``django.core.cache.backends.db.DatabaseCache``.
+:ref:`Database caching <database-caching>` is not supported since Django's built-in
+database cache backend requires SQL. A custom cache backend for MongoDB may be provided
+in the future.

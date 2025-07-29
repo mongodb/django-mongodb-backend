@@ -17,6 +17,14 @@ New features
   :class:`~.fields.PolymorphicEmbeddedModelArrayField` for storing a model
   instance or list of model instances that may be of more than one model class.
 
+Backwards incompatible changes
+------------------------------
+
+- Removed support for database caching as the MongoDB security team considers the cache
+  backend's ``pickle`` encoding of cached values a vulnerability. If an attacker
+  compromises the database, they could run arbitrary commands on the application
+  server.
+
 Bug fixes
 ---------
 
