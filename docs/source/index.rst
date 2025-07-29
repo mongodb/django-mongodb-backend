@@ -51,11 +51,6 @@ Forms
 
 - :doc:`ref/forms`
 
-Core functionalities
-====================
-
-- :doc:`topics/cache`
-
 Miscellaneous
 =============
 
