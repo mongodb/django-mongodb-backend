@@ -13,6 +13,7 @@ New features
 - Added subquery support for :class:`~.fields.EmbeddedModelArrayField`.
 - Added the ``options`` parameter to
   :func:`~django_mongodb_backend.utils.parse_uri`.
+- Added support for :ref:`database transactions <transactions>`.
 - Added :class:`~.fields.PolymorphicEmbeddedModelField` and
   :class:`~.fields.PolymorphicEmbeddedModelArrayField` for storing a model
   instance or list of model instances that may be of more than one model class.

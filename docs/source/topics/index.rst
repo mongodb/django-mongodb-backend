@@ -9,4 +9,5 @@ know:
    :maxdepth: 2
 
    embedded-models
+   transactions
    known-issues

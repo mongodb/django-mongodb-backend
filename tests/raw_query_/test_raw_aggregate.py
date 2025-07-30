@@ -6,8 +6,9 @@ from datetime import date, datetime
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db import connection
-from django.test import TestCase
+from django.test import TestCase, skipUnlessDBFeature
 
+from django_mongodb_backend import transaction
 from django_mongodb_backend.queryset import RawQuerySet
 
 from .models import (
@@ -326,3 +327,13 @@ class RawAggregateTests(TestCase):
     def test_len(self):
         self.assertEqual(len(Book.objects.raw_aggregate([])), 4)
         self.assertEqual(len(Book.objects.raw_aggregate([{"$match": {"id": 0}}])), 0)
+
+    @skipUnlessDBFeature("_supports_transactions")
+    def test_transaction(self):
+        count = Author.objects.count()
+        with self.assertRaisesMessage(Exception, "Oops"), transaction.atomic():
+            Author.objects.update(last_name="Haddock")
+            # Changes within in a transaction are visible to raw_aggregate().
+            query = [{"$match": {"last_name": "Haddock"}}]
+            self.assertEqual(len(Author.objects.raw_aggregate(query)), count)
+            raise Exception("Oops")

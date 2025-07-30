@@ -1,8 +1,11 @@
 import contextlib
+import logging
 import os
 
 from django.core.exceptions import ImproperlyConfigured
+from django.db import DEFAULT_DB_ALIAS
 from django.db.backends.base.base import BaseDatabaseWrapper
+from django.db.backends.utils import debug_transaction
 from django.utils.asyncio import async_unsafe
 from django.utils.functional import cached_property
 from pymongo.collection import Collection
@@ -30,6 +33,9 @@ class Cursor:
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
         pass
+
+
+logger = logging.getLogger("django.db.backends.base")
 
 
 class DatabaseWrapper(BaseDatabaseWrapper):
@@ -142,6 +148,17 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     ops_class = DatabaseOperations
     validation_class = DatabaseValidation
 
+    def __init__(self, settings_dict, alias=DEFAULT_DB_ALIAS):
+        super().__init__(settings_dict, alias=alias)
+        self.session = None
+        # Tracks whether the connection is in a transaction managed by
+        # django_mongodb_backend.transaction.atomic. `in_atomic_block` isn't
+        # used in case Django's atomic() (used internally in Django) is called
+        # within this package's atomic().
+        self.in_atomic_block_mongo = False
+        # Current number of nested 'atomic' calls.
+        self.nested_atomics = 0
+
     def get_collection(self, name, **kwargs):
         collection = Collection(self.database, name, **kwargs)
         if self.queries_logged:
@@ -212,6 +229,10 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def close_pool(self):
         """Close the MongoClient."""
+        # Clear commit hooks and session.
+        self.run_on_commit = []
+        if self.session:
+            self._end_session()
         connection = self.connection
         if connection is None:
             return
@@ -230,3 +251,57 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     def get_database_version(self):
         """Return a tuple of the database's version."""
         return tuple(self.connection.server_info()["versionArray"])
+
+    ## Transaction API for django_mongodb_backend.transaction.atomic()
+    @async_unsafe
+    def start_transaction_mongo(self):
+        if self.session is None:
+            self.session = self.connection.start_session()
+            with debug_transaction(self, "session.start_transaction()"):
+                self.session.start_transaction()
+
+    @async_unsafe
+    def commit_mongo(self):
+        if self.session:
+            with debug_transaction(self, "session.commit_transaction()"):
+                self.session.commit_transaction()
+            self._end_session()
+        self.run_and_clear_commit_hooks()
+
+    @async_unsafe
+    def rollback_mongo(self):
+        if self.session:
+            with debug_transaction(self, "session.abort_transaction()"):
+                self.session.abort_transaction()
+            self._end_session()
+        self.run_on_commit = []
+
+    def _end_session(self):
+        self.session.end_session()
+        self.session = None
+
+    def on_commit(self, func, robust=False):
+        """
+        Copied from BaseDatabaseWrapper.on_commit() except that it checks
+        in_atomic_block_mongo instead of in_atomic_block.
+        """
+        if not callable(func):
+            raise TypeError("on_commit()'s callback must be a callable.")
+        if self.in_atomic_block_mongo:
+            # Transaction in progress; save for execution on commit.
+            # The first item in the tuple (an empty list) is normally the
+            # savepoint IDs, which isn't applicable on MongoDB.
+            self.run_on_commit.append(([], func, robust))
+        else:
+            # No transaction in progress; execute immediately.
+            if robust:
+                try:
+                    func()
+                except Exception as e:
+                    logger.exception(
+                        "Error calling %s in on_commit() (%s).",
+                        func.__qualname__,
+                        e,
+                    )
+            else:
+                func()
