@@ -8,6 +8,5 @@ know:
 .. toctree::
    :maxdepth: 2
 
-   cache
    embedded-models
    known-issues
