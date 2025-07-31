@@ -41,6 +41,7 @@ Models
 - :doc:`ref/models/models`
 - :doc:`ref/models/indexes`
 - :doc:`ref/database`
+- :doc:`ref/contrib/gis`
 
 **Topic guides:**
 

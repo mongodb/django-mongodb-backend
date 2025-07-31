@@ -1,7 +1,7 @@
 import itertools
 
 from django.db import connection, models
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, skipUnlessDBFeature
 from django.test.utils import isolate_apps
 
 from django_mongodb_backend.fields import EmbeddedModelField
@@ -552,3 +552,41 @@ class EmbeddedModelsIgnoredTests(TestMixin, TransactionTestCase):
         new_field.set_attributes_from_name("new")
         with connection.schema_editor() as editor, self.assertNumQueries(0):
             editor.alter_field(Author, old_field, new_field)
+
+
+@skipUnlessDBFeature("gis_enabled")
+class GISTests(TestMixin, TransactionTestCase):
+    @isolate_apps("schema_")
+    def test_create_model(self):
+        """
+        Spatial indexes for embedded GIS fields are created when the collections are
+        created.
+        """
+        from django.contrib.gis.db.models import PointField  # noqa: PLC0415
+
+        class Place(EmbeddedModel):
+            name = models.CharField(max_length=10)
+            location = PointField()
+
+            class Meta:
+                app_label = "schema_"
+
+        class Author(models.Model):
+            birthplace = EmbeddedModelField(Place)
+
+            class Meta:
+                app_label = "schema_"
+
+        with connection.schema_editor() as editor:
+            # Create the table
+            editor.create_model(Author)
+            self.assertTableExists(Author)
+            # The embedded GEO indexes is created.
+            constraint_name = "schema__author_birthplace.location_id"
+            self.assertEqual(
+                self.get_constraints_for_columns(Author, ["birthplace.location"]),
+                [constraint_name],
+            )
+            self.assertIndexOrder(Author._meta.db_table, constraint_name, ["GEO"])
+            editor.delete_model(Author)
+        self.assertTableNotExists(Author)

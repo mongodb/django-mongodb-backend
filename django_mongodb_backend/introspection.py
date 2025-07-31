@@ -1,12 +1,12 @@
 from django.db.backends.base.introspection import BaseDatabaseIntrospection
 from django.db.models import Index
-from pymongo import ASCENDING, DESCENDING
+from pymongo import ASCENDING, DESCENDING, GEOSPHERE
 
 from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 
 
 class DatabaseIntrospection(BaseDatabaseIntrospection):
-    ORDER_DIR = {ASCENDING: "ASC", DESCENDING: "DESC"}
+    ORDER_DIR = {ASCENDING: "ASC", DESCENDING: "DESC", GEOSPHERE: "GEO"}
 
     def table_names(self, cursor=None, include_views=False):
         return sorted([x["name"] for x in self.connection.database.list_collections()])

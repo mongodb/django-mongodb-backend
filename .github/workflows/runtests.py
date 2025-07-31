@@ -3,6 +3,8 @@ import os
 import pathlib
 import sys
 
+from django.core.exceptions import ImproperlyConfigured
+
 test_apps = [
     "admin_changelist",
     "admin_checks",
@@ -154,9 +156,20 @@ test_apps = [
         [
             x.name
             for x in (pathlib.Path(__file__).parent.parent.parent.resolve() / "tests").iterdir()
+            # Omit GIS tests unless GIS libraries are installed.
+            if x.name != "gis_tests_"
         ]
     ),
 ]
+
+try:
+    from django.contrib.gis.db import models  # noqa: F401
+except ImproperlyConfigured:
+    # GIS libraries (GDAL/GEOS) not installed.
+    pass
+else:
+    test_apps.extend(["gis_tests", "gis_tests_"])
+
 runtests = pathlib.Path(__file__).parent.resolve() / "runtests.py"
 run_tests_cmd = f"python3 {runtests} %s --settings mongodb_settings -v 2"
 
