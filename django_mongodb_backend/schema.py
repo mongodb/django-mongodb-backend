@@ -5,6 +5,7 @@ from pymongo.operations import SearchIndexModel
 from django_mongodb_backend.indexes import SearchIndex
 
 from .fields import EmbeddedModelField
+from .gis.schema import GISSchemaEditor
 from .query import wrap_database_errors
 from .utils import OperationCollector
 
@@ -27,7 +28,7 @@ def ignore_embedded_models(func):
     return wrapper
 
 
-class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
+class BaseSchemaEditor(BaseDatabaseSchemaEditor):
     def get_collection(self, name):
         if self.collect_sql:
             return OperationCollector(self.collected_sql, collection=self.connection.database[name])
@@ -418,3 +419,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         db_type = field.db_type(self.connection)
         # The _id column is automatically unique.
         return db_type and field.unique and field.column != "_id"
+
+
+# GISSchemaEditor extends some SchemaEditor methods.
+class DatabaseSchemaEditor(GISSchemaEditor, BaseSchemaEditor):
+    pass
