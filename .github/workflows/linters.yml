@@ -26,6 +26,8 @@ jobs:
       - name: Run linters
         run: |
           pre-commit run --hook-stage=manual --all-files
+    permissions:
+        contents: read
   docs:
     name: Docs Checks
     runs-on: ubuntu-latest
@@ -46,3 +48,5 @@ jobs:
         run: |
           cd docs
           make html
+    permissions:
+        contents: read
