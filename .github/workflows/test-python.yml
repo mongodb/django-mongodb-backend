@@ -55,3 +55,5 @@ jobs:
           mongodb-version: 6.0
       - name: Run tests
         run: python3 django_repo/tests/runtests_.py
+    permissions:
+        contents: read
