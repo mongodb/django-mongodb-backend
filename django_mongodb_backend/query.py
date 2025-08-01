@@ -49,6 +49,7 @@ class MongoQuery:
         self.lookup_pipeline = None
         self.project_fields = None
         self.aggregation_pipeline = compiler.aggregation_pipeline
+        self.search_pipeline = compiler.search_pipeline
         self.extra_fields = None
         self.combinator_pipeline = None
         # $lookup stage that encapsulates the pipeline for performing a nested
@@ -75,6 +76,8 @@ class MongoQuery:
 
     def get_pipeline(self):
         pipeline = []
+        if self.search_pipeline:
+            pipeline.extend(self.search_pipeline)
         if self.lookup_pipeline:
             pipeline.extend(self.lookup_pipeline)
         for query in self.subqueries or ():
