@@ -102,3 +102,8 @@ Caching
 Secondly, you must use the :class:`django_mongodb_backend.cache.MongoDBCache`
 backend rather than Django's built-in database cache backend,
 ``django.core.cache.backends.db.DatabaseCache``.
+
+Queryable Encryption
+====================
+
+TODO: Add Django core limitations that affect Queryable Encryption.

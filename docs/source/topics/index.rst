@@ -11,3 +11,4 @@ know:
    cache
    embedded-models
    known-issues
+   queryable-encryption

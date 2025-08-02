@@ -11,3 +11,4 @@ Project configuration
    :maxdepth: 1
 
    contrib-apps
+   queryable-encryption

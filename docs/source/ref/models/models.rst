@@ -3,7 +3,7 @@ Model reference
 
 .. module:: django_mongodb_backend.models
 
-One MongoDB-specific model is available in ``django_mongodb_backend.models``.
+Two MongoDB-specific models are available in ``django_mongodb_backend.models``.
 
 .. class:: EmbeddedModel
 
