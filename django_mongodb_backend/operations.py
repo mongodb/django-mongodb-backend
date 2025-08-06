@@ -4,7 +4,7 @@ import re
 import uuid
 from decimal import Decimal
 
-from bson.decimal128 import Decimal128
+from bson import Decimal128, Int64
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import DataError
@@ -65,6 +65,14 @@ class DatabaseOperations(GISOperations, BaseDatabaseOperations):
         if value is None:
             return None
         return Decimal128(value)
+
+    def adapt_integerfield_value(self, value, internal_type):
+        """Store non-SmallIntegerField variants as Int64 (long)."""
+        if value is None:
+            return None
+        if "Small" not in internal_type:
+            return Int64(value)
+        return value
 
     def adapt_json_value(self, value, encoder):
         if encoder is None:
@@ -131,7 +139,15 @@ class DatabaseOperations(GISOperations, BaseDatabaseOperations):
                 converters.append(self.convert_timefield_value)
         elif internal_type == "UUIDField":
             converters.append(self.convert_uuidfield_value)
+        elif "IntegerField" in internal_type and "Small" not in internal_type:
+            converters.append(self.convert_integerfield_value)
         return converters
+
+    def convert_integerfield_value(self, value, expression, connection):
+        if value is not None:
+            # from Int64 to int
+            value = int(value)
+        return value
 
     def convert_datefield_value(self, value, expression, connection):
         if value is not None:

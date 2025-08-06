@@ -37,6 +37,17 @@ Bug fixes
   databases.
 - :meth:`QuerySet.explain() <django.db.models.query.QuerySet.explain>` now
   :ref:`returns a string that can be parsed as JSON <queryset-explain>`.
+- Fixed unique constraint generation for :class:`~django.db.models.IntegerField`
+  and :class:`~django.db.models.PositiveBigIntegerField`, which incorrectly
+  allowed duplicate values larger than 32 bits. Existing unique constraints
+  must be recreated to use ``$type: long`` instead of ``int``.
+- :class:`~django.db.models.IntegerField`,
+  :class:`~django.db.models.BigIntegerField` (as well as the
+  ``Positive`` versions of these fields), and
+  :class:`~django.db.models.DurationField` values are now sent to MongoDB as
+  :class:`bson.int64.Int64`, which fixes unique constraints on values less than
+  32 bits for ``BigIntegerField``, ``PositiveIntegerField``, and
+  ``DurationField``. Existing data must be converted to ``Int64``.
 
 Performance improvements
 ------------------------
