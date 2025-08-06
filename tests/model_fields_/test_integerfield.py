@@ -73,3 +73,62 @@ class PositiveSmallIntegerFieldTests(TestCase):
         msg = "{'positive_small': ['Ensure this value is greater than or equal to 0.']"
         with self.assertRaisesMessage(ValidationError, msg):
             UniqueIntegers(positive_small=self.min_value - 1).full_clean()
+
+
+class SmallUniqueTests(TestCase):
+    """
+    Duplicate values < 32 bits are prohibited. This confirms integer field
+    values are cast to Int64 so MongoDB stores it as long. Otherwise, the
+    partialFilterExpression: {$type: long} unique constraint doesn't work.
+    """
+
+    test_value = 123
+
+    def test_integerfield(self):
+        UniqueIntegers.objects.create(plain=self.test_value)
+        with self.assertRaises(IntegrityError):
+            UniqueIntegers.objects.create(plain=self.test_value)
+
+    def test_bigintegerfield(self):
+        UniqueIntegers.objects.create(big=self.test_value)
+        with self.assertRaises(IntegrityError):
+            UniqueIntegers.objects.create(big=self.test_value)
+
+    def test_positiveintegerfield(self):
+        UniqueIntegers.objects.create(positive=self.test_value)
+        with self.assertRaises(IntegrityError):
+            UniqueIntegers.objects.create(positive=self.test_value)
+
+    def test_positivebigintegerfield(self):
+        UniqueIntegers.objects.create(positive_big=self.test_value)
+        with self.assertRaises(IntegrityError):
+            UniqueIntegers.objects.create(positive_big=self.test_value)
+
+
+class LargeUniqueTests(TestCase):
+    """
+    Duplicate values > 32 bits are prohibited. This confirms each field uses
+    the long db_type() rather than the 32 bit int type.
+    """
+
+    test_value = 2**63 - 1
+
+    def test_integerfield(self):
+        UniqueIntegers.objects.create(plain=self.test_value)
+        with self.assertRaises(IntegrityError):
+            UniqueIntegers.objects.create(plain=self.test_value)
+
+    def test_bigintegerfield(self):
+        UniqueIntegers.objects.create(big=self.test_value)
+        with self.assertRaises(IntegrityError):
+            UniqueIntegers.objects.create(big=self.test_value)
+
+    def test_positiveintegerfield(self):
+        UniqueIntegers.objects.create(positive=self.test_value)
+        with self.assertRaises(IntegrityError):
+            UniqueIntegers.objects.create(positive=self.test_value)
+
+    def test_positivebigintegerfield(self):
+        UniqueIntegers.objects.create(positive_big=self.test_value)
+        with self.assertRaises(IntegrityError):
+            UniqueIntegers.objects.create(positive_big=self.test_value)

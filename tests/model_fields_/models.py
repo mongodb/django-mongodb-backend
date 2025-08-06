@@ -15,7 +15,12 @@ from django_mongodb_backend.models import EmbeddedModel
 
 class UniqueIntegers(models.Model):
     small = models.SmallIntegerField(unique=True, blank=True, null=True)
+    plain = models.IntegerField(unique=True, blank=True, null=True)
+    big = models.BigIntegerField(unique=True, blank=True, null=True)
     positive_small = models.PositiveSmallIntegerField(unique=True, blank=True, null=True)
+    positive = models.PositiveIntegerField(unique=True, blank=True, null=True)
+    positive_big = models.PositiveBigIntegerField(unique=True, blank=True, null=True)
+    duration = models.DurationField(unique=True, blank=True, null=True)
 
 
 # ObjectIdField

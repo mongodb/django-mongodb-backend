@@ -27,6 +27,17 @@ A few notes about some of the other fields:
   prohibit inserting values outside of the supported range and unique
   constraints don't work for values outside of the 32-bit range of the BSON
   ``int`` type.
+- :class:`~django.db.models.IntegerField`,
+  :class:`~django.db.models.BigIntegerField` and
+  :class:`~django.db.models.PositiveSmallIntegerField`, and
+  :class:`~django.db.models.PositiveBigIntegerField` support 64 bit values
+  (ranges ``(-9223372036854775808, 9223372036854775807)`` and
+  ``(0, 9223372036854775807)``, respectively), validated by forms and model
+  validation. If you're inserting data outside of the ORM, you must cast all
+  values to :class:`bson.int64.Int64`, otherwise values less then 32 bits will
+  be stored as ``int`` and won't be validated by unique constraints.
+- Similarly, all :class:`~django.db.models.DurationField` values are stored as
+  :class:`bson.int64.Int64`.
 
 MongoDB-specific model fields
 =============================
