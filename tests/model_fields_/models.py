@@ -13,6 +13,11 @@ from django_mongodb_backend.fields import (
 from django_mongodb_backend.models import EmbeddedModel
 
 
+class UniqueIntegers(models.Model):
+    small = models.SmallIntegerField(unique=True, blank=True, null=True)
+    positive_small = models.PositiveSmallIntegerField(unique=True, blank=True, null=True)
+
+
 # ObjectIdField
 class ObjectIdModel(models.Model):
     field = ObjectIdField()
