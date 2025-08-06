@@ -40,8 +40,8 @@ logger = logging.getLogger("django.db.backends.base")
 
 class DatabaseWrapper(BaseDatabaseWrapper):
     data_types = {
-        "AutoField": "int",
-        "BigAutoField": "long",
+        "AutoField": "",  # Not supported
+        "BigAutoField": "",  # Not supported
         "BinaryField": "binData",
         "BooleanField": "bool",
         "CharField": "string",
@@ -61,7 +61,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         "PositiveIntegerField": "long",
         "PositiveSmallIntegerField": "int",
         "SlugField": "string",
-        "SmallAutoField": "int",
+        "SmallAutoField": "",  # Not supported
         "SmallIntegerField": "int",
         "TextField": "string",
         "TimeField": "date",
