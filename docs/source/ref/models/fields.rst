@@ -1,5 +1,28 @@
+=====================
 Model field reference
 =====================
+
+Supported model fields
+======================
+
+All of Django's :doc:`model fields <django:ref/models/fields>` are
+supported, except:
+
+- :class:`~django.db.models.AutoField` (including
+  :class:`~django.db.models.BigAutoField` and
+  :class:`~django.db.models.SmallAutoField`)
+- :class:`~django.db.models.CompositePrimaryKey`
+- :class:`~django.db.models.GeneratedField`
+
+A few notes about some of the other fields:
+
+- :class:`~django.db.models.DateTimeField` is limited to millisecond precision
+  (rather than microsecond like most other databases), and correspondingly,
+  :class:`~django.db.models.DurationField` stores milliseconds rather than
+  microseconds.
+
+MongoDB-specific model fields
+=============================
 
 .. module:: django_mongodb_backend.fields
 
