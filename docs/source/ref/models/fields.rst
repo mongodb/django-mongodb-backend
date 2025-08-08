@@ -20,6 +20,13 @@ A few notes about some of the other fields:
   (rather than microsecond like most other databases), and correspondingly,
   :class:`~django.db.models.DurationField` stores milliseconds rather than
   microseconds.
+- :class:`~django.db.models.SmallIntegerField` and
+  :class:`~django.db.models.PositiveSmallIntegerField` support 32 bit values
+  (ranges ``(-2147483648, 2147483647)`` and ``(0, 2147483647)``, respectively),
+  validated by forms and model validation. Be careful because MongoDB doesn't
+  prohibit inserting values outside of the supported range and unique
+  constraints don't work for values outside of the 32-bit range of the BSON
+  ``int`` type.
 
 MongoDB-specific model fields
 =============================

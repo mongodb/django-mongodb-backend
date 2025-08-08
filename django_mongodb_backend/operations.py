@@ -256,13 +256,15 @@ class DatabaseOperations(GISOperations, BaseDatabaseOperations):
         return validated_options
 
     def integer_field_range(self, internal_type):
-        # MongODB doesn't enforce any integer constraints, but it supports
-        # integers up to 64 bits.
-        if internal_type in {
-            "PositiveBigIntegerField",
-            "PositiveIntegerField",
-            "PositiveSmallIntegerField",
-        }:
+        # MongoDB doesn't enforce any integer constraints, but the
+        # SmallIntegerFields use "int" for unique constraints which is limited
+        # to 32 bits.
+        if internal_type == "PositiveSmallIntegerField":
+            return (0, 2147483647)
+        if internal_type == "SmallIntegerField":
+            return (-2147483648, 2147483647)
+        # Other fields use "long" which supports up to 64 bits.
+        if internal_type in {"PositiveBigIntegerField", "PositiveIntegerField"}:
             return (0, 9223372036854775807)
         return (-9223372036854775808, 9223372036854775807)
 

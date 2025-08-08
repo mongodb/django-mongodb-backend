@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 
@@ -30,9 +31,22 @@ class SmallIntegerFieldTests(TestCase):
         with self.assertRaises(IntegrityError):
             UniqueIntegers.objects.create(small=self.min_value)
 
+    def test_validate_max_value(self):
+        UniqueIntegers(small=self.max_value).full_clean()  # no error
+        msg = "{'small': ['Ensure this value is less than or equal to 2147483647.']"
+        with self.assertRaisesMessage(ValidationError, msg):
+            UniqueIntegers(small=self.max_value + 1).full_clean()
+
+    def test_validate_min_value(self):
+        UniqueIntegers(small=self.min_value).full_clean()  # no error
+        msg = "{'small': ['Ensure this value is greater than or equal to -2147483648.']"
+        with self.assertRaisesMessage(ValidationError, msg):
+            UniqueIntegers(small=self.min_value - 1).full_clean()
+
 
 class PositiveSmallIntegerFieldTests(TestCase):
     max_value = 2**31 - 1
+    min_value = 0
 
     def test_unique_max_value(self):
         """
@@ -47,3 +61,15 @@ class PositiveSmallIntegerFieldTests(TestCase):
 
     # test_unique_min_value isn't needed since PositiveSmallIntegerField has a
     # limit of zero (enforced only in forms and model validation).
+
+    def test_validate_max_value(self):
+        UniqueIntegers(positive_small=self.max_value).full_clean()  # no error
+        msg = "{'positive_small': ['Ensure this value is less than or equal to 2147483647.']"
+        with self.assertRaisesMessage(ValidationError, msg):
+            UniqueIntegers(positive_small=self.max_value + 1).full_clean()
+
+    def test_validate_min_value(self):
+        UniqueIntegers(positive_small=self.min_value).full_clean()  # no error
+        msg = "{'positive_small': ['Ensure this value is greater than or equal to 0.']"
+        with self.assertRaisesMessage(ValidationError, msg):
+            UniqueIntegers(positive_small=self.min_value - 1).full_clean()

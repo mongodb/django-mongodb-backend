@@ -21,6 +21,9 @@ New features
 Backwards incompatible changes
 ------------------------------
 
+- :class:`django.db.models.SmallIntegerField` and
+  :class:`django.db.models.PositiveSmallIntegerField` are now limited to 32 bit
+  values in forms and model validation.
 - Removed support for database caching as the MongoDB security team considers the cache
   backend's ``pickle`` encoding of cached values a vulnerability. If an attacker
   compromises the database, they could run arbitrary commands on the application
