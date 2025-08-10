@@ -25,6 +25,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: install mongocrypt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mongodb-enterprise-cryptd
       - name: install django-mongodb-backend
         run: |
           pip3 install --upgrade pip
