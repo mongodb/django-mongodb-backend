@@ -10,3 +10,4 @@ know:
 
    embedded-models
    known-issues
+   queryable-encryption

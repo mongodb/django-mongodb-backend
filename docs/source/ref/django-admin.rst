@@ -13,3 +13,20 @@ in the :setting:`INSTALLED_APPS` setting.
 
 Available commands
 ==================
+
+``showencryptedfieldsmap``
+--------------------------
+
+.. django-admin:: showencryptedfieldsmap
+
+   Show mapping of models and their encrypted fields.
+
+    .. django-admin-option:: --database DATABASE
+
+        Specifies the database to use.
+        Defaults to ``default``.
+
+    .. django-admin-option:: --create-new-keys
+
+        If specified, creates the data keys instead of getting them from the
+        database.

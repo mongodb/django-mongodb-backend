@@ -25,9 +25,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Install mongocryptd
+        run: |
+          curl -fsSL https://pgp.mongodb.com/server-7.0.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+          echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.com/apt/ubuntu jammy/mongodb-enterprise/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-enterprise-7.0.list
+          sudo apt-get update
+          sudo apt-get install -y --only-upgrade  mongodb-enterprise
       - name: install django-mongodb-backend
         run: |
           pip3 install --upgrade pip
+          pip3 install ".[encryption]"
           pip3 install -e .
       - name: Checkout Django
         uses: actions/checkout@v4
