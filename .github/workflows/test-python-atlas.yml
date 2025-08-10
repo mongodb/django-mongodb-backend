@@ -27,13 +27,10 @@ jobs:
           persist-credentials: false
       - name: Install mongocryptd
         run: |
-          curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg
-          echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-enterprise/7.0 multiverse" | \
-            sudo tee /etc/apt/sources.list.d/mongodb-enterprise.list
+          curl -fsSL https://pgp.mongodb.com/server-7.0.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+          echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.com/apt/ubuntu jammy/mongodb-enterprise/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-enterprise-7.0.list
           sudo apt-get update
-          sudo apt-get install -y mongodb-enterprise-cryptd
-          which mongocryptd
-          mongocryptd --version
+          sudo apt-get install -y --only-upgrade  mongodb-enterprise
       - name: install django-mongodb-backend
         run: |
           pip3 install --upgrade pip
