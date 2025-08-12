@@ -2,13 +2,11 @@
 Queryable Encryption
 ====================
 
-*Added in version 5.2.0b2.*
+.. versionadded:: 5.2.0b2
 
 Django MongoDB Backend supports :doc:`manual:core/queryable-encryption` which
 allows you to use :ref:`encrypted fields <encrypted-fields>` to store sensitive
 data in MongoDB.
-
-.. _encrypted-field-example:
 
 The basics
 ==========
@@ -22,7 +20,8 @@ Let's consider this example::
 
     class Patient(models.Model):
         ssn = EncryptedCharField(
-            max_length=11, queries={"queryType": "equality"}
+            max_length=11,
+            queries={"queryType": "equality"},
         )
 
         def __str__(self):

@@ -89,8 +89,6 @@ Unsupported fields
 The following fields are supported by Django MongoDB Backend but are not
 supported by Queryable Encryption.
 
-+--------------------------------------+------------------------------------------------------------+
-| :class:`~django.db.models.SlugField` | Queryable Encryption does not :doc:`support unique indexes |
-|                                      | on encrypted fields                                        |
-|                                      | <manual:core/queryable-encryption/reference/limitations>`. |
-+--------------------------------------+------------------------------------------------------------+
++--------------------------------------+-----------------------------------------------+
+| :class:`~django.db.models.SlugField` | Indexes aren't supported on encrypted fields. |
++--------------------------------------+-----------------------------------------------+
