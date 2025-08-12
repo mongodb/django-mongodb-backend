@@ -26,6 +26,8 @@ Having trouble? We’d like to help!
 - Looking for specific information? Try the :ref:`genindex`, :ref:`modindex`,
   or the detailed :doc:`table of contents <contents>`.
 
+- The :doc:`howto/index` section has step-by-step guides for common tasks.
+
 - Didn't find an answer? You're welcome to ask questions or give feedback on
   the `MongoDB Community Forum <https://www.mongodb.com/community/forums/tag/python>`_.
 
@@ -42,10 +44,12 @@ Models
 - :doc:`ref/models/indexes`
 - :doc:`ref/database`
 - :doc:`ref/contrib/gis`
+- :doc:`ref/django-admin`
 
 **Topic guides:**
 
 - :doc:`topics/embedded-models`
+- :doc:`topics/transactions`
 
 Forms
 =====
