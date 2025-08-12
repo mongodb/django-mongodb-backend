@@ -41,7 +41,7 @@ Here's how to set it up in your Django settings::
     from pymongo.encryption_options import AutoEncryptionOpts
 
     DATABASES = {
-        …
+        ...
         "encrypted": parse_uri(
             DATABASE_URL,
             options={
@@ -124,12 +124,12 @@ Django settings::
     from bson.binary import Binary
     from pymongo.encryption_options import AutoEncryptionOpts
 
-    …
+
     DATABASES["encrypted"] = {
-        …
+        ...
         "OPTIONS": {
             "auto_encryption_opts": AutoEncryptionOpts(
-                …
+                ...
                 crypt_shared_lib_path="/path/to/mongo_crypt_v1",
                 encrypted_fields_map = {
                     "encryption__patientrecord": {
@@ -142,12 +142,9 @@ Django settings::
                             },
                         }
                     },
-                    # Add other models with encrypted fields here
                 },
             ),
-            …
         },
-        …
     }
 
 You are now ready to use :doc:`Queryable Encryption
