@@ -35,24 +35,22 @@ Encryption in Django, as well as a KMS provider and credentials.
 
 Here's how to set it up in your Django settings::
 
+    import os
+
     from django_mongodb_backend import parse_uri
     from pymongo.encryption_options import AutoEncryptionOpts
 
     DATABASES = {
-        "default": parse_uri(
-            DATABASE_URL,
-            db_name="my_database",
-        ),
+        …
         "encrypted": parse_uri(
             DATABASE_URL,
-            options: {
+            options={
                 "auto_encryption_opts": AutoEncryptionOpts(
                     key_vault_namespace="my_encrypted_database.keyvault",
                     kms_providers={"local": {"key": os.urandom(96)}},
-                ),
+                )
             },
-            db_name="my_encrypted_database",
-            "KMS_CREDENTIALS": {},
+            db_name="encrypted",
         ),
     }
 
@@ -122,6 +120,9 @@ Settings
 
 Now include the crypt shared library path and generated schema map in your
 Django settings::
+
+    from bson.binary import Binary
+    from pymongo.encryption_options import AutoEncryptionOpts
 
     …
     DATABASES["encrypted"] = {

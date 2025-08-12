@@ -52,9 +52,7 @@ class PatientRecord(models.Model):
     ssn = EncryptedCharField(max_length=11, queries=EQUALITY_QUERY)
     birth_date = EncryptedDateField(queries=RANGE_QUERY)
     profile_picture = EncryptedBinaryField(queries=EQUALITY_QUERY)
-    patient_age = EncryptedSmallIntegerField(
-        "patient_age", queries={**RANGE_QUERY, "min": 0, "max": 100}
-    )
+    patient_age = EncryptedSmallIntegerField(queries={**RANGE_QUERY, "min": 0, "max": 100})
     weight = EncryptedFloatField(queries=RANGE_QUERY)
 
     # TODO: Embed Billing model
@@ -65,7 +63,7 @@ class PatientRecord(models.Model):
 
 
 class Patient(models.Model):
-    patient_id = EncryptedIntegerField("patient_id", queries=EQUALITY_QUERY)
+    patient_id = EncryptedIntegerField(queries=EQUALITY_QUERY)
     patient_name = EncryptedCharField(max_length=100)
     patient_notes = EncryptedTextField(queries=EQUALITY_QUERY)
     registration_date = EncryptedDateTimeField(queries=EQUALITY_QUERY)

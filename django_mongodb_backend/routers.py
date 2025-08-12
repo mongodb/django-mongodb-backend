@@ -2,8 +2,6 @@ from django.apps import apps
 from django.core.exceptions import ImproperlyConfigured
 from django.db.utils import ConnectionRouter
 
-from .model_utils import model_has_encrypted_fields
-
 
 class MongoRouter:
     def allow_migrate(self, db, app_label, model_name=None, **hints):
@@ -19,7 +17,6 @@ class MongoRouter:
             model = apps.get_model(app_label, model_name)
         except LookupError:
             return None
-
         return False if issubclass(model, EmbeddedModel) else None
 
 
@@ -30,9 +27,7 @@ def kms_provider(self, model, *args, **kwargs):
             result = func(model, *args, **kwargs)
             if result is not None:
                 return result
-    if model_has_encrypted_fields(model):
-        raise ImproperlyConfigured("No kms_provider found in database router.")
-    return None
+    raise ImproperlyConfigured("No kms_provider found in database router.")
 
 
 def register_routers():

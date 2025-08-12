@@ -5,20 +5,18 @@ import pymongo
 from bson import json_util
 from django.core.management import call_command
 from django.db import connections
-from django.test import modify_settings, override_settings, skipUnlessDBFeature
+from django.test import modify_settings, override_settings
 from pymongo.encryption import AutoEncryptionOpts
 
 from .routers import TestEncryptedRouter
 from .test_base import QueryableEncryptionTestCase
 
 
-@skipUnlessDBFeature("supports_queryable_encryption")
 @modify_settings(
     INSTALLED_APPS={"prepend": "django_mongodb_backend"},
 )
 @override_settings(DATABASE_ROUTERS=[TestEncryptedRouter()])
 class QueryableEncryptionCommandTests(QueryableEncryptionTestCase):
-    databases = {"default", "encrypted"}
     available_apps = ["django_mongodb_backend", "encryption_"]
     maxDiff = None
     expected_patient_record = {

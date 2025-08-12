@@ -1,15 +1,12 @@
 from django.db import connections
-from django.test import override_settings, skipUnlessDBFeature
+from django.test import override_settings
 
 from .routers import TestEncryptedRouter
 from .test_base import QueryableEncryptionTestCase
 
 
-@skipUnlessDBFeature("supports_queryable_encryption")
 @override_settings(DATABASE_ROUTERS=[TestEncryptedRouter()])
 class QueryableEncryptionSchemaTests(QueryableEncryptionTestCase):
-    databases = {"default", "encrypted"}
-    available_apps = ["encryption_"]
     maxDiff = None
 
     def test_get_encrypted_fields_map(self):

@@ -19,6 +19,9 @@ class QueryableEncryptionTestCase(TransactionTestCase):
     available_apps = ["encryption_"]
 
     def setUp(self):
+        """
+        Used in schema and field tests.
+        """
         self.appointment = Appointment.objects.create(time="8:00")
         self.billing = Billing.objects.create(
             cc_type="Visa", cc_number=1234567890123456, account_balance=100.50
@@ -42,6 +45,3 @@ class QueryableEncryptionTestCase(TransactionTestCase):
             is_active=True,
             email="john.doe@example.com",
         )
-
-        # TODO: Embed billing and patient_record models in patient model
-        # then add tests

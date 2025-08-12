@@ -33,6 +33,8 @@ before storing it in the database.
 +----------------------------------------+------------------------------------------------------+
 | ``EncryptedDecimalField``              | :class:`~django.db.models.DecimalField`              |
 +----------------------------------------+------------------------------------------------------+
+| ``EncryptedDurationField``             | :class:`~django.db.models.DurationField`             |
++----------------------------------------+------------------------------------------------------+
 | ``EncryptedFloatField``                | :class:`~django.db.models.FloatField`                |
 +----------------------------------------+------------------------------------------------------+
 | ``EncryptedGenericIPAddressField``     | :class:`~django.db.models.GenericIPAddressField`     |

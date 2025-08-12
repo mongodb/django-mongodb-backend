@@ -439,8 +439,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                 raise ImproperlyConfigured(
                     "Encrypted fields found but "
                     f"DATABASES[{self.connection.alias}]['OPTIONS'] is missing "
-                    "auto_encryption_opts. Please set `auto_encryption_opts` "
-                    "in the connection settings."
+                    "auto_encryption_opts."
                 )
             encrypted_fields_map = getattr(auto_encryption_opts, "_encrypted_fields_map", None)
             if not encrypted_fields_map:
@@ -475,17 +474,17 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         for field in fields:
             if getattr(field, "encrypted", False):
                 key_alt_name = f"{db_table}_{field.column}"
-                if not create_new_keys:
-                    key_doc = key_vault_collection.find_one({"keyAltNames": key_alt_name})
-                    if not key_doc:
-                        raise ValueError(f"No key found in keyvault for keyAltName={key_alt_name}")
-                    data_key = key_doc["_id"]
-                else:
+                if create_new_keys:
                     data_key = client_encryption.create_data_key(
                         kms_provider=kms_provider,
                         master_key=master_key,
                         key_alt_names=[key_alt_name],
                     )
+                else:
+                    key_doc = key_vault_collection.find_one({"keyAltNames": key_alt_name})
+                    if not key_doc:
+                        raise ValueError(f"No key found in keyvault for keyAltName={key_alt_name}")
+                    data_key = key_doc["_id"]
                 field_dict = {
                     "bsonType": field.db_type(connection),
                     "path": field.column,
