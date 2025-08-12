@@ -22,7 +22,7 @@ All fields have a :doc:`2dsphere index
 
 The :ref:`geospatial aggregation stage <geospatial-operators>` only supports
 one operator: :doc:`$geoNear <manual:reference/operator/aggregation/geoNear>`.
-You can use it :meth:`.raw_aggregate` queries.
+You can use it in :meth:`.raw_aggregate` queries.
 
 The :ref:`geospatial query operators <manual:geospatial-query-operators>`
 aren't supported.
