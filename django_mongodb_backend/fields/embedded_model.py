@@ -109,10 +109,13 @@ class EmbeddedModelField(models.Field):
         if embedded_instance is None:
             return None
         if not isinstance(embedded_instance, self.embedded_model):
-            raise TypeError(
-                f"Expected instance of type {self.embedded_model!r}, not "
-                f"{type(embedded_instance)!r}."
-            )
+            try:
+                embedded_instance = self.embedded_model(**embedded_instance)
+            except TypeError as e:
+                raise TypeError(
+                    f"Expected instance of type {self.embedded_model!r}, not "
+                    f"{type(embedded_instance)!r}."
+                )
         field_values = {}
         add = embedded_instance._state.adding
         for field in embedded_instance._meta.fields:
