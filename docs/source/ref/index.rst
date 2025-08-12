@@ -9,6 +9,7 @@ API reference
    forms
    contrib/index
    database
+   queryable-encryption
    django-admin
    utils
    settings

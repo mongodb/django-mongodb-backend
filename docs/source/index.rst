@@ -23,6 +23,8 @@ Having trouble? We’d like to help!
 
 - Try the :doc:`faq` – it’s got answers to many common questions.
 
+- The :doc:`howto/index` section has step-by-step guides for common tasks.
+
 - Looking for specific information? Try the :ref:`genindex`, :ref:`modindex`,
   or the detailed :doc:`table of contents <contents>`.
 
@@ -46,6 +48,7 @@ Models
 - :doc:`ref/database`
 - :doc:`ref/contrib/gis`
 - :doc:`ref/django-admin`
+- :doc:`ref/queryable-encryption`
 
 **Topic guides:**
 

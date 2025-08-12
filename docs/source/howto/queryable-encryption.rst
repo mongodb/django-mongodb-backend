@@ -1,5 +1,3 @@
-.. _configuring-queryable-encryption:
-
 ================================
 Configuring Queryable Encryption
 ================================
