@@ -204,8 +204,40 @@ If you do not want to use the data keys created by Django MongoDB Backend (when
 In this scenario, Django MongoDB Backend will use the newly created data keys
 to create collections for models with encrypted fields.
 
-Configuring the Crypt Shared Library
-====================================
+Configuring the Automatic Encryption Shared Library
+===================================================
+
+The :ref:`manual:qe-reference-shared-library` is a preferred alternative to
+:ref:`manual:qe-mongocryptd` and does not require you to start another process
+to perform automatic encryption.
+
+In practice, if you use Atlas or Enterprise MongoDB, ``mongocryptd`` is already
+configured for you, however in such cases the shared library is still
+recommended for use with Queryable Encryption.
+
+You can :ref:`download the shared library
+<manual:qe-csfle-shared-library-download>` from the
+:ref:`manual:enterprise-official-packages` and configure it in your Django
+settings as follows:
+
+.. code-block:: python
+
+    from django_mongodb_backend import parse_uri
+    from pymongo.encryption_options import AutoEncryptionOpts
+
+    DATABASES = {
+        "encrypted": parse_uri(
+            DATABASE_URL,
+            options={
+                "auto_encryption_opts": AutoEncryptionOpts(
+                    key_vault_namespace="keyvault.keyvault",
+                    kms_providers={"local": {"key": os.urandom(96)}},
+                    crypt_shared_lib_path="/path/to/mongo_crypt_shared_v1.dylib",
+                )
+            },
+            db_name="encrypted",
+        ),
+    }
 
 You are now ready to :doc:`develop with Queryable Encryption
 </topics/queryable-encryption>` in Django MongoDB Backend!
