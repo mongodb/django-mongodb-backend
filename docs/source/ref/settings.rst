@@ -7,37 +7,39 @@ Settings
 Queryable Encryption
 ====================
 
-The following :setting:`django:DATABASES` inner options support KMS
-configuration for Queryable Encryption.
+The following :setting:`django:DATABASES` inner options support configuration of
+Key Management Service (KMS) credentials for Queryable Encryption.
 
 .. setting:: DATABASE-KMS-CREDENTIALS
 
 ``KMS_CREDENTIALS``
 -------------------
 
-Default: ``{}``
+Default: ``{}`` (empty dictionary)
 
-Queryable Encryption requires a KMS provider to encrypt and decrypt data. Django
-MongoDB Backend supports configuring KMS credentials and providers for Queryable
-Encryption via the ``KMS_CREDENTIALS`` setting in the ``DATABASES``
-configuration and the ``kms_provider`` method on the ``DatabaseRouter``.
+A dictionary of Key Management Service (KMS) credential key-value pairs. These
+credentials are required to access your KMS provider (such as AWS KMS, Azure Key
+Vault, or GCP KMS) for encrypting and decrypting data using Queryable
+Encryption.
 
-E.g. to configure AWS KMS credentials:
+For example after :doc:`/howto/queryable-encryption`, to configure AWS KMS,
+Azure Key Vault, or GCP KMS credentials, you can set the ``KMS_CREDENTIALS``
+in your ``DATABASES`` settings as follows:
 
 .. code-block:: python
 
-    KMS_CREDENTIALS = {
+    DATABASES["encrypted"]["KMS_CREDENTIALS"] = {
         "aws": {
             "key": os.getenv("AWS_KEY_ARN", ""),
             "region": os.getenv("AWS_KEY_REGION", ""),
         },
+        "azure": {
+            "key": os.getenv("AZURE_KEY_VAULT_URL", ""),
+            "client_id": os.getenv("AZURE_CLIENT_ID", ""),
+            "client_secret": os.getenv("AZURE_CLIENT_SECRET", ""),
+        },
+        "gcp": {
+            "key": os.getenv("GCP_KEY_NAME", ""),
+            "project_id": os.getenv("GCP_PROJECT_ID", ""),
+        },
     }
-    DATABASES = {
-        # …
-    }
-    DATABASES["encrypted"]["KMS_CREDENTIALS"] = KMS_CREDENTIALS
-
-Please refer to :ref:`manual:qe-fundamentals-kms-providers` for more information
-on configuring KMS providers and credentials as well as
-:doc:`manual:core/queryable-encryption/fundamentals/keys-key-vaults` for
-information on creating and managing data encryption keys.

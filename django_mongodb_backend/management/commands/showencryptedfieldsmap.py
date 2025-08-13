@@ -7,21 +7,27 @@ from django_mongodb_backend.model_utils import model_has_encrypted_fields
 
 
 class Command(BaseCommand):
-    help = "Generate an `encrypted_fields_map` of encrypted fields for all encrypted"
-    " models in the database for use with `AutoEncryptionOpts` in"
-    " client configuration."
+    help = """
+    This command shows the mapping of encrypted fields to attributes
+    including  data type, data keys and query types. It can be used to set the
+    ``encrypted_fields_map`` in ``AutoEncryptionOpts``. Defaults to showing
+    existing keys from the configured key vault.
+    """
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--database",
             default=DEFAULT_DB_ALIAS,
-            help="Specify the database to use for generating the encrypted"
-            "fields map. Defaults to the 'default' database.",
+            help="""
+            Specifies the database to use. Defaults to ``default``.""",
         )
         parser.add_argument(
             "--create-new-keys",
             action="store_true",
-            help="Create the encrypted fields map.",
+            help="""
+            If specified, this option will create and show new encryption
+            keys instead of showing existing keys from the configured key vault.
+            """,
         )
 
     def handle(self, *args, **options):

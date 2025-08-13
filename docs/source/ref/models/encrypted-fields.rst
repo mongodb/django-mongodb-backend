@@ -1,28 +1,12 @@
-====================
-Queryable Encryption
-====================
-
-.. versionadded:: 5.2.0b2
-
-Django MongoDB Backend supports Queryable Encryption for MongoDB.
-
-Each model field stores encrypted data in the database.
-
-.. _encrypted-fields:
-
+================
 Encrypted fields
 ================
 
-Encrypted fields are subclasses of Django's built-in fields and can be used to
-store sensitive data with MongoDB's :doc:`Queryable Encryption
-<queryable-encryption>` feature. They are subclasses of Django's built-in fields
-before storing it in the database.
+.. versionadded:: 5.2.0rc1
 
 +----------------------------------------+------------------------------------------------------+
 | Encrypted Field                        | Django Field                                         |
 +========================================+======================================================+
-| ``EncryptedBigIntegerField``           | :class:`~django.db.models.BigIntegerField`           |
-+----------------------------------------+------------------------------------------------------+
 | ``EncryptedBooleanField``              | :class:`~django.db.models.BooleanField`              |
 +----------------------------------------+------------------------------------------------------+
 | ``EncryptedCharField``                 | :class:`~django.db.models.CharField`                 |
@@ -56,39 +40,53 @@ before storing it in the database.
 | ``EncryptedURLField``                  | :class:`~django.db.models.URLField`                  |
 +----------------------------------------+------------------------------------------------------+
 
-``EncryptedFieldMixin``
-=======================
-
-.. class:: EncryptedFieldMixin
-
-   A mixin that can be used to create custom encrypted fields
-   that support MongoDB's Queryable Encryption.
-
-You can use the ``EncryptedFieldMixin`` to create your own encrypted fields. This mixin
-supports the use of a ``queries`` argument in the field definition to specify query type
-for the field::
-
-    from django.db import models
-    from django_mongodb_backend.fields import EncryptedFieldMixin
-    from .models import MyField
-
-
-    class MyEncryptedField(EncryptedFieldMixin, MyField):
-        pass
-
-
-    class MyModel(models.Model):
-        my_encrypted_field = MyEncryptedField(
-            queries={"queryType": "equality"},
-            # Other field options...
-        )
-
-Unsupported fields
-==================
-
 The following fields are supported by Django MongoDB Backend but are not
 supported by Queryable Encryption.
 
 +--------------------------------------+-----------------------------------------------+
 | :class:`~django.db.models.SlugField` | Indexes aren't supported on encrypted fields. |
 +--------------------------------------+-----------------------------------------------+
+
+``EncryptedFieldMixin``
+=======================
+
+.. class:: EncryptedFieldMixin(models.Field)
+
+    .. versionadded:: 5.2.0rc1
+
+    A mixin that can be used to create custom encrypted fields that support
+    MongoDB's Queryable Encryption.
+
+    To create a custom encrypted field, inherit from ``EncryptedFieldMixin`` and
+    the desired Django field class. You can then specify the ``queries`` option
+    to define how the field can be queried.
+
+    The ``queries`` option should be a dictionary that specifies the type of
+    queries that can be performed on the field. The :ref:`available query types
+    <manual:qe-fundamentals-encrypt-query>` are as follows:
+
+    - ``equality``: Supports equality queries.
+    - ``range``: Supports range queries.
+
+    You can configure an encrypted field for either equality or range queries,
+    but not both. Configure fields for the expected query type.
+
+    For example, to create a custom encrypted field that supports equality
+    queries, you can define it as follows:
+
+    .. code-block:: python
+
+        from django.db import models
+        from django_mongodb_backend.fields import EncryptedFieldMixin
+        from .models import MyField
+
+
+        class MyEncryptedField(EncryptedFieldMixin, MyField):
+            pass
+
+
+        class MyModel(models.Model):
+            my_encrypted_field = MyEncryptedField(
+                queries={"queryType": "equality"},
+                # Other field options...
+            )

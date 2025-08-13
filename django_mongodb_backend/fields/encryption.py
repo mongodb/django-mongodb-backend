@@ -23,10 +23,6 @@ class EncryptedFieldMixin(models.Field):
         return name, path, args, kwargs
 
 
-class EncryptedBigIntegerField(EncryptedFieldMixin, models.BigIntegerField):
-    pass
-
-
 class EncryptedBinaryField(EncryptedFieldMixin, models.BinaryField):
     pass
 
@@ -51,6 +47,10 @@ class EncryptedDecimalField(EncryptedFieldMixin, models.DecimalField):
     pass
 
 
+class EncryptedDurationField(EncryptedFieldMixin, models.DurationField):
+    pass
+
+
 class EncryptedEmailField(EncryptedFieldMixin, models.EmailField):
     pass
 
@@ -64,10 +64,6 @@ class EncryptedGenericIPAddressField(EncryptedFieldMixin, models.GenericIPAddres
 
 
 class EncryptedIntegerField(EncryptedFieldMixin, models.IntegerField):
-    pass
-
-
-class EncryptedPositiveBigIntegerField(EncryptedFieldMixin, models.PositiveBigIntegerField):
     pass
 
 

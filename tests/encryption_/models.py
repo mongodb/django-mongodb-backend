@@ -1,7 +1,6 @@
 from django.db import models
 
 from django_mongodb_backend.fields import (
-    EncryptedBigIntegerField,
     EncryptedBinaryField,
     EncryptedBooleanField,
     EncryptedCharField,
@@ -12,7 +11,7 @@ from django_mongodb_backend.fields import (
     EncryptedFloatField,
     EncryptedGenericIPAddressField,
     EncryptedIntegerField,
-    EncryptedPositiveBigIntegerField,
+    EncryptedPositiveIntegerField,
     EncryptedPositiveSmallIntegerField,
     EncryptedSmallIntegerField,
     EncryptedTextField,
@@ -33,7 +32,7 @@ class Appointment(models.Model):
 
 class Billing(models.Model):
     cc_type = EncryptedCharField(max_length=20, queries=EQUALITY_QUERY)
-    cc_number = EncryptedBigIntegerField(queries=EQUALITY_QUERY)
+    cc_number = EncryptedIntegerField(queries=EQUALITY_QUERY)
     account_balance = EncryptedDecimalField(max_digits=10, decimal_places=2, queries=RANGE_QUERY)
 
     class Meta:
@@ -81,6 +80,6 @@ class EncryptedNumbers(models.Model):
     class Meta:
         required_db_features = {"supports_queryable_encryption"}
 
-    pos_bigint = EncryptedPositiveBigIntegerField(queries=EQUALITY_QUERY)
+    pos_bigint = EncryptedPositiveIntegerField(queries=EQUALITY_QUERY)
     pos_smallint = EncryptedPositiveSmallIntegerField(queries=EQUALITY_QUERY)
     smallint = EncryptedSmallIntegerField(queries=EQUALITY_QUERY)
