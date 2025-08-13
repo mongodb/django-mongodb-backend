@@ -44,6 +44,7 @@ __pycache__
 .coverage
 .pytest_cache/
 .benchmarks
+performance_tests/odm-data
 
 # documentation build artifacts
 
