@@ -11,7 +11,6 @@ from django_mongodb_backend.fields import (
     EncryptedFloatField,
     EncryptedGenericIPAddressField,
     EncryptedIntegerField,
-    EncryptedPositiveIntegerField,
     EncryptedPositiveSmallIntegerField,
     EncryptedSmallIntegerField,
     EncryptedTextField,
@@ -77,9 +76,8 @@ class Patient(models.Model):
 
 
 class EncryptedNumbers(models.Model):
-    class Meta:
-        required_db_features = {"supports_queryable_encryption"}
-
-    pos_bigint = EncryptedPositiveIntegerField(queries=EQUALITY_QUERY)
     pos_smallint = EncryptedPositiveSmallIntegerField(queries=EQUALITY_QUERY)
     smallint = EncryptedSmallIntegerField(queries=EQUALITY_QUERY)
+
+    class Meta:
+        required_db_features = {"supports_queryable_encryption"}

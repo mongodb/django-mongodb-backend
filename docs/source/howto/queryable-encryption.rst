@@ -4,6 +4,10 @@ Configuring Queryable Encryption
 
 .. versionadded:: 5.2.0rc1
 
+This guide is similar to the
+:doc:`manual:core/queryable-encryption/quick-start` but with some additional
+steps required to configure Queryable Encryption with Django MongoDB Backend.
+
 .. admonition:: MongoDB requirements
 
     Queryable Encryption can be used with MongoDB replica sets or sharded
@@ -94,27 +98,72 @@ configure a custom router for Queryable Encryption:
 
     DATABASE_ROUTERS = [EncryptedRouter]
 
-Configuring KMS Providers
-=========================
+Configuring the Key Management Service (KMS)
+============================================
 
-To use Queryable Encryption, you must configure a Key Management Service (KMS)
-provider. The KMS provider is responsible for managing the encryption keys used
-to encrypt and decrypt data. The following table summarizes the available KMS
-provider options and how to configure them:
+To use Queryable Encryption, you must configure a Key Management Service (KMS).
+The KMS is responsible for managing the encryption keys used to encrypt and
+decrypt data. The following table summarizes the available KMS configuration
+options followed by an example of how to use them.
 
-+-------------------------------------------------------------------------+---------------------------------------+
-| :setting:`KMS_CREDENTIALS <DATABASE-KMS-CREDENTIALS>`                   | A dictionary of Key Management        |
-|                                                                         | Service (KMS) credentials             |
-|                                                                         | configured in the                     |
-|                                                                         | :setting:`django:DATABASES`           |
-|                                                                         | setting.                              |
-+-------------------------------------------------------------------------+---------------------------------------+
-| :class:`kms_providers <pymongo.encryption_options.AutoEncryptionOpts>`  | Map of KMS provider credentials and   |
-|                                                                         | options. The ``kms_providers`` map    |
-|                                                                         | values differ by provider and are     |
-|                                                                         | required to access KMS services.      |
-+-------------------------------------------------------------------------+---------------------------------------+
-| ``kms_provider``                                                        | A single KMS provider name            |
-|                                                                         | configured in your custom database    |
-|                                                                         | router.                               |
-+-------------------------------------------------------------------------+---------------------------------------+
++-------------------------------------------------------------------------+--------------------------------------------------------+
+| :setting:`KMS_CREDENTIALS <DATABASE-KMS-CREDENTIALS>`                   | A dictionary of Key Management Service (KMS)           |
+|                                                                         | credentials configured in the                          |
+|                                                                         | :setting:`django:DATABASES` setting.                   |
++-------------------------------------------------------------------------+--------------------------------------------------------+
+| :class:`kms_providers <pymongo.encryption_options.AutoEncryptionOpts>`  | A dictionary of KMS provider credentials used to       |
+|                                                                         | access the KMS with                                    |
+|                                                                         | :setting:`KMS_CREDENTIALS <DATABASE-KMS-CREDENTIALS>`. |
++-------------------------------------------------------------------------+--------------------------------------------------------+
+| ``kms_provider``                                                        | A single KMS provider name                             |
+|                                                                         | configured in your custom database                     |
+|                                                                         | router.                                                |
++-------------------------------------------------------------------------+--------------------------------------------------------+
+
+Example of KMS configuration with AWS KMS:
+
+.. code-block:: python
+
+    from django_mongodb_backend import parse_uri
+    from pymongo.encryption_options import AutoEncryptionOpts
+
+    DATABASES = {
+        "encrypted": parse_uri(
+            DATABASE_URL,
+            options={
+                "auto_encryption_opts": AutoEncryptionOpts(
+                    key_vault_namespace="keyvault.keyvault",
+                    kms_providers={
+                        "aws": {
+                            "accessKeyId": "your-access-key-id",
+                            "secretAccessKey": "your-secret-access-key",
+                        }
+                    },
+                )
+            },
+            db_name="encrypted",
+        ),
+    }
+
+    DATABASES["encrypted"]["KMS_CREDENTIALS"] = {
+        "aws": {
+            "key": os.getenv("AWS_KEY_ARN", ""),
+            "region": os.getenv("AWS_KEY_REGION", ""),
+        },
+    }
+
+
+    class EncryptedRouter:
+        # ...
+        def kms_provider(self, model, **hints):
+            return "aws"
+
+
+Configuring the ``encrypted_fields_map``
+========================================
+
+Configuring the Crypt Shared Library
+====================================
+
+You are now ready to :doc:`develop with Queryable Encryption
+</topics/queryable-encryption>` in Django MongoDB Backend!

@@ -5,6 +5,7 @@ from django.test import TransactionTestCase, override_settings, skipUnlessDBFeat
 from .models import (
     Appointment,
     Billing,
+    EncryptedNumbers,
     Patient,
     PatientPortalUser,
     PatientRecord,
@@ -44,4 +45,8 @@ class QueryableEncryptionTestCase(TransactionTestCase):
             registration_date=datetime(2023, 10, 1, 12, 0, 0),
             is_active=True,
             email="john.doe@example.com",
+        )
+        EncryptedNumbers.objects.create(
+            pos_smallint=12345,
+            smallint=-12345,
         )

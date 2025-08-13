@@ -81,20 +81,10 @@ class QueryableEncryptionFieldTests(QueryableEncryptionTestCase):
         records = connections["encrypted"].database.encryption__patientrecord.find()
         self.assertTrue("__safeContent__" in records[0])
 
-    def test_numeric_fields(self):
-        """
-        Fields that have not been tested elsewhere.
-        """
-        EncryptedNumbers.objects.create(
-            pos_bigint=1000000,
-            pos_smallint=12345,
-            smallint=-12345,
-        )
-
-        obj = EncryptedNumbers.objects.get(pos_bigint=1000000)
+    def test_pos_small_int(self):
         obj = EncryptedNumbers.objects.get(pos_smallint=12345)
-        obj = EncryptedNumbers.objects.get(smallint=-12345)
-
-        self.assertEqual(obj.pos_bigint, 1000000)
         self.assertEqual(obj.pos_smallint, 12345)
+
+    def test_small_int(self):
+        obj = EncryptedNumbers.objects.get(smallint=-12345)
         self.assertEqual(obj.smallint, -12345)

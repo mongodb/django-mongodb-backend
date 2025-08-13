@@ -36,8 +36,6 @@ Queryable Encryption.
 +----------------------------------------+------------------------------------------------------+
 | ``EncryptedIntegerField``              | :class:`~django.db.models.IntegerField`              |
 +----------------------------------------+------------------------------------------------------+
-| ``EncryptedPositiveBigIntegerField``   | :class:`~django.db.models.PositiveBigIntegerField`   |
-+----------------------------------------+------------------------------------------------------+
 | ``EncryptedPositiveIntegerField``      | :class:`~django.db.models.PositiveIntegerField`      |
 +----------------------------------------+------------------------------------------------------+
 | ``EncryptedPositiveSmallIntegerField`` | :class:`~django.db.models.PositiveSmallIntegerField` |

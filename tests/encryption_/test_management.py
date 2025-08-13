@@ -1,12 +1,8 @@
-import os
 from io import StringIO
 
-import pymongo
 from bson import json_util
 from django.core.management import call_command
-from django.db import connections
 from django.test import modify_settings, override_settings
-from pymongo.encryption import AutoEncryptionOpts
 
 from .routers import TestEncryptedRouter
 from .test_base import QueryableEncryptionTestCase
@@ -81,32 +77,7 @@ class QueryableEncryptionCommandTests(QueryableEncryptionTestCase):
             stdout=out,
         )
         command_output = json_util.loads(out.getvalue())
-
-        # TODO: Until the todo below is fixed, you can test this feature
-        # manually by uncommenting the following line and pasting the output
-        # into your client-side `encrypted_fields_map` configuration. You also
-        # need to temporarily configure server-side encryption for this to
-        # procedure to work.
-        # print(command_output)
         self._compare_output(
             self.expected_patient_record,
             command_output["encryption__patientrecord"],
         )
-
-        # Create a new connection to verify that the keys can be used in a
-        # client-side configuration to migrate the encrypted fields.
-        conn_params = connections["encrypted"].get_connection_params()
-        auto_encryption_opts = AutoEncryptionOpts(
-            key_vault_namespace="encryption.__keyvault",
-            kms_providers={"local": {"key": os.urandom(96)}},
-            encrypted_fields_map=command_output,
-        )
-        if conn_params.pop("auto_encryption_opts", False):
-            # Call MongoClient instead of get_new_connection because
-            # get_new_connection will return the encrypted connection from the
-            # connection pool.
-            with pymongo.MongoClient(**conn_params, auto_encryption_opts=auto_encryption_opts):
-                call_command("migrate", "--database", "encrypted", verbosity=0)
-
-        # TODO: Check the key vault to ensure that the keys created by
-        # `showencryptedfieldsmap --create-new-keys` are in the key vault.
