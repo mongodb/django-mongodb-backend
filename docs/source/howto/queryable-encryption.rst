@@ -27,6 +27,8 @@ You can install these additional dependencies with the following command::
 
     pip install django-mongodb-backend[encryption]
 
+.. _qe-configuring-databases-setting:
+
 Configuring the ``DATABASES`` setting
 =====================================
 
@@ -98,6 +100,8 @@ configure a custom router for Queryable Encryption:
 
     DATABASE_ROUTERS = [EncryptedRouter]
 
+.. _qe-configuring-kms:
+
 Configuring the Key Management Service (KMS)
 ============================================
 
@@ -161,6 +165,44 @@ Example of KMS configuration with AWS KMS:
 
 Configuring the ``encrypted_fields_map``
 ========================================
+
+When you :ref:`configure an encrypted database connection
+<qe-configuring-databases-setting>` without specifying an
+``encrypted_fields_map`` in
+:class:`pymongo.encryption_options.AutoEncryptionOpts`, Django MongoDB Backend
+will create an encrypted fields map for you (when ``python manage.py migrate``
+is run), including new data keys, and use it to create collections for models
+with encrypted fields.
+
+The data keys are stored in the key vault :ref:`specified in the Django
+settings <qe-configuring-kms>`. You can view the encrypted fields map by running
+the :djadmin:`showencryptedfieldsmap` command.
+
+To see the keys created by Django MongoDB Backend in the above scenario, you can
+run the following command::
+
+    python manage.py showencryptedfieldsmap --database encrypted
+
+You can then use the output of the :djadmin:`showencryptedfieldsmap` command
+to set the ``encrypted_fields_map`` in
+:class:`pymongo.encryption_options.AutoEncryptionOpts` in your Django settings
+if you want to use a pre-defined encrypted fields map in the client instead of
+letting Django MongoDB Backend create them for you.
+
+.. try to explain the chicken/egg scenario here
+
+Of course, if you do this after Django MongoDB Backend has already created the
+collections, you will need to drop the collections first before using the
+pre-defined encrypted fields map.
+
+If you do not want to use the data keys created by Django MongoDB Backend (when
+``python manage.py migrate`` is run), you can generate new data keys with::
+
+    python manage.py showencryptedfieldsmap --database encrypted \
+        --create-data-keys
+
+In this scenario, Django MongoDB Backend will use the newly created data keys
+to create collections for models with encrypted fields.
 
 Configuring the Crypt Shared Library
 ====================================
