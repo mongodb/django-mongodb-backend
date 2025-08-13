@@ -9,4 +9,5 @@ Backend? Here are some resources:
 
    coding-style
    unit-tests
+   performance-tests
    writing-documentation
