@@ -12,6 +12,8 @@ Key Management Service (KMS) credentials for Queryable Encryption.
 
 .. setting:: DATABASE-KMS-CREDENTIALS
 
+.. _database-kms-credentials:
+
 ``KMS_CREDENTIALS``
 -------------------
 
@@ -23,8 +25,8 @@ Vault, or GCP KMS) for encrypting and decrypting data using Queryable
 Encryption.
 
 For example after :doc:`/howto/queryable-encryption`, to configure AWS KMS,
-Azure Key Vault, or GCP KMS credentials, you can set the ``KMS_CREDENTIALS``
-in your ``DATABASES`` settings as follows:
+Azure Key Vault, or GCP KMS credentials, you can set ``KMS_CREDENTIALS`` in
+your :setting:`django:DATABASES` settings as follows:
 
 .. code-block:: python
 

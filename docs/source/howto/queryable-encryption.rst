@@ -27,11 +27,12 @@ Configuring the ``DATABASES`` setting
 =====================================
 
 In addition to :ref:`configuring-databases-setting`, you must also configure an
-encrypted database in your ``DATABASES`` setting.
+encrypted database in your :setting:`django:DATABASES` setting.
 
 This database will be used to store encrypted fields in your models. The
 following example shows how to configure an encrypted database using the
-``AutoEncryptionOpts`` from the ``pymongo.encryption_options`` module.
+:class:`pymongo.encryption_options.AutoEncryptionOpts` from the
+:mod:`pymongo.encryption_options` module.
 
 This example uses a local KMS provider and a key vault namespace for storing
 encryption keys.
@@ -60,9 +61,10 @@ encryption keys.
 Configuring the ``DATABASE_ROUTERS`` setting
 ============================================
 
-Similar to :ref:`configuring-database-routers-setting` for using embedded
-models, to use Queryable Encryption, you must also configure the
-``DATABASE_ROUTERS`` setting to route queries to the encrypted database.
+Similar to :ref:`configuring-database-routers-setting` for using :doc:`embedded
+models </topics/embedded-models>`, to use Queryable Encryption you must also
+configure the :setting:`django:DATABASE_ROUTERS` setting to route queries to the
+encrypted database.
 
 This is done by adding a custom router that routes queries to the encrypted
 database based on the model's metadata. The following example shows how to
@@ -94,3 +96,25 @@ configure a custom router for Queryable Encryption:
 
 Configuring KMS Providers
 =========================
+
+To use Queryable Encryption, you must configure a Key Management Service (KMS)
+provider. The KMS provider is responsible for managing the encryption keys used
+to encrypt and decrypt data. The following table summarizes the available KMS
+provider options and how to configure them:
+
++-------------------------------------------------------------------------+---------------------------------------+
+| :setting:`KMS_CREDENTIALS <DATABASE-KMS-CREDENTIALS>`                   | A dictionary of Key Management        |
+|                                                                         | Service (KMS) credentials             |
+|                                                                         | configured in the                     |
+|                                                                         | :setting:`django:DATABASES`           |
+|                                                                         | setting.                              |
++-------------------------------------------------------------------------+---------------------------------------+
+| :class:`kms_providers <pymongo.encryption_options.AutoEncryptionOpts>`  | Map of KMS provider credentials and   |
+|                                                                         | options. The ``kms_providers`` map    |
+|                                                                         | values differ by provider and are     |
+|                                                                         | required to access KMS services.      |
++-------------------------------------------------------------------------+---------------------------------------+
+| ``kms_provider``                                                        | A single KMS provider name            |
+|                                                                         | configured in your custom database    |
+|                                                                         | router.                               |
++-------------------------------------------------------------------------+---------------------------------------+

@@ -5,9 +5,10 @@ from django.db.models import Index, UniqueConstraint
 from pymongo.encryption import ClientEncryption
 from pymongo.operations import SearchIndexModel
 
+from django_mongodb_backend.indexes import SearchIndex
+
 from .fields import EmbeddedModelField
 from .gis.schema import GISSchemaEditor
-from .indexes import SearchIndex
 from .model_utils import model_has_encrypted_fields
 from .query import wrap_database_errors
 from .utils import OperationCollector
