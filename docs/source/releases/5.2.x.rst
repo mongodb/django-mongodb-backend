@@ -5,7 +5,7 @@ Django MongoDB Backend 5.2.x
 5.2.0 beta 2
 ============
 
-*August 12, 2025*
+*August 13, 2025*
 
 New features
 ------------
