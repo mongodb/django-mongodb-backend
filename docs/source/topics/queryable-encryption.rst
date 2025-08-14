@@ -73,7 +73,7 @@ query type in the model field definition. For example, if you want to query the
 
     class Patient(models.Model):
         name = models.CharField(max_length=255)
-        ssn = models.EncryptedCharField(max_length=11, queries={"equality": True})
+        ssn = models.EncryptedCharField(max_length=11, queries={"queryType": "equality"})
 
         def __str__(self):
             return self.name
