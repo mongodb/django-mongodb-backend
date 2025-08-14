@@ -455,7 +455,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         else:
             db.create_collection(db_table)
 
-    def _get_encrypted_fields_map(self, model, client, create_new_keys=False):
+    def _get_encrypted_fields_map(self, model, client, create_data_keys=False):
         connection = self.connection
         fields = model._meta.fields
         options = client._options
@@ -475,7 +475,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         for field in fields:
             if getattr(field, "encrypted", False):
                 key_alt_name = f"{db_table}_{field.column}"
-                if create_new_keys:
+                if create_data_keys:
                     data_key = client_encryption.create_data_key(
                         kms_provider=kms_provider,
                         master_key=master_key,
