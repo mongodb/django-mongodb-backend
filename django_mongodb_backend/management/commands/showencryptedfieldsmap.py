@@ -32,7 +32,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         db = options["database"]
-        create_new_keys = options.get("create_new_keys", False)
+        create_data_keys = options.get("create_data_keys", False)
         connection = connections[db]
         client = connection.connection
         encrypted_fields_map = {}
