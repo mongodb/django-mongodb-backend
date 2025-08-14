@@ -4,9 +4,12 @@ Configuring Queryable Encryption
 
 .. versionadded:: 5.2.0rc1
 
-This guide is similar to the
-:doc:`manual:core/queryable-encryption/quick-start` but with some additional
-steps required to configure Queryable Encryption with Django MongoDB Backend.
+Queryable Encryption is a powerful MongoDB feature that enables you to encrypt
+sensitive fields in your database while still allowing queries on that
+encrypted data.
+
+This section will guide you through the process of configuring Queryable
+Encryption in your Django project using the Django MongoDB Backend.
 
 .. admonition:: MongoDB requirements
 
@@ -239,5 +242,5 @@ settings as follows:
         ),
     }
 
-You are now ready to :doc:`develop with Queryable Encryption
-</topics/queryable-encryption>` in Django MongoDB Backend!
+You are now ready to :doc:`start developing applications
+</topics/queryable-encryption>` with Queryable Encryption!

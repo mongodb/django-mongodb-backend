@@ -30,7 +30,7 @@ Available commands
 
         Specifies the database to use. Defaults to ``default``.
 
-    .. django-admin-option:: --create-new-keys
+    .. django-admin-option:: --create-data-keys
 
         If specified, this option will create and show new encryption keys
         instead of showing existing keys from the configured key vault.

@@ -76,8 +76,20 @@ class Patient(models.Model):
 
 
 class EncryptedNumbers(models.Model):
+    # Not tested elsewhere
     pos_smallint = EncryptedPositiveSmallIntegerField(queries=EQUALITY_QUERY)
     smallint = EncryptedSmallIntegerField(queries=EQUALITY_QUERY)
 
     class Meta:
         required_db_features = {"supports_queryable_encryption"}
+
+
+class SensitiveData(models.Model):
+    # Example from documentation
+    name = EncryptedCharField(max_length=100)
+    email = EncryptedEmailField()
+    phone_number = EncryptedCharField(max_length=15)
+
+    sensitive_text = EncryptedTextField()
+    sensitive_integer = EncryptedIntegerField()
+    sensitive_date = EncryptedDateField()

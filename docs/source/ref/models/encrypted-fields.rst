@@ -20,6 +20,8 @@ Queryable Encryption.
 +========================================+======================================================+
 | ``EncryptedBooleanField``              | :class:`~django.db.models.BooleanField`              |
 +----------------------------------------+------------------------------------------------------+
+| ``EncryptedBigIntegerField``           | :class:`~django.db.models.BigIntegerField`           |
++----------------------------------------+------------------------------------------------------+
 | ``EncryptedCharField``                 | :class:`~django.db.models.CharField`                 |
 +----------------------------------------+------------------------------------------------------+
 | ``EncryptedDateField``                 | :class:`~django.db.models.DateField`                 |
@@ -37,6 +39,8 @@ Queryable Encryption.
 | ``EncryptedIntegerField``              | :class:`~django.db.models.IntegerField`              |
 +----------------------------------------+------------------------------------------------------+
 | ``EncryptedPositiveIntegerField``      | :class:`~django.db.models.PositiveIntegerField`      |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedPositiveBigIntegerField``   | :class:`~django.db.models.PositiveBigIntegerField`   |
 +----------------------------------------+------------------------------------------------------+
 | ``EncryptedPositiveSmallIntegerField`` | :class:`~django.db.models.PositiveSmallIntegerField` |
 +----------------------------------------+------------------------------------------------------+
@@ -67,20 +71,10 @@ supported by Queryable Encryption.
     MongoDB's Queryable Encryption.
 
     To create a custom encrypted field, inherit from ``EncryptedFieldMixin`` and
-    the desired Django field class. You can then specify the ``queries`` option
-    to define how the field can be queried.
+    the desired Django field class.
 
-    The ``queries`` option should be a dictionary that specifies the type of
-    queries that can be performed on the field. The :ref:`available query types
-    <manual:qe-fundamentals-encrypt-query>` are as follows:
 
-    - ``equality``: Supports equality queries.
-    - ``range``: Supports range queries.
-
-    You can configure an encrypted field for either equality or range queries,
-    but not both. Configure fields for the expected query type.
-
-    For example, to create a custom encrypted field that supports equality
+    For example, to create a custom encrypted field that supports ``equality``
     queries, you can define it as follows:
 
     .. code-block:: python

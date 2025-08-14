@@ -72,7 +72,7 @@ class QueryableEncryptionCommandTests(QueryableEncryptionTestCase):
             "showencryptedfieldsmap",
             "--database",
             "encrypted",
-            "--create-new-keys",
+            "--create-data-keys",
             verbosity=0,
             stdout=out,
         )

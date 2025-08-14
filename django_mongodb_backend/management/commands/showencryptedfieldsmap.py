@@ -22,7 +22,7 @@ class Command(BaseCommand):
             Specifies the database to use. Defaults to ``default``.""",
         )
         parser.add_argument(
-            "--create-new-keys",
+            "--create-data-keys",
             action="store_true",
             help="""
             If specified, this option will create and show new encryption
