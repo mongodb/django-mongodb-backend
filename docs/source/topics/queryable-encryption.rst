@@ -29,7 +29,7 @@ like this:
 
     class Patient(models.Model):
         name = models.CharField(max_length=255)
-        ssn = models.EncryptedCharField(max_length=11)
+        ssn = EncryptedCharField(max_length=11)
 
         def __str__(self):
             return self.name
