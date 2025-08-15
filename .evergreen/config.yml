@@ -48,6 +48,62 @@ functions:
         args:
           - ./.evergreen/run-tests.sh
 
+  "run performance tests":
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        working_dir: "src"
+        include_expansions_in_env: [ "DRIVERS_TOOLS", "MONGODB_URI" ]
+        args:
+          - ./.evergreen/run-perf-tests.sh
+
+  attach benchmark test results:
+    - command: attach.results
+      params:
+        file_location: src/report.json
+
+  send dashboard data:
+    - command: subprocess.exec
+      params:
+        binary: bash
+        args:
+          - .evergreen/perf-submission-setup.sh
+        working_dir: src
+        include_expansions_in_env:
+          - requester
+          - revision_order_id
+          - project_id
+          - version_id
+          - build_variant
+          - parsed_order_id
+          - task_name
+          - task_id
+          - execution
+          - is_mainline
+      type: test
+    - command: expansions.update
+      params:
+        file: src/expansion.yml
+    - command: subprocess.exec
+      params:
+        binary: bash
+        args:
+          - .evergreen/perf-submission.sh
+        working_dir: src
+        include_expansions_in_env:
+          - requester
+          - revision_order_id
+          - project_id
+          - version_id
+          - build_variant
+          - parsed_order_id
+          - task_name
+          - task_id
+          - execution
+          - is_mainline
+      type: test
+
   "teardown":
     - command: subprocess.exec
       params:
@@ -66,6 +122,12 @@ tasks:
   - name: run-tests
     commands:
       - func: "run unit tests"
+
+  - name: perf-tests
+    commands:
+      - func: "run performance tests"
+      - func: "attach benchmark test results"
+      - func: "send dashboard data"
 
 buildvariants:
   - name: tests-6-noauth-nossl
@@ -111,3 +173,11 @@ buildvariants:
       SSL: "ssl"
     tasks:
       - name: run-tests
+
+  - name: performance-benchmarks
+    display_name: Performance Benchmarks
+    run_on:
+      - rhel90-dbx-perf-large
+    batchtime: 10080
+    tasks:
+      - name: perf-tests
