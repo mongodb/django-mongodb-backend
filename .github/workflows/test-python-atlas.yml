@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout django-mongodb-backend
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: install django-mongodb-backend
@@ -30,7 +30,7 @@ jobs:
           pip3 install --upgrade pip
           pip3 install -e .
       - name: Checkout Django
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: 'mongodb-forks/django'
           ref: 'mongodb-5.2.x'
