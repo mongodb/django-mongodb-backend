@@ -53,6 +53,19 @@ class SearchIndexTests(SimpleTestCase):
         with self.assertRaisesMessage(TypeError, msg):
             SearchIndex(condition="")
 
+    def test_fields_and_field_mappings(self):
+        msg = "Cannot provide fields and fields_mappings"
+        with self.assertRaisesMessage(ValueError, msg):
+            SearchIndex(fields=["foo"], field_mappings={"foo": {}})
+
+    def test_field_mappings_type(self):
+        msg = (
+            "field_mappings must be a dictionary mapping field names to their "
+            "Atlas Search field mappings."
+        )
+        with self.assertRaisesMessage(ValueError, msg):
+            SearchIndex(field_mappings={"foo"})
+
 
 class VectorSearchIndexTests(SimpleTestCase):
     def test_no_init_args(self):
