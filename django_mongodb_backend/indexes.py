@@ -109,8 +109,24 @@ class SearchIndex(Index):
     suffix = "six"
     _error_id_prefix = "django_mongodb_backend.indexes.SearchIndex"
 
-    def __init__(self, *, fields=(), name=None):
+    def __init__(self, *, fields=(), name=None, field_mappings=None):
+        if field_mappings and not isinstance(field_mappings, dict):
+            raise ValueError(
+                "field_mappings must be a dictionary mapping field names to their "
+                "Atlas Search field mappings."
+            )
+        self.field_mappings = field_mappings
+        if field_mappings:
+            if fields:
+                raise ValueError("Cannot provide fields and fields_mappings")
+            fields = [*self.field_mappings.keys()]
         super().__init__(fields=fields, name=name)
+
+    def deconstruct(self):
+        path, args, kwargs = super().deconstruct()
+        if self.field_mappings is not None:
+            kwargs["field_mappings"] = self.field_mappings
+        return path, args, kwargs
 
     def check(self, model, connection):
         errors = []
@@ -152,13 +168,28 @@ class SearchIndex(Index):
             return None
         fields = {}
         for field_name, _ in self.fields_orders:
-            field = model._meta.get_field(field_name)
-            type_ = self.search_index_data_types(field.db_type(schema_editor.connection))
             field_path = column_prefix + model._meta.get_field(field_name).column
-            fields[field_path] = {"type": type_}
+            if self.field_mappings:
+                fields[field_path] = self.field_mappings[field_name]
+            else:
+                field = model._meta.get_field(field_name)
+                type_ = self.search_index_data_types(field.db_type(schema_editor.connection))
+                fields[field_path] = {"type": type_}
         return SearchIndexModel(
             definition={"mappings": {"dynamic": False, "fields": fields}}, name=self.name
         )
+
+
+class DynamicSearchIndex(SearchIndex):
+    suffix = "dsix"
+    _error_id_prefix = "django_mongodb_backend.indexes.DynamicSearchIndex"
+
+    def get_pymongo_index_model(
+        self, model, schema_editor, field=None, unique=False, column_prefix=""
+    ):
+        if not schema_editor.connection.features.supports_atlas_search:
+            return None
+        return SearchIndexModel(definition={"mappings": {"dynamic": True}}, name=self.name)
 
 
 class VectorSearchIndex(SearchIndex):
