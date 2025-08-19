@@ -53,6 +53,59 @@ class SearchIndexTests(SimpleTestCase):
         with self.assertRaisesMessage(TypeError, msg):
             SearchIndex(condition="")
 
+    def test_fields_and_field_mappings(self):
+        msg = "Cannot provide fields and field_mappings."
+        with self.assertRaisesMessage(ValueError, msg):
+            SearchIndex(fields=["foo"], field_mappings={"foo": {}})
+
+    def test_field_mappings_type(self):
+        msg = (
+            "field_mappings must be a dictionary mapping field names to their "
+            "Atlas Search index options."
+        )
+        with self.assertRaisesMessage(ValueError, msg):
+            SearchIndex(field_mappings={"foo"})
+
+    def test_analyzer_type(self):
+        msg = "analyzer must be a string; got: <class 'int'>."
+        with self.assertRaisesMessage(ValueError, msg):
+            SearchIndex(analyzer=42)
+
+    def test_search_analyzer_type(self):
+        msg = "search_analyzer must be a string; got: <class 'list'>."
+        with self.assertRaisesMessage(ValueError, msg):
+            SearchIndex(search_analyzer=["foo"])
+
+    def test_deconstruct(self):
+        index = SearchIndex(name="recent_test_idx", fields=["number"])
+        name, args, kwargs = index.deconstruct()
+        self.assertEqual(name, "django_mongodb_backend.indexes.SearchIndex")
+        self.assertEqual(args, ())
+        self.assertEqual(kwargs, {"name": "recent_test_idx", "fields": ["number"]})
+
+    def test_deconstruct_field_mappings(self):
+        field_mappings = {"headline": {"type": "token"}}
+        index = SearchIndex(field_mappings=field_mappings)
+        _, args, kwargs = index.deconstruct()
+        self.assertEqual(args, ())
+        self.assertEqual(kwargs, {"name": "", "field_mappings": field_mappings})
+
+    def test_deconstruct_analyzer(self):
+        index = SearchIndex(
+            fields=["a"], analyzer="lucene.simple", search_analyzer="lucene.english"
+        )
+        _, args, kwargs = index.deconstruct()
+        self.assertEqual(args, ())
+        self.assertEqual(
+            kwargs,
+            {
+                "name": "",
+                "fields": ["a"],
+                "analyzer": "lucene.simple",
+                "search_analyzer": "lucene.english",
+            },
+        )
+
 
 class VectorSearchIndexTests(SimpleTestCase):
     def test_no_init_args(self):
@@ -179,7 +232,82 @@ class SearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
                 },
             }
             self.assertCountEqual(index_info[index.name]["columns"], index.fields)
-            self.assertEqual(index_info[index.name]["options"], expected_options)
+            self.assertEqual(index_info[index.name]["options"]["mappings"], expected_options)
+        finally:
+            with connection.schema_editor() as editor:
+                editor.remove_index(index=index, model=SearchIndexTestModel)
+
+    def test_field_mappings(self):
+        index = SearchIndex(
+            name="field_mappings_test_idx",
+            field_mappings={
+                "char": {
+                    "indexOptions": "offsets",
+                    "norms": "include",
+                    "store": True,
+                    "type": "string",
+                }
+            },
+        )
+        with connection.schema_editor() as editor:
+            editor.add_index(index=index, model=SearchIndexTestModel)
+        try:
+            index_info = connection.introspection.get_constraints(
+                cursor=None,
+                table_name=SearchIndexTestModel._meta.db_table,
+            )[index.name]
+            expected_options = {
+                "analyzer": None,
+                "searchAnalyzer": None,
+                "mappings": {
+                    "dynamic": False,
+                    "fields": {
+                        "char": {
+                            "indexOptions": "offsets",
+                            "norms": "include",
+                            "store": True,
+                            "type": "string",
+                        }
+                    },
+                },
+            }
+            self.assertCountEqual(index_info["columns"], index.fields)
+            self.assertEqual(index_info["options"], expected_options)
+        finally:
+            with connection.schema_editor() as editor:
+                editor.remove_index(index=index, model=SearchIndexTestModel)
+
+    def test_analyzer(self):
+        index = SearchIndex(
+            name="analyzer_test_idx",
+            fields=["char"],
+            analyzer="lucene.simple",
+            search_analyzer="lucene.simple",
+        )
+        with connection.schema_editor() as editor:
+            editor.add_index(index=index, model=SearchIndexTestModel)
+        try:
+            index_info = connection.introspection.get_constraints(
+                cursor=None,
+                table_name=SearchIndexTestModel._meta.db_table,
+            )[index.name]
+            expected_options = {
+                "analyzer": "lucene.simple",
+                "searchAnalyzer": "lucene.simple",
+                "mappings": {
+                    "dynamic": False,
+                    "fields": {
+                        "char": {
+                            "indexOptions": "offsets",
+                            "norms": "include",
+                            "store": True,
+                            "type": "string",
+                        }
+                    },
+                },
+            }
+            self.assertCountEqual(index_info["columns"], index.fields)
+            self.assertEqual(index_info["options"], expected_options)
         finally:
             with connection.schema_editor() as editor:
                 editor.remove_index(index=index, model=SearchIndexTestModel)

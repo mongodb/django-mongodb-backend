@@ -10,7 +10,8 @@ Django MongoDB Backend 5.2.x
 New features
 ------------
 
-- ...
+- :class:`.SearchIndex`\'s new ``field_mappings``, ``analyzer``, and
+  ``search_analyzer`` arguments allow creating more complex indexes.
 
 Bug fixes
 ---------
