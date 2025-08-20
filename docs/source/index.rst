@@ -14,7 +14,7 @@ First steps
 - :doc:`Installation <intro/install>`
 - :doc:`Configuring a project <intro/configure>`
 - :doc:`howto/contrib-apps`
-- :doc:`topics/known-issues`
+- :doc:`known-issues`
 
 Getting help
 ============
@@ -24,7 +24,8 @@ Having trouble? We’d like to help!
 - Try the :doc:`faq` – it’s got answers to many common questions.
 
 - Looking for specific information? Try the :ref:`genindex`, :ref:`modindex`,
-  or the detailed :doc:`table of contents <contents>`.
+  :doc:`topics section <topics/index>` or detailed :doc:`table of contents
+  <contents>`.
 
 - The :doc:`howto/index` section has step-by-step guides for common tasks.
 
@@ -74,5 +75,6 @@ Miscellaneous
     ref/index
     howto/index
     faq
+    known-issues
     releases/index
     internals

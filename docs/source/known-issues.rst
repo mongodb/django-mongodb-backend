@@ -1,6 +1,6 @@
-============================
-Known issues and limitations
-============================
+============
+Known issues
+============
 
 This document summarizes some known issues and limitations of this library.
 If you notice an issue not listed, use the :ref:`issue-tracker` to report a bug

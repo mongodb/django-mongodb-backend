@@ -14,6 +14,7 @@ Table of contents
     ref/index
     howto/index
     faq
+    known-issues
     releases/index
     internals
 
