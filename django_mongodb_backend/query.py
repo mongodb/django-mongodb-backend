@@ -11,6 +11,8 @@ from django.db.models.sql.datastructures import Join
 from django.db.models.sql.where import AND, OR, XOR, ExtraWhere, NothingNode, WhereNode
 from pymongo.errors import BulkWriteError, DuplicateKeyError, PyMongoError
 
+from .query_conversion.query_optimizer import convert_expr_to_match
+
 
 def wrap_database_errors(func):
     @wraps(func)
@@ -87,7 +89,7 @@ class MongoQuery:
         for query in self.subqueries or ():
             pipeline.extend(query.get_pipeline())
         if self.match_mql:
-            pipeline.append({"$match": self.match_mql})
+            pipeline.extend(convert_expr_to_match(self.match_mql))
         if self.aggregation_pipeline:
             pipeline.extend(self.aggregation_pipeline)
         if self.project_fields:
