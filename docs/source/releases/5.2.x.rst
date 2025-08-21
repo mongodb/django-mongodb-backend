@@ -2,6 +2,20 @@
 Django MongoDB Backend 5.2.x
 ============================
 
+5.2.0 beta 3
+============
+
+*Unreleased*
+
+Backwards incompatible changes
+------------------------------
+
+- Pattern matching lookups (``iexact``, ``startswith``, ``istartswith``,
+  ``endswith``, ``iendswith``, ``contains``, ``icontains``, ``regex``,
+  and ``iregex``) no longer support non-string fields. These lookups previously
+  cast their input using ``$toString`` but this caused some queries to perform
+  poorly because MongoDB couldn't use indexes when running the query.
+
 5.2.0 beta 2
 ============
 
