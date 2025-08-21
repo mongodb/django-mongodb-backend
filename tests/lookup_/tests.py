@@ -39,3 +39,30 @@ class RegexTests(MongoTestCaseMixin, TestCase):
                 }
             ],
         )
+
+
+class LookupMQLTests(MongoTestCaseMixin, TestCase):
+    def test_eq(self):
+        with self.assertNumQueries(1) as ctx:
+            list(Book.objects.filter(title="Moby Dick"))
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"], "lookup__book", [{"$match": {"title": "Moby Dick"}}]
+        )
+
+    def test_in(self):
+        with self.assertNumQueries(1) as ctx:
+            list(Book.objects.filter(title__in=["Moby Dick"]))
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "lookup__book",
+            [{"$match": {"title": {"$in": ("Moby Dick",)}}}],
+        )
+
+    def test_eq_and_in(self):
+        with self.assertNumQueries(1) as ctx:
+            list(Book.objects.filter(title="Moby Dick", isbn__in=["12345", "56789"]))
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "lookup__book",
+            [{"$match": {"$and": [{"isbn": {"$in": ("12345", "56789")}}, {"title": "Moby Dick"}]}}],
+        )

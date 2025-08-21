@@ -12,7 +12,7 @@ class MQLTests(MongoTestCaseMixin, TestCase):
         with self.assertNumQueries(1) as ctx:
             list(Author.objects.all())
         self.assertAggregateQuery(
-            ctx.captured_queries[0]["sql"], "queries__author", [{"$match": {"$expr": {}}}]
+            ctx.captured_queries[0]["sql"], "queries__author", [{"$match": {}}]
         )
 
     def test_join(self):
@@ -42,7 +42,7 @@ class MQLTests(MongoTestCaseMixin, TestCase):
                     }
                 },
                 {"$unwind": "$queries__author"},
-                {"$match": {"$expr": {"$eq": ["$queries__author.name", "Bob"]}}},
+                {"$match": {"queries__author.name": "Bob"}},
             ],
         )
 
@@ -75,16 +75,7 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                     }
                 },
                 {"$unwind": "$queries__author"},
-                {
-                    "$match": {
-                        "$expr": {
-                            "$and": [
-                                {"$eq": ["$queries__author.name", "John"]},
-                                {"$eq": ["$title", "Don"]},
-                            ]
-                        }
-                    }
-                },
+                {"$match": {"$and": [{"queries__author.name": "John"}, {"title": "Don"}]}},
             ],
         )
 
@@ -110,16 +101,7 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                     }
                 },
                 {"$unwind": "$queries__author"},
-                {
-                    "$match": {
-                        "$expr": {
-                            "$or": [
-                                {"$eq": ["$title", "Don"]},
-                                {"$eq": ["$queries__author.name", "John"]},
-                            ]
-                        }
-                    }
-                },
+                {"$match": {"$or": [{"title": "Don"}, {"queries__author.name": "John"}]}},
             ],
         )
 
@@ -166,12 +148,10 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {"$unwind": "$T2"},
                 {
                     "$match": {
-                        "$expr": {
-                            "$and": [
-                                {"$eq": ["$T2.group_id", ObjectId("6891ff7822e475eddc20f159")]},
-                                {"$eq": ["$T2.name", "parent"]},
-                            ]
-                        }
+                        "$and": [
+                            {"T2.group_id": ObjectId("6891ff7822e475eddc20f159")},
+                            {"T2.name": "parent"},
+                        ]
                     }
                 },
             ],
@@ -209,16 +189,7 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                     }
                 },
                 {"$unwind": "$queries__orderitem"},
-                {
-                    "$match": {
-                        "$expr": {
-                            "$eq": [
-                                "$queries__orderitem.status",
-                                ObjectId("6891ff7822e475eddc20f159"),
-                            ]
-                        }
-                    }
-                },
+                {"$match": {"queries__orderitem.status": ObjectId("6891ff7822e475eddc20f159")}},
                 {"$addFields": {"_id": "$_id"}},
                 {"$sort": SON([("_id", 1)])},
             ],
@@ -284,18 +255,11 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {"$unwind": "$T3"},
                 {
                     "$match": {
-                        "$expr": {
-                            "$and": [
-                                {"$eq": ["$T3.name", "My Order"]},
-                                {
-                                    "$eq": [
-                                        "$queries__orderitem.status",
-                                        ObjectId("6891ff7822e475eddc20f159"),
-                                    ]
-                                },
-                                {"$eq": ["$name", "My Order"]},
-                            ]
-                        }
+                        "$and": [
+                            {"T3.name": "My Order"},
+                            {"queries__orderitem.status": ObjectId("6891ff7822e475eddc20f159")},
+                            {"name": "My Order"},
+                        ]
                     }
                 },
                 {"$addFields": {"_id": "$_id"}},
@@ -336,7 +300,7 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
             ctx.captured_queries[0]["sql"],
             "queries__order",
             [
-                {"$match": {"$expr": {"$or": [{"$eq": ["$name", "A"]}, {"$eq": ["$name", "B"]}]}}},
+                {"$match": {"$or": [{"name": "A"}, {"name": "B"}]}},
                 {"$addFields": {"_id": "$_id"}},
                 {"$sort": SON([("_id", 1)])},
             ],
@@ -364,16 +328,7 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                     }
                 },
                 {"$unwind": "$queries__author"},
-                {
-                    "$match": {
-                        "$expr": {
-                            "$or": [
-                                {"$eq": ["$queries__author.name", "John"]},
-                                {"$eq": ["$title", "Don"]},
-                            ]
-                        }
-                    }
-                },
+                {"$match": {"$or": [{"queries__author.name": "John"}, {"title": "Don"}]}},
             ],
         )
 
@@ -456,7 +411,7 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                     }
                 },
                 {"$unwind": "$queries__reader"},
-                {"$match": {"$expr": {"$eq": ["$queries__reader.name", "Alice"]}}},
+                {"$match": {"queries__reader.name": "Alice"}},
             ],
         )
 
@@ -496,12 +451,10 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                             {"$unwind": "$U2"},
                             {
                                 "$match": {
-                                    "$expr": {
-                                        "$and": [
-                                            {"$eq": ["$U2.name", "Alice"]},
-                                            {"$eq": ["$library_id", "$$parent__field__0"]},
-                                        ]
-                                    }
+                                    "$and": [
+                                        {"U2.name": "Alice"},
+                                        {"$expr": {"$eq": ["$library_id", "$$parent__field__0"]}},
+                                    ]
                                 }
                             },
                             {"$project": {"a": {"$literal": 1}}},
@@ -591,16 +544,7 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                     }
                 },
                 {"$unwind": "$queries__reader"},
-                {
-                    "$match": {
-                        "$expr": {
-                            "$and": [
-                                {"$eq": ["$name", "Central"]},
-                                {"$eq": ["$queries__reader.name", "Alice"]},
-                            ]
-                        }
-                    }
-                },
+                {"$match": {"$and": [{"name": "Central"}, {"queries__reader.name": "Alice"}]}},
             ],
         )
 
@@ -684,7 +628,7 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                     }
                 },
                 {"$unwind": "$queries__reader"},
-                {"$match": {"$expr": {"$eq": ["$name", "Ateneo"]}}},
+                {"$match": {"name": "Ateneo"}},
                 {
                     "$project": {
                         "queries__reader": {"foreing_field": "$queries__reader.name"},
@@ -771,15 +715,6 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                     }
                 },
                 {"$unwind": "$queries__reader"},
-                {
-                    "$match": {
-                        "$expr": {
-                            "$or": [
-                                {"$eq": ["$queries__reader.name", "Alice"]},
-                                {"$eq": ["$name", "Central"]},
-                            ]
-                        }
-                    }
-                },
+                {"$match": {"$or": [{"queries__reader.name": "Alice"}, {"name": "Central"}]}},
             ],
         )
