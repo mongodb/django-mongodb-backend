@@ -34,7 +34,10 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-docs = [ "sphinx>=7"]
+docs = [
+    "sphinx>=7",
+    "furo>=2025.7.19",
+]
 
 [project.urls]
 Homepage = "https://www.mongodb.org"
