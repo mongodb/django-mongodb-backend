@@ -11,6 +11,8 @@ from django.db.models.sql.datastructures import Join
 from django.db.models.sql.where import AND, OR, XOR, ExtraWhere, NothingNode, WhereNode
 from pymongo.errors import BulkWriteError, DuplicateKeyError, PyMongoError
 
+from django_mongodb_backend.query_conversion.query_optimizer import QueryOptimizer
+
 
 def wrap_database_errors(func):
     @wraps(func)
@@ -55,6 +57,7 @@ class MongoQuery:
         # $lookup stage that encapsulates the pipeline for performing a nested
         # subquery.
         self.subquery_lookup = None
+        self.query_optimizer = QueryOptimizer()
 
     def __repr__(self):
         return f"<MongoQuery: {self.match_mql!r} ORDER {self.ordering!r}>"
@@ -87,7 +90,7 @@ class MongoQuery:
         for query in self.subqueries or ():
             pipeline.extend(query.get_pipeline())
         if self.match_mql:
-            pipeline.append({"$match": self.match_mql})
+            pipeline.extend(self.query_optimizer.convert_expr_to_match(self.match_mql))
         if self.aggregation_pipeline:
             pipeline.extend(self.aggregation_pipeline)
         if self.project_fields:
