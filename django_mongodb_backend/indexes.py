@@ -1,8 +1,10 @@
 import itertools
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 from django.core.checks import Error, Warning
+from django.core.exceptions import FieldDoesNotExist
 from django.db import NotSupportedError
+from django.db.backends.utils import names_digest, split_identifier
 from django.db.models import FloatField, Index, IntegerField
 from django.db.models.lookups import BuiltinLookup
 from django.db.models.sql.query import Query
@@ -10,7 +12,11 @@ from django.db.models.sql.where import AND, XOR, WhereNode
 from pymongo import ASCENDING, DESCENDING
 from pymongo.operations import IndexModel, SearchIndexModel
 
-from django_mongodb_backend.fields import ArrayField
+from django_mongodb_backend.fields import (
+    ArrayField,
+    EmbeddedModelArrayField,
+    EmbeddedModelField,
+)
 
 from .query_utils import process_rhs
 
@@ -22,6 +28,8 @@ MONGO_INDEX_OPERATORS = {
     "lte": "$lte",
     "in": "$in",
 }
+
+FieldColumn = namedtuple("FieldColumn", ["field", "column"])
 
 
 def _get_condition_mql(self, model, schema_editor):
@@ -44,6 +52,25 @@ def builtin_lookup_idx(self, compiler, connection):
     return {lhs_mql: {operator: value}}
 
 
+def get_field(model, field_name):
+    """
+    A version of Model_.meta.get_field() that can retrieve embedded model
+    fields.
+    """
+    path = []
+    base_model = model
+    *parents, leaf = field_name.split(".")
+    for name in parents:
+        field = model._meta.get_field(name)
+        path.append(field.column)
+        if not isinstance(field, EmbeddedModelField | EmbeddedModelArrayField):
+            raise FieldDoesNotExist(f"{base_model.__name__} has no field named '{field_name}'.")
+        model = field.embedded_model
+    field = model._meta.get_field(leaf)
+    path.append(field.column)
+    return FieldColumn(field, ".".join(path))
+
+
 def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefix=""):
     """Return a pymongo IndexModel for this Django Index."""
     if self.contains_expressions:
@@ -61,7 +88,7 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefi
             # order is "" if ASCENDING or "DESC" if DESCENDING (see
             # django.db.models.indexes.Index.fields_orders).
             (
-                column_prefix + model._meta.get_field(field_name).column,
+                column_prefix + get_field(model, field_name).column,
                 ASCENDING if order == "" else DESCENDING,
             )
             for field_name, order in self.fields_orders
@@ -90,6 +117,82 @@ def where_node_idx(self, compiler, connection):
     else:
         mql = {}
     return mql
+
+
+class EmbeddedFieldIndexMixin:
+    def check(self, model, connection):
+        # The parent check reports E012 (nonexistent fields) based on top-level
+        # fields. These errors are discarded and the checks redone, accounting
+        # for embedded model fields.
+        errors = [e for e in super().check(model, connection) if e.id != "models.E012"]
+        return errors + self._check_local_fields(model)
+
+    def _check_local_fields(self, model):
+        errors = []
+        forward_fields = self._get_forward_fields(model)
+        for field_name in self.fields:
+            if field_name not in forward_fields:
+                errors.append(
+                    Error(
+                        f"'{self.meta_option_name}' refers to the nonexistent "
+                        f"field '{field_name}'.",
+                        obj=model,
+                        id="models.E012",
+                    )
+                )
+        return errors
+
+    def _get_forward_fields(self, model):
+        """
+        Return the set of forward field paths for the given model, including
+        embedded fields of EmbeddedModelField/EmbeddedModelArrayField.
+        """
+        forward_fields = set()
+        for field in model._meta._get_fields(reverse=False):
+            # Recurse into embedded models and flatten their forward fields
+            # using dotted paths (e.g. "field.subfield").
+            if isinstance(field, EmbeddedModelField | EmbeddedModelArrayField):
+                sub_forward_fields = self._get_forward_fields(field.embedded_model)
+                for column in sub_forward_fields:
+                    forward_fields.add(f"{field.name}.{column}")
+                    if hasattr(field, "attname"):
+                        forward_fields.add(f"{field.attname}.{column}")
+            # For each field, both the public field name and its attribute name
+            # (attname), when present, are included in order to mirror Django's
+            # field resolution.
+            forward_fields.add(field.name)
+            if hasattr(field, "attname"):
+                forward_fields.add(field.attname)
+        return forward_fields
+
+
+class EmbeddedFieldIndex(EmbeddedFieldIndexMixin, Index):
+    meta_option_name = "indexes"
+
+    def set_name_with_model(self, model):
+        """
+        Generate a unique name for the index.
+
+        The name is divided into three parts: the table name, the field name,
+        and a hash plus suffix. Each part is truncated to fit within Django's
+        index name length constraints.
+
+        This method overrides Django's base implementation which uses
+        model._meta.get_field(field_name).column, which doesn't work for
+        embedded fields.
+        """
+        _, table_name = split_identifier(model._meta.db_table)
+        field_names_with_order = [
+            (f"-{column_name}" if order else column_name)
+            for column_name, order in self.fields_orders
+        ]
+        hash_data = [table_name, *field_names_with_order, self.suffix]
+        self.name = (
+            f"{table_name[:11]}_{self.fields_orders[0][0][:7]}_"
+            f"{names_digest(*hash_data, length=6)}_{self.suffix}"
+        )
+        if self.name[0] == "_" or self.name[0].isdigit():
+            self.name = f"D{self.name[1:]}"
 
 
 class SearchIndex(Index):

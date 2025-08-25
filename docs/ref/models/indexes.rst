@@ -9,6 +9,25 @@ Some MongoDB-specific :doc:`indexes <django:ref/models/indexes>`, for use on a
 model's :attr:`Meta.indexes <django.db.models.Options.indexes>` option, are
 available in ``django_mongodb_backend.indexes``.
 
+Embedded field indexes
+======================
+
+``EmbeddedFieldIndex``
+----------------------
+
+.. class:: EmbeddedFieldIndex(**kwargs)
+
+    .. versionadded:: 6.0.2
+
+    Subclass of :class:`~django.db.models.Index` for use on a top-level model
+    in order to add an index on subfields of
+    :class:`~.fields.EmbeddedModelField` and
+    :class:`~.fields.EmbeddedModelArrayField`.
+
+    The ``fields`` argument uses dotted paths to reference embedded fields. For
+    examples, see :ref:`embedded-model-field-indexes` and
+    :ref:`embedded-model-array-field-indexes`.
+
 Search indexes
 ==============
 

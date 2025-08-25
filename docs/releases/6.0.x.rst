@@ -16,6 +16,16 @@ New features
 - Added support for :attr:`UniqueConstraint.nulls_distinct
   <django.db.models.UniqueConstraint.nulls_distinct>`. See
   :ref:`unique-constraints` for MongoDB-specific details.
+- Added :class:`~django_mongodb_backend.indexes.EmbeddedFieldIndex` and
+  :class:`~django_mongodb_backend.constraints.EmbeddedFieldUniqueConstraint`
+  to index and create unique constraints on subfields of
+  :class:`~.fields.EmbeddedModelField` and
+  :class:`~.fields.EmbeddedModelArrayField`.
+
+  See :ref:`embedded-model-field-indexes`,
+  :ref:`embedded-model-field-unique-constraints`,
+  :ref:`embedded-model-array-field-indexes`, and
+  :ref:`embedded-model-array-field-unique-constraints`.
 
 Bug fixes
 ---------

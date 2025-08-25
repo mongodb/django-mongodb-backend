@@ -64,6 +64,44 @@ address with the city "New York"::
 
     >>> Customer.objects.filter(address__city="New York")
 
+.. _embedded-model-field-indexes:
+
+Indexing ``EmbeddedModelField``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 6.0.2
+
+You can create indexes on ``EmbeddedModelField`` subfields by using
+:class:`~django_mongodb_backend.indexes.EmbeddedFieldIndex` on the top-level
+model and referencing field names using dotted paths.
+
+For example, if model ``Customer`` has a ``EmbeddedModelField`` named
+``address`` and the embedded model has field ``zip_code``, use this on
+``Customer``\'s :attr:`Meta.indexes <django.db.models.Options.indexes>`
+option::
+
+    EmbeddedFieldIndex(fields=["address.zip_code"])]
+
+.. _embedded-model-field-unique-constraints:
+
+Unique constraints on ``EmbeddedModelField``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 6.0.2
+
+You can enforce uniqueness of ``EmbeddedModelField`` subfields by using
+:class:`~django_mongodb_backend.constraints.EmbeddedFieldUniqueConstraint`
+on the top-level model and referencing field names using dotted paths.
+
+For example, if model ``Product`` has ``EmbeddedModelField`` ``product_info``
+and the embedded model has field ``sku``, use this on ``Product``\'s
+:attr:`Meta.constraints <django.db.models.Options.constraints>` option::
+
+    EmbeddedFieldUniqueConstraint(
+        fields=["product_info.sku"],
+        name="unique_product_sku",
+    )
+
 .. _embedded-model-array-field-example:
 
 ``EmbeddedModelArrayField``
@@ -183,6 +221,37 @@ For example, if the ``Tag`` model had an ``EmbeddedModelArrayField`` called
     >>> Post.objects.filter(tags__colors__name="blue")
     ...
     ValueError: Cannot perform multiple levels of array traversal in a query.
+
+.. _embedded-model-array-field-indexes:
+
+Indexing ``EmbeddedModelArrayField``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 6.0.2
+
+You can create indexes on ``EmbeddedModelArrayField`` subfields :ref:`in the
+same way <embedded-model-field-indexes>` as for ``EmbeddedModelField``.
+
+.. _embedded-model-array-field-unique-constraints:
+
+Unique constraints on ``EmbeddedModelArrayField``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 6.0.2
+
+You can enforce uniqueness of ``EmbeddedModelArrayField`` subfields :ref:`in
+the same way <embedded-model-field-unique-constraints>` as for
+``EmbeddedModelField``. These constraints validate that each element across all
+of the arrays in all documents is unique (not just that the elements within
+each document's array are unique).
+
+The only difference from ``EmbeddedModelField`` unique constraints is that
+MongoDB doesn't support treating ``NULL`` values as distinct within
+``EmbeddedModelArrayField`` (the default behavior for ``EmbeddedModelField``
+constraints). You must use :attr:`UniqueConstraint(..., nulls_distinct=False)
+<django.db.models.UniqueConstraint.nulls_distinct>` for indexes that reference
+a subfield of ``EmbeddedModelArrayField``. Only one ``NULL`` value across all
+of the documents' arrays will be allowed.
 
 .. _polymorphic-embedded-model-field-example:
 

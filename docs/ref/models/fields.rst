@@ -319,8 +319,8 @@ These indexes use 0-based indexing.
     After you create a model with an ``EmbeddedModelField`` or add an
     ``EmbeddedModelField`` to an existing model, no further updates to the
     embedded model will be made. Using the models above as an example, if you
-    created these models and then added an indexed field to ``Address``,
-    the index created in the nested ``Book`` embed is not created.
+    created these models and then add or remove a field from ``Address``,
+    existing documents won't be updated.
 
 ``EmbeddedModelArrayField``
 ---------------------------

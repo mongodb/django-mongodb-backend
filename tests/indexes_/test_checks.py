@@ -6,8 +6,14 @@ from django.test import TestCase
 from django.test.utils import isolate_apps
 
 from django_mongodb_backend.fields import ArrayField, ObjectIdField
-from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
+from django_mongodb_backend.indexes import (
+    EmbeddedFieldIndex,
+    SearchIndex,
+    VectorSearchIndex,
+)
 from django_mongodb_backend.models import EmbeddedModel
+
+from .models import DataHolder, Movie
 
 
 @isolate_apps("indexes_")
@@ -208,3 +214,52 @@ class InvalidVectorSearchIndexesTests(TestCase):
                 ),
             ],
         )
+
+
+@isolate_apps("indexes_")
+class EmbeddedFieldIndexChecksTests(TestCase):
+    def test_valid_embedded_model_subfield(self):
+        index = EmbeddedFieldIndex(name="name", fields=["data.integer"])
+        errors = index.check(DataHolder, connection=connection)
+        self.assertEqual(errors, [])
+
+    def test_nonexistent_embedded_model_subfield(self):
+        index = EmbeddedFieldIndex(
+            name="name",
+            fields=[
+                "data.field_does_not_exist",
+                "another_non_existing",
+                "data.integer",
+            ],
+        )
+        errors = index.check(DataHolder, connection=connection)
+        self.assertEqual(len(errors), 2)
+        self.assertEqual(errors[0].id, "models.E012")
+        self.assertEqual(
+            errors[0].msg,
+            "'indexes' refers to the nonexistent field 'data.field_does_not_exist'.",
+        )
+        self.assertEqual(errors[1].id, "models.E012")
+        self.assertEqual(
+            errors[1].msg, "'indexes' refers to the nonexistent field 'another_non_existing'."
+        )
+
+    def test_valid_embedded_model_array_subfield(self):
+        index = EmbeddedFieldIndex(name="name", fields=["reviews.title"])
+        errors = index.check(Movie, connection=connection)
+        self.assertEqual(errors, [])
+
+    def test_nonexistent_embedded_model_array_subfield(self):
+        index = EmbeddedFieldIndex(
+            name="name",
+            fields=["reviews.author", "non_existing", "reviews.title"],
+        )
+        errors = index.check(Movie, connection=connection)
+        self.assertEqual(len(errors), 2)
+        self.assertEqual(errors[0].id, "models.E012")
+        self.assertEqual(
+            errors[0].msg,
+            "'indexes' refers to the nonexistent field 'reviews.author'.",
+        )
+        self.assertEqual(errors[1].id, "models.E012")
+        self.assertEqual(errors[1].msg, "'indexes' refers to the nonexistent field 'non_existing'.")
