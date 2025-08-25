@@ -4,6 +4,7 @@ from collections import defaultdict
 from django.core.checks import Error, Warning
 from django.db import NotSupportedError
 from django.db.models import FloatField, Index, IntegerField
+from django.db.models.expressions import OrderBy
 from django.db.models.lookups import BuiltinLookup
 from django.db.models.sql.query import Query
 from django.db.models.sql.where import AND, XOR, WhereNode
@@ -46,10 +47,30 @@ def builtin_lookup_idx(self, compiler, connection):
 
 def get_pymongo_index_model(self, model, schema_editor, field=None, unique=False, column_prefix=""):
     """Return a pymongo IndexModel for this Django Index."""
-    if self.contains_expressions:
-        return None
-    kwargs = {}
     filter_expression = defaultdict(dict)
+    expressions_fields = []
+    if self.contains_expressions:
+        query = Query(model=model, alias_cols=False)
+        compiler = query.get_compiler(connection=schema_editor.connection)
+        for expression in self.expressions:
+            query = Query(model=model, alias_cols=False)
+            field_ = expression.resolve_expression(query)
+            column = field_.as_mql(compiler, schema_editor.connection, as_path=True)
+            db_type = (
+                field_.expression.db_type(schema_editor.connection)
+                if isinstance(field_, OrderBy)
+                else field_.output_field.db_type(schema_editor.connection)
+            )
+            if unique:
+                filter_expression[column].update({"$type": db_type})
+            order = (
+                DESCENDING
+                if isinstance(expression, OrderBy) and expression.descending
+                else ASCENDING
+            )
+            expressions_fields.append((column, order))
+
+    kwargs = {}
     if self.condition:
         filter_expression.update(self._get_condition_mql(model, schema_editor))
     if unique:
@@ -80,7 +101,7 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, unique=False
             for field_name, order in self.fields_orders
         ]
     )
-    return IndexModel(index_orders, name=self.name, **kwargs)
+    return IndexModel(expressions_fields + index_orders, name=self.name, **kwargs)
 
 
 def where_node_idx(self, compiler, connection):
