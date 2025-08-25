@@ -1,5 +1,6 @@
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
+from django.db.models.constants import LOOKUP_SEP
 from pymongo.operations import SearchIndexModel
 
 from django_mongodb_backend.indexes import SearchIndex
@@ -184,6 +185,20 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             self._remove_model_indexes(
                 field.embedded_model, parent_model=model, column_prefix=new_path
             )
+            # Remove the top level indexes.
+            # TODO: Find a workaround
+            for index in model._meta.indexes:
+                if any(
+                    field_name.startswith(f"{field.column}{LOOKUP_SEP}")
+                    for field_name in index.fields
+                ):
+                    self.remove_index(model, index)
+            for constraint in model._meta.constraints:
+                if any(
+                    field_name.startswith(f"{field.column}{LOOKUP_SEP}")
+                    for field_name in constraint.fields
+                ):
+                    self.get_collection(model._meta.db_table).drop_index(constraint.name)
 
     def _remove_model_indexes(self, model, column_prefix="", parent_model=None):
         """
