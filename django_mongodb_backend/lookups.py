@@ -1,4 +1,6 @@
+import django.db.models.base as base
 from django.db import NotSupportedError
+from django.db.models.constants import LOOKUP_SEP
 from django.db.models.fields.related_lookups import In, RelatedIn
 from django.db.models.lookups import (
     BuiltinLookup,
@@ -8,6 +10,7 @@ from django.db.models.lookups import (
     UUIDTextMixin,
 )
 
+from .fields import EmbeddedModelField
 from .query_utils import process_lhs, process_rhs
 
 
@@ -121,6 +124,26 @@ def uuid_text_mixin(self, compiler, connection):  # noqa: ARG001
     raise NotSupportedError("Pattern lookups on UUIDField are not supported.")
 
 
+class Options(base.Options):
+    def get_field(self, field_name):
+        if LOOKUP_SEP in field_name:
+            previous = self
+            keys = field_name.split(LOOKUP_SEP)
+            path = []
+            for field in keys:
+                field = base.Options.get_field(previous, field)
+                if isinstance(field, EmbeddedModelField):
+                    previous = field.embedded_model._meta
+                else:
+                    previous = field
+                path.append(field.column)
+            column = ".".join(path)
+            embedded_column = field.clone()
+            embedded_column.column = column
+            return embedded_column
+        return super().get_field(field_name)
+
+
 def register_lookups():
     BuiltinLookup.as_mql = builtin_lookup
     FieldGetDbPrepValueIterableMixin.resolve_expression_parameter = (
@@ -131,3 +154,4 @@ def register_lookups():
     IsNull.as_mql = is_null
     PatternLookup.prep_lookup_value_mongo = pattern_lookup_prep_lookup_value
     UUIDTextMixin.as_mql = uuid_text_mixin
+    base.Options = Options
