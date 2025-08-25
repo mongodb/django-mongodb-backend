@@ -10,7 +10,11 @@ Django MongoDB Backend 5.2.x
 New features
 ------------
 
-- ...
+- Added support for creating indexes from expressions.
+  Currently, only ``F()`` expressions are supported to reference top-level
+  model fields inside embedded models.
+
+
 
 Bug fixes
 ---------

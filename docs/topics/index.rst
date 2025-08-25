@@ -11,3 +11,4 @@ know:
    embedded-models
    transactions
    known-issues
+   indexes
