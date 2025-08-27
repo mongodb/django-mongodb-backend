@@ -461,7 +461,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         Create a collection for the model with the encrypted fields. If
         provided, use the `_encrypted_fields_map` in the client's
         `auto_encryption_opts`. Otherwise, create the encrypted fields map
-        with `_get_encrypted_fields_map`.
+        with `_get_encrypted_fields`.
         """
         db = self.get_database()
         db_table = model._meta.db_table
@@ -475,18 +475,16 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                 )
             encrypted_fields_map = getattr(auto_encryption_opts, "_encrypted_fields_map", None)
             if not encrypted_fields_map:
-                encrypted_fields_map = self._get_encrypted_fields_map(
-                    model, client, create_data_keys=True
-                )
+                encrypted_fields = self._get_encrypted_fields(model, client, create_data_keys=True)
             else:
-                # If the encrypted fields map is provided, get the map for the
+                # If the encrypted fields map is provided, get the encrypted fields for the
                 # specific collection.
-                encrypted_fields_map = encrypted_fields_map.get(db_table)
-            db.create_collection(db_table, encryptedFields=encrypted_fields_map)
+                encrypted_fields = encrypted_fields_map.get(db_table)
+            db.create_collection(db_table, encryptedFields=encrypted_fields)
         else:
             db.create_collection(db_table)
 
-    def _get_encrypted_fields_map(self, model, client, create_data_keys=False):
+    def _get_encrypted_fields(self, model, client, create_data_keys=False):
         connection = self.connection
         fields = model._meta.fields
         options = client._options
