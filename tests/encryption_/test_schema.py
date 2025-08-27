@@ -7,18 +7,18 @@ from .test_base import QueryableEncryptionTestCase
 class SchemaTests(QueryableEncryptionTestCase):
     maxDiff = None
 
-    def test_get_encrypted_fields_map(self):
+    def test_get_encrypted_fields(self):
         """
         Test class method called by schema editor and management command to get
-        encrypted fields map for `create_collection` and `auto_encryption_opts`
-        respectively. There are no data keys in the results.
+        encrypted fields for `create_collection` and `auto_encryption_opts`
+        respectively.
 
-        Data keys for the schema editor are created by
-        `create_encrypted_collection` and data keys for the management command
-        are created by the management command using code similar to the code in
-        create_encrypted_collection` in Pymongo.
+        This method is called per collection when creating a new collection and
+        per database when setting up auto encryption options.
+
+        Data keys are not tested here as they are expected to differ each time.
         """
-        expected_encrypted_fields_map = {
+        expected_encrypted_fields = {
             "fields": [
                 {
                     "bsonType": "long",
@@ -54,11 +54,11 @@ class SchemaTests(QueryableEncryptionTestCase):
         connection = connections["encrypted"]
         with connection.schema_editor() as editor:
             client = connection.connection
-            encrypted_fields_map = editor._get_encrypted_fields_map(Patient, client)
-            for field in encrypted_fields_map["fields"]:
+            encrypted_fields = editor._get_encrypted_fields(Patient, client)
+            for field in encrypted_fields["fields"]:
                 # Remove data keys from the output; they are expected to differ
                 field.pop("keyId", None)
             self.assertEqual(
-                encrypted_fields_map,
-                expected_encrypted_fields_map,
+                encrypted_fields,
+                expected_encrypted_fields,
             )
