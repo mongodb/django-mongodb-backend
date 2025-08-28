@@ -302,7 +302,7 @@ class SQLCompiler(compiler.SQLCompiler):
                     search.as_mql(self, self.connection),
                     {
                         "$addFields": {
-                            result_col.as_mql(self, self.connection, as_path=True): {
+                            result_col.as_mql(self, self.connection).removeprefix("$"): {
                                 "$meta": score_function
                             }
                         }

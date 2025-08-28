@@ -184,14 +184,14 @@ class KeyTransform(Transform):
             f"{suggestion}"
         )
 
-    def as_mql(self, compiler, connection, as_path=False):
+    def as_mql(self, compiler, connection):
         previous = self
         key_transforms = []
         while isinstance(previous, KeyTransform):
             key_transforms.insert(0, previous.key_name)
             previous = previous.lhs
-        if as_path:
-            mql = previous.as_mql(compiler, connection, as_path=True)
+        if getattr(self, "_as_path", False):
+            mql = previous.as_mql(compiler, connection).removeprefix("$")
             mql_path = ".".join(key_transforms)
             return f"{mql}.{mql_path}"
         mql = previous.as_mql(compiler, connection)
