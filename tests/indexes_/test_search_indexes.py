@@ -237,7 +237,7 @@ class VectorSearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
                 },
                 "latestVersion": 0,
                 "name": "recent_test_idx",
-                "queryable": False,
+                "queryable": True,
                 "type": "vectorSearch",
             }
             self.assertCountEqual(index_info[index.name]["columns"], index.fields)
@@ -280,7 +280,7 @@ class VectorSearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
                 },
                 "latestVersion": 0,
                 "name": "recent_test_idx",
-                "queryable": False,
+                "queryable": True,
                 "type": "vectorSearch",
             }
             self.assertCountEqual(index_info[index.name]["columns"], index.fields)

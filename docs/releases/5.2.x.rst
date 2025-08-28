@@ -15,7 +15,9 @@ New features
 Bug fixes
 ---------
 
-- ...
+- Migrations operations that add or delete search indexes now wait until the
+  operation is completed on the server to prevent conflicts when running
+  multiple operations sequentially.
 
 5.2.0
 =====
