@@ -20,12 +20,9 @@ Each model field stores data as :doc:`GeoJSON objects
 All fields have a :doc:`2dsphere index
 <manual:core/indexes/index-types/geospatial/2dsphere>` created on them.
 
-The :ref:`geospatial aggregation stage <geospatial-operators>` only supports
-one operator: :doc:`$geoNear <manual:reference/operator/aggregation/geoNear>`.
-You can use it in :meth:`.raw_aggregate` queries.
-
-The :ref:`geospatial query operators <manual:geospatial-query-operators>`
-aren't supported.
+You can use any of the :ref:`geospatial query operators
+<manual:geospatial-query-operators>` or the :ref:`geospatial aggregation
+pipeline stage <geospatial-aggregation>` in :meth:`.raw_aggregate` queries.
 
 Configuration
 =============
