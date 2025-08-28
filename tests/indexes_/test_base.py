@@ -3,8 +3,7 @@ from django.db import connection
 
 class SchemaAssertionMixin:
     def assertAddRemoveIndex(self, editor, model, index):
-        with self.assertNumQueries(1):
-            editor.add_index(index=index, model=model)
+        editor.add_index(index=index, model=model)
         try:
             self.assertIn(
                 index.name,

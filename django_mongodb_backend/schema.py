@@ -1,3 +1,5 @@
+from time import monotonic, sleep
+
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
 from pymongo.operations import SearchIndexModel
@@ -269,10 +271,12 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         )
         if idx:
             model = parent_model or model
+            collection = self.get_collection(model._meta.db_table)
             if isinstance(idx, SearchIndexModel):
-                self.get_collection(model._meta.db_table).create_search_index(idx)
+                collection.create_search_index(idx)
+                self.wait_until_index_created(collection, index.name)
             else:
-                self.get_collection(model._meta.db_table).create_indexes([idx])
+                collection.create_indexes([idx])
 
     def _add_composed_index(self, model, field_names, column_prefix="", parent_model=None):
         """Add an index on the given list of field_names."""
@@ -290,12 +294,14 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
     def remove_index(self, model, index):
         if index.contains_expressions:
             return
+        collection = self.get_collection(model._meta.db_table)
         if isinstance(index, SearchIndex):
             # Drop the index if it's supported.
             if self.connection.features.supports_atlas_search:
-                self.get_collection(model._meta.db_table).drop_search_index(index.name)
+                collection.drop_search_index(index.name)
+                self.wait_until_index_dropped(collection, index.name)
         else:
-            self.get_collection(model._meta.db_table).drop_index(index.name)
+            collection.drop_index(index.name)
 
     def _remove_composed_index(
         self, model, field_names, constraint_kwargs, column_prefix="", parent_model=None
@@ -419,6 +425,32 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         db_type = field.db_type(self.connection)
         # The _id column is automatically unique.
         return db_type and field.unique and field.column != "_id"
+
+    @staticmethod
+    def wait_until_index_created(collection, index_name, timeout=60 * 60, interval=0.5):
+        """
+        Wait up to an hour until an index is created. Index creation time
+        depends on the size of the collection being indexed.
+        """
+        start = monotonic()
+        while monotonic() - start < timeout:
+            indexes = list(collection.list_search_indexes())
+            for idx in indexes:
+                if idx["name"] == index_name and idx["status"] == "READY":
+                    return True
+            sleep(interval)
+        raise TimeoutError(f"Index {index_name} not ready after {timeout} seconds.")
+
+    @staticmethod
+    def wait_until_index_dropped(collection, index_name, timeout=60, interval=0.5):
+        """Wait up to 60 seconds until an index is dropped."""
+        start = monotonic()
+        while monotonic() - start < timeout:
+            indexes = list(collection.list_search_indexes())
+            if all(idx["name"] != index_name for idx in indexes):
+                return True
+            sleep(interval)
+        raise TimeoutError(f"Index {index_name} not dropped after {timeout} seconds.")
 
 
 # GISSchemaEditor extends some SchemaEditor methods.
