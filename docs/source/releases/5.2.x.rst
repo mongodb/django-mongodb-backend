@@ -16,6 +16,13 @@ Backwards incompatible changes
   cast their input using ``$toString`` but this caused some queries to perform
   poorly because MongoDB couldn't use indexes when running the query.
 
+Bug fixes
+---------
+
+- Made migrations operations that add or delete search indexes pause until the
+  operation is completed on the server to prevent conflicts when running
+  multiple operations sequentially.
+
 5.2.0 beta 2
 ============
 
