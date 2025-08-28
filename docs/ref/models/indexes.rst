@@ -9,8 +9,22 @@ Some MongoDB-specific :doc:`indexes <django:ref/models/indexes>`, for use on a
 model's :attr:`Meta.indexes <django.db.models.Options.indexes>` option, are
 available in ``django_mongodb_backend.indexes``.
 
+Search indexes
+==============
+
+MongoDB creates these indexes asynchronously, however, Django's
+:class:`~django.db.migrations.operations.AddIndex` and
+:class:`~django.db.migrations.operations.RemoveIndex` operations will wait
+until the index is created or deleted so that the database state is
+consistent in the operations that follow. Adding indexes may take seconds or
+minutes, depending on the size of the collection.
+
+.. versionchanged:: 5.2.1
+
+    The aforementioned waiting was added.
+
 ``SearchIndex``
-===============
+---------------
 
 .. class:: SearchIndex(fields=(), name=None)
 
@@ -30,7 +44,7 @@ available in ``django_mongodb_backend.indexes``.
     your model has multiple indexes).
 
 ``VectorSearchIndex``
-=====================
+---------------------
 
 .. class:: VectorSearchIndex(*, fields=(), name=None, similarities)
 

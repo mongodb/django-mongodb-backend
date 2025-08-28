@@ -28,19 +28,9 @@ from django_mongodb_backend.expressions import (
     SearchVector,
     SearchWildcard,
 )
+from django_mongodb_backend.schema import DatabaseSchemaEditor
 
 from .models import Article, Location, Writer
-
-
-def wait_until_index_ready(collection, index_name, timeout: float = 5, interval: float = 0.5):
-    start = monotonic()
-    while monotonic() - start < timeout:
-        indexes = list(collection.list_search_indexes())
-        for idx in indexes:
-            if idx["name"] == index_name and idx["status"] == "READY":
-                return True
-        sleep(interval)
-    raise TimeoutError(f"Index {index_name} not ready after {timeout} seconds")
 
 
 def _delayed_assertion(timeout: float = 4, interval: float = 0.5):
@@ -91,13 +81,16 @@ class SearchUtilsMixin(TransactionTestCase):
 
     @classmethod
     def create_search_index(cls, model, index_name, definition, type="search"):
+        # TODO: create/delete indexes using DatabaseSchemaEditor when
+        # SearchIndexes support mappings (INTPYTHON-729).
         collection = cls._get_collection(model)
         idx = SearchIndexModel(definition=definition, name=index_name, type=type)
         collection.create_search_index(idx)
-        wait_until_index_ready(collection, index_name)
+        DatabaseSchemaEditor.wait_until_index_created(collection, index_name)
 
         def drop_index():
             collection.drop_search_index(index_name)
+            DatabaseSchemaEditor.wait_until_index_dropped(collection, index_name)
 
         cls.addClassCleanup(drop_index)
 
