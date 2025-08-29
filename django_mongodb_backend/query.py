@@ -90,13 +90,7 @@ class MongoQuery:
         for query in self.subqueries or ():
             pipeline.extend(query.get_pipeline())
         if self.match_mql:
-            # optimized = self.query_optimizer.convert_expr_to_match(self.match_mql)
-            # if any("$and" in str(cond) for cond in optimized) and not "$and" in str(self.match_mql["$expr"]):
-            #     print(f"$AND MISMATCH MQL\nOptimized:\n\t{pprint.pformat(optimized)}\nOriginal:\n\t{self.match_mql}")
-            # if any("$or" in str(cond) for cond in optimized) and not "$or" in str(self.match_mql["$expr"]):
-            #     print(f"$OR MISMATCH MQL\nOptimized:\n\t{pprint.pformat(optimized)}\nOriginal:\n\t{self.match_mql}")
             pipeline.extend(self.query_optimizer.convert_expr_to_match(self.match_mql))
-            # pipeline.append({"$match": self.match_mql})
         if self.aggregation_pipeline:
             pipeline.extend(self.aggregation_pipeline)
         if self.project_fields:

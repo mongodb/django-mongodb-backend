@@ -26,10 +26,7 @@ class QueryOptimizer:
         expr_content = expr_query["$expr"]
 
         # Handle the expression content
-        optimized_query = self._process_expression(expr_content)
-
-        # print(f"Original expr:\n{json_util.dumps(expr_query)}\nOptimized expr:\n{json_util.dumps(optimized_query)}")
-        return optimized_query
+        return self._process_expression(expr_content)
 
     def _process_expression(self, expr):
         """
@@ -81,12 +78,12 @@ class QueryOptimizer:
                 if optimized := convert_expression(condition):
                     optimized_conditions.append(optimized)
                 else:
-                    # print(f"Can't optimize condition: {condition}")
                     _remaining_conditions.append(condition)
             else:
                 _remaining_conditions.append(condition)
             if _remaining_conditions:
-                # Any expressions we can't optimize must remain in an $expr that preserves the logical operator
+                # Any expressions we can't optimize must remain
+                # in an $expr that preserves the logical operator
                 if len(_remaining_conditions) > 1:
                     remaining_conditions.append({"$expr": {logical_op: _remaining_conditions}})
                 else:
