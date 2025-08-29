@@ -56,6 +56,22 @@ class GetConnectionParamsTests(SimpleTestCase):
         params = DatabaseWrapper(settings).get_connection_params()
         self.assertEqual(params["extra"], "option")
 
+    def test_unspecified_settings_omitted(self):
+        settings = connection.settings_dict.copy()
+        # django.db.utils.ConnectionHandler sets unspecified values to an empty
+        # string.
+        settings.update(
+            {
+                "USER": "",
+                "PASSWORD": "",
+                "PORT": "",
+            }
+        )
+        params = DatabaseWrapper(settings).get_connection_params()
+        self.assertNotIn("username", params)
+        self.assertNotIn("password", params)
+        self.assertNotIn("port", params)
+
 
 class DatabaseWrapperConnectionTests(TestCase):
     def test_set_autocommit(self):
