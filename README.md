@@ -45,9 +45,11 @@ setting like so:
 
 ```python
 DATABASES = {
-    "default": django_mongodb_backend.parse_uri(
-        "<CONNECTION_STRING_URI>", db_name="example"
-    ),
+    "default": {
+        "ENGINE": "django_mongodb_backend",
+        "HOST": "<CONNECTION_STRING_URI>",
+        "NAME": "db_name",
+    },
 }
 ```
 
