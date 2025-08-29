@@ -185,13 +185,17 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         settings_dict = self.settings_dict
         if not settings_dict["NAME"]:
             raise ImproperlyConfigured('settings.DATABASES is missing the "NAME" value.')
-        return {
+        params = {
             "host": settings_dict["HOST"] or None,
-            "port": int(settings_dict["PORT"] or 27017),
-            "username": settings_dict.get("USER"),
-            "password": settings_dict.get("PASSWORD"),
             **settings_dict["OPTIONS"],
         }
+        if user := settings_dict.get("USER"):
+            params["username"] = user
+        if password := settings_dict.get("PASSWORD"):
+            params["password"] = password
+        if port := settings_dict.get("PORT"):
+            params["port"] = int(port)
+        return params
 
     @async_unsafe
     def get_new_connection(self, conn_params):
