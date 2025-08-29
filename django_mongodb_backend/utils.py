@@ -1,5 +1,6 @@
 import copy
 import time
+from urllib.parse import parse_qsl, quote, urlsplit
 
 import django
 from django.conf import settings
@@ -31,39 +32,84 @@ def check_django_compatability():
 def parse_uri(uri, *, db_name=None, options=None, test=None):
     """
     Convert the given uri into a dictionary suitable for Django's DATABASES
-    setting.
+    setting. Keep query string args on HOST (not in OPTIONS).
+
+    Behavior:
+    - Non-SRV: HOST = "<host[,host2:port2]><?query>", no scheme/path.
+    - SRV:     HOST = "mongodb+srv://<fqdn><?query>", no path.
+    - NAME is db_name if provided else the db in the URI path (required).
+    - If the URI has a db path and no authSource in the query, append it.
+    - options kwarg merges by appending to the HOST query (last-one-wins for
+      single-valued options), without re-encoding existing query content.
+    - PORT is set only for single-host URIs; multi-host and SRV => PORT=None.
     """
-    uri = pymongo_parse_uri(uri)
-    host = None
-    port = None
-    if uri["fqdn"]:
-        # This is a SRV URI and the host is the fqdn.
-        host = f"mongodb+srv://{uri['fqdn']}"
-    else:
-        nodelist = uri.get("nodelist")
-        if len(nodelist) == 1:
-            host, port = nodelist[0]
-        elif len(nodelist) > 1:
-            host = ",".join([f"{host}:{port}" for host, port in nodelist])
-    db_name = db_name or uri["database"]
-    if not db_name:
+    parsed = pymongo_parse_uri(uri)
+    split = urlsplit(uri)
+
+    # Keep the original query string verbatim to avoid breaking special
+    # options like readPreferenceTags.
+    query_str = split.query or ""
+
+    # Determine NAME; must come from db_name or the URI path.
+    db = db_name or parsed.get("database")
+    if not db:
         raise ImproperlyConfigured("You must provide the db_name parameter.")
-    opts = uri.get("options")
+
+    # Helper: check if a key is present in the existing query (case-sensitive).
+    def query_has_key(key: str) -> bool:
+        return any(k == key for k, _ in parse_qsl(query_str, keep_blank_values=True))
+
+    # If URI path had a database and no authSource is present, append it.
+    if parsed.get("database") and not query_has_key("authSource"):
+        suffix = f"authSource={quote(parsed['database'], safe='')}"
+        query_str = f"{query_str}&{suffix}" if query_str else suffix
+
+    # Merge options by appending them (so "last one wins" for single-valued opts).
     if options:
-        opts.update(options)
+        for k, v in options.items():
+            # Convert value to string as expected in URIs.
+            v_str = ("true" if v else "false") if isinstance(v, bool) else str(v)
+            # Preserve ':' and ',' unescaped (important for readPreferenceTags).
+            v_enc = quote(v_str, safe=":,")
+            pair = f"{k}={v_enc}"
+            query_str = f"{query_str}&{pair}" if query_str else pair
+
+    # Build HOST (and PORT) based on SRV vs. standard.
+    if parsed.get("fqdn"):  # SRV URI
+        host_base = f"mongodb+srv://{parsed['fqdn']}"
+        port = None
+    else:
+        nodelist = parsed.get("nodelist") or []
+        if len(nodelist) == 1:
+            h, p = nodelist[0]
+            host_base = h
+            port = p
+        elif len(nodelist) > 1:
+            # Ensure explicit ports for each host (default 27017 if missing).
+            parts = [f"{h}:{(p if p is not None else 27017)}" for h, p in nodelist]
+            host_base = ",".join(parts)
+            port = None
+        else:
+            # Fallback for unusual/invalid URIs.
+            host_base = split.netloc.split("@")[-1]
+            port = None
+
+    host_with_query = f"{host_base}?{query_str}" if query_str else host_base
+
     settings_dict = {
         "ENGINE": "django_mongodb_backend",
-        "NAME": db_name,
-        "HOST": host,
+        "NAME": db,
+        "HOST": host_with_query,
         "PORT": port,
-        "USER": uri.get("username"),
-        "PASSWORD": uri.get("password"),
-        "OPTIONS": opts,
+        "USER": parsed.get("username"),
+        "PASSWORD": parsed.get("password"),
+        # Options remain empty; all query args live in HOST.
+        "OPTIONS": {},
     }
-    if "authSource" not in settings_dict["OPTIONS"] and uri["database"]:
-        settings_dict["OPTIONS"]["authSource"] = uri["database"]
+
     if test:
         settings_dict["TEST"] = test
+
     return settings_dict
 
 
