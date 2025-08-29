@@ -135,44 +135,52 @@ class ParseURITests(SimpleTestCase):
         MongoClient without raising validation errors, and result in correct tag sets.
         This verifies we no longer rely on pymongo's normalized options dict for tags.
         """
-        uri = (
-            "mongodb://localhost/"
-            "?readPreference=secondary"
-            "&readPreferenceTags=dc:ny,other:sf"
-            "&readPreferenceTags=dc:2,other:1"
-        )
-
-        # Baseline: demonstrate why relying on parsed options can be problematic.
-        parsed = pymongo.uri_parser.parse_uri(uri)
-        # Some PyMongo versions normalize this into a dict (invalid as a kwarg), others into a list.
-        # If it's a dict, passing it as a kwarg will raise a ValueError as shown in the issue.
-        # We only assert no crash in our new path below; this is informational.
-        if isinstance(parsed["options"].get("readPreferenceTags"), dict):
-            with self.assertRaises(ValueError):
-                pymongo.MongoClient(readPreferenceTags=parsed["options"]["readPreferenceTags"])
-
-        # New behavior: keep the raw query on HOST, not in OPTIONS.
-        settings_dict = parse_uri(uri, db_name="db")
-        host_with_query = settings_dict["HOST"]
-        # Compose a full URI for MongoClient (non-SRV -> prepend scheme
-        # and ensure "/?" before query)
-        if host_with_query.startswith("mongodb+srv://"):
-            full_uri = host_with_query  # SRV already includes scheme
-        else:
-            if "?" in host_with_query:
-                base, q = host_with_query.split("?", 1)
-                full_uri = f"mongodb://{base}/?{q}"
-            else:
-                full_uri = f"mongodb://{host_with_query}/"
-
-        # Constructing MongoClient should not raise, and should reflect the read preference + tags.
-        client = pymongo.MongoClient(full_uri, serverSelectionTimeoutMS=1)
-        try:
-            doc = client.read_preference.document
-            self.assertEqual(doc.get("mode"), "secondary")
-            self.assertEqual(
-                doc.get("tags"),
+        cases = [
+            (
+                "mongodb://localhost/?readPreference=secondary&readPreferenceTags=dc:ny,other:sf&readPreferenceTags=dc:2,other:1",
                 [{"dc": "ny", "other": "sf"}, {"dc": "2", "other": "1"}],
-            )
-        finally:
-            client.close()
+            ),
+            (
+                "mongodb://localhost/?retryWrites=true&readPreference=secondary&readPreferenceTags=nodeType:ANALYTICS&w=majority&appName=sniply-production",
+                [{"nodeType": "ANALYTICS"}],
+            ),
+        ]
+
+        for uri, expected_tags in cases:
+            with self.subTest(uri=uri):
+                # Baseline: demonstrate why relying on parsed options can be problematic.
+                parsed = pymongo.uri_parser.parse_uri(uri)
+                # Some PyMongo versions normalize this into a dict (invalid as a kwarg),
+                # others into a list. If it's a dict, passing it as a kwarg will raise a
+                # ValueError as shown in the issue.
+                # We only assert no crash in our new path below; this is informational.
+                if isinstance(parsed["options"].get("readPreferenceTags"), dict):
+                    with self.assertRaises(ValueError):
+                        pymongo.MongoClient(
+                            readPreferenceTags=parsed["options"]["readPreferenceTags"]
+                        )
+
+                # New behavior: keep the raw query on HOST, not in OPTIONS.
+                settings_dict = parse_uri(uri, db_name="db")
+                host_with_query = settings_dict["HOST"]
+
+                # Compose a full URI for MongoClient (non-SRV -> prepend scheme and
+                # ensure "/?" before query)
+                if host_with_query.startswith("mongodb+srv://"):
+                    full_uri = host_with_query  # SRV already includes scheme
+                else:
+                    if "?" in host_with_query:
+                        base, q = host_with_query.split("?", 1)
+                        full_uri = f"mongodb://{base}/?{q}"
+                    else:
+                        full_uri = f"mongodb://{host_with_query}/"
+
+                # Constructing MongoClient should not raise, and should reflect the read
+                # preference + tags.
+                client = pymongo.MongoClient(full_uri, serverSelectionTimeoutMS=1)
+                try:
+                    doc = client.read_preference.document
+                    self.assertEqual(doc.get("mode"), "secondary")
+                    self.assertEqual(doc.get("tags"), expected_tags)
+                finally:
+                    client.close()
