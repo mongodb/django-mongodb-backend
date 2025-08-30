@@ -189,7 +189,7 @@ class OperationCollector(OperationDebugWrapper):
         return wrapper
 
 
-def get_column_path(model, field_name):
+def get_field(model, field_name):
     from .fields import EmbeddedModelField  # noqa: PLC0415
 
     if LOOKUP_SEP in field_name:

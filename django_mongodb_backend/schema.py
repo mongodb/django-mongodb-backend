@@ -7,7 +7,7 @@ from django_mongodb_backend.indexes import SearchIndex
 from .fields import EmbeddedModelField
 from .gis.schema import GISSchemaEditor
 from .query import wrap_database_errors
-from .utils import OperationCollector, get_column_path
+from .utils import OperationCollector, get_field
 
 
 def ignore_embedded_models(func):
@@ -249,7 +249,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             )
         # Created uniques
         for field_names in news.difference(olds):
-            columns = [get_column_path(model, field).column for field in field_names]
+            columns = [get_field(model, field).column for field in field_names]
             name = str(
                 self._unique_constraint_name(
                     model._meta.db_table, [column_prefix + col for col in columns]

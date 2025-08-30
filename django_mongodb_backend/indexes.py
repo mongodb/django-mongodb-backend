@@ -14,7 +14,7 @@ from pymongo.operations import IndexModel, SearchIndexModel
 from django_mongodb_backend.fields import ArrayField
 
 from .query_utils import process_rhs
-from .utils import get_column_path
+from .utils import get_field
 
 MONGO_INDEX_OPERATORS = {
     "exact": "$eq",
@@ -63,7 +63,7 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, unique=False
             filter_expression[column].update({"$type": field.db_type(schema_editor.connection)})
         else:
             for field_name, _ in self.fields_orders:
-                field_ = get_column_path(model, field_name)
+                field_ = get_field(model, field_name)
                 filter_expression[field_.column].update(
                     {"$type": field_.db_type(schema_editor.connection)}
                 )
@@ -76,7 +76,7 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, unique=False
             # order is "" if ASCENDING or "DESC" if DESCENDING (see
             # django.db.models.indexes.Index.fields_orders).
             (
-                column_prefix + get_column_path(model, field_name).column,
+                column_prefix + get_field(model, field_name).column,
                 ASCENDING if order == "" else DESCENDING,
             )
             for field_name, order in self.fields_orders
@@ -156,7 +156,7 @@ class SearchIndex(Index):
         for field_name, _ in self.fields_orders:
             field = model._meta.get_field(field_name)
             type_ = self.search_index_data_types(field.db_type(schema_editor.connection))
-            field_path = column_prefix + get_column_path(model, field_name).column
+            field_path = column_prefix + get_field(model, field_name).column
             fields[field_path] = {"type": type_}
         return SearchIndexModel(
             definition={"mappings": {"dynamic": False, "fields": fields}}, name=self.name
@@ -266,7 +266,7 @@ class VectorSearchIndex(SearchIndex):
         fields = []
         for field_name, _ in self.fields_orders:
             field_ = model._meta.get_field(field_name)
-            field_path = column_prefix + get_column_path(model, field_name).column
+            field_path = column_prefix + get_field(model, field_name).column
             mappings = {"path": field_path}
             if isinstance(field_, ArrayField):
                 mappings.update(
@@ -291,9 +291,7 @@ def set_name_with_model(self, model):
     fit its size by truncating the excess length.
     """
     _, table_name = split_identifier(model._meta.db_table)
-    column_names = [
-        get_column_path(model, field_name).column for field_name, order in self.fields_orders
-    ]
+    column_names = [get_field(model, field_name).column for field_name, order in self.fields_orders]
     column_names_with_order = [
         (f"-{column_name}" if order else column_name)
         for column_name, (field_name, order) in zip(column_names, self.fields_orders, strict=False)
