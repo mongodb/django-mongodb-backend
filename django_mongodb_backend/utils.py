@@ -5,6 +5,7 @@ import django
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db.backends.utils import logger
+from django.db.models.constants import LOOKUP_SEP
 from django.utils.functional import SimpleLazyObject
 from django.utils.text import format_lazy
 from django.utils.version import get_version_tuple
@@ -186,3 +187,21 @@ class OperationCollector(OperationDebugWrapper):
             self.log(method, args, kwargs)
 
         return wrapper
+
+
+def get_column_path(model, field_name):
+    from .fields import EmbeddedModelField  # noqa: PLC0415
+
+    if LOOKUP_SEP in field_name:
+        previous = model
+        keys = field_name.split(LOOKUP_SEP)
+        path = []
+        for field in keys:
+            field = previous._meta.get_field(field)
+            previous = field.embedded_model if isinstance(field, EmbeddedModelField) else field
+            path.append(field.column)
+        column = ".".join(path)
+        embedded_column = field.clone()
+        embedded_column.column = column
+        return embedded_column
+    return model._meta.get_field(field_name)
