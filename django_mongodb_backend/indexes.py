@@ -156,7 +156,7 @@ class SearchIndex(Index):
         for field_name, _ in self.fields_orders:
             field = model._meta.get_field(field_name)
             type_ = self.search_index_data_types(field.db_type(schema_editor.connection))
-            field_path = column_prefix + get_column_path(model, field_name)
+            field_path = column_prefix + get_column_path(model, field_name).column
             fields[field_path] = {"type": type_}
         return SearchIndexModel(
             definition={"mappings": {"dynamic": False, "fields": fields}}, name=self.name
@@ -266,7 +266,7 @@ class VectorSearchIndex(SearchIndex):
         fields = []
         for field_name, _ in self.fields_orders:
             field_ = model._meta.get_field(field_name)
-            field_path = column_prefix + get_column_path(model, field_name)
+            field_path = column_prefix + get_column_path(model, field_name).column
             mappings = {"path": field_path}
             if isinstance(field_, ArrayField):
                 mappings.update(
