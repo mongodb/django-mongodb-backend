@@ -157,11 +157,7 @@ class EmbeddedModelField(models.Field):
 
     def contribute_to_class(self, cls, name):
         super().contribute_to_class(cls, name)
-        new_fields = [
-            *self.embedded_model._meta.local_fields,
-            *self.embedded_model._meta.private_fields,
-        ]
-        for field in new_fields:
+        for field in self.embedded_model._meta.local_fields:
             embedded_field_name = f"{name}.{field.name}"
             field = field.clone()
             field.unique = False
