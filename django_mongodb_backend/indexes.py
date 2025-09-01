@@ -3,7 +3,6 @@ from collections import defaultdict
 
 from django.core.checks import Error, Warning
 from django.db import NotSupportedError
-from django.db.backends.utils import names_digest, split_identifier
 from django.db.models import FloatField, Index, IntegerField
 from django.db.models.lookups import BuiltinLookup
 from django.db.models.sql.query import Query
@@ -14,7 +13,6 @@ from pymongo.operations import IndexModel, SearchIndexModel
 from django_mongodb_backend.fields import ArrayField
 
 from .query_utils import process_rhs
-from .utils import get_field
 
 MONGO_INDEX_OPERATORS = {
     "exact": "$eq",
@@ -63,7 +61,7 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, unique=False
             filter_expression[column].update({"$type": field.db_type(schema_editor.connection)})
         else:
             for field_name, _ in self.fields_orders:
-                field_ = get_field(model, field_name)
+                field_ = model._meta.get_field(field_name)
                 filter_expression[field_.column].update(
                     {"$type": field_.db_type(schema_editor.connection)}
                 )
@@ -76,7 +74,7 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, unique=False
             # order is "" if ASCENDING or "DESC" if DESCENDING (see
             # django.db.models.indexes.Index.fields_orders).
             (
-                column_prefix + get_field(model, field_name).column,
+                column_prefix + model._meta.get_field(field_name).column,
                 ASCENDING if order == "" else DESCENDING,
             )
             for field_name, order in self.fields_orders
@@ -156,7 +154,7 @@ class SearchIndex(Index):
         for field_name, _ in self.fields_orders:
             field = model._meta.get_field(field_name)
             type_ = self.search_index_data_types(field.db_type(schema_editor.connection))
-            field_path = column_prefix + get_field(model, field_name).column
+            field_path = column_prefix + model._meta.get_field(field_name).column
             fields[field_path] = {"type": type_}
         return SearchIndexModel(
             definition={"mappings": {"dynamic": False, "fields": fields}}, name=self.name
@@ -266,7 +264,7 @@ class VectorSearchIndex(SearchIndex):
         fields = []
         for field_name, _ in self.fields_orders:
             field_ = model._meta.get_field(field_name)
-            field_path = column_prefix + get_field(model, field_name).column
+            field_path = column_prefix + model._meta.get_field(field_name).column
             mappings = {"path": field_path}
             if isinstance(field_, ArrayField):
                 mappings.update(
@@ -282,38 +280,8 @@ class VectorSearchIndex(SearchIndex):
         return SearchIndexModel(definition={"fields": fields}, name=self.name, type="vectorSearch")
 
 
-def set_name_with_model(self, model):
-    """
-    Generate a unique name for the index.
-
-    The name is divided into 3 parts - table name (12 chars), field name
-    (8 chars) and unique hash + suffix (10 chars). Each part is made to
-    fit its size by truncating the excess length.
-    """
-    _, table_name = split_identifier(model._meta.db_table)
-    column_names = [get_field(model, field_name).column for field_name, order in self.fields_orders]
-    column_names_with_order = [
-        (f"-{column_name}" if order else column_name)
-        for column_name, (field_name, order) in zip(column_names, self.fields_orders, strict=False)
-    ]
-    # The length of the parts of the name is based on the default max
-    # length of 30 characters.
-    hash_data = [table_name, *column_names_with_order, self.suffix]
-    self.name = (
-        f"{table_name[:11]}_{column_names[0][:7]}_"
-        f"{names_digest(*hash_data, length=6)}_{self.suffix}"
-    )
-    if len(self.name) > self.max_name_length:
-        raise ValueError(
-            "Index too long for multiple database support. Is self.suffix longer than 3 characters?"
-        )
-    if self.name[0] == "_" or self.name[0].isdigit():
-        self.name = f"D{self.name[1:]}"
-
-
 def register_indexes():
     BuiltinLookup.as_mql_idx = builtin_lookup_idx
     Index._get_condition_mql = _get_condition_mql
     Index.get_pymongo_index_model = get_pymongo_index_model
-    Index.set_name_with_model = set_name_with_model
     WhereNode.as_mql_idx = where_node_idx

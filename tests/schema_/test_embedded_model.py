@@ -545,10 +545,10 @@ class EmbeddedModelsTopLevelIndexTest(TestMixin, TransactionTestCase):
             class Meta:
                 app_label = "schema_"
                 unique_together = [
-                    ("author__unique_together_three", "author__unique_together_four"),
+                    ("author.unique_together_three", "author.unique_together_four"),
                     (
-                        "author__address__unique_together_one",
-                        "author__address__unique_together_two",
+                        "author.address.unique_together_one",
+                        "author.address.unique_together_two",
                     ),
                 ]
 
@@ -599,8 +599,8 @@ class EmbeddedModelsTopLevelIndexTest(TestMixin, TransactionTestCase):
             class Meta:
                 app_label = "schema_"
                 indexes = [
-                    models.Index(fields=["author__indexed_two"]),
-                    models.Index(fields=["author__address__indexed_one"]),
+                    models.Index(fields=["author.indexed_two"]),
+                    models.Index(fields=["author.address.indexed_one"]),
                 ]
 
         new_field = EmbeddedModelField(Author)
@@ -649,11 +649,11 @@ class EmbeddedModelsTopLevelIndexTest(TestMixin, TransactionTestCase):
                 app_label = "schema_"
                 constraints = [
                     models.UniqueConstraint(
-                        fields=["author__unique_constraint_two"],
+                        fields=["author.unique_constraint_two"],
                         name="unique_two",
                     ),
                     models.UniqueConstraint(
-                        fields=["author__address__unique_constraint_one"],
+                        fields=["author.address.unique_constraint_one"],
                         name="unique_one",
                     ),
                 ]

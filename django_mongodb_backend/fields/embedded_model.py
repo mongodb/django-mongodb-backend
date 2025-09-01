@@ -155,6 +155,20 @@ class EmbeddedModelField(models.Field):
             }
         )
 
+    def contribute_to_class(self, cls, name):
+        super().contribute_to_class(cls, name)
+        new_fields = [
+            *self.embedded_model._meta.local_fields,
+            *self.embedded_model._meta.private_fields,
+        ]
+        for field in new_fields:
+            embedded_field_name = f"{name}.{field.name}"
+            field = field.clone()
+            field.unique = False
+            field.db_index = False
+            field.name = embedded_field_name
+            models.Field.contribute_to_class(field, cls, embedded_field_name, private_only=False)
+
 
 class KeyTransform(Transform):
     def __init__(self, key_name, ref_field, *args, **kwargs):
