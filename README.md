@@ -1,9 +1,5 @@
 # Django MongoDB Backend
 
-This backend is currently in development and is not advised for production workflows. Backwards incompatible
-changes may be made without notice. We welcome your feedback as we continue to
-explore and build. The best way to share this is via our [MongoDB Community Forum](https://www.mongodb.com/community/forums/tag/python).
-
 ## Index
 * [Documentation](https://www.mongodb.com/docs/languages/python/django-mongodb/current/)
 * [Getting Started](https://www.mongodb.com/docs/languages/python/django-mongodb/current/get-started/)
@@ -18,10 +14,8 @@ https://django-mongodb-backend.readthedocs.io/en/latest/.
 Use the version of `django-mongodb-backend` that corresponds to your version of
 Django. For example, to get the latest compatible release for Django 5.2.x:
 ```bash
-pip install --pre django-mongodb-backend==5.2.*
+pip install django-mongodb-backend==5.2.*
 ```
-(Until the package is out of beta, you must use pip's `--pre` option.)
-
 
 ## Quickstart
 
@@ -87,7 +81,9 @@ Then, visit http://127.0.0.1:8000/. This page displays a "Congratulations!" mess
 
 ### Issues & Help
 
-We're glad to have such a vibrant community of users of Django MongoDB Backend. We recommend seeking support for general questions through the [MongoDB Community Forums](https://www.mongodb.com/community/forums/tag/python).
+We're glad to have such a vibrant community of users of Django MongoDB Backend.
+You can ask questions and request features through the
+[MongoDB Community Forums](https://www.mongodb.com/community/forums/tag/python).
 
 
 #### Bugs / Feature Requests
