@@ -47,5 +47,5 @@ __pycache__
 
 # documentation build artifacts
 
-docs/build
+docs/_build
 site/
