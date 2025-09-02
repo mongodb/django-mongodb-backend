@@ -7,9 +7,7 @@ of Django. For example, to get the latest compatible release for Django 5.2.x:
 
 .. code-block:: bash
 
-    $ pip install --pre django-mongodb-backend==5.2.*
-
-(Until the package is out of beta, you must use pip's ``--pre`` option.)
+    $ pip install django-mongodb-backend==5.2.*
 
 The minor release number of Django doesn't correspond to the minor release
 number of ``django-mongodb-backend``. Use the latest minor release of each.

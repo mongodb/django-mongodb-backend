@@ -2,6 +2,13 @@
 Django MongoDB Backend 5.2.x
 ============================
 
+5.2.0
+=====
+
+*September 2, 2025*
+
+General availability release. No changes since beta 3.
+
 5.2.0 beta 3
 ============
 
