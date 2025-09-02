@@ -6,13 +6,55 @@ from django.test import SimpleTestCase, TestCase
 from django_mongodb_backend.base import DatabaseWrapper
 
 
-class DatabaseWrapperTests(SimpleTestCase):
+class GetConnectionParamsTests(SimpleTestCase):
     def test_database_name_empty(self):
         settings = connection.settings_dict.copy()
         settings["NAME"] = ""
         msg = 'settings.DATABASES is missing the "NAME" value.'
         with self.assertRaisesMessage(ImproperlyConfigured, msg):
             DatabaseWrapper(settings).get_connection_params()
+
+    def test_host(self):
+        settings = connection.settings_dict.copy()
+        settings["HOST"] = "host"
+        params = DatabaseWrapper(settings).get_connection_params()
+        self.assertEqual(params["host"], "host")
+
+    def test_host_empty(self):
+        settings = connection.settings_dict.copy()
+        settings["HOST"] = ""
+        params = DatabaseWrapper(settings).get_connection_params()
+        self.assertIsNone(params["host"])
+
+    def test_user(self):
+        settings = connection.settings_dict.copy()
+        settings["USER"] = "user"
+        params = DatabaseWrapper(settings).get_connection_params()
+        self.assertEqual(params["username"], "user")
+
+    def test_password(self):
+        settings = connection.settings_dict.copy()
+        settings["PASSWORD"] = "password"  # noqa: S105
+        params = DatabaseWrapper(settings).get_connection_params()
+        self.assertEqual(params["password"], "password")
+
+    def test_port(self):
+        settings = connection.settings_dict.copy()
+        settings["PORT"] = 123
+        params = DatabaseWrapper(settings).get_connection_params()
+        self.assertEqual(params["port"], 123)
+
+    def test_port_as_string(self):
+        settings = connection.settings_dict.copy()
+        settings["PORT"] = "123"
+        params = DatabaseWrapper(settings).get_connection_params()
+        self.assertEqual(params["port"], 123)
+
+    def test_options(self):
+        settings = connection.settings_dict.copy()
+        settings["OPTIONS"] = {"extra": "option"}
+        params = DatabaseWrapper(settings).get_connection_params()
+        self.assertEqual(params["extra"], "option")
 
 
 class DatabaseWrapperConnectionTests(TestCase):
