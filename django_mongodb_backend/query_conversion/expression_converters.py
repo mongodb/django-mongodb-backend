@@ -18,24 +18,22 @@ class _BaseExpressionConverter:
         """
         if isinstance(value, str) and value.startswith("$"):
             return False
-        if isinstance(value, list | tuple | set):
+        if isinstance(value, (list, tuple, set)):  # noqa: UP038
             return all(cls.is_simple_value(v) for v in value)
         # TODO: Expand functionality to support `$getField` conversion
         return not isinstance(value, dict) or value is None
 
-    @classmethod
-    def is_convertable_field_name(cls, field_name):
-        """Validate a field_name is one that can be represented in $match"""
-        # This needs work and re-evaluation
-        return (
-            isinstance(field_name, str)
-            and field_name.startswith("$")
-            and not field_name[:1].isalnum()
-        )
-
 
 class _EqExpressionConverter(_BaseExpressionConverter):
-    """Convert $eq operation to a $match compatible query."""
+    """Convert $eq operation to a $match compatible query.
+
+    For example::
+        "$expr": {
+                {"$eq": ["$status", "active"]}
+        }
+    is converted to::
+        {"status": "active"}
+    """
 
     @classmethod
     def convert(cls, eq_args):
@@ -55,7 +53,15 @@ class _EqExpressionConverter(_BaseExpressionConverter):
 
 
 class _InExpressionConverter(_BaseExpressionConverter):
-    """Convert $in operation to a $match compatible query."""
+    """Convert $in operation to a $match compatible query.
+
+    For example::
+        "$expr": {
+            {"$in": ["$category", ["electronics", "books"]]}
+        }
+    is converted to::
+        {"category": {"$in": ["electronics", "books"]}}
+    """
 
     @classmethod
     def convert(cls, in_args):
@@ -93,13 +99,43 @@ class _LogicalExpressionConverter(_BaseExpressionConverter):
 
 
 class _OrExpressionConverter(_LogicalExpressionConverter):
-    """Convert $or operation to a $match compatible query."""
+    """Convert $or operation to a $match compatible query.
+
+    For example::
+        "$expr": {
+            "$or": [
+                {"$eq": ["$status", "active"]},
+                {"$in": ["$category", ["electronics", "books"]]},
+            ]
+        }
+    is converted to::
+        "$or": [
+            {"status": "active"},
+            {"category": {"$in": ["electronics", "books"]}},
+        ]
+    """
 
     _logical_op = "$or"
 
 
 class _AndExpressionConverter(_LogicalExpressionConverter):
-    """Convert $and operation to a $match compatible query."""
+    """Convert $and operation to a $match compatible query.
+
+    For example::
+        "$expr": {
+            "$and": [
+                {"$eq": ["$status", "active"]},
+                {"$in": ["$category", ["electronics", "books"]]},
+                {"$eq": ["$verified", True]},
+            ]
+        }
+    is converted to::
+        "$and": [
+            {"status": "active"},
+            {"category": {"$in": ["electronics", "books"]}},
+            {"verified": True},
+        ]
+    """
 
     _logical_op = "$and"
 
