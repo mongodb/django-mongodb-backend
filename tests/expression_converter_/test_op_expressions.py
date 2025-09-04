@@ -7,7 +7,7 @@ from django.test import SimpleTestCase
 from django_mongodb_backend.query_conversion.expression_converters import convert_expression
 
 
-class TestBaseExpressionConversionCase(SimpleTestCase):
+class ExpressionConversionTestCase(SimpleTestCase):
     CONVERTIBLE_TYPES = {
         "int": 42,
         "float": 3.14,
@@ -28,6 +28,13 @@ class TestBaseExpressionConversionCase(SimpleTestCase):
         result = convert_expression(input)
         self.assertIsNone(result)
 
+    def _test_conversion_various_types(self, conversion_test):
+        for _type, val in self.CONVERTIBLE_TYPES.items():
+            with self.subTest(_type=_type, val=val):
+                conversion_test(val)
+
+
+class TestExpressionConversion(ExpressionConversionTestCase):
     def test_non_dict_expression(self):
         expr = ["$status", "active"]
         self.assertNotOptimizable(expr)
@@ -40,13 +47,8 @@ class TestBaseExpressionConversionCase(SimpleTestCase):
         expr = {"$gt": ["$price", 100]}
         self.assertNotOptimizable(expr)
 
-    def _test_conversion_various_types(self, conversion_test):
-        for _type, val in self.CONVERTIBLE_TYPES.items():
-            with self.subTest(_type=_type, val=val):
-                conversion_test(val)
 
-
-class TestEqExprConversionCase(TestBaseExpressionConversionCase):
+class TestEqExprConversion(ExpressionConversionTestCase):
     def test_eq_conversion(self):
         expr = {"$eq": ["$status", "active"]}
         expected = {"status": "active"}
@@ -77,7 +79,7 @@ class TestEqExprConversionCase(TestBaseExpressionConversionCase):
         self._test_conversion_various_types(self._test_eq_conversion_valid_array_type)
 
 
-class TestInExprConversionCase(TestBaseExpressionConversionCase):
+class TestInExprConversion(ExpressionConversionTestCase):
     def test_in_conversion(self):
         expr = {"$in": ["$category", ["electronics", "books", "clothing"]]}
         expected = {"category": {"$in": ["electronics", "books", "clothing"]}}
@@ -115,7 +117,7 @@ class TestInExprConversionCase(TestBaseExpressionConversionCase):
                 self._test_in_conversion_valid_type(val)
 
 
-class TestLogicalExpressionConversionCase(TestBaseExpressionConversionCase):
+class TestLogicalExpressionConversion(ExpressionConversionTestCase):
     def test_logical_and_conversion(self):
         expr = {
             "$and": [
