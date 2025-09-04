@@ -96,6 +96,7 @@ ignore = [
   "S101",   # Use of `assert` detected
   "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
   "PLW2901", # `for` loop variable `value` overwritten by assignment target
+  "UP038",  # non-pep604-isinstance is deprecated
 ]
 unfixable = []
 exclude = []

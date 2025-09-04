@@ -669,7 +669,7 @@ class SQLCompiler(compiler.SQLCompiler):
             if (
                 isinstance(expr, Lookup)
                 and isinstance(expr.lhs, Col)
-                and (is_direct_value(expr.rhs) or isinstance(expr.rhs, Value | Col))
+                and (is_direct_value(expr.rhs) or isinstance(expr.rhs, (Value, Col)))
             ):
                 pushed_filters[expr.lhs.alias].append(expr)
         for alias in tuple(self.query.alias_map):

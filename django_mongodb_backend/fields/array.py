@@ -63,7 +63,7 @@ class ArrayField(CheckFieldDefaultMixin, Field):
 
     @classmethod
     def _choices_is_value(cls, value):
-        return isinstance(value, list | tuple) or super()._choices_is_value(value)
+        return isinstance(value, (list, tuple)) or super()._choices_is_value(value)
 
     def check(self, **kwargs):
         errors = super().check(**kwargs)
@@ -126,7 +126,7 @@ class ArrayField(CheckFieldDefaultMixin, Field):
         return "array"
 
     def get_db_prep_value(self, value, connection, prepared=False):
-        if isinstance(value, list | tuple):
+        if isinstance(value, (list, tuple)):
             return [self.base_field.get_db_prep_value(i, connection, prepared=False) for i in value]
         return value
 
@@ -236,7 +236,7 @@ class Array(Func):
 
 class ArrayRHSMixin:
     def __init__(self, lhs, rhs):
-        if isinstance(rhs, tuple | list):
+        if isinstance(rhs, (tuple, list)):
             expressions = []
             for value in rhs:
                 if not hasattr(value, "resolve_expression"):

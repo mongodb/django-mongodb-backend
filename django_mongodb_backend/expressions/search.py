@@ -42,11 +42,11 @@ class Operator:
 
 class SearchCombinable:
     def _combine(self, other, connector):
-        if not isinstance(self, CompoundExpression | CombinedSearchExpression):
+        if not isinstance(self, (CompoundExpression, CombinedSearchExpression)):
             lhs = CompoundExpression(must=[self])
         else:
             lhs = self
-        if other and not isinstance(other, CompoundExpression | CombinedSearchExpression):
+        if other and not isinstance(other, (CompoundExpression, CombinedSearchExpression)):
             rhs = CompoundExpression(must=[other])
         else:
             rhs = other

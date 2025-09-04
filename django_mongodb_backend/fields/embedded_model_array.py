@@ -39,7 +39,7 @@ class EmbeddedModelArrayField(ArrayField):
         return name, path, args, kwargs
 
     def get_db_prep_value(self, value, connection, prepared=False):
-        if isinstance(value, list | tuple):
+        if isinstance(value, (list, tuple)):
             # Must call get_db_prep_save() rather than get_db_prep_value()
             # to transform model instances to dicts.
             return [self.base_field.get_db_prep_save(i, connection) for i in value]

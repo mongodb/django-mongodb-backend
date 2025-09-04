@@ -170,7 +170,7 @@ class VectorSearchIndex(SearchIndex):
     def __init__(self, *, fields=(), name=None, similarities):
         super().__init__(fields=fields, name=name)
         self.similarities = similarities
-        self._multiple_similarities = isinstance(similarities, tuple | list)
+        self._multiple_similarities = isinstance(similarities, (tuple, list))
         for func in similarities if self._multiple_similarities else (similarities,):
             if func not in self.VALID_SIMILARITIES:
                 raise ValueError(
@@ -200,7 +200,7 @@ class VectorSearchIndex(SearchIndex):
                             id=f"{self._error_id_prefix}.E002",
                         )
                     )
-                if not isinstance(field.base_field, FloatField | IntegerField):
+                if not isinstance(field.base_field, (FloatField, IntegerField)):
                     errors.append(
                         Error(
                             "VectorSearchIndex requires the base field of "

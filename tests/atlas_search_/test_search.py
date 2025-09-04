@@ -48,7 +48,7 @@ def _delayed_assertion(timeout: float = 4, interval: float = 0.5):
         @wraps(assert_func)
         def wrapper(self, fetch, *args, **kwargs):
             start = monotonic()
-            if not isinstance(fetch, Callable | QuerySet):
+            if not isinstance(fetch, (Callable, QuerySet)):
                 raise ValueError(
                     "The first argument to a delayed assertion must be a QuerySet or a callable "
                     "that returns the value to be asserted."

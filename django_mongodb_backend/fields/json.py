@@ -65,7 +65,7 @@ def has_key_lookup(self, compiler, connection):
     """Return MQL to check for the existence of a key."""
     rhs = self.rhs
     lhs = process_lhs(self, compiler, connection)
-    if not isinstance(rhs, list | tuple):
+    if not isinstance(rhs, (list, tuple)):
         rhs = [rhs]
     paths = []
     # Transform any "raw" keys into KeyTransforms to allow consistent handling
