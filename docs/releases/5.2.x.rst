@@ -10,7 +10,10 @@ Django MongoDB Backend 5.2.x
 New features
 ------------
 
-- ...
+- Allowed :ref:`specifying the MongoDB connection string
+  <configuring-databases-setting>` in ``DATABASES["HOST"]``, eliminating the
+  need to use :func:`~django_mongodb_backend.utils.parse_uri` to configure the
+  :setting:`DATABASES` setting.
 
 Bug fixes
 ---------
