@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
 from django.db.backends.signals import connection_created
@@ -6,14 +8,47 @@ from django.test import SimpleTestCase, TestCase
 from django_mongodb_backend.base import DatabaseWrapper
 
 
-class GetConnectionParamsTests(SimpleTestCase):
+class DatabaseWrapperTests(SimpleTestCase):
     def test_database_name_empty(self):
         settings = connection.settings_dict.copy()
         settings["NAME"] = ""
         msg = 'settings.DATABASES is missing the "NAME" value.'
         with self.assertRaisesMessage(ImproperlyConfigured, msg):
-            DatabaseWrapper(settings).get_connection_params()
+            DatabaseWrapper(settings)
 
+    def test_database_name_empty_and_host_does_not_contain_database(self):
+        settings = connection.settings_dict.copy()
+        settings["NAME"] = ""
+        settings["HOST"] = "mongodb://localhost"
+        msg = 'settings.DATABASES is missing the "NAME" value.'
+        with self.assertRaisesMessage(ImproperlyConfigured, msg):
+            DatabaseWrapper(settings)
+
+    def test_database_name_parsed_from_host(self):
+        settings = connection.settings_dict.copy()
+        settings["NAME"] = ""
+        settings["HOST"] = "mongodb://localhost/db"
+        self.assertEqual(DatabaseWrapper(settings).settings_dict["NAME"], "db")
+
+    def test_database_name_parsed_from_srv_host(self):
+        settings = connection.settings_dict.copy()
+        settings["NAME"] = ""
+        settings["HOST"] = "mongodb+srv://localhost/db"
+        # patch() prevents a crash when PyMongo attempts to resolve the
+        # nonexistent SRV record.
+        with patch("dns.resolver.resolve"):
+            self.assertEqual(DatabaseWrapper(settings).settings_dict["NAME"], "db")
+
+    def test_database_name_not_overridden_by_host(self):
+        settings = connection.settings_dict.copy()
+        settings["NAME"] = "should not be overridden"
+        settings["HOST"] = "mongodb://localhost/db"
+        self.assertEqual(
+            DatabaseWrapper(settings).settings_dict["NAME"], "should not be overridden"
+        )
+
+
+class GetConnectionParamsTests(SimpleTestCase):
     def test_host(self):
         settings = connection.settings_dict.copy()
         settings["HOST"] = "host"

@@ -11,6 +11,7 @@ from django.utils.functional import cached_property
 from pymongo.collection import Collection
 from pymongo.driver_info import DriverInfo
 from pymongo.mongo_client import MongoClient
+from pymongo.uri_parser import parse_uri
 
 from . import __version__ as django_mongodb_backend_version
 from . import dbapi as Database
@@ -157,6 +158,18 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         self.in_atomic_block_mongo = False
         # Current number of nested 'atomic' calls.
         self.nested_atomics = 0
+        # If "NAME" isn't specified, try to get the database name from HOST,
+        # if it's a connection string.
+        if self.settings_dict["NAME"] == "":  # Empty string = unspecified; None = _nodb_cursor()
+            name_is_missing = True
+            host = self.settings_dict["HOST"]
+            if host.startswith(("mongodb://", "mongodb+srv://")):
+                uri = parse_uri(host)
+                if database := uri.get("database"):
+                    self.settings_dict["NAME"] = database
+                    name_is_missing = False
+            if name_is_missing:
+                raise ImproperlyConfigured('settings.DATABASES is missing the "NAME" value.')
 
     def get_collection(self, name, **kwargs):
         collection = Collection(self.database, name, **kwargs)
@@ -183,8 +196,6 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def get_connection_params(self):
         settings_dict = self.settings_dict
-        if not settings_dict["NAME"]:
-            raise ImproperlyConfigured('settings.DATABASES is missing the "NAME" value.')
         params = {
             "host": settings_dict["HOST"] or None,
             **settings_dict["OPTIONS"],
