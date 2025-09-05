@@ -24,7 +24,33 @@ class _BaseExpressionConverter:
         return not isinstance(value, dict) or value is None
 
 
-class _EqExpressionConverter(_BaseExpressionConverter):
+class _BinaryExpressionConverter(_BaseExpressionConverter):
+    """
+    Base class for optimizers that handle binary expression operations in MQL queries.
+    """
+
+    operator: str
+
+    @classmethod
+    def convert(cls, args):
+        if isinstance(args, list) and len(args) == 2:
+            field_expr, value = args
+
+            # Check if first argument is a simple field reference
+            if (
+                isinstance(field_expr, str)
+                and field_expr.startswith("$")
+                and cls.is_simple_value(value)
+            ):
+                field_name = field_expr[1:]  # Remove the $ prefix
+                if cls.operator == "$eq":
+                    return {field_name: value}
+                return {field_name: {cls.operator: value}}
+
+        return None
+
+
+class _EqExpressionConverter(_BinaryExpressionConverter):
     """Convert $eq operation to a $match compatible query.
 
     For example::
@@ -35,24 +61,10 @@ class _EqExpressionConverter(_BaseExpressionConverter):
         {"status": "active"}
     """
 
-    @classmethod
-    def convert(cls, eq_args):
-        if isinstance(eq_args, list) and len(eq_args) == 2:
-            field_expr, value = eq_args
-
-            # Check if first argument is a simple field reference
-            if (
-                isinstance(field_expr, str)
-                and field_expr.startswith("$")
-                and cls.is_simple_value(value)
-            ):
-                field_name = field_expr[1:]  # Remove the $ prefix
-                return {field_name: value}
-
-        return None
+    operator = "$eq"
 
 
-class _GtExpressionConverter(_BaseExpressionConverter):
+class _GtExpressionConverter(_BinaryExpressionConverter):
     """Convert $gt operation to a $match compatible query.
 
     For example::
@@ -63,24 +75,10 @@ class _GtExpressionConverter(_BaseExpressionConverter):
         {"$gt": ["price", 100]}
     """
 
-    @classmethod
-    def convert(cls, gt_args):
-        if isinstance(gt_args, list) and len(gt_args) == 2:
-            field_expr, value = gt_args
-
-            # Check if first argument is a simple field reference
-            if (
-                isinstance(field_expr, str)
-                and field_expr.startswith("$")
-                and cls.is_simple_value(value)
-            ):
-                field_name = field_expr[1:]  # Remove the $ prefix
-                return {field_name: {"$gt": value}}
-
-        return None
+    operator = "$gt"
 
 
-class _GteExpressionConverter(_BaseExpressionConverter):
+class _GteExpressionConverter(_BinaryExpressionConverter):
     """Convert $gte operation to a $match compatible query.
 
     For example::
@@ -91,24 +89,10 @@ class _GteExpressionConverter(_BaseExpressionConverter):
         {"price": {"$gte", 100}}
     """
 
-    @classmethod
-    def convert(cls, gte_args):
-        if isinstance(gte_args, list) and len(gte_args) == 2:
-            field_expr, value = gte_args
-
-            # Check if first argument is a simple field reference
-            if (
-                isinstance(field_expr, str)
-                and field_expr.startswith("$")
-                and cls.is_simple_value(value)
-            ):
-                field_name = field_expr[1:]  # Remove the $ prefix
-                return {field_name: {"$gte": value}}
-
-        return None
+    operator = "$gte"
 
 
-class _LtExpressionConverter(_BaseExpressionConverter):
+class _LtExpressionConverter(_BinaryExpressionConverter):
     """Convert $lt operation to a $match compatible query.
 
     For example::
@@ -119,24 +103,10 @@ class _LtExpressionConverter(_BaseExpressionConverter):
         {"$lt": ["price", 100]}
     """
 
-    @classmethod
-    def convert(cls, lt_args):
-        if isinstance(lt_args, list) and len(lt_args) == 2:
-            field_expr, value = lt_args
-
-            # Check if first argument is a simple field reference
-            if (
-                isinstance(field_expr, str)
-                and field_expr.startswith("$")
-                and cls.is_simple_value(value)
-            ):
-                field_name = field_expr[1:]  # Remove the $ prefix
-                return {field_name: {"$lt": value}}
-
-        return None
+    operator = "$lt"
 
 
-class _LteExpressionConverter(_BaseExpressionConverter):
+class _LteExpressionConverter(_BinaryExpressionConverter):
     """Convert $lte operation to a $match compatible query.
 
     For example::
@@ -147,21 +117,7 @@ class _LteExpressionConverter(_BaseExpressionConverter):
         {"price": {"$lte", 100}}
     """
 
-    @classmethod
-    def convert(cls, lte_args):
-        if isinstance(lte_args, list) and len(lte_args) == 2:
-            field_expr, value = lte_args
-
-            # Check if first argument is a simple field reference
-            if (
-                isinstance(field_expr, str)
-                and field_expr.startswith("$")
-                and cls.is_simple_value(value)
-            ):
-                field_name = field_expr[1:]  # Remove the $ prefix
-                return {field_name: {"$lte": value}}
-
-        return None
+    operator = "$lte"
 
 
 class _InExpressionConverter(_BaseExpressionConverter):
@@ -183,7 +139,7 @@ class _InExpressionConverter(_BaseExpressionConverter):
             # Check if first argument is a simple field reference
             if isinstance(field_expr, str) and field_expr.startswith("$"):
                 field_name = field_expr[1:]  # Remove the $ prefix
-                if isinstance(values, list | tuple | set) and all(
+                if isinstance(values, (list, tuple, set)) and all(  # noqa: UP038
                     cls.is_simple_value(v) for v in values
                 ):
                     return {field_name: {"$in": values}}
