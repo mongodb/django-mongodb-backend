@@ -11,6 +11,7 @@ if mongodb_uri := os.getenv("MONGODB_URI"):
     DATABASES = {
         "default": {**db_settings, "NAME": "djangotests"},
         "other": {**db_settings, "NAME": "djangotests-other"},
+        "encrypted": {},
     }
 else:
     DATABASES = {
@@ -25,8 +26,26 @@ else:
             "NAME": "djangotests-other",
             "OPTIONS": {"directConnection": True},
         },
+        "encrypted": {},
     }
 
+
+class EncryptedRouter:
+    def allow_migrate(self, db, app_label, model_name=None, **hints):
+        # The encryption_ app's models are only created in the encrypted
+        # database.
+        if app_label == "encryption_":
+            return db == "encrypted"
+        # Don't create other app's models in the encrypted database.
+        if db == "encrypted":
+            return False
+        return None
+
+    def kms_provider(self, model, **hints):
+        return "local"
+
+
+DATABASE_ROUTERS = [EncryptedRouter()]
 DEFAULT_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
 PASSWORD_HASHERS = ("django.contrib.auth.hashers.MD5PasswordHasher",)
 SECRET_KEY = "django_tests_secret_key"
