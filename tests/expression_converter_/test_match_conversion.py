@@ -19,6 +19,7 @@ class QueryOptimizerTests(SimpleTestCase):
                     {"$eq": ["$status", "active"]},
                     {"$in": ["$category", ["electronics", "books"]]},
                     {"$eq": ["$verified", True]},
+                    {"$gte": ["$price", 50]},
                 ]
             }
         }
@@ -29,6 +30,7 @@ class QueryOptimizerTests(SimpleTestCase):
                         {"status": "active"},
                         {"category": {"$in": ["electronics", "books"]}},
                         {"verified": True},
+                        {"price": {"$gte": 50}},
                     ]
                 }
             }
@@ -40,7 +42,7 @@ class QueryOptimizerTests(SimpleTestCase):
             "$expr": {
                 "$and": [
                     {"$eq": ["$status", "active"]},
-                    {"$gt": ["$price", 100]},  # Not optimizable
+                    {"$gt": ["$price", "$min_price"]},  # Not optimizable
                     {"$in": ["$category", ["electronics"]]},
                 ]
             }
@@ -51,7 +53,7 @@ class QueryOptimizerTests(SimpleTestCase):
                     "$and": [
                         {"status": "active"},
                         {"category": {"$in": ["electronics"]}},
-                        {"$expr": {"$gt": ["$price", 100]}},
+                        {"$expr": {"$gt": ["$price", "$min_price"]}},
                     ],
                 }
             }
@@ -59,11 +61,11 @@ class QueryOptimizerTests(SimpleTestCase):
         self.assertOptimizerEqual(expr, expected)
 
     def test_non_optimizable_condition(self):
-        expr = {"$expr": {"$gt": ["$price", 100]}}
+        expr = {"$expr": {"$gt": ["$price", "$min_price"]}}
         expected = [
             {
                 "$match": {
-                    "$expr": {"$gt": ["$price", 100]},
+                    "$expr": {"$gt": ["$price", "$min_price"]},
                 }
             }
         ]
@@ -75,7 +77,7 @@ class QueryOptimizerTests(SimpleTestCase):
                 "$or": [
                     {"$eq": ["$status", "active"]},
                     {"$in": ["$category", ["electronics", "books"]]},
-                    {"$and": [{"$eq": ["$verified", True]}, {"$gt": ["$price", 50]}]},
+                    {"$and": [{"$eq": ["$verified", True]}, {"$lte": ["$price", 50]}]},
                 ]
             }
         }
@@ -85,11 +87,7 @@ class QueryOptimizerTests(SimpleTestCase):
                     "$or": [
                         {"status": "active"},
                         {"category": {"$in": ["electronics", "books"]}},
-                        {
-                            "$expr": {
-                                "$and": [{"$eq": ["$verified", True]}, {"$gt": ["$price", 50]}]
-                            }
-                        },
+                        {"$and": [{"verified": True}, {"price": {"$lte": 50}}]},
                     ]
                 }
             }
@@ -101,14 +99,14 @@ class QueryOptimizerTests(SimpleTestCase):
             "$expr": {
                 "$and": [
                     {
-                        "$or": [  # Not optimizable because of $gt
+                        "$or": [
                             {"$eq": ["$status", "active"]},
                             {"$gt": ["$views", 1000]},
                         ]
                     },
                     {"$in": ["$category", ["electronics", "books"]]},
                     {"$eq": ["$verified", True]},
-                    {"$gt": ["$price", 50]},  # Not optimizable
+                    {"$gt": ["$price", "$min_price"]},  # Not optimizable
                 ]
             }
         }
@@ -116,17 +114,15 @@ class QueryOptimizerTests(SimpleTestCase):
             {
                 "$match": {
                     "$and": [
+                        {
+                            "$or": [
+                                {"status": "active"},
+                                {"views": {"$gt": 1000}},
+                            ]
+                        },
                         {"category": {"$in": ["electronics", "books"]}},
                         {"verified": True},
-                        {
-                            "$expr": {
-                                "$or": [
-                                    {"$eq": ["$status", "active"]},
-                                    {"$gt": ["$views", 1000]},
-                                ]
-                            }
-                        },
-                        {"$expr": {"$gt": ["$price", 50]}},
+                        {"$expr": {"$gt": ["$price", "$min_price"]}},
                     ]
                 }
             }
