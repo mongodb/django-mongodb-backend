@@ -29,7 +29,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     supports_deferrable_unique_constraints = False
     supports_explaining_query_execution = True
     supports_expression_defaults = False
-    supports_expression_indexes = False
+    supports_expression_indexes = True
     supports_foreign_keys = False
     supports_ignore_conflicts = False
     supports_json_field_contains = False
