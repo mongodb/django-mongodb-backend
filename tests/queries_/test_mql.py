@@ -25,7 +25,7 @@ class MQLTests(TestCase):
         with self.assertNumQueries(1) as ctx:
             list(Author.objects.all())
         query = ctx.captured_queries[0]["sql"]
-        self.assertEqual(query, "db.queries__author.aggregate([{'$match': {'$expr': {}}}])")
+        self.assertEqual(query, "db.queries__author.aggregate([{'$match': {}}])")
 
     def test_join(self):
         with self.assertNumQueries(1) as ctx:
@@ -40,12 +40,13 @@ class MQLTests(TestCase):
             "{'$and': [{'$eq': ['$$parent__field__0', '$_id']}, "
             "{'$eq': ['$name', 'Bob']}]}}}], 'as': 'queries__author'}}, "
             "{'$unwind': '$queries__author'}, "
-            "{'$match': {'$expr': {'$eq': ['$queries__author.name', 'Bob']}}}])",
+            "{'$match': {'queries__author.name': 'Bob'}}])",
         )
 
 
 class FKLookupConditionPushdownTests(TestCase):
     def test_filter_on_local_and_related_fields(self):
+        self.maxDiff = None
         with self.assertNumQueries(1) as ctx:
             list(Book.objects.filter(title="Don", author__name="John"))
         query = ctx.captured_queries[0]["sql"]
@@ -57,8 +58,8 @@ class FKLookupConditionPushdownTests(TestCase):
             "{'$match': {'$expr': {'$and': [{'$eq': ['$$parent__field__0', "
             "'$_id']}, {'$eq': ['$name', 'John']}]}}}], 'as': "
             "'queries__author'}}, {'$unwind': '$queries__author'}, {'$match': "
-            "{'$expr': {'$and': [{'$eq': ['$queries__author.name', 'John']}, "
-            "{'$eq': ['$title', 'Don']}]}}}])",
+            "{'$and': [{'queries__author.name': 'John'}, "
+            "{'title': 'Don'}]}}])",
         )
 
     def test_or_mixing_local_and_related_fields_is_not_pushable(self):
@@ -71,9 +72,9 @@ class FKLookupConditionPushdownTests(TestCase):
             "'queries__author', 'let': {'parent__field__0': '$author_id'}, "
             "'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': "
             "['$$parent__field__0', '$_id']}]}}}], 'as': 'queries__author'}}, "
-            "{'$unwind': '$queries__author'}, {'$match': {'$expr': {'$or': "
-            "[{'$eq': ['$title', 'Don']}, {'$eq': ['$queries__author.name', "
-            "'John']}]}}}])",
+            "{'$unwind': '$queries__author'}, {'$match': {'$or': "
+            "[{'title': 'Don'}, {'queries__author.name': "
+            "'John'}]}}])",
         )
 
     def test_filter_on_self_join_fields(self):
@@ -90,9 +91,9 @@ class FKLookupConditionPushdownTests(TestCase):
             "{'parent__field__0': '$parent_id'}, 'pipeline': [{'$match': {'$expr': "
             "{'$and': [{'$eq': ['$$parent__field__0', '$_id']}, {'$and': [{'$eq': "
             "['$group_id', ObjectId('6891ff7822e475eddc20f159')]}, {'$eq': ['$name', "
-            "'parent']}]}]}}}], 'as': 'T2'}}, {'$unwind': '$T2'}, {'$match': {'$expr': "
-            "{'$and': [{'$eq': ['$T2.group_id', ObjectId('6891ff7822e475eddc20f159')]}, "
-            "{'$eq': ['$T2.name', 'parent']}]}}}])",
+            "'parent']}]}]}}}], 'as': 'T2'}}, {'$unwind': '$T2'}, {'$match': "
+            "{'$and': [{'T2.group_id': ObjectId('6891ff7822e475eddc20f159')}, "
+            "{'T2.name': 'parent'}]}}])",
         )
 
     def test_filter_on_reverse_foreignkey_relation(self):
@@ -107,12 +108,13 @@ class FKLookupConditionPushdownTests(TestCase):
             "['$$parent__field__0', '$order_id']}, {'$eq': ['$status', "
             "ObjectId('6891ff7822e475eddc20f159')]}]}}}], 'as': "
             "'queries__orderitem'}}, {'$unwind': '$queries__orderitem'}, "
-            "{'$match': {'$expr': {'$eq': ['$queries__orderitem.status', "
-            "ObjectId('6891ff7822e475eddc20f159')]}}}, "
+            "{'$match': {'queries__orderitem.status': "
+            "ObjectId('6891ff7822e475eddc20f159')}}, "
             "{'$addFields': {'_id': '$_id'}}, {'$sort': SON([('_id', 1)])}])",
         )
 
     def test_filter_on_local_and_nested_join_fields(self):
+        self.maxDiff = None
         with self.assertNumQueries(1) as ctx:
             list(
                 Order.objects.filter(
@@ -134,11 +136,11 @@ class FKLookupConditionPushdownTests(TestCase):
             "{'parent__field__0': '$queries__orderitem.order_id'}, "
             "'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': "
             "['$$parent__field__0', '$_id']}, {'$eq': ['$name', 'My Order']}]}"
-            "}}], 'as': 'T3'}}, {'$unwind': '$T3'}, {'$match': {'$expr': "
-            "{'$and': [{'$eq': ['$T3.name', 'My Order']}, {'$eq': "
-            "['$queries__orderitem.status', "
-            "ObjectId('6891ff7822e475eddc20f159')]}, {'$eq': ['$name', "
-            "'My Order']}]}}}, {'$addFields': {'_id': '$_id'}}, "
+            "}}], 'as': 'T3'}}, {'$unwind': '$T3'}, {'$match': "
+            "{'$and': [{'T3.name': 'My Order'}, "
+            "{'queries__orderitem.status': ObjectId('6891ff7822e475eddc20f159')}, "
+            "{'name': 'My Order'}]}}, "
+            "{'$addFields': {'_id': '$_id'}}, "
             "{'$sort': SON([('_id', 1)])}])",
         )
 
@@ -157,13 +159,14 @@ class FKLookupConditionPushdownTests(TestCase):
         )
 
     def test_or_on_local_fields_only(self):
+        self.maxDiff = None
         with self.assertNumQueries(1) as ctx:
             list(Order.objects.filter(models.Q(name="A") | models.Q(name="B")))
         query = ctx.captured_queries[0]["sql"]
         self.assertEqual(
             query,
-            "db.queries__order.aggregate([{'$match': {'$expr': {'$or': "
-            "[{'$eq': ['$name', 'A']}, {'$eq': ['$name', 'B']}]}}}, "
+            "db.queries__order.aggregate([{'$match': {'$or': "
+            "[{'name': 'A'}, {'name': 'B'}]}}, "
             "{'$addFields': {'_id': '$_id'}}, {'$sort': SON([('_id', 1)])}])",
         )
 
@@ -177,9 +180,8 @@ class FKLookupConditionPushdownTests(TestCase):
             "'queries__author', 'let': {'parent__field__0': '$author_id'}, "
             "'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': "
             "['$$parent__field__0', '$_id']}]}}}], 'as': 'queries__author'}}, "
-            "{'$unwind': '$queries__author'}, {'$match': {'$expr': {'$or': "
-            "[{'$eq': ['$queries__author.name', 'John']}, {'$eq': ['$title', "
-            "'Don']}]}}}])",
+            "{'$unwind': '$queries__author'}, {'$match': {'$or': "
+            "[{'queries__author.name': 'John'}, {'title': 'Don'}]}}])",
         )
 
     def test_push_equality_between_parent_and_child_fields(self):
@@ -201,6 +203,7 @@ class FKLookupConditionPushdownTests(TestCase):
 
 class M2MLookupConditionPushdownTests(TestCase):
     def test_simple_related_filter_is_pushed(self):
+        self.maxDiff = None
         with self.assertNumQueries(1) as ctx:
             list(Library.objects.filter(readers__name="Alice"))
         query = ctx.captured_queries[0]["sql"]
@@ -246,7 +249,7 @@ class M2MLookupConditionPushdownTests(TestCase):
                 ], "as": "queries__reader"
             }},
             {"$unwind": "$queries__reader"},
-            {"$match": {"$expr": {"$eq": ["$queries__reader.name", "Alice"]}}}
+            {"$match": {"queries__reader.name": "Alice"}}
         ])
         """
         self.assertEqual(query, uglify_mongo_aggregate(expected_query))
@@ -285,12 +288,12 @@ db.queries__library.aggregate([
         {"$unwind": "$U2"},
         {
           "$match": {
-            "$expr": {
-              "$and": [
-                {"$eq": ["$U2.name", "Alice"]},
+            "$and": [
+              {"U2.name": "Alice"},
+              {"$expr":
                 {"$eq": ["$library_id","$$parent__field__0"]}
-              ]
-            }
+              }
+            ]
           }
         },
         {"$project": {"a": {"$literal": 1}}},
@@ -385,12 +388,10 @@ db.queries__library.aggregate([
   {"$unwind": "$queries__reader"},
   {
     "$match": {
-      "$expr": {
-        "$and": [
-          {"$eq": ["$name", "Central"]},
-          {"$eq": ["$queries__reader.name", "Alice"]}
-        ]
-      }
+      "$and": [
+        {"name": "Central"},
+        {"queries__reader.name": "Alice"}
+      ]
     }
   }
 ]
@@ -473,7 +474,7 @@ db.queries__library.aggregate([
     }
   },
   {"$unwind": "$queries__reader"},
-  {"$match": {"$expr": {"$eq": ["$name", "Ateneo"]}}},
+  {"$match": {"name": "Ateneo"}},
   {
     "$project": {
       "queries__reader": {"foreing_field": "$queries__reader.name"},
@@ -556,12 +557,10 @@ db.queries__library.aggregate([
   {"$unwind": "$queries__reader"},
   {
     "$match": {
-      "$expr": {
-        "$or": [
-          {"$eq": ["$queries__reader.name", "Alice"]},
-          {"$eq": ["$name", "Central"]}
-        ]
-      }
+      "$or": [
+        {"queries__reader.name": "Alice"},
+        {"name": "Central"}
+      ]
     }
   }
 ])

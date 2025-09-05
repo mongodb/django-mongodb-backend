@@ -20,9 +20,7 @@ class ExplainTests(TestCase):
         id = ObjectId()
         result = Author.objects.filter(id=id).explain()
         parsed = json_util.loads(result)
-        self.assertEqual(
-            parsed["command"]["pipeline"], [{"$match": {"$expr": {"$eq": ["$_id", id]}}}]
-        )
+        self.assertEqual(parsed["command"]["pipeline"], [{"$match": {"_id": id}}])
 
     def test_non_ascii(self):
         """The json is dumped with ensure_ascii=False."""
@@ -32,6 +30,4 @@ class ExplainTests(TestCase):
         # non-ASCII characters.
         self.assertIn(name, result)
         parsed = json.loads(result)
-        self.assertEqual(
-            parsed["command"]["pipeline"], [{"$match": {"$expr": {"$eq": ["$name", name]}}}]
-        )
+        self.assertEqual(parsed["command"]["pipeline"], [{"$match": {"name": name}}])
