@@ -15,7 +15,7 @@ class ExpressionConversionTestCase(SimpleTestCase):
         "boolean": True,
         "NoneType": None,
         "string": "string",
-        "datetime": datetime.datetime.now(datetime.UTC),
+        "datetime": datetime.datetime.now(datetime.timezone.utc),
         "duration": datetime.timedelta(days=5, hours=3),
         "uuid": UUID("12345678123456781234567812345678"),
     }
