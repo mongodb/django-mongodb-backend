@@ -1,5 +1,7 @@
 from django.test import TestCase
 
+from django_mongodb_backend.test import MongoTestCaseMixin
+
 from .models import Book, Number
 
 
@@ -17,16 +19,23 @@ class NumericLookupTests(TestCase):
         self.assertQuerySetEqual(Number.objects.filter(num__lte=3), self.objs[:4])
 
 
-class RegexTests(TestCase):
+class RegexTests(MongoTestCaseMixin, TestCase):
     def test_mql(self):
         # $regexMatch must not cast the input to string, otherwise MongoDB
         # can't use the field's indexes.
         with self.assertNumQueries(1) as ctx:
             list(Book.objects.filter(title__regex="Moby Dick"))
         query = ctx.captured_queries[0]["sql"]
-        self.assertEqual(
+        self.assertAggregateQuery(
             query,
-            "db.lookup__book.aggregate(["
-            "{'$match': {'$expr': {'$regexMatch': {'input': '$title', "
-            "'regex': 'Moby Dick', 'options': ''}}}}])",
+            "lookup__book",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$regexMatch": {"input": "$title", "regex": "Moby Dick", "options": ""}
+                        }
+                    }
+                }
+            ],
         )
