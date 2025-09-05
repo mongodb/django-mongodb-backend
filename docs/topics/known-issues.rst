@@ -50,6 +50,11 @@ Querying
   - You can study the skipped tests in ``DatabaseFeatures.django_test_skips``
     for more details on known issues.
 
+- Pattern matching lookups (:lookup:`iexact`, :lookup:`startswith`,
+  :lookup:`istartswith`, :lookup:`endswith`, :lookup:`iendswith`,
+  :lookup:`contains`, :lookup:`icontains`, :lookup:`regex`,
+  and :lookup:`iregex`) don't support non-string fields.
+
 Database functions
 ==================
 

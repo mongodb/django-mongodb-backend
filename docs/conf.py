@@ -27,6 +27,9 @@ release = _version("django_mongodb_backend")
 # If true, the current module name will be prepended to all description
 # unit titles (such as .. function::).
 add_module_names = False
+# Disable auto-created table of contents entries for all domain objects
+# (functions, classes, attributes, etc.)
+toc_object_entries = False
 
 extensions = [
     "djangodocs",
@@ -51,5 +54,5 @@ intersphinx_mapping = {
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "alabaster"
+html_theme = "furo"
 html_static_path = ["_static"]

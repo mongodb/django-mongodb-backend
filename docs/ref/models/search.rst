@@ -47,13 +47,11 @@ matches on fields indexed in a MongoDB Atlas Search index.
     >>> Article.objects.annotate(score=SearchEquals(path="headline", value="title"))
     <QuerySet [<Article: headline: title>]>
 
-The ``path`` argument can be either the name of a field (as a string), or a
-:class:`~django.db.models.F` instance.
+**Arguments:**
 
-The ``value`` argument must be a string or a :class:`~django.db.models.Value`.
-
-The optional ``score`` argument is a :class:`SearchScoreOption` that tunes the
-relevance score.
+- ``path``: The document path to the field.
+- ``value``: The value to match.
+- ``score``: A :class:`SearchScoreOption` to tune the relevance score.
 
 ``SearchAutocomplete``
 ----------------------
@@ -75,16 +73,11 @@ in a MongoDB Atlas Search index.
        <Article: title: Harry Potter’s Cultural Impact on Literature>
     ]>
 
-The ``path`` argument specifies the field to search and can be a string or a
-:class:`~django.db.models.F`.
+**Arguments:**
 
-The ``query`` is the user input string to autocomplete and can be passed as a
-string or a :class:`~django.db.models.Value`.
-
-Optional arguments:
-
-- ``fuzzy``: A dictionary with fuzzy matching options such as
-  ``{"maxEdits": 1}``.
+- ``path``: The document path to the field.
+- ``query``: The value to match.
+- ``fuzzy``: A dictionary of fuzzy matching options, e.g., ``{"maxEdits": 1}``.
 - ``token_order``: Controls token sequence behavior. Accepts values like
   ``"sequential"`` or ``"any"``.
 - ``score``: A :class:`SearchScoreOption` to tune the relevance score.
@@ -109,11 +102,10 @@ documents that include (or exclude) optional fields.
         <Article: title: Indexing Strategies with MongoDB (by Miguel)>
     ]>
 
-The ``path`` argument specifies the document path to check and can be provided
-as a string or a :class:`~django.db.models.F`.
+**Arguments:**
 
-The optional ``score`` argument is a :class:`SearchScoreOption` that tunes the
-relevance score.
+- ``path``: The document path to the field.
+- ``score``: A :class:`SearchScoreOption` to tune the relevance score.
 
 ``SearchIn``
 ------------
@@ -134,12 +126,11 @@ field contains a value from the provided array.
         <Article: title: Boosting Relevance Scores (number=2)>
     ]>
 
-The ``path`` argument can be the name of a field (as a string) or a
-:class:`~django.db.models.F`. The ``value`` must be a list
-of values or a :class:`~django.db.models.Value`.
+**Arguments:**
 
-The optional ``score`` argument is a :class:`SearchScoreOption` that tunes the
-relevance score.
+- ``path``: The document path to the field.
+- ``value``: The value to match.
+- ``score``: A :class:`SearchScoreOption` to tune the relevance score.
 
 ``SearchPhrase``
 ----------------
@@ -163,12 +154,10 @@ synonym mappings defined in the Atlas Search index.
         <Article: title: The Impact of Rapid Change in Climate Systems>
     ]>
 
-The ``path`` argument specifies the field to search and can be a string or a
-:class:`~django.db.models.F`. The ``query`` is the phrase to
-match, passed as a string or a list of strings (terms).
+**Arguments:**
 
-Optional arguments:
-
+- ``path``: The document path to the field.
+- ``query``: The value to match.
 - ``slop``: The maximum number of terms allowed between phrase terms.
 - ``synonyms``: The name of a synonym mapping defined in your Atlas index.
 - ``score``: A :class:`SearchScoreOption` to tune the relevance score.
@@ -195,12 +184,12 @@ supports features like boolean operators, wildcards, and field-specific terms.
         <Article: title: Advanced Query Techniques in Django ORM>
     ]>
 
-The ``path`` argument can be a string or a
-:class:`~django.db.models.F` representing the field to query.
-The ``query`` argument is a Lucene-style query string.
+**Arguments:**
 
-The optional ``score`` argument is a :class:`SearchScoreOption` that tunes the
-relevance score.
+- ``path``: The document path to the field.
+- ``query``: A Lucene-style query string.
+- ``score``: A :class:`SearchScoreOption` to tune the relevance score.
+
 
 ``SearchRange``
 ---------------
@@ -221,11 +210,9 @@ date, or other comparable fields based on upper and/or lower bounds.
         <Article: title: Pre-2020 Web Framework Evolution (number=2015)>
     ]>
 
-The ``path`` argument specifies the field to filter and can be a string or a
-:class:`~django.db.models.F`.
+**Arguments:**
 
-Optional arguments:
-
+- ``path``: The document path to the field.
 - ``lt``: Exclusive upper bound (``<``)
 - ``lte``: Inclusive upper bound (``<=``)
 - ``gt``: Exclusive lower bound (``>``)
@@ -239,7 +226,7 @@ Optional arguments:
 
 Matches string fields using a regular expression.
 
-Uses the :doc:`regex operator <atlas:atlas-search/regex>` to apply a regular
+Uses the :doc:`regex operator <atlas:atlas-search/regex>` to match a regular
 expression pattern to the contents of a specified field.
 
 .. code-block:: pycon
@@ -251,14 +238,12 @@ expression pattern to the contents of a specified field.
         <Article: title: Breaking_Changes in Atlas Search API>
     ]>
 
-The ``path`` argument specifies the field to search and can be provided as a
-string or a :class:`~django.db.models.F`. The ``query`` is a
-regular expression string that will be applied to the field contents.
+**Arguments:**
 
-Optional arguments:
-
-- ``allow_analyzed_field``: Boolean indicating whether to allow matching
-  against analyzed fields (defaults to ``False``).
+- ``path``: The document path to the field.
+- ``query``: The regular expression to match.
+- ``allow_analyzed_field``: A boolean indicating whether to match against an
+  analyzed field. ``False`` if not specified.
 - ``score``: A :class:`SearchScoreOption` to tune the relevance score.
 
 ``SearchText``
@@ -266,10 +251,11 @@ Optional arguments:
 
 .. class:: SearchText(path, query, *, fuzzy=None, match_criteria=None, synonyms=None, score=None)
 
-Performs full-text search using the :doc:`text operator <atlas:atlas-search/text>`.
+Performs full-text search using the :doc:`text operator
+<atlas:atlas-search/text>`.
 
-Matches terms in the specified field and supports fuzzy matching, match
-criteria, and synonym mappings.
+Matches terms in the specified field. Supports fuzzy matching, match criteria,
+and synonym mappings.
 
 .. code-block:: pycon
 
@@ -284,14 +270,11 @@ criteria, and synonym mappings.
         <Article: title: Understanding MongoDB Query Optimization>
     ]>
 
-The ``path`` argument specifies the field to search and can be provided as a
-string or a :class:`~django.db.models.F`. The ``query`` argument
-is the search term or phrase.
+**Arguments:**
 
-Optional arguments:
-
-- ``fuzzy``: A dictionary of fuzzy matching options, such as
-  ``{"maxEdits": 1}``.
+- ``path``: The document path to the field.
+- ``query``: The search term or phrase.
+- ``fuzzy``: A dictionary of fuzzy matching options, e.g., ``{"maxEdits": 1}``.
 - ``match_criteria``: Whether to match ``"all"`` or ``"any"`` terms (defaults
   to Atlas Search behavior).
 - ``synonyms``: The name of a synonym mapping defined in your Atlas index.
@@ -319,14 +302,12 @@ single character) wildcards.
         <Article: title: report_2022_final_review>
     ]>
 
-The ``path`` argument specifies the field to search and can be a string or a
-:class:`~django.db.models.F`. The ``query`` is a wildcard string
-that may include ``*`` and ``?``.
+**Arguments:**
 
-Optional arguments:
-
-- ``allow_analyzed_field``: Boolean that allows matching against analyzed
-  fields (defaults to ``False``).
+- ``path``: The document path to the field.
+- ``query``: A wildcard string that may include ``*`` and ``?``.
+- ``allow_analyzed_field``: A boolean indicating whether to match against an
+  analyzed field. ``False`` if not specified.
 - ``score``: A :class:`SearchScoreOption` to tune the relevance score.
 
 ``SearchGeoShape``
@@ -352,17 +333,13 @@ geometry.
        <Article: title: Urban Planning in District 5 (location: [1, 2])>
     ]>
 
-The ``path`` argument specifies the field to filter and can be a string or a
-:class:`~django.db.models.F`.
+**Arguments:**
 
-Required arguments:
-
-- ``relation``: The spatial relation to test. Valid values include
-  ``"within"``, ``"intersects"``, and ``"disjoint"``.
+- ``path``: The document path to the field.
+- ``relation``: The spatial relation to test. Valid values are ``"contains"``,
+  ``"disjoint"``, ``"intersects"``, and ``"within"``.
 - ``geometry``: A GeoJSON geometry object to compare against.
-
-The optional ``score`` argument is a :class:`SearchScoreOption` that tunes the
-relevance score.
+- ``score``: A :class:`SearchScoreOption` to tune the relevance score.
 
 ``SearchGeoWithin``
 -------------------
@@ -380,23 +357,20 @@ geometry.
     >>> from django_mongodb_backend.expressions import SearchGeoWithin
     >>> polygon = {"type": "Polygon", "coordinates": [[[0, 0], [3, 6], [6, 1], [0, 0]]]}
     >>> Article.objects.annotate(
-    ...     score=SearchGeoWithin(path="location", kind="Polygon", geo_object=polygon)
+    ...     score=SearchGeoWithin(path="location", kind="geometry", geo_object=polygon)
     ... )
     <QuerySet [
         <Article: title: Local Environmental Impacts Study (location: [2, 3])>,
        <Article: title: Urban Planning in District 5 (location: [1, 2])>
     ]>
 
-The ``path`` argument specifies the geo field to filter and can be a string or
-a :class:`~django.db.models.F`.
+**Arguments:**
 
-Required arguments:
-
-- ``kind``: The GeoJSON geometry type ``circle``, ``box``, or ``geometry``.
+- ``path``: The document path to the field.
+- ``kind``: The GeoJSON geometry type: ``"circle"``, ``"box"``, or
+  ``"geometry"``.
 - ``geo_object``: The GeoJSON geometry defining the spatial boundary.
-
-The optional ``score`` argument is a :class:`SearchScoreOption` that tunes the
-relevance score.
+- ``score``: A :class:`SearchScoreOption` to tune the relevance score.
 
 ``SearchMoreLikeThis``
 ----------------------
@@ -422,11 +396,11 @@ retrieve documents that resemble one or more example documents.
         <Article: title: Similar Approaches in Database Design>
     ]>
 
-The ``documents`` argument must be a list of example documents or expressions
-that serve as references for similarity.
+**Arguments:**
 
-The optional ``score`` argument is a :class:`SearchScoreOption` that tunes the
-relevance score.
+- ``documents``: List of example documents or expressions that serve as
+  references for similarity.
+- ``score``: A :class:`SearchScoreOption` to tune the relevance score.
 
 ``CompoundExpression``
 ======================
@@ -454,61 +428,17 @@ contribute to document matching and scoring.
     ... )
     <QuerySet [<Article: title: MongoDB Atlas Database Performance Optimization>]>
 
-Arguments:
+**Arguments:**
 
 - ``must``: A list of expressions that **must** match.
 - ``must_not``: A list of expressions that **must not** match.
-- ``should``: A list of optional expressions that **should** match.
-  These can improve scoring.
+- ``should``: A list of optional expressions that **should** match. These can
+  improve scoring.
 - ``filter``: A list of expressions used for filtering without affecting
   relevance scoring.
-- ``minimum_should_match``: The minimum number of ``should`` clauses that
-  must match.
+- ``minimum_should_match``: The minimum number of ``should`` clauses that must
+  match.
 - ``score``: A :class:`SearchScoreOption` to tune the relevance score.
-
-``CompoundExpression`` is useful for building advanced and flexible query
-logic in Atlas Search.
-
-``CombinedSearchExpression``
-============================
-
-.. class:: CombinedSearchExpression(lhs, operator, rhs)
-
-Expression that combines two Atlas Search expressions using a boolean
-operator.
-
-This expression is used internally when combining search expressions with
-Python's bitwise operators (``&``, ``|``, ``~``), corresponding to the logical
-operators such as ``and``, ``or``, and ``not``.
-
-.. admonition:: Typical usage
-
-   This expression is typically created when using the combinable interface
-   (e.g., ``expr1 & expr2``). It can also be constructed manually.
-
-.. code-block:: pycon
-
-    >>> from django_mongodb_backend.expressions import CombinedSearchExpression
-    >>> expr1 = SearchText("headline", "mongodb")
-    >>> expr2 = SearchText("body", "atlas")
-    >>> CombinedSearchExpression(expr1, "and", expr2)
-    CombinedSearchExpression(
-        lhs=SearchText(path='headline', query='mongodb'),
-        operator='and',
-        rhs=SearchText(path='body', query='atlas')
-    )
-
-Args:
-
-- ``lhs``: The left-hand side search expression.
-- ``operator``: A string representing the logical operator (``"and"``,
-  ``"or"``, or ``"not"``).
-- ``rhs``: The right-hand side search expression.
-
-This is the underlying expression used to support operator overloading in
-Atlas Search expressions.
-
-.. _search-operations-combinable:
 
 Combinable expressions
 ----------------------
@@ -531,10 +461,6 @@ This allows for more expressive and readable search logic:
         <Article: title: Modern MongoDB Features>
     ]>
 
-Under the hood, these expressions are translated into
-:class:`CombinedSearchExpression` instances, which can be reused and nested
-with other compound expressions.
-
 ``SearchVector``
 ================
 
@@ -544,7 +470,7 @@ Performs vector similarity search using the :doc:`$vectorSearch stage
 <atlas:atlas-vector-search/vector-search-stage>`.
 
 Retrieves documents whose vector field is most similar to a given query vector,
-using either approximate or exact nearest-neighbor search.
+using either approximate or exact nearest neighbor search.
 
 .. code-block:: pycon
 
@@ -560,18 +486,18 @@ using either approximate or exact nearest-neighbor search.
     ... )
     <QuerySet [<Article: Article object (6882f074359a4b191381b2e4)>]>
 
-Arguments:
 
-- ``path``: The document path to the vector field (string or
-  :class:`~django.db.models.F`).
+**Arguments:**
+
+- ``path``: The document path to the field.
 - ``query_vector``: The input vector used for similarity comparison.
 - ``limit``: The maximum number of matching documents to return.
-- ``num_candidates``: (Optional) The number of candidate documents considered
-  during search.
-- ``exact``: (Optional) Whether to enforce exact search instead of approximate
-  (defaults to ``False``).
-- ``filter``: (Optional) A filter expression to restrict the candidate
-  documents.
+- ``num_candidates``: The number of nearest neighbors to use during the search.
+  Required if ``exact`` is ``False`` or omitted.
+- ``exact``:  A boolean indicating whether run exact (``True``) or approximate
+  (``False``) nearest neighbor search. Required if ``num_candidates`` is
+  omitted. If omitted, defaults to ``False``.
+- ``filter``: A MQL filter expression to restrict the candidate documents.
 
 .. warning::
 
@@ -586,11 +512,10 @@ cannot be nested or composed.
 
 .. class:: SearchScoreOption(definitions=None)
 
-Expression used to control or mutate the relevance score in an Atlas Search
-expression.
+Controls the relevance score in an Atlas Search expression.
 
-This expression can be passed to most Atlas Search operators through the
-``score`` argument to customize how MongoDB calculates and applies scoring.
+It can be passed to most Atlas Search operators through the ``score`` argument
+to customize how MongoDB calculates and applies scoring.
 
 It directly maps to the :doc:`score option <atlas:atlas-search/scoring>` of
 the relevant Atlas Search operator.
@@ -609,23 +534,12 @@ Accepted options depend on the underlying operator and may include:
 - ``function``: Uses a mathematical function to compute the score dynamically.
 - ``path``: Scores documents based on the value of a field.
 
-The ``SearchScoreOption`` is a low-level utility used to build the ``score``
-subdocument and can be reused across multiple search expressions.
-
-It is typically passed as the ``score`` parameter to any search expression
-that supports it.
-
 The ``search`` lookup
 ======================
 
-Django lookup that enables Atlas Search full-text querying.
-
 Use the ``search`` lookup on :class:`~django.db.models.CharField` and
-:class:`~django.db.models.TextField` to perform Atlas Search ``text`` queries
-seamlessly within Django ORM filters.
-
-Internally, it creates a :class:`SearchText` expression on the left-hand side
-and return matching documents with a score greater than or equal to zero.
+:class:`~django.db.models.TextField` to perform full-text searches using the
+:doc:`text operator <atlas:atlas-search/text>`:
 
 .. code-block:: pycon
 
@@ -634,3 +548,6 @@ and return matching documents with a score greater than or equal to zero.
         <Article: title: Introduction to MongoDB>,
         <Article: title: MongoDB Atlas Overview>
     ]>
+
+Internally, it creates a :class:`SearchText` expression and returns matching
+documents with a score greater than or equal to zero.
