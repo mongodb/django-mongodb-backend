@@ -1,6 +1,7 @@
 import itertools
 
 from django.db import connection, models
+from django.db.models.expressions import F
 from django.test import TransactionTestCase, skipUnlessDBFeature
 from django.test.utils import isolate_apps
 
@@ -544,11 +545,18 @@ class EmbeddedModelsTopLevelIndexTest(TestMixin, TransactionTestCase):
 
             class Meta:
                 app_label = "schema_"
-                unique_together = [
-                    ("author.unique_together_three", "author.unique_together_four"),
+                constraints = [
+                    models.UniqueConstraint(
+                        F("author__unique_together_three").asc(),
+                        F("author__unique_together_four").desc(),
+                        name="unique_together_34",
+                    ),
                     (
-                        "author.address.unique_together_one",
-                        "author.address.unique_together_two",
+                        models.UniqueConstraint(
+                            F("author__address__unique_together_one"),
+                            F("author__address__unique_together_two").asc(),
+                            name="unique_together_12",
+                        )
                     ),
                 ]
 
@@ -560,18 +568,14 @@ class EmbeddedModelsTopLevelIndexTest(TestMixin, TransactionTestCase):
                 self.get_constraints_for_columns(
                     Book, ["author.unique_together_three", "author.unique_together_four"]
                 ),
-                [
-                    "schema__book_author.unique_together_three_author.unique_together_four_09a570b8_uniq"
-                ],
+                ["unique_together_34"],
             )
             self.assertEqual(
                 self.get_constraints_for_columns(
                     Book,
                     ["author.address.unique_together_one", "author.address.unique_together_two"],
                 ),
-                [
-                    "schema__book_author.address.unique_together_one_author.address.unique_together_two_2c2d1477_uniq"
-                ],
+                ["unique_together_12"],
             )
             editor.delete_model(Book)
         self.assertTableNotExists(Book)
@@ -599,8 +603,8 @@ class EmbeddedModelsTopLevelIndexTest(TestMixin, TransactionTestCase):
             class Meta:
                 app_label = "schema_"
                 indexes = [
-                    models.Index(fields=["author.indexed_two"]),
-                    models.Index(fields=["author.address.indexed_one"]),
+                    models.Index(F("author__indexed_two").asc(), name="indexed_two"),
+                    models.Index(F("author__address__indexed_one").asc(), name="indexed_one"),
                 ]
 
         new_field = EmbeddedModelField(Author)
@@ -613,14 +617,14 @@ class EmbeddedModelsTopLevelIndexTest(TestMixin, TransactionTestCase):
             # Embedded indexes are created.
             self.assertEqual(
                 self.get_constraints_for_columns(Book, ["author.indexed_two"]),
-                ["schema__boo_author._333c90_idx"],
+                ["indexed_two"],
             )
             self.assertEqual(
                 self.get_constraints_for_columns(
                     Book,
                     ["author.address.indexed_one"],
                 ),
-                ["schema__boo_author._f54386_idx"],
+                ["indexed_one"],
             )
             editor.delete_model(Book)
         self.assertTableNotExists(Book)
@@ -648,13 +652,9 @@ class EmbeddedModelsTopLevelIndexTest(TestMixin, TransactionTestCase):
             class Meta:
                 app_label = "schema_"
                 constraints = [
+                    models.UniqueConstraint(F("author__unique_constraint_two"), name="unique_two"),
                     models.UniqueConstraint(
-                        fields=["author.unique_constraint_two"],
-                        name="unique_two",
-                    ),
-                    models.UniqueConstraint(
-                        fields=["author.address.unique_constraint_one"],
-                        name="unique_one",
+                        F("author__address__unique_constraint_one"), name="unique_one"
                     ),
                 ]
 

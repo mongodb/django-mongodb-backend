@@ -155,16 +155,6 @@ class EmbeddedModelField(models.Field):
             }
         )
 
-    def contribute_to_class(self, cls, name):
-        super().contribute_to_class(cls, name)
-        for field in self.embedded_model._meta.local_fields:
-            embedded_field_name = f"{name}.{field.name}"
-            field = field.clone()
-            field.unique = False
-            field.db_index = False
-            field.name = embedded_field_name
-            models.Field.contribute_to_class(field, cls, embedded_field_name, private_only=False)
-
 
 class KeyTransform(Transform):
     def __init__(self, key_name, ref_field, *args, **kwargs):
@@ -212,6 +202,9 @@ class KeyTransform(Transform):
     @property
     def output_field(self):
         return self.ref_field
+
+    def db_type(self, connection):
+        return self.output_field.db_type(connection)
 
 
 class KeyTransformFactory:
