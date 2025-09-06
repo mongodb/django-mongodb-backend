@@ -4,7 +4,7 @@ from collections import defaultdict
 from django.core.checks import Error, Warning
 from django.db import NotSupportedError
 from django.db.models import FloatField, Index, IntegerField
-from django.db.models.expressions import F, OrderBy
+from django.db.models.expressions import OrderBy
 from django.db.models.lookups import BuiltinLookup
 from django.db.models.sql.query import Query
 from django.db.models.sql.where import AND, XOR, WhereNode
@@ -51,8 +51,6 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, unique=False
     expressions_fields = []
     if self.contains_expressions:
         for expression in self.expressions:
-            if not isinstance(expression, F | OrderBy):
-                continue
             query = Query(model=model, alias_cols=False)
             field_ = expression.resolve_expression(query)
             compiler = query.get_compiler(connection=schema_editor.connection)
@@ -60,7 +58,7 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, unique=False
             db_type = (
                 field_.expression.db_type(schema_editor.connection)
                 if isinstance(field_, OrderBy)
-                else field_.db_type(schema_editor.connection)
+                else field_.output_field.db_type(schema_editor.connection)
             )
             if unique:
                 filter_expression[column].update({"$type": db_type})
