@@ -1,10 +1,8 @@
-from copy import deepcopy
-
 from django_mongodb_backend.query_conversion.expression_converters import convert_expression
 
 
 class QueryOptimizer:
-    def convert_expr_to_match(self, expr):
+    def convert_expr_to_match(self, expr_query):
         """
         Takes an MQL query with $expr and optimizes it by extracting
         optimizable conditions into separate $match stages.
@@ -15,8 +13,6 @@ class QueryOptimizer:
         Returns:
             List of optimized match conditions
         """
-        expr_query = deepcopy(expr)
-
         if "$expr" not in expr_query:
             return [expr_query]
 
