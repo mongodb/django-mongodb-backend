@@ -24,7 +24,12 @@ def build_json_mql_path(lhs, key_transforms):
         get_field = {"$getField": {"input": result, "field": key}}
         # Handle array indexing if the key is a digit. If key is something
         # like '001', it's not an array index despite isdigit() returning True.
-        if key.isdigit() and str(int(key)) == key:
+        try:
+            int(key)
+            is_digit = str(int(key)) == key
+        except ValueError:
+            is_digit = False
+        if is_digit:
             result = {
                 "$cond": {
                     "if": {"$isArray": result},
