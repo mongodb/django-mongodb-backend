@@ -74,6 +74,45 @@ class TestEqExprConversion(ExpressionConversionTestCase):
     def test_eq_conversion_various_array_types(self):
         self._test_conversion_various_types(self._test_eq_conversion_valid_array_type)
 
+    def test_eq_conversion_getfield(self):
+        expr = {"$eq": [{"$getField": {"input": "$item", "field": "age"}}, 10]}
+        expected = {"item.age": 10}}
+        self.assertConversionEqual(expr, expected)
+
+    def test_eq_conversion_nested_getfield(self):
+        expr = {
+            "$eq": [
+                {
+                    "$getField": {
+                        "input": {"$getField": {"input": "$item", "field": "shelf_life"}},
+                        "field": "age",
+                    }
+                },
+                10,
+            ]
+        }
+        expected = {"item.shelf_life.age": 10}}
+        self.assertConversionEqual(expr, expected)
+    
+    def test_eq_conversion_dual_getfield_ineligible(self):
+        expr = {
+            "$eq": [
+                {
+                    "$getField": {
+                        "input": {"$getField": {"input": "$item", "field": "shelf_life"}},
+                        "field": "age",
+                    }
+                },
+                {
+                    "$getField": {
+                        "input": {"$getField": {"input": "$item", "field": "shelf_life"}},
+                        "field": "age",
+                    }
+                },
+            ]
+        }
+        self.assertNotOptimizable(expr)
+
 
 class TestInExprConversion(ExpressionConversionTestCase):
     def test_in_conversion(self):
@@ -111,6 +150,46 @@ class TestInExprConversion(ExpressionConversionTestCase):
         for _type, val in self.CONVERTIBLE_TYPES.items():
             with self.subTest(_type=_type, val=val):
                 self._test_in_conversion_valid_type(val)
+
+    def test_in_conversion_getfield(self):
+        expr = {"$in": [{"$getField": {"input": "$item", "field": "age"}}, [10]]}
+        expected = {"item.age": {"$in": [10]}}
+        self.assertConversionEqual(expr, expected)
+
+    def test_in_conversion_nested_getfield(self):
+        expr = {
+            "$in": [
+                {
+                    "$getField": {
+                        "input": {"$getField": {"input": "$item", "field": "shelf_life"}},
+                        "field": "age",
+                    }
+                },
+                10,
+            ]
+        }
+        expected = {"item.shelf_life.age": {"$in": [10]}}
+        self.assertConversionEqual(expr, expected)
+
+    def test_in_conversion_dual_getfield_ineligible(self):
+        expr = {
+            "$in": [
+                {
+                    "$getField": {
+                        "input": "$root",
+                        "field": "age",
+                    }
+                },
+                [{
+                    "$getField": {
+                        "input": "$value",
+                        "field": "age",
+                    }
+                }],
+            ]
+        }
+        self.assertNotOptimizable(expr)
+
 
 
 class TestLogicalExpressionConversion(ExpressionConversionTestCase):
@@ -173,6 +252,7 @@ class TestLogicalExpressionConversion(ExpressionConversionTestCase):
                 {"$in": ["$category", ["electronics", "books"]]},
                 {"$eq": ["$verified", True]},
                 {"$lte": ["$price", 2000]},
+                {"$eq": [{"$getField": {"input": "$root", "field": "age"}}, 10]}
             ]
         }
         expected = {
@@ -181,6 +261,7 @@ class TestLogicalExpressionConversion(ExpressionConversionTestCase):
                 {"category": {"$in": ["electronics", "books"]}},
                 {"verified": True},
                 {"price": {"$lte": 2000}},
+                {"root.age": 10}
             ]
         }
         self.assertConversionEqual(expr, expected)

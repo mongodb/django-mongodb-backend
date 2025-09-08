@@ -214,3 +214,69 @@ class QueryOptimizerTests(SimpleTestCase):
             }
         ]
         self.assertOptimizerEqual(expr, expected)
+
+    def test_getfield_usage_on_dual_binary_operator(self):
+        expr = {
+            "$expr": {
+                "$gt": [
+                    {"$getField": {"input": "$price", "field": "value"}},
+                    {"$getField": {"input": "$discounted_price", "field": "value"}},
+                ]
+            }
+        }
+        expected = [
+            {
+                "$match": {
+                    "$expr": {
+                        "$gt": [
+                            {"$getField": {"input": "$price", "field": "value"}},
+                            {"$getField": {"input": "$discounted_price", "field": "value"}},
+                        ]
+                    }
+                }
+            }
+        ]
+        self.assertOptimizerEqual(expr, expected)
+
+    def test_getfield_usage_on_onesided_binary_operator(self):
+        expr = {"$expr": {"$gt": [{"$getField": {"input": "$price", "field": "value"}}, 100]}}
+        # This should create a proper match condition with no $expr
+        expected = {"price.value": {"$gt": 100}}
+        self.assertOptimizerEqual(expr, expected)
+
+    def test_nested_getfield_usage_on_onesided_binary(self):
+        expr = {
+            "$expr": {
+                "$gt": [
+                    {
+                        "$getField": {
+                            "input": {"$getField": {"input": "$item", "field": "price"}},
+                            "field": "value",
+                        }
+                    },
+                    100,
+                ]
+            }
+        }
+        expected = {"item.price.value": {"$gt": 100}}
+        self.assertOptimizerEqual(expr, expected)
+
+    def test_getfield_with_non_constant_field(self):
+        expr = {"$expr": {"$gt": [{"$getField": {"input": "$price", "field": "$field_name"}}, 100]}}
+        self.assertOptimizerEqual(expr, expr)
+
+    def test_getfield_with_object_non_simple_input(self):
+        expr = {
+            "$expr": {
+                "$gt": [
+                    {
+                        "$getField": {
+                            "input": {"$literal": "$item"},
+                            "field": "price",
+                        }
+                    },
+                    100,
+                ]
+            }
+        }
+        self.assertOptimizerEqual(expr, expr)
