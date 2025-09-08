@@ -105,8 +105,26 @@ to match the first two numbers from your version.)
 Configuring the ``DATABASES`` setting
 =====================================
 
-After you've set up a project, configure Django's :setting:`DATABASES` setting
-similar to this::
+After you've set up a project, configure Django's :setting:`DATABASES` setting.
+
+If you have a connection string, you can provide it like this::
+
+    DATABASES = {
+        "default": {
+            "ENGINE": "django_mongodb_backend",
+            "HOST": "mongodb+srv://my_user:my_password@cluster0.example.mongodb.net/?retryWrites=true&w=majority&tls=false",
+            "NAME": "my_database",
+        },
+    }
+
+.. versionchanged:: 5.2.1
+
+    Support for the connection string in ``"HOST"`` was added. Previous
+    versions recommended using :func:`~django_mongodb_backend.utils.parse_uri`.
+
+Alternatively, you can separate the connection string so that your settings
+look more like what you usually see with Django. This constructs a
+:setting:`DATABASES` setting equivalent to the first example::
 
     DATABASES = {
         "default": {
@@ -117,7 +135,6 @@ similar to this::
             "PASSWORD": "my_password",
             "PORT": 27017,
             "OPTIONS": {
-                # Example:
                 "retryWrites": "true",
                 "w": "majority",
                 "tls": "false",
@@ -128,8 +145,8 @@ similar to this::
 For a localhost configuration, you can omit :setting:`HOST` or specify
 ``"HOST": "localhost"``.
 
-:setting:`HOST` only needs a scheme prefix for SRV connections
-(``mongodb+srv://``). A ``mongodb://`` prefix is never required.
+If you provide a connection string in ``HOST``, any of the other values below
+will override the values in the connection string.
 
 :setting:`OPTIONS` is an optional dictionary of parameters that will be passed
 to :class:`~pymongo.mongo_client.MongoClient`.
@@ -142,17 +159,6 @@ authentication.
 For a replica set or sharded cluster where you have multiple hosts, include
 all of them in :setting:`HOST`, e.g.
 ``"mongodb://mongos0.example.com:27017,mongos1.example.com:27017"``.
-
-Alternatively, if you prefer to simply paste in a MongoDB URI rather than parse
-it into the format above, you can use
-:func:`~django_mongodb_backend.utils.parse_uri`::
-
-    import django_mongodb_backend
-
-    MONGODB_URI = "mongodb+srv://my_user:my_password@cluster0.example.mongodb.net/myDatabase?retryWrites=true&w=majority&tls=false"
-    DATABASES["default"] = django_mongodb_backend.parse_uri(MONGODB_URI)
-
-This constructs a :setting:`DATABASES` setting equivalent to the first example.
 
 .. _configuring-database-routers-setting:
 

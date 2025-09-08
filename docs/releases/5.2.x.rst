@@ -10,12 +10,24 @@ Django MongoDB Backend 5.2.x
 New features
 ------------
 
-- ...
+- Allowed :ref:`specifying the MongoDB connection string
+  <configuring-databases-setting>` in ``DATABASES["HOST"]``, eliminating the
+  need to use :func:`~django_mongodb_backend.utils.parse_uri` to configure the
+  :setting:`DATABASES` setting.
 
 Bug fixes
 ---------
 
-- ...
+- Migrations operations that add or delete search indexes now wait until the
+  operation is completed on the server to prevent conflicts when running
+  multiple operations sequentially.
+
+Performance improvements
+------------------------
+
+- Made simple queries that use ``$eq``, ``$in``, ``$and``, ``$or``, ``$gt``,
+  ``$gte``, ``$lt``, and/or ``$lte`` use ``$match`` instead of ``$expr`` so
+  that they can use indexes.
 
 5.2.0
 =====

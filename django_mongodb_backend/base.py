@@ -11,6 +11,7 @@ from django.utils.functional import cached_property
 from pymongo.collection import Collection
 from pymongo.driver_info import DriverInfo
 from pymongo.mongo_client import MongoClient
+from pymongo.uri_parser import parse_uri
 
 from . import __version__ as django_mongodb_backend_version
 from . import dbapi as Database
@@ -157,6 +158,18 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         self.in_atomic_block_mongo = False
         # Current number of nested 'atomic' calls.
         self.nested_atomics = 0
+        # If database "NAME" isn't specified, try to get it from HOST, if it's
+        # a connection string.
+        if self.settings_dict["NAME"] == "":  # Empty string = unspecified; None = _nodb_cursor()
+            name_is_missing = True
+            host = self.settings_dict["HOST"]
+            if host.startswith(("mongodb://", "mongodb+srv://")):
+                uri = parse_uri(host)
+                if database := uri.get("database"):
+                    self.settings_dict["NAME"] = database
+                    name_is_missing = False
+            if name_is_missing:
+                raise ImproperlyConfigured('settings.DATABASES is missing the "NAME" value.')
 
     def get_collection(self, name, **kwargs):
         collection = Collection(self.database, name, **kwargs)
@@ -183,15 +196,19 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def get_connection_params(self):
         settings_dict = self.settings_dict
-        if not settings_dict["NAME"]:
-            raise ImproperlyConfigured('settings.DATABASES is missing the "NAME" value.')
-        return {
+        params = {
             "host": settings_dict["HOST"] or None,
-            "port": int(settings_dict["PORT"] or 27017),
-            "username": settings_dict.get("USER"),
-            "password": settings_dict.get("PASSWORD"),
             **settings_dict["OPTIONS"],
         }
+        # MongoClient uses any of these parameters (including "OPTIONS" above)
+        # to override any corresponding values in a connection string "HOST".
+        if user := settings_dict.get("USER"):
+            params["username"] = user
+        if password := settings_dict.get("PASSWORD"):
+            params["password"] = password
+        if port := settings_dict.get("PORT"):
+            params["port"] = int(port)
+        return params
 
     @async_unsafe
     def get_new_connection(self, conn_params):

@@ -1,11 +1,11 @@
 from django.test import SimpleTestCase
 
-from django_mongodb_backend.query_conversion.query_optimizer import QueryOptimizer
+from django_mongodb_backend.query_conversion.query_optimizer import convert_expr_to_match
 
 
-class QueryOptimizerTests(SimpleTestCase):
+class ConvertExprToMatchTests(SimpleTestCase):
     def assertOptimizerEqual(self, input, expected):
-        result = QueryOptimizer().convert_expr_to_match(input)
+        result = convert_expr_to_match(input)
         self.assertEqual(result, expected)
 
     def test_multiple_optimizable_conditions(self):
@@ -180,8 +180,7 @@ class QueryOptimizerTests(SimpleTestCase):
                             {"$eq": ["$type", "premium"]},
                             {
                                 "$and": [
-                                    # Not optimizable because of Variable
-                                    {"$eq": ["$type", "$$standard"]},
+                                    {"$eq": ["$type", "$$standard"]},  # Not optimizable
                                     {"$in": ["$region", ["US", "CA"]]},
                                 ]
                             },

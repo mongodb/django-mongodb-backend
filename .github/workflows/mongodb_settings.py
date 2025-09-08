@@ -1,13 +1,16 @@
 import os
 
-from django_mongodb_backend import parse_uri
+from pymongo.uri_parser import parse_uri
 
 if mongodb_uri := os.getenv("MONGODB_URI"):
-    db_settings = parse_uri(mongodb_uri, db_name="dummy")
-
+    db_settings = {
+        "ENGINE": "django_mongodb_backend",
+        "HOST": mongodb_uri,
+    }
     # Workaround for https://github.com/mongodb-labs/mongo-orchestration/issues/268
-    if db_settings["USER"] and db_settings["PASSWORD"]:
-        db_settings["OPTIONS"].update({"tls": True, "tlsAllowInvalidCertificates": True})
+    uri = parse_uri(mongodb_uri)
+    if uri.get("username") and uri.get("password"):
+        db_settings["OPTIONS"] = {"tls": True, "tlsAllowInvalidCertificates": True}
     DATABASES = {
         "default": {**db_settings, "NAME": "djangotests"},
         "other": {**db_settings, "NAME": "djangotests-other"},

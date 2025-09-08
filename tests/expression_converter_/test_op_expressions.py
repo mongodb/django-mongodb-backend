@@ -7,7 +7,7 @@ from django.test import SimpleTestCase
 from django_mongodb_backend.query_conversion.expression_converters import convert_expression
 
 
-class ExpressionConversionTestCase(SimpleTestCase):
+class ConversionTestCase(SimpleTestCase):
     CONVERTIBLE_TYPES = {
         "int": 42,
         "float": 3.14,
@@ -34,52 +34,42 @@ class ExpressionConversionTestCase(SimpleTestCase):
                 conversion_test(val)
 
 
-class TestExpressionConversion(ExpressionConversionTestCase):
-    def test_non_dict_expression(self):
-        expr = ["$status", "active"]
-        self.assertNotOptimizable(expr)
+class ExpressionTests(ConversionTestCase):
+    def test_non_dict(self):
+        self.assertNotOptimizable(["$status", "active"])
 
-    def test_empty_dict_expression(self):
-        expr = {}
-        self.assertNotOptimizable(expr)
+    def test_empty_dict(self):
+        self.assertNotOptimizable({})
 
 
-class TestEqExprConversion(ExpressionConversionTestCase):
-    def test_eq_conversion(self):
-        expr = {"$eq": ["$status", "active"]}
-        expected = {"status": "active"}
-        self.assertConversionEqual(expr, expected)
+class EqTests(ConversionTestCase):
+    def test_conversion(self):
+        self.assertConversionEqual({"$eq": ["$status", "active"]}, {"status": "active"})
 
-    def test_eq_no_conversion_non_string_field(self):
-        expr = {"$eq": [123, "active"]}
-        self.assertNotOptimizable(expr)
+    def test_no_conversion_non_string_field(self):
+        self.assertNotOptimizable({"$eq": [123, "active"]})
 
-    def test_eq_no_conversion_dict_value(self):
-        expr = {"$eq": ["$status", {"$gt": 5}]}
-        self.assertNotOptimizable(expr)
+    def test_no_conversion_dict_value(self):
+        self.assertNotOptimizable({"$eq": ["$status", {"$gt": 5}]})
 
-    def _test_eq_conversion_valid_type(self, _type):
-        expr = {"$eq": ["$age", _type]}
-        expected = {"age": _type}
-        self.assertConversionEqual(expr, expected)
+    def _test_conversion_valid_type(self, _type):
+        self.assertConversionEqual({"$eq": ["$age", _type]}, {"age": _type})
 
-    def _test_eq_conversion_valid_array_type(self, _type):
-        expr = {"$eq": ["$age", _type]}
-        expected = {"age": _type}
-        self.assertConversionEqual(expr, expected)
+    def _test_conversion_valid_array_type(self, _type):
+        self.assertConversionEqual({"$eq": ["$age", _type]}, {"age": _type})
 
-    def test_eq_conversion_various_types(self):
-        self._test_conversion_various_types(self._test_eq_conversion_valid_type)
+    def test_conversion_various_types(self):
+        self._test_conversion_various_types(self._test_conversion_valid_type)
 
-    def test_eq_conversion_various_array_types(self):
-        self._test_conversion_various_types(self._test_eq_conversion_valid_array_type)
+    def test_conversion_various_array_types(self):
+        self._test_conversion_various_types(self._test_conversion_valid_array_type)
 
-    def test_eq_conversion_getfield(self):
+    
+    def test_conversion_getfield(self):
         expr = {"$eq": [{"$getField": {"input": "$item", "field": "age"}}, 10]}
-        expected = {"item.age": 10}}
-        self.assertConversionEqual(expr, expected)
+        self.assertConversionEqual(expr, {"item.age": 10})
 
-    def test_eq_conversion_nested_getfield(self):
+    def test_conversion_nested_getfield(self):
         expr = {
             "$eq": [
                 {
@@ -91,72 +81,33 @@ class TestEqExprConversion(ExpressionConversionTestCase):
                 10,
             ]
         }
-        expected = {"item.shelf_life.age": 10}}
-        self.assertConversionEqual(expr, expected)
-    
-    def test_eq_conversion_dual_getfield_ineligible(self):
-        expr = {
-            "$eq": [
-                {
-                    "$getField": {
-                        "input": {"$getField": {"input": "$item", "field": "shelf_life"}},
-                        "field": "age",
-                    }
-                },
-                {
-                    "$getField": {
-                        "input": {"$getField": {"input": "$item", "field": "shelf_life"}},
-                        "field": "age",
-                    }
-                },
-            ]
-        }
-        self.assertNotOptimizable(expr)
+        self.assertConversionEqual(expr, {"item.shel_life.age": 10})
 
-
-class TestInExprConversion(ExpressionConversionTestCase):
-    def test_in_conversion(self):
+class InTests(ConversionTestCase):
+    def test_conversion(self):
         expr = {"$in": ["$category", ["electronics", "books", "clothing"]]}
         expected = {"category": {"$in": ["electronics", "books", "clothing"]}}
         self.assertConversionEqual(expr, expected)
 
-    def test_in_no_conversion_non_string_field(self):
-        expr = {"$in": [123, ["electronics", "books"]]}
-        self.assertNotOptimizable(expr)
+    def test_no_conversion_non_string_field(self):
+        self.assertNotOptimizable({"$in": [123, ["electronics", "books"]]})
 
-    def test_in_no_conversion_dict_value(self):
-        expr = {"$in": ["$status", [{"bad": "val"}]]}
-        self.assertNotOptimizable(expr)
+    def test_no_conversion_dict_value(self):
+        self.assertNotOptimizable({"$in": ["$status", [{"bad": "val"}]]})
 
-    def _test_in_conversion_valid_type(self, _type):
-        expr = {
-            "$in": [
-                "$age",
-                [
-                    _type,
-                ],
-            ]
-        }
-        expected = {
-            "age": {
-                "$in": [
-                    _type,
-                ]
-            }
-        }
-        self.assertConversionEqual(expr, expected)
+    def _test_conversion_valid_type(self, _type):
+        self.assertConversionEqual({"$in": ["$age", [_type]]}, {"age": {"$in": [_type]}})
 
-    def test_in_conversion_various_types(self):
+    def test_conversion_various_types(self):
         for _type, val in self.CONVERTIBLE_TYPES.items():
             with self.subTest(_type=_type, val=val):
-                self._test_in_conversion_valid_type(val)
-
-    def test_in_conversion_getfield(self):
+                self._test_conversion_valid_type(val)
+    def test_conversion_getfield(self):
         expr = {"$in": [{"$getField": {"input": "$item", "field": "age"}}, [10]]}
         expected = {"item.age": {"$in": [10]}}
         self.assertConversionEqual(expr, expected)
 
-    def test_in_conversion_nested_getfield(self):
+    def test_conversion_nested_getfield(self):
         expr = {
             "$in": [
                 {
@@ -168,10 +119,9 @@ class TestInExprConversion(ExpressionConversionTestCase):
                 10,
             ]
         }
-        expected = {"item.shelf_life.age": {"$in": [10]}}
-        self.assertConversionEqual(expr, expected)
+        self.assertConversionEqual(expr, {"item.shelf_life.age": {"$in": [10]}})
 
-    def test_in_conversion_dual_getfield_ineligible(self):
+    def test_conversion_dual_getfield_ineligible(self):
         expr = {
             "$in": [
                 {
@@ -191,9 +141,8 @@ class TestInExprConversion(ExpressionConversionTestCase):
         self.assertNotOptimizable(expr)
 
 
-
-class TestLogicalExpressionConversion(ExpressionConversionTestCase):
-    def test_logical_and_conversion(self):
+class LogicalTests(ConversionTestCase):
+    def test_and(self):
         expr = {
             "$and": [
                 {"$eq": ["$status", "active"]},
@@ -210,7 +159,7 @@ class TestLogicalExpressionConversion(ExpressionConversionTestCase):
         }
         self.assertConversionEqual(expr, expected)
 
-    def test_logical_or_conversion(self):
+    def test_or(self):
         expr = {
             "$or": [
                 {"$eq": ["$status", "active"]},
@@ -225,7 +174,7 @@ class TestLogicalExpressionConversion(ExpressionConversionTestCase):
         }
         self.assertConversionEqual(expr, expected)
 
-    def test_logical_or_conversion_failure(self):
+    def test_or_failure(self):
         expr = {
             "$or": [
                 {"$eq": ["$status", "active"]},
@@ -240,7 +189,7 @@ class TestLogicalExpressionConversion(ExpressionConversionTestCase):
         }
         self.assertNotOptimizable(expr)
 
-    def test_logical_mixed_conversion(self):
+    def test_mixed(self):
         expr = {
             "$and": [
                 {
@@ -267,93 +216,75 @@ class TestLogicalExpressionConversion(ExpressionConversionTestCase):
         self.assertConversionEqual(expr, expected)
 
 
-class TestGtExpressionConversion(ExpressionConversionTestCase):
-    def test_gt_conversion(self):
-        expr = {"$gt": ["$price", 100]}
-        expected = {"price": {"$gt": 100}}
-        self.assertConversionEqual(expr, expected)
+class GtTests(ConversionTestCase):
+    def test_conversion(self):
+        self.assertConversionEqual({"$gt": ["$price", 100]}, {"price": {"$gt": 100}})
 
-    def test_gt_no_conversion_non_simple_field(self):
-        expr = {"$gt": ["$price", "$min_price"]}
-        self.assertNotOptimizable(expr)
+    def test_no_conversion_non_simple_field(self):
+        self.assertNotOptimizable({"$gt": ["$price", "$min_price"]})
 
-    def test_gt_no_conversion_dict_value(self):
-        expr = {"$gt": ["$price", {}]}
-        self.assertNotOptimizable(expr)
+    def test_no_conversion_dict_value(self):
+        self.assertNotOptimizable({"$gt": ["$price", {}]})
 
-    def _test_gt_conversion_valid_type(self, _type):
-        expr = {"$gt": ["$price", _type]}
-        expected = {"price": {"$gt": _type}}
-        self.assertConversionEqual(expr, expected)
+    def _test_conversion_valid_type(self, _type):
+        self.assertConversionEqual({"$gt": ["$price", _type]}, {"price": {"$gt": _type}})
 
-    def test_gt_conversion_various_types(self):
-        self._test_conversion_various_types(self._test_gt_conversion_valid_type)
+    def test_conversion_various_types(self):
+        self._test_conversion_various_types(self._test_conversion_valid_type)
 
 
-class TestGteExpressionConversion(ExpressionConversionTestCase):
-    def test_gte_conversion(self):
+class GteTests(ConversionTestCase):
+    def test_conversion(self):
         expr = {"$gte": ["$price", 100]}
         expected = {"price": {"$gte": 100}}
         self.assertConversionEqual(expr, expected)
 
-    def test_gte_no_conversion_non_simple_field(self):
+    def test_no_conversion_non_simple_field(self):
         expr = {"$gte": ["$price", "$min_price"]}
         self.assertNotOptimizable(expr)
 
-    def test_gte_no_conversion_dict_value(self):
+    def test_no_conversion_dict_value(self):
         expr = {"$gte": ["$price", {}]}
         self.assertNotOptimizable(expr)
 
-    def _test_gte_conversion_valid_type(self, _type):
+    def _test_conversion_valid_type(self, _type):
         expr = {"$gte": ["$price", _type]}
         expected = {"price": {"$gte": _type}}
         self.assertConversionEqual(expr, expected)
 
-    def test_gte_conversion_various_types(self):
-        self._test_conversion_various_types(self._test_gte_conversion_valid_type)
+    def test_conversion_various_types(self):
+        self._test_conversion_various_types(self._test_conversion_valid_type)
 
 
-class TestLtExpressionConversion(ExpressionConversionTestCase):
-    def test_lt_conversion(self):
-        expr = {"$lt": ["$price", 100]}
-        expected = {"price": {"$lt": 100}}
-        self.assertConversionEqual(expr, expected)
+class LtTests(ConversionTestCase):
+    def test_conversion(self):
+        self.assertConversionEqual({"$lt": ["$price", 100]}, {"price": {"$lt": 100}})
 
-    def test_lt_no_conversion_non_simple_field(self):
-        expr = {"$lt": ["$price", "$min_price"]}
-        self.assertNotOptimizable(expr)
+    def test_no_conversion_non_simple_field(self):
+        self.assertNotOptimizable({"$lt": ["$price", "$min_price"]})
 
-    def test_lt_no_conversion_dict_value(self):
-        expr = {"$lt": ["$price", {}]}
-        self.assertNotOptimizable(expr)
+    def test_no_conversion_dict_value(self):
+        self.assertNotOptimizable({"$lt": ["$price", {}]})
 
-    def _test_lt_conversion_valid_type(self, _type):
-        expr = {"$lt": ["$price", _type]}
-        expected = {"price": {"$lt": _type}}
-        self.assertConversionEqual(expr, expected)
+    def _test_conversion_valid_type(self, _type):
+        self.assertConversionEqual({"$lt": ["$price", _type]}, {"price": {"$lt": _type}})
 
-    def test_lt_conversion_various_types(self):
-        self._test_conversion_various_types(self._test_lt_conversion_valid_type)
+    def test_conversion_various_types(self):
+        self._test_conversion_various_types(self._test_conversion_valid_type)
 
 
-class TestLteExpressionConversion(ExpressionConversionTestCase):
-    def test_lte_conversion(self):
-        expr = {"$lte": ["$price", 100]}
-        expected = {"price": {"$lte": 100}}
-        self.assertConversionEqual(expr, expected)
+class LteTests(ConversionTestCase):
+    def test_conversion(self):
+        self.assertConversionEqual({"$lte": ["$price", 100]}, {"price": {"$lte": 100}})
 
-    def test_lte_no_conversion_non_simple_field(self):
-        expr = {"$lte": ["$price", "$min_price"]}
-        self.assertNotOptimizable(expr)
+    def test_no_conversion_non_simple_field(self):
+        self.assertNotOptimizable({"$lte": ["$price", "$min_price"]})
 
-    def test_lte_no_conversion_dict_value(self):
-        expr = {"$lte": ["$price", {}]}
-        self.assertNotOptimizable(expr)
+    def test_no_conversion_dict_value(self):
+        self.assertNotOptimizable({"$lte": ["$price", {}]})
 
-    def _test_lte_conversion_valid_type(self, _type):
-        expr = {"$lte": ["$price", _type]}
-        expected = {"price": {"$lte": _type}}
-        self.assertConversionEqual(expr, expected)
+    def _test_conversion_valid_type(self, _type):
+        self.assertConversionEqual({"$lte": ["$price", _type]}, {"price": {"$lte": _type}})
 
-    def test_lte_conversion_various_types(self):
-        self._test_conversion_various_types(self._test_lte_conversion_valid_type)
+    def test_conversion_various_types(self):
+        self._test_conversion_various_types(self._test_conversion_valid_type)

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
 from django.db.backends.signals import connection_created
@@ -12,7 +14,96 @@ class DatabaseWrapperTests(SimpleTestCase):
         settings["NAME"] = ""
         msg = 'settings.DATABASES is missing the "NAME" value.'
         with self.assertRaisesMessage(ImproperlyConfigured, msg):
-            DatabaseWrapper(settings).get_connection_params()
+            DatabaseWrapper(settings)
+
+    def test_database_name_empty_and_host_does_not_contain_database(self):
+        settings = connection.settings_dict.copy()
+        settings["NAME"] = ""
+        settings["HOST"] = "mongodb://localhost"
+        msg = 'settings.DATABASES is missing the "NAME" value.'
+        with self.assertRaisesMessage(ImproperlyConfigured, msg):
+            DatabaseWrapper(settings)
+
+    def test_database_name_parsed_from_host(self):
+        settings = connection.settings_dict.copy()
+        settings["NAME"] = ""
+        settings["HOST"] = "mongodb://localhost/db"
+        self.assertEqual(DatabaseWrapper(settings).settings_dict["NAME"], "db")
+
+    def test_database_name_parsed_from_srv_host(self):
+        settings = connection.settings_dict.copy()
+        settings["NAME"] = ""
+        settings["HOST"] = "mongodb+srv://localhost/db"
+        # patch() prevents a crash when PyMongo attempts to resolve the
+        # nonexistent SRV record.
+        with patch("dns.resolver.resolve"):
+            self.assertEqual(DatabaseWrapper(settings).settings_dict["NAME"], "db")
+
+    def test_database_name_not_overridden_by_host(self):
+        settings = connection.settings_dict.copy()
+        settings["NAME"] = "not overridden"
+        settings["HOST"] = "mongodb://localhost/db"
+        self.assertEqual(DatabaseWrapper(settings).settings_dict["NAME"], "not overridden")
+
+
+class GetConnectionParamsTests(SimpleTestCase):
+    def test_host(self):
+        settings = connection.settings_dict.copy()
+        settings["HOST"] = "host"
+        params = DatabaseWrapper(settings).get_connection_params()
+        self.assertEqual(params["host"], "host")
+
+    def test_host_empty(self):
+        settings = connection.settings_dict.copy()
+        settings["HOST"] = ""
+        params = DatabaseWrapper(settings).get_connection_params()
+        self.assertIsNone(params["host"])
+
+    def test_user(self):
+        settings = connection.settings_dict.copy()
+        settings["USER"] = "user"
+        params = DatabaseWrapper(settings).get_connection_params()
+        self.assertEqual(params["username"], "user")
+
+    def test_password(self):
+        settings = connection.settings_dict.copy()
+        settings["PASSWORD"] = "password"  # noqa: S105
+        params = DatabaseWrapper(settings).get_connection_params()
+        self.assertEqual(params["password"], "password")
+
+    def test_port(self):
+        settings = connection.settings_dict.copy()
+        settings["PORT"] = 123
+        params = DatabaseWrapper(settings).get_connection_params()
+        self.assertEqual(params["port"], 123)
+
+    def test_port_as_string(self):
+        settings = connection.settings_dict.copy()
+        settings["PORT"] = "123"
+        params = DatabaseWrapper(settings).get_connection_params()
+        self.assertEqual(params["port"], 123)
+
+    def test_options(self):
+        settings = connection.settings_dict.copy()
+        settings["OPTIONS"] = {"extra": "option"}
+        params = DatabaseWrapper(settings).get_connection_params()
+        self.assertEqual(params["extra"], "option")
+
+    def test_unspecified_settings_omitted(self):
+        settings = connection.settings_dict.copy()
+        # django.db.utils.ConnectionHandler sets unspecified values to an empty
+        # string.
+        settings.update(
+            {
+                "USER": "",
+                "PASSWORD": "",
+                "PORT": "",
+            }
+        )
+        params = DatabaseWrapper(settings).get_connection_params()
+        self.assertNotIn("username", params)
+        self.assertNotIn("password", params)
+        self.assertNotIn("port", params)
 
 
 class DatabaseWrapperConnectionTests(TestCase):
