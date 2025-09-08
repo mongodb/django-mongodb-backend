@@ -57,7 +57,6 @@ class MongoQuery:
         # $lookup stage that encapsulates the pipeline for performing a nested
         # subquery.
         self.subquery_lookup = None
-        self.query_optimizer = QueryOptimizer()
 
     def __repr__(self):
         return f"<MongoQuery: {self.match_mql!r} ORDER {self.ordering!r}>"

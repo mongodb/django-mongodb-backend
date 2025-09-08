@@ -64,7 +64,6 @@ class EqTests(ConversionTestCase):
     def test_conversion_various_array_types(self):
         self._test_conversion_various_types(self._test_conversion_valid_array_type)
 
-    
     def test_conversion_getfield(self):
         expr = {"$eq": [{"$getField": {"input": "$item", "field": "age"}}, 10]}
         self.assertConversionEqual(expr, {"item.age": 10})
@@ -82,6 +81,7 @@ class EqTests(ConversionTestCase):
             ]
         }
         self.assertConversionEqual(expr, {"item.shel_life.age": 10})
+
 
 class InTests(ConversionTestCase):
     def test_conversion(self):
@@ -102,6 +102,7 @@ class InTests(ConversionTestCase):
         for _type, val in self.CONVERTIBLE_TYPES.items():
             with self.subTest(_type=_type, val=val):
                 self._test_conversion_valid_type(val)
+
     def test_conversion_getfield(self):
         expr = {"$in": [{"$getField": {"input": "$item", "field": "age"}}, [10]]}
         expected = {"item.age": {"$in": [10]}}
@@ -130,12 +131,14 @@ class InTests(ConversionTestCase):
                         "field": "age",
                     }
                 },
-                [{
-                    "$getField": {
-                        "input": "$value",
-                        "field": "age",
+                [
+                    {
+                        "$getField": {
+                            "input": "$value",
+                            "field": "age",
+                        }
                     }
-                }],
+                ],
             ]
         }
         self.assertNotOptimizable(expr)
@@ -201,7 +204,7 @@ class LogicalTests(ConversionTestCase):
                 {"$in": ["$category", ["electronics", "books"]]},
                 {"$eq": ["$verified", True]},
                 {"$lte": ["$price", 2000]},
-                {"$eq": [{"$getField": {"input": "$root", "field": "age"}}, 10]}
+                {"$eq": [{"$getField": {"input": "$root", "field": "age"}}, 10]},
             ]
         }
         expected = {
@@ -210,7 +213,7 @@ class LogicalTests(ConversionTestCase):
                 {"category": {"$in": ["electronics", "books"]}},
                 {"verified": True},
                 {"price": {"$lte": 2000}},
-                {"root.age": 10}
+                {"root.age": 10},
             ]
         }
         self.assertConversionEqual(expr, expected)
