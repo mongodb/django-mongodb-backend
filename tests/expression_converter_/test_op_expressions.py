@@ -33,13 +33,13 @@ class ConversionTestCase(SimpleTestCase):
             with self.subTest(_type=_type, val=val):
                 conversion_test(val)
 
-    def _test_conversion_getfield(self, logical_op):
-        expr = {logical_op: [{"$getField": {"input": "$item", "field": "age"}}, 10]}
+    def _test_conversion_getfield(self, logical_op, value=10):
+        expr = {logical_op: [{"$getField": {"input": "$item", "field": "age"}}, value]}
         self.assertConversionEqual(
-            expr, {"item.age": 10} if logical_op == "eq" else {"item.age": {logical_op: 10}}
+            expr, {"item.age": value} if logical_op == "$eq" else {"item.age": {logical_op: value}}
         )
 
-    def _test_conversion_nested_getfield(self, logical_op):
+    def _test_conversion_nested_getfield(self, logical_op, value=10):
         expr = {
             logical_op: [
                 {
@@ -48,14 +48,14 @@ class ConversionTestCase(SimpleTestCase):
                         "field": "age",
                     }
                 },
-                10,
+                value,
             ]
         }
         self.assertConversionEqual(
             expr,
-            {"item.shel_life.age": 10}
-            if logical_op == "eq"
-            else {"item.shelf_life.age": {logical_op: 10}},
+            {"item.shelf_life.age": value}
+            if logical_op == "$eq"
+            else {"item.shelf_life.age": {logical_op: value}},
         )
 
     def _test_conversion_dual_getfield_ineligible(self, logical_op):
@@ -75,7 +75,9 @@ class ConversionTestCase(SimpleTestCase):
                 },
             ]
         }
-        self.assertNotOptimizable(expr)
+        # Not optimized but should still convert getFields
+        expected = {logical_op: ["$root.age", "$value.age"]}
+        self.assertConversionEqual(expr, expected)
 
 
 class ExpressionTests(ConversionTestCase):
@@ -139,10 +141,10 @@ class InTests(ConversionTestCase):
                 self._test_conversion_valid_type(val)
 
     def test_conversion_getfield(self):
-        self._test_conversion_getfield("$in")
+        self._test_conversion_getfield("$in", [10])
 
     def test_conversion_nested_getfield(self):
-        self._test_conversion_nested_getfield("$in")
+        self._test_conversion_nested_getfield("$in", [10])
 
     def test_conversion_dual_getfield_ineligible(self):
         expr = {
@@ -163,7 +165,9 @@ class InTests(ConversionTestCase):
                 ],
             ]
         }
-        self.assertNotOptimizable(expr)
+        # Not optimized but should still convert getFields
+        expected = {"$in": ["$root.age", ["$value.age"]]}
+        self.assertConversionEqual(expr, expected)
 
 
 class LogicalTests(ConversionTestCase):
