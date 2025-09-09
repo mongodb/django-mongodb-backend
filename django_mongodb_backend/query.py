@@ -211,6 +211,7 @@ def join(self, compiler, connection, pushed_filter_expression=None):
                 compiler, connection
             )
         )
+    extra_conditions = {"$and": extra_conditions} if extra_conditions else {}
     lookup_pipeline = [
         {
             "$lookup": {
@@ -236,8 +237,8 @@ def join(self, compiler, connection, pushed_filter_expression=None):
                                     {"$eq": [f"$${parent_template}{i}", field]}
                                     for i, field in enumerate(rhs_fields)
                                 ]
-                                + extra_conditions
-                            }
+                            },
+                            **extra_conditions,
                         }
                     }
                 ],
@@ -331,7 +332,7 @@ def where_node(self, compiler, connection):
         raise FullResultSet
 
     if self.negated and mql:
-        mql = {"$not": mql}
+        mql = {"$nor": mql}
 
     return mql
 

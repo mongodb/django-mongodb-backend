@@ -7,7 +7,7 @@ def is_direct_value(node):
     return not hasattr(node, "as_sql")
 
 
-def process_lhs(node, compiler, connection):
+def process_lhs(node, compiler, connection, **extra):
     if not hasattr(node, "lhs"):
         # node is a Func or Expression, possibly with multiple source expressions.
         result = []
@@ -15,16 +15,16 @@ def process_lhs(node, compiler, connection):
             if expr is None:
                 continue
             try:
-                result.append(expr.as_mql(compiler, connection))
+                result.append(expr.as_mql(compiler, connection, **extra))
             except FullResultSet:
-                result.append(Value(True).as_mql(compiler, connection))
+                result.append(Value(True).as_mql(compiler, connection, **extra))
         if isinstance(node, Aggregate):
             return result[0]
         return result
     # node is a Transform with just one source expression, aliased as "lhs".
     if is_direct_value(node.lhs):
         return node
-    return node.lhs.as_mql(compiler, connection)
+    return node.lhs.as_mql(compiler, connection, **extra)
 
 
 def process_rhs(node, compiler, connection):
@@ -47,7 +47,14 @@ def process_rhs(node, compiler, connection):
     return value
 
 
-def regex_match(field, regex_vals, insensitive=False):
+def regex_expr(field, regex_vals, insensitive=False):
     regex = {"$concat": regex_vals} if isinstance(regex_vals, tuple) else regex_vals
     options = "i" if insensitive else ""
     return {"$regexMatch": {"input": field, "regex": regex, "options": options}}
+
+
+def regex_match(field, regex_vals, insensitive=False):
+    regex = {"$concat": regex_vals} if isinstance(regex_vals, tuple) else regex_vals
+    options = "i" if insensitive else ""
+    # return {"$regexMatch": {"input": field, "regex": regex, "options": options}}
+    return {field: {"$regex": regex, "$options": options}}

@@ -33,7 +33,7 @@ def case(self, compiler, connection):
     for case in self.cases:
         case_mql = {}
         try:
-            case_mql["case"] = case.as_mql(compiler, connection)
+            case_mql["case"] = case.as_mql(compiler, connection, as_expr=True)
         except EmptyResultSet:
             continue
         except FullResultSet:
@@ -152,7 +152,7 @@ def raw_sql(self, compiler, connection):  # noqa: ARG001
     raise NotSupportedError("RawSQL is not supported on MongoDB.")
 
 
-def ref(self, compiler, connection):  # noqa: ARG001
+def ref(self, compiler, connection, as_path=False):  # noqa: ARG001
     prefix = (
         f"{self.source.alias}."
         if isinstance(self.source, Col) and self.source.alias != compiler.collection_name
@@ -162,7 +162,9 @@ def ref(self, compiler, connection):  # noqa: ARG001
         refs, _ = compiler.columns[self.ordinal - 1]
     else:
         refs = self.refs
-    return f"${prefix}{refs}"
+    if not as_path:
+        prefix = f"${prefix}"
+    return f"{prefix}{refs}"
 
 
 def star(self, compiler, connection):  # noqa: ARG001
@@ -181,8 +183,8 @@ def exists(self, compiler, connection, get_wrapping_pipeline=None):
     return connection.mongo_operators["isnull"](lhs_mql, False)
 
 
-def when(self, compiler, connection):
-    return self.condition.as_mql(compiler, connection)
+def when(self, compiler, connection, **extra):
+    return self.condition.as_mql(compiler, connection, **extra)
 
 
 def value(self, compiler, connection):  # noqa: ARG001

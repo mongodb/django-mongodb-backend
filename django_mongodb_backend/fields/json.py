@@ -1,3 +1,5 @@
+from itertools import chain
+
 from django.db import NotSupportedError
 from django.db.models.fields.json import (
     ContainedBy,
@@ -13,12 +15,14 @@ from django.db.models.fields.json import (
     KeyTransformNumericLookupMixin,
 )
 
-from ..lookups import builtin_lookup
+from ..lookups import builtin_lookup, is_constant_value
 from ..query_utils import process_lhs, process_rhs
 
 
-def build_json_mql_path(lhs, key_transforms):
+def build_json_mql_path(lhs, key_transforms, as_path=False):
     # Build the MQL path using the collected key transforms.
+    if as_path:
+        return ".".join(chain([lhs], key_transforms))
     result = lhs
     for key in key_transforms:
         get_field = {"$getField": {"input": result, "field": key}}
@@ -45,8 +49,12 @@ def data_contains(self, compiler, connection):  # noqa: ARG001
     raise NotSupportedError("contains lookup is not supported on this database backend.")
 
 
-def _has_key_predicate(path, root_column, negated=False):
+def _has_key_predicate(path, root_column, negated=False, as_path=False):
     """Return MQL to check for the existence of `path`."""
+    if as_path:
+        if not negated:
+            return {"$and": [{path: {"$exists": True}}, {path: {"$ne": None}}]}
+        return {"$or": [{path: {"$exists": False}}, {path: None}]}
     result = {
         "$and": [
             # The path must exist (i.e. not be "missing").
@@ -64,18 +72,20 @@ def _has_key_predicate(path, root_column, negated=False):
 def has_key_lookup(self, compiler, connection):
     """Return MQL to check for the existence of a key."""
     rhs = self.rhs
+    as_path = is_constant_value(rhs)
     lhs = process_lhs(self, compiler, connection)
     if not isinstance(rhs, (list, tuple)):
         rhs = [rhs]
     paths = []
     # Transform any "raw" keys into KeyTransforms to allow consistent handling
     # in the code that follows.
+
     for key in rhs:
         rhs_json_path = key if isinstance(key, KeyTransform) else KeyTransform(key, self.lhs)
-        paths.append(rhs_json_path.as_mql(compiler, connection))
+        paths.append(rhs_json_path.as_mql(compiler, connection, as_path=as_path))
     keys = []
     for path in paths:
-        keys.append(_has_key_predicate(path, lhs))
+        keys.append(_has_key_predicate(path, lhs, as_path=as_path))
     if self.mongo_operator is None:
         return keys[0]
     return {self.mongo_operator: keys}
@@ -93,7 +103,7 @@ def json_exact_process_rhs(self, compiler, connection):
     )
 
 
-def key_transform(self, compiler, connection):
+def key_transform(self, compiler, connection, **extra):
     """
     Return MQL for this KeyTransform (JSON path).
 
@@ -108,8 +118,8 @@ def key_transform(self, compiler, connection):
     while isinstance(previous, KeyTransform):
         key_transforms.insert(0, previous.key_name)
         previous = previous.lhs
-    lhs_mql = previous.as_mql(compiler, connection)
-    return build_json_mql_path(lhs_mql, key_transforms)
+    lhs_mql = previous.as_mql(compiler, connection, **extra)
+    return build_json_mql_path(lhs_mql, key_transforms, **extra)
 
 
 def key_transform_in(self, compiler, connection):

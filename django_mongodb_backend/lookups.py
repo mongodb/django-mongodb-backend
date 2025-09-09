@@ -1,4 +1,5 @@
 from django.db import NotSupportedError
+from django.db.models.expressions import Value
 from django.db.models.fields.related_lookups import In, RelatedIn
 from django.db.models.lookups import (
     BuiltinLookup,
@@ -8,13 +9,21 @@ from django.db.models.lookups import (
     UUIDTextMixin,
 )
 
-from .query_utils import process_lhs, process_rhs
+from .query_utils import is_direct_value, process_lhs, process_rhs
 
 
-def builtin_lookup(self, compiler, connection):
-    lhs_mql = process_lhs(self, compiler, connection)
+def is_constant_value(value):
+    return is_direct_value(value) or isinstance(value, Value)
+
+
+def builtin_lookup(self, compiler, connection, as_expr=False):
     value = process_rhs(self, compiler, connection)
-    return connection.mongo_operators[self.lookup_name](lhs_mql, value)
+    if is_constant_value(self.rhs) and not as_expr:
+        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        return connection.mongo_operators_match[self.lookup_name](lhs_mql, value)
+
+    lhs_mql = process_lhs(self, compiler, connection)
+    return {"$expr": connection.mongo_operators_expr[self.lookup_name](lhs_mql, value)}
 
 
 _field_resolve_expression_parameter = FieldGetDbPrepValueIterableMixin.resolve_expression_parameter
@@ -75,11 +84,14 @@ def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr)
     ]
 
 
-def is_null(self, compiler, connection):
+def is_null(self, compiler, connection, as_expr=False):
     if not isinstance(self.rhs, bool):
         raise ValueError("The QuerySet value for an isnull lookup must be True or False.")
+    if is_constant_value(self.rhs) and not as_expr:
+        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        return connection.mongo_operators_match["isnull"](lhs_mql, self.rhs)
     lhs_mql = process_lhs(self, compiler, connection)
-    return connection.mongo_operators["isnull"](lhs_mql, self.rhs)
+    return {"$expr": connection.mongo_operators_expr["isnull"](lhs_mql, self.rhs)}
 
 
 # from https://www.pcre.org/current/doc/html/pcre2pattern.html#SEC4
