@@ -485,7 +485,7 @@ class SQLCompiler(compiler.SQLCompiler):
             except FullResultSet:
                 query.match_mql = {}
             else:
-                query.match_mql = {"$expr": expr}
+                query.match_mql = expr
         if extra_fields:
             query.extra_fields = self.get_project_fields(extra_fields, force_expression=True)
         query.subqueries = self.subqueries

@@ -146,10 +146,12 @@ def preserve_null(operator):
     def wrapped(self, compiler, connection):
         lhs_mql = process_lhs(self, compiler, connection)
         return {
-            "$cond": {
-                "if": connection.mongo_operators["isnull"](lhs_mql, True),
-                "then": None,
-                "else": {f"${operator}": lhs_mql},
+            "$expr": {
+                "$cond": {
+                    "if": connection.mongo_operators_expr["isnull"](lhs_mql, True),
+                    "then": None,
+                    "else": {f"${operator}": lhs_mql},
+                }
             }
         }
 

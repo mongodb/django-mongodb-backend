@@ -20,7 +20,7 @@ from .creation import DatabaseCreation
 from .features import DatabaseFeatures
 from .introspection import DatabaseIntrospection
 from .operations import DatabaseOperations
-from .query_utils import regex_match
+from .query_utils import regex_expr, regex_match
 from .schema import DatabaseSchemaEditor
 from .utils import OperationDebugWrapper
 from .validation import DatabaseValidation
@@ -108,7 +108,12 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         }
         return is_null if b else {"$not": is_null}
 
-    mongo_operators = {
+    def _isnull_operator_match(a, b):
+        if b:
+            return {"$or": [{a: {"$exists": False}}, {a: None}]}
+        return {"$and": [{a: {"$exists": True}}, {a: {"$ne": None}}]}
+
+    mongo_operators_expr = {
         "exact": lambda a, b: {"$eq": [a, b]},
         "gt": lambda a, b: {"$gt": [a, b]},
         "gte": lambda a, b: {"$gte": [a, b]},
@@ -124,6 +129,37 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             "$and": [
                 {"$or": [DatabaseWrapper._isnull_operator(b[0], True), {"$gte": [a, b[0]]}]},
                 {"$or": [DatabaseWrapper._isnull_operator(b[1], True), {"$lte": [a, b[1]]}]},
+            ]
+        },
+        "iexact": lambda a, b: regex_expr(a, ("^", b, {"$literal": "$"}), insensitive=True),
+        "startswith": lambda a, b: regex_expr(a, ("^", b)),
+        "istartswith": lambda a, b: regex_expr(a, ("^", b), insensitive=True),
+        "endswith": lambda a, b: regex_expr(a, (b, {"$literal": "$"})),
+        "iendswith": lambda a, b: regex_expr(a, (b, {"$literal": "$"}), insensitive=True),
+        "contains": lambda a, b: regex_expr(a, b),
+        "icontains": lambda a, b: regex_expr(a, b, insensitive=True),
+        "regex": lambda a, b: regex_expr(a, b),
+        "iregex": lambda a, b: regex_expr(a, b, insensitive=True),
+    }
+
+    mongo_operators_match = {
+        "exact": lambda a, b: {a: b},
+        "gt": lambda a, b: {a: {"$gt": b}},
+        "gte": lambda a, b: {a: {"$gte": b}},
+        # MongoDB considers null less than zero. Exclude null values to match
+        # SQL behavior.
+        "lt": lambda a, b: {
+            "$and": [{a: {"$lt": b}}, DatabaseWrapper._isnull_operator_match(a, False)]
+        },
+        "lte": lambda a, b: {
+            "$and": [{a: {"$lte": b}}, DatabaseWrapper._isnull_operator_match(a, False)]
+        },
+        "in": lambda a, b: {a: {"$in": list(b)}},
+        "isnull": _isnull_operator_match,
+        "range": lambda a, b: {
+            "$and": [
+                {"$or": [DatabaseWrapper._isnull_operator_match(b[0], True), {a: {"$gte": b[0]}}]},
+                {"$or": [DatabaseWrapper._isnull_operator_match(b[1], True), {a: {"$lte": b[1]}}]},
             ]
         },
         "iexact": lambda a, b: regex_match(a, ("^", b, {"$literal": "$"}), insensitive=True),
