@@ -17,7 +17,7 @@ def aggregate(self, compiler, connection, operator=None, resolve_inner_expressio
         node.set_source_expressions([Case(condition), *source_expressions[1:]])
     else:
         node = self
-    lhs_mql = process_lhs(node, compiler, connection)
+    lhs_mql = process_lhs(node, compiler, connection, as_expr=True)
     if resolve_inner_expression:
         return lhs_mql
     operator = operator or MONGO_AGGREGATIONS.get(self.__class__, self.function.lower())
@@ -39,9 +39,9 @@ def count(self, compiler, connection, resolve_inner_expression=False):
                 self.filter, then=Case(When(IsNull(source_expressions[0], False), then=Value(1)))
             )
             node.set_source_expressions([Case(condition), *source_expressions[1:]])
-            inner_expression = process_lhs(node, compiler, connection)
+            inner_expression = process_lhs(node, compiler, connection, as_expr=True)
         else:
-            lhs_mql = process_lhs(self, compiler, connection)
+            lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
             null_cond = {"$in": [{"$type": lhs_mql}, ["missing", "null"]]}
             inner_expression = {
                 "$cond": {"if": null_cond, "then": None, "else": lhs_mql if self.distinct else 1}
@@ -51,7 +51,7 @@ def count(self, compiler, connection, resolve_inner_expression=False):
         return {"$sum": inner_expression}
     # If distinct=True or resolve_inner_expression=False, sum the size of the
     # set.
-    lhs_mql = process_lhs(self, compiler, connection)
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
     # None shouldn't be counted, so subtract 1 if it's present.
     exits_null = {"$cond": {"if": {"$in": [{"$literal": None}, lhs_mql]}, "then": -1, "else": 0}}
     return {"$add": [{"$size": lhs_mql}, exits_null]}
@@ -66,7 +66,7 @@ def stddev_variance(self, compiler, connection):
 
 
 def register_aggregates():
-    Aggregate.as_mql = aggregate
-    Count.as_mql = count
-    StdDev.as_mql = stddev_variance
-    Variance.as_mql = stddev_variance
+    Aggregate.as_mql_expr = aggregate
+    Count.as_mql_expr = count
+    StdDev.as_mql_expr = stddev_variance
+    Variance.as_mql_expr = stddev_variance

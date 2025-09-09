@@ -118,7 +118,7 @@ class SearchExpression(SearchCombinable, Expression):
     def search_operator(self, compiler, connection):
         raise NotImplementedError
 
-    def as_mql(self, compiler, connection):
+    def as_mql(self, compiler, connection, as_expr=False):
         index = self._get_query_index(self.get_search_fields(compiler, connection), compiler)
         return {"$search": {**self.search_operator(compiler, connection), "index": index}}
 
@@ -154,11 +154,11 @@ class SearchAutocomplete(SearchExpression):
         super().__init__()
 
     def get_search_fields(self, compiler, connection):
-        return {self.path.as_mql(compiler, connection, as_path=True)}
+        return {self.path.as_mql(compiler, connection)}
 
     def search_operator(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection, as_path=True),
+            "path": self.path.as_mql(compiler, connection),
             "query": self.query,
         }
         if self.score:
@@ -192,11 +192,11 @@ class SearchEquals(SearchExpression):
         super().__init__()
 
     def get_search_fields(self, compiler, connection):
-        return {self.path.as_mql(compiler, connection, as_path=True)}
+        return {self.path.as_mql(compiler, connection)}
 
     def search_operator(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection, as_path=True),
+            "path": self.path.as_mql(compiler, connection),
             "value": self.value,
         }
         if self.score:
@@ -228,11 +228,11 @@ class SearchExists(SearchExpression):
         super().__init__()
 
     def get_search_fields(self, compiler, connection):
-        return {self.path.as_mql(compiler, connection, as_path=True)}
+        return {self.path.as_mql(compiler, connection)}
 
     def search_operator(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection, as_path=True),
+            "path": self.path.as_mql(compiler, connection),
         }
         if self.score:
             params["score"] = self.score.as_mql(compiler, connection)
@@ -261,11 +261,11 @@ class SearchIn(SearchExpression):
         super().__init__()
 
     def get_search_fields(self, compiler, connection):
-        return {self.path.as_mql(compiler, connection, as_path=True)}
+        return {self.path.as_mql(compiler, connection)}
 
     def search_operator(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection, as_path=True),
+            "path": self.path.as_mql(compiler, connection),
             "value": self.value,
         }
         if self.score:
@@ -302,11 +302,11 @@ class SearchPhrase(SearchExpression):
         super().__init__()
 
     def get_search_fields(self, compiler, connection):
-        return {self.path.as_mql(compiler, connection, as_path=True)}
+        return {self.path.as_mql(compiler, connection)}
 
     def search_operator(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection, as_path=True),
+            "path": self.path.as_mql(compiler, connection),
             "query": self.query,
         }
         if self.score:
@@ -344,11 +344,11 @@ class SearchQueryString(SearchExpression):
         super().__init__()
 
     def get_search_fields(self, compiler, connection):
-        return {self.path.as_mql(compiler, connection, as_path=True)}
+        return {self.path.as_mql(compiler, connection)}
 
     def search_operator(self, compiler, connection):
         params = {
-            "defaultPath": self.path.as_mql(compiler, connection, as_path=True),
+            "defaultPath": self.path.as_mql(compiler, connection),
             "query": self.query,
         }
         if self.score:
@@ -387,11 +387,11 @@ class SearchRange(SearchExpression):
         super().__init__()
 
     def get_search_fields(self, compiler, connection):
-        return {self.path.as_mql(compiler, connection, as_path=True)}
+        return {self.path.as_mql(compiler, connection)}
 
     def search_operator(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection, as_path=True),
+            "path": self.path.as_mql(compiler, connection),
         }
         if self.score:
             params["score"] = self.score.as_mql(compiler, connection)
@@ -431,11 +431,11 @@ class SearchRegex(SearchExpression):
         super().__init__()
 
     def get_search_fields(self, compiler, connection):
-        return {self.path.as_mql(compiler, connection, as_path=True)}
+        return {self.path.as_mql(compiler, connection)}
 
     def search_operator(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection, as_path=True),
+            "path": self.path.as_mql(compiler, connection),
             "query": self.query,
         }
         if self.score:
@@ -481,11 +481,11 @@ class SearchText(SearchExpression):
         super().__init__()
 
     def get_search_fields(self, compiler, connection):
-        return {self.path.as_mql(compiler, connection, as_path=True)}
+        return {self.path.as_mql(compiler, connection)}
 
     def search_operator(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection, as_path=True),
+            "path": self.path.as_mql(compiler, connection),
             "query": self.query,
         }
         if self.score:
@@ -527,11 +527,11 @@ class SearchWildcard(SearchExpression):
         super().__init__()
 
     def get_search_fields(self, compiler, connection):
-        return {self.path.as_mql(compiler, connection, as_path=True)}
+        return {self.path.as_mql(compiler, connection)}
 
     def search_operator(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection, as_path=True),
+            "path": self.path.as_mql(compiler, connection),
             "query": self.query,
         }
         if self.score:
@@ -573,11 +573,11 @@ class SearchGeoShape(SearchExpression):
         super().__init__()
 
     def get_search_fields(self, compiler, connection):
-        return {self.path.as_mql(compiler, connection, as_path=True)}
+        return {self.path.as_mql(compiler, connection)}
 
     def search_operator(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection, as_path=True),
+            "path": self.path.as_mql(compiler, connection),
             "relation": self.relation,
             "geometry": self.geometry,
         }
@@ -617,11 +617,11 @@ class SearchGeoWithin(SearchExpression):
         super().__init__()
 
     def get_search_fields(self, compiler, connection):
-        return {self.path.as_mql(compiler, connection, as_path=True)}
+        return {self.path.as_mql(compiler, connection)}
 
     def search_operator(self, compiler, connection):
         params = {
-            "path": self.path.as_mql(compiler, connection, as_path=True),
+            "path": self.path.as_mql(compiler, connection),
             self.kind: self.geometry,
         }
         if self.score:
@@ -817,9 +817,9 @@ class CombinedSearchExpression(SearchExpression):
             return CompoundExpression(must=[lhs_compound, rhs_compound])
         return CompoundExpression(should=[lhs_compound, rhs_compound], minimum_should_match=1)
 
-    def as_mql(self, compiler, connection):
+    def as_mql(self, compiler, connection, as_expr=False):
         expression = self.resolve(self)
-        return expression.as_mql(compiler, connection)
+        return expression.as_mql(compiler, connection, as_expr=as_expr)
 
 
 class SearchVector(SearchExpression):
@@ -879,7 +879,7 @@ class SearchVector(SearchExpression):
         raise NotSupportedError("SearchVector cannot be combined")
 
     def get_search_fields(self, compiler, connection):
-        return {self.path.as_mql(compiler, connection, as_path=True)}
+        return {self.path.as_mql(compiler, connection)}
 
     def _get_query_index(self, fields, compiler):
         for search_indexes in compiler.collection.list_search_indexes():
@@ -891,10 +891,10 @@ class SearchVector(SearchExpression):
                     return search_indexes["name"]
         return "default"
 
-    def as_mql(self, compiler, connection):
+    def as_mql(self, compiler, connection, as_expr=False):
         params = {
             "index": self._get_query_index(self.get_search_fields(compiler, connection), compiler),
-            "path": self.path.as_mql(compiler, connection, as_path=True),
+            "path": self.path.as_mql(compiler, connection),
             "queryVector": self.query_vector,
             "limit": self.limit,
         }
@@ -913,7 +913,7 @@ class SearchScoreOption(Expression):
     def __init__(self, definitions=None):
         self._definitions = definitions
 
-    def as_mql(self, compiler, connection):
+    def as_mql(self, compiler, connection, as_expr=False):
         return self._definitions
 
 
@@ -933,10 +933,15 @@ class SearchTextLookup(Lookup):
     def __repr__(self):
         return f"SearchText({self.lhs}, {self.rhs})"
 
-    def as_mql(self, compiler, connection):
+    def as_mql_expr(self, compiler, connection):
+        lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+        value = process_rhs(self, compiler, connection, as_expr=True)
+        return {"$gte": [lhs_mql, value]}
+
+    def as_mql_path(self, compiler, connection):
         lhs_mql = process_lhs(self, compiler, connection)
         value = process_rhs(self, compiler, connection)
-        return {"$gte": [lhs_mql, value]}
+        return {lhs_mql: {"$gte": value}}
 
 
 CharField.register_lookup(SearchTextLookup)

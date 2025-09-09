@@ -2,7 +2,8 @@ import contextlib
 import logging
 import os
 
-from django.core.exceptions import ImproperlyConfigured
+from bson import Decimal128
+from django.core.exceptions import EmptyResultSet, FullResultSet, ImproperlyConfigured
 from django.db import DEFAULT_DB_ALIAS
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.utils import debug_transaction
@@ -96,6 +97,58 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     }
     _connection_pools = {}
 
+    def _isnull_operator(field, is_null):
+        if is_null:
+            return {"$or": [{field: {"$exists": False}}, {field: None}]}
+        return {"$and": [{field: {"$exists": True}}, {field: {"$ne": None}}]}
+
+    def _range_operator(a, b):
+        conditions = []
+        start, end = b
+        if start is not None:
+            conditions.append({a: {"$gte": b[0]}})
+        if end is not None:
+            conditions.append({a: {"$lte": b[1]}})
+        if not conditions:
+            raise FullResultSet
+        if start is not None and end is not None:
+            # Decimal128 can't be natively compared.
+            if isinstance(start, Decimal128):
+                start = start.to_decimal()
+            if isinstance(end, Decimal128):
+                end = end.to_decimal()
+            if start > end:
+                raise EmptyResultSet
+        return {"$and": conditions}
+
+    def _regex_operator(field, regex, insensitive=False):
+        options = "i" if insensitive else ""
+        return {field: {"$regex": regex, "$options": options}}
+
+    mongo_operators = {
+        "exact": lambda a, b: {a: b},
+        "gt": lambda a, b: {a: {"$gt": b}},
+        "gte": lambda a, b: {a: {"$gte": b}},
+        # MongoDB considers null less than zero. Exclude null values to match
+        # SQL behavior.
+        "lt": lambda a, b: {"$and": [{a: {"$lt": b}}, DatabaseWrapper._isnull_operator(a, False)]},
+        "lte": lambda a, b: {
+            "$and": [{a: {"$lte": b}}, DatabaseWrapper._isnull_operator(a, False)]
+        },
+        "in": lambda a, b: {a: {"$in": tuple(b)}},
+        "isnull": _isnull_operator,
+        "range": _range_operator,
+        "iexact": lambda a, b: DatabaseWrapper._regex_operator(a, f"^{b}$", insensitive=True),
+        "startswith": lambda a, b: DatabaseWrapper._regex_operator(a, f"^{b}"),
+        "istartswith": lambda a, b: DatabaseWrapper._regex_operator(a, f"^{b}", insensitive=True),
+        "endswith": lambda a, b: DatabaseWrapper._regex_operator(a, f"{b}$"),
+        "iendswith": lambda a, b: DatabaseWrapper._regex_operator(a, f"{b}$", insensitive=True),
+        "contains": lambda a, b: DatabaseWrapper._regex_operator(a, b),
+        "icontains": lambda a, b: DatabaseWrapper._regex_operator(a, b, insensitive=True),
+        "regex": lambda a, b: DatabaseWrapper._regex_operator(a, b),
+        "iregex": lambda a, b: DatabaseWrapper._regex_operator(a, b, insensitive=True),
+    }
+
     def _isnull_expr(field, is_null):
         mql = {
             "$or": [
@@ -112,7 +165,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         options = "i" if insensitive else ""
         return {"$regexMatch": {"input": field, "regex": regex, "options": options}}
 
-    mongo_operators = {
+    mongo_expr_operators = {
         "exact": lambda a, b: {"$eq": [a, b]},
         "gt": lambda a, b: {"$gt": [a, b]},
         "gte": lambda a, b: {"$gte": [a, b]},

@@ -27,6 +27,12 @@ Bug fixes
 - Fixed ``transaction.atomic()`` crash if the database connection isn't
   initialized.
 
+Performance improvements
+------------------------
+
+- Continued the query optimization work started in 5.2.1, making queries avoid
+  using  ``$expr`` where possible, so that they can use indexes.
+
 Deprecated features
 -------------------
 

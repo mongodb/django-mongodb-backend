@@ -69,12 +69,14 @@ class SQLCompiler(compiler.SQLCompiler):
         if getattr(sub_expr, "distinct", False):
             # If the expression should return distinct values, use $addToSet to
             # deduplicate.
-            rhs = sub_expr.as_mql(self, self.connection, resolve_inner_expression=True)
+            rhs = sub_expr.as_mql(
+                self, self.connection, resolve_inner_expression=True, as_expr=True
+            )
             group[alias] = {"$addToSet": rhs}
             replacing_expr = sub_expr.copy()
             replacing_expr.set_source_expressions([inner_column, None])
         else:
-            group[alias] = sub_expr.as_mql(self, self.connection)
+            group[alias] = sub_expr.as_mql(self, self.connection, as_expr=True)
             replacing_expr = inner_column
         # Count must return 0 rather than null.
         if isinstance(sub_expr, Count):
@@ -302,9 +304,7 @@ class SQLCompiler(compiler.SQLCompiler):
                     search.as_mql(self, self.connection),
                     {
                         "$addFields": {
-                            result_col.as_mql(self, self.connection, as_path=True): {
-                                "$meta": score_function
-                            }
+                            result_col.as_mql(self, self.connection): {"$meta": score_function}
                         }
                     },
                 ]
@@ -334,7 +334,7 @@ class SQLCompiler(compiler.SQLCompiler):
                     pipeline.extend(query.get_pipeline())
                 # Remove the added subqueries.
                 self.subqueries = []
-                pipeline.append({"$match": {"$expr": having}})
+                pipeline.append({"$match": having})
             self.aggregation_pipeline = pipeline
         self.annotations = {
             target: expr.replace_expressions(all_replacements)
@@ -481,11 +481,11 @@ class SQLCompiler(compiler.SQLCompiler):
             query.lookup_pipeline = self.get_lookup_pipeline()
             where = self.get_where()
             try:
-                expr = where.as_mql(self, self.connection) if where else {}
+                match_mql = where.as_mql(self, self.connection) if where else {}
             except FullResultSet:
                 query.match_mql = {}
             else:
-                query.match_mql = {"$expr": expr}
+                query.match_mql = match_mql
         if extra_fields:
             query.extra_fields = self.get_project_fields(extra_fields, force_expression=True)
         query.subqueries = self.subqueries
@@ -643,7 +643,9 @@ class SQLCompiler(compiler.SQLCompiler):
             for alias, expr in self.columns:
                 # Unfold foreign fields.
                 if isinstance(expr, Col) and expr.alias != self.collection_name:
-                    ids[expr.alias][expr.target.column] = expr.as_mql(self, self.connection)
+                    ids[expr.alias][expr.target.column] = expr.as_mql(
+                        self, self.connection, as_expr=True
+                    )
                 else:
                     ids[alias] = f"${alias}"
             # Convert defaultdict to dict so it doesn't appear as
@@ -707,16 +709,16 @@ class SQLCompiler(compiler.SQLCompiler):
                     # For brevity/simplicity, project {"field_name": 1}
                     # instead of {"field_name": "$field_name"}.
                     if isinstance(expr, Col) and name == expr.target.column and not force_expression
-                    else expr.as_mql(self, self.connection)
+                    else expr.as_mql(self, self.connection, as_expr=True)
                 )
             except EmptyResultSet:
                 empty_result_set_value = getattr(expr, "empty_result_set_value", NotImplemented)
                 value = (
                     False if empty_result_set_value is NotImplemented else empty_result_set_value
                 )
-                fields[collection][name] = Value(value).as_mql(self, self.connection)
+                fields[collection][name] = Value(value).as_mql(self, self.connection, as_expr=True)
             except FullResultSet:
-                fields[collection][name] = Value(True).as_mql(self, self.connection)
+                fields[collection][name] = Value(True).as_mql(self, self.connection, as_expr=True)
         # Annotations (stored in None) and the main collection's fields
         # should appear in the top-level of the fields dict.
         fields.update(fields.pop(None, {}))
@@ -739,10 +741,10 @@ class SQLCompiler(compiler.SQLCompiler):
         idx = itertools.count(start=1)
         for order in self.order_by_objs or []:
             if isinstance(order.expression, Col):
-                field_name = order.as_mql(self, self.connection).removeprefix("$")
+                field_name = order.as_mql(self, self.connection, as_expr=True).removeprefix("$")
                 fields.append((order.expression.target.column, order.expression))
             elif isinstance(order.expression, Ref):
-                field_name = order.as_mql(self, self.connection).removeprefix("$")
+                field_name = order.as_mql(self, self.connection, as_expr=True).removeprefix("$")
             else:
                 field_name = f"__order{next(idx)}"
                 fields.append((field_name, order.expression))
@@ -879,7 +881,7 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
                     )
             prepared = field.get_db_prep_save(value, connection=self.connection)
             if hasattr(value, "as_mql"):
-                prepared = prepared.as_mql(self, self.connection)
+                prepared = prepared.as_mql(self, self.connection, as_expr=True)
             values[field.column] = prepared
         try:
             criteria = self.build_query().match_mql

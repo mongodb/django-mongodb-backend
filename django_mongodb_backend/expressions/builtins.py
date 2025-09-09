@@ -1,11 +1,13 @@
 import datetime
 from decimal import Decimal
+from functools import partialmethod
 from uuid import UUID
 
 from bson import Decimal128
 from django.core.exceptions import EmptyResultSet, FullResultSet
 from django.db import NotSupportedError
 from django.db.models.expressions import (
+    BaseExpression,
     Case,
     Col,
     ColPairs,
@@ -28,21 +30,30 @@ from django.db.models.sql import Query
 from django_mongodb_backend.query_utils import process_lhs
 
 
+def base_expression(self, compiler, connection, as_expr=False, **extra):
+    # Use as_mql_path(), if possible.
+    if not as_expr and hasattr(self, "as_mql_path") and getattr(self, "can_use_path", False):
+        return self.as_mql_path(compiler, connection, **extra)
+    # Otherwise, use as_mql_expr().
+    expr = self.as_mql_expr(compiler, connection, **extra)
+    return expr if as_expr else {"$expr": expr}
+
+
 def case(self, compiler, connection):
     case_parts = []
     for case in self.cases:
         case_mql = {}
         try:
-            case_mql["case"] = case.as_mql(compiler, connection)
+            case_mql["case"] = case.as_mql(compiler, connection, as_expr=True)
         except EmptyResultSet:
             continue
         except FullResultSet:
-            default_mql = case.result.as_mql(compiler, connection)
+            default_mql = case.result.as_mql(compiler, connection, as_expr=True)
             break
-        case_mql["then"] = case.result.as_mql(compiler, connection)
+        case_mql["then"] = case.result.as_mql(compiler, connection, as_expr=True)
         case_parts.append(case_mql)
     else:
-        default_mql = self.default.as_mql(compiler, connection)
+        default_mql = self.default.as_mql(compiler, connection, as_expr=True)
     if not case_parts:
         return default_mql
     return {
@@ -53,7 +64,7 @@ def case(self, compiler, connection):
     }
 
 
-def col(self, compiler, connection, as_path=False):  # noqa: ARG001
+def col(self, compiler, connection, as_expr=False):  # noqa: ARG001
     # If the column is part of a subquery and belongs to one of the parent
     # queries, it will be stored for reference using $let in a $lookup stage.
     # If the query is built with `alias_cols=False`, treat the column as
@@ -71,28 +82,28 @@ def col(self, compiler, connection, as_path=False):  # noqa: ARG001
     # Add the column's collection's alias for columns in joined collections.
     has_alias = self.alias and self.alias != compiler.collection_name
     prefix = f"{self.alias}." if has_alias else ""
-    if not as_path:
+    if as_expr:
         prefix = f"${prefix}"
     return f"{prefix}{self.target.column}"
 
 
-def col_pairs(self, compiler, connection):
+def col_pairs(self, compiler, connection, as_expr=False):
     cols = self.get_cols()
     if len(cols) > 1:
         raise NotSupportedError("ColPairs is not supported.")
-    return cols[0].as_mql(compiler, connection)
+    return cols[0].as_mql(compiler, connection, as_expr=as_expr)
 
 
 def combined_expression(self, compiler, connection):
     expressions = [
-        self.lhs.as_mql(compiler, connection),
-        self.rhs.as_mql(compiler, connection),
+        self.lhs.as_mql(compiler, connection, as_expr=True),
+        self.rhs.as_mql(compiler, connection, as_expr=True),
     ]
     return connection.ops.combine_expression(self.connector, expressions)
 
 
 def expression_wrapper(self, compiler, connection):
-    return self.expression.as_mql(compiler, connection)
+    return self.expression.as_mql(compiler, connection, as_expr=True)
 
 
 def negated_expression(self, compiler, connection):
@@ -100,10 +111,10 @@ def negated_expression(self, compiler, connection):
 
 
 def order_by(self, compiler, connection):
-    return self.expression.as_mql(compiler, connection)
+    return self.expression.as_mql(compiler, connection, as_expr=True)
 
 
-def query(self, compiler, connection, get_wrapping_pipeline=None):
+def query(self, compiler, connection, get_wrapping_pipeline=None, as_expr=False):
     subquery_compiler = self.get_compiler(connection=connection)
     subquery_compiler.pre_sql_setup(with_col_aliases=False)
     field_name, expr = subquery_compiler.columns[0]
@@ -123,7 +134,7 @@ def query(self, compiler, connection, get_wrapping_pipeline=None):
         "as": table_output,
         "from": from_table,
         "let": {
-            compiler.PARENT_FIELD_TEMPLATE.format(i): col.as_mql(compiler, connection)
+            compiler.PARENT_FIELD_TEMPLATE.format(i): col.as_mql(compiler, connection, as_expr=True)
             for col, i in subquery_compiler.column_indices.items()
         },
     }
@@ -145,14 +156,16 @@ def query(self, compiler, connection, get_wrapping_pipeline=None):
         # Erase project_fields since the required value is projected above.
         subquery.project_fields = None
     compiler.subqueries.append(subquery)
-    return f"${table_output}.{field_name}"
+    if as_expr:
+        return f"${table_output}.{field_name}"
+    return f"{table_output}.{field_name}"
 
 
-def raw_sql(self, compiler, connection):  # noqa: ARG001
+def raw_sql(self, compiler, connection, as_expr=False):  # noqa: ARG001
     raise NotSupportedError("RawSQL is not supported on MongoDB.")
 
 
-def ref(self, compiler, connection):  # noqa: ARG001
+def ref(self, compiler, connection, as_expr=False):  # noqa: ARG001
     prefix = (
         f"{self.source.alias}."
         if isinstance(self.source, Col) and self.source.alias != compiler.collection_name
@@ -162,32 +175,43 @@ def ref(self, compiler, connection):  # noqa: ARG001
         refs, _ = compiler.columns[self.ordinal - 1]
     else:
         refs = self.refs
-    return f"${prefix}{refs}"
+    if as_expr:
+        prefix = f"${prefix}"
+    return f"{prefix}{refs}"
+
+
+@property
+def ref_is_simple_column(self):
+    return self.source.is_simple_column
 
 
 def star(self, compiler, connection):  # noqa: ARG001
     return {"$literal": True}
 
 
-def subquery(self, compiler, connection, get_wrapping_pipeline=None):
-    return self.query.as_mql(compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline)
+def subquery(self, compiler, connection, get_wrapping_pipeline=None, as_expr=False):
+    return self.query.as_mql(
+        compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline, as_expr=as_expr
+    )
 
 
 def exists(self, compiler, connection, get_wrapping_pipeline=None):
     try:
-        lhs_mql = subquery(self, compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline)
+        lhs_mql = subquery(
+            self, compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline, as_expr=True
+        )
     except EmptyResultSet:
-        return Value(False).as_mql(compiler, connection)
-    return connection.mongo_operators["isnull"](lhs_mql, False)
+        return Value(False).as_mql(compiler, connection, as_expr=True)
+    return connection.mongo_expr_operators["isnull"](lhs_mql, False)
 
 
 def when(self, compiler, connection):
-    return self.condition.as_mql(compiler, connection)
+    return self.condition.as_mql(compiler, connection, as_expr=True)
 
 
-def value(self, compiler, connection):  # noqa: ARG001
+def value(self, compiler, connection, as_expr=False):  # noqa: ARG001
     value = self.value
-    if isinstance(value, (list, int)):
+    if isinstance(value, (list, int)) and as_expr:
         # Wrap lists & numbers in $literal to prevent ambiguity when Value
         # appears in $project.
         return {"$literal": value}
@@ -210,20 +234,25 @@ def value(self, compiler, connection):  # noqa: ARG001
 
 
 def register_expressions():
-    Case.as_mql = case
+    BaseExpression.as_mql = base_expression
+    BaseExpression.is_simple_column = False
+    Case.as_mql_expr = case
     Col.as_mql = col
+    Col.is_simple_column = True
     ColPairs.as_mql = col_pairs
-    CombinedExpression.as_mql = combined_expression
-    Exists.as_mql = exists
+    CombinedExpression.as_mql_expr = combined_expression
+    Exists.as_mql_expr = exists
     ExpressionList.as_mql = process_lhs
-    ExpressionWrapper.as_mql = expression_wrapper
-    NegatedExpression.as_mql = negated_expression
-    OrderBy.as_mql = order_by
+    ExpressionWrapper.as_mql_expr = expression_wrapper
+    NegatedExpression.as_mql_expr = negated_expression
+    OrderBy.as_mql_expr = order_by
     Query.as_mql = query
     RawSQL.as_mql = raw_sql
     Ref.as_mql = ref
+    Ref.is_simple_column = ref_is_simple_column
     ResolvedOuterRef.as_mql = ResolvedOuterRef.as_sql
-    Star.as_mql = star
-    Subquery.as_mql = subquery
-    When.as_mql = when
+    Star.as_mql_expr = star
+    Subquery.as_mql_expr = partialmethod(subquery, as_expr=True)
+    Subquery.as_mql_path = partialmethod(subquery, as_expr=False)
+    When.as_mql_expr = when
     Value.as_mql = value

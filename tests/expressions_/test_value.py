@@ -24,7 +24,7 @@ class ValueTests(SimpleTestCase):
         self.assertEqual(Value(Decimal("1.0")).as_mql(None, None), Decimal128("1.0"))
 
     def test_list(self):
-        self.assertEqual(Value([1, 2]).as_mql(None, None), {"$literal": [1, 2]})
+        self.assertEqual(Value([1, 2]).as_mql(None, None, as_expr=True), {"$literal": [1, 2]})
 
     def test_time(self):
         self.assertEqual(
@@ -36,7 +36,7 @@ class ValueTests(SimpleTestCase):
         self.assertEqual(Value(datetime.timedelta(3600)).as_mql(None, None), 311040000000.0)
 
     def test_int(self):
-        self.assertEqual(Value(1).as_mql(None, None), {"$literal": 1})
+        self.assertEqual(Value(1).as_mql(None, None, as_expr=True), {"$literal": 1})
 
     def test_str(self):
         self.assertEqual(Value("foo").as_mql(None, None), "foo")

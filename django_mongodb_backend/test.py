@@ -1,6 +1,6 @@
 """Not a public API."""
 
-from bson import SON, ObjectId
+from bson import SON, Decimal128, ObjectId
 
 
 class MongoTestCaseMixin:
@@ -16,6 +16,6 @@ class MongoTestCaseMixin:
         self.assertEqual(operator, "aggregate")
         self.assertEqual(collection, expected_collection)
         self.assertEqual(
-            eval(pipeline[:-1], {"SON": SON, "ObjectId": ObjectId}, {}),  # noqa: S307
+            eval(pipeline[:-1], {"SON": SON, "ObjectId": ObjectId, "Decimal128": Decimal128}, {}),  # noqa: S307
             expected_pipeline,
         )

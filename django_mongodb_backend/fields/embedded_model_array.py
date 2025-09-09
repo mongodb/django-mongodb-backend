@@ -5,12 +5,12 @@ from django.db.models import Field, lookups
 from django.db.models.expressions import Col
 from django.db.models.fields.related import lazy_related_operation
 from django.db.models.lookups import Lookup, Transform
+from django.utils.functional import cached_property
 
 from django_mongodb_backend import forms
+from django_mongodb_backend.fields import EmbeddedModelField
+from django_mongodb_backend.fields.array import ArrayField, ArrayLenTransform
 from django_mongodb_backend.query_utils import process_lhs, process_rhs
-
-from . import EmbeddedModelField
-from .array import ArrayField, ArrayLenTransform
 
 
 class EmbeddedModelArrayField(ArrayField):
@@ -77,7 +77,7 @@ class EmbeddedModelArrayField(ArrayField):
             return lookup
 
         class EmbeddedModelArrayFieldLookups(Lookup):
-            def as_mql(self, compiler, connection):
+            def as_mql(self, compiler, connection, as_expr=False):
                 raise ValueError(
                     "Lookups aren't supported on EmbeddedModelArrayField. "
                     "Try querying one of its embedded fields instead."
@@ -116,7 +116,7 @@ class _EmbeddedModelArrayOutputField(ArrayField):
 
 
 class EmbeddedModelArrayFieldBuiltinLookup(Lookup):
-    def process_rhs(self, compiler, connection):
+    def process_rhs(self, compiler, connection, as_expr=False):
         value = self.rhs
         if not self.get_db_prep_lookup_value_is_iterable:
             value = [value]
@@ -130,14 +130,14 @@ class EmbeddedModelArrayFieldBuiltinLookup(Lookup):
             for v in value
         ]
 
-    def as_mql(self, compiler, connection):
+    def as_mql_expr(self, compiler, connection):
         # Querying a subfield within the array elements (via nested
         # KeyTransform). Replicate MongoDB's implicit ANY-match by mapping over
         # the array and applying $in on the subfield.
-        lhs_mql = process_lhs(self, compiler, connection)
+        lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
         inner_lhs_mql = lhs_mql["$ifNull"][0]["$map"]["in"]
-        values = process_rhs(self, compiler, connection)
-        lhs_mql["$ifNull"][0]["$map"]["in"] = connection.mongo_operators[self.lookup_name](
+        values = process_rhs(self, compiler, connection, as_expr=True)
+        lhs_mql["$ifNull"][0]["$map"]["in"] = connection.mongo_expr_operators[self.lookup_name](
             inner_lhs_mql, values
         )
         return {"$anyElementTrue": lhs_mql}
@@ -153,7 +153,7 @@ class EmbeddedModelArrayFieldIn(EmbeddedModelArrayFieldBuiltinLookup, lookups.In
             {
                 "$facet": {
                     "gathered_data": [
-                        {"$project": {"tmp_name": expr.as_mql(compiler, connection)}},
+                        {"$project": {"tmp_name": expr.as_mql(compiler, connection, as_expr=True)}},
                         # To concatenate all the values from the RHS subquery,
                         # use an $unwind followed by a $group.
                         {
@@ -237,6 +237,7 @@ class EmbeddedModelArrayFieldTransform(Transform):
         column_name = f"${self.VIRTUAL_COLUMN_ITERABLE}.{field.column}"
         column_target.db_column = column_name
         column_target.set_attributes_from_name(column_name)
+        self._field = field
         self._lhs = Col(None, column_target)
         self._sub_transform = None
 
@@ -276,9 +277,9 @@ class EmbeddedModelArrayFieldTransform(Transform):
             f"{suggestion}"
         )
 
-    def as_mql(self, compiler, connection):
-        inner_lhs_mql = self._lhs.as_mql(compiler, connection)
-        lhs_mql = process_lhs(self, compiler, connection)
+    def as_mql_expr(self, compiler, connection):
+        inner_lhs_mql = self._lhs.as_mql(compiler, connection, as_expr=True)
+        lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
         return {
             "$ifNull": [
                 {
@@ -292,9 +293,27 @@ class EmbeddedModelArrayFieldTransform(Transform):
             ]
         }
 
+    def as_mql_path(self, compiler, connection):
+        inner_lhs_mql = self._lhs.as_mql(compiler, connection).removeprefix(
+            f"${self.VIRTUAL_COLUMN_ITERABLE}."
+        )
+        lhs_mql = process_lhs(self, compiler, connection)
+        return f"{lhs_mql}.{inner_lhs_mql}"
+
     @property
     def output_field(self):
         return _EmbeddedModelArrayOutputField(self._lhs.output_field)
+
+    @property
+    def can_use_path(self):
+        return self.is_simple_column
+
+    @cached_property
+    def is_simple_column(self):
+        previous = self
+        while isinstance(previous, EmbeddedModelArrayFieldTransform):
+            previous = previous.lhs
+        return previous.is_simple_column and self._lhs.is_simple_column
 
 
 class EmbeddedModelArrayFieldTransformFactory:

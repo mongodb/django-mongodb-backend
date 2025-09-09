@@ -21,6 +21,8 @@ from django.test.utils import isolate_apps
 from django.utils import timezone
 
 from django_mongodb_backend.fields import ArrayField
+from django_mongodb_backend.fields.array import Array
+from django_mongodb_backend.test import MongoTestCaseMixin
 
 from .models import (
     ArrayEnumModel,
@@ -216,7 +218,7 @@ class SaveLoadTests(TestCase):
         self.assertEqual(instance.field_nested, [[None, None], [None, None]])
 
 
-class QueryingTests(TestCase):
+class QueryingTests(MongoTestCaseMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.objs = NullableIntegerArrayModel.objects.bulk_create(
@@ -242,8 +244,33 @@ class QueryingTests(TestCase):
         self.assertEqual(obj.empty_array, [])
 
     def test_exact(self):
-        self.assertSequenceEqual(
-            NullableIntegerArrayModel.objects.filter(field__exact=[1]), self.objs[:1]
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                NullableIntegerArrayModel.objects.filter(field__exact=[1]), self.objs[:1]
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__nullableintegerarraymodel",
+            [{"$match": {"field": [1]}}],
+        )
+
+    def test_exact_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                NullableIntegerArrayModel.objects.filter(field__exact=[Value(3) / 3]), self.objs[:1]
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__nullableintegerarraymodel",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$eq": ["$field", [{"$divide": [{"$literal": 3}, {"$literal": 3}]}]]
+                        }
+                    }
+                }
+            ],
         )
 
     def test_exact_null_only_array(self):
@@ -261,23 +288,41 @@ class QueryingTests(TestCase):
         obj2 = NullableIntegerArrayModel.objects.create(
             field_nested=[[None, None], [None, None]],
         )
-        self.assertSequenceEqual(
-            NullableIntegerArrayModel.objects.filter(
-                field_nested__exact=[[None, None]],
-            ),
-            [obj1],
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                NullableIntegerArrayModel.objects.filter(
+                    field_nested__exact=[[None, None]],
+                ),
+                [obj1],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__nullableintegerarraymodel",
+            [{"$match": {"field_nested": [[None, None]]}}],
         )
-        self.assertSequenceEqual(
-            NullableIntegerArrayModel.objects.filter(
-                field_nested__exact=[[None, None], [None, None]],
-            ),
-            [obj2],
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                NullableIntegerArrayModel.objects.filter(
+                    field_nested__exact=[[None, None], [None, None]],
+                ),
+                [obj2],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__nullableintegerarraymodel",
+            [{"$match": {"field_nested": [[None, None], [None, None]]}}],
         )
 
     def test_exact_with_expression(self):
-        self.assertSequenceEqual(
-            NullableIntegerArrayModel.objects.filter(field__exact=[Value(1)]),
-            self.objs[:1],
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                NullableIntegerArrayModel.objects.filter(field__exact=[Value(1)]),
+                self.objs[:1],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__nullableintegerarraymodel",
+            [{"$match": {"field": [1]}}],
         )
 
     def test_exact_charfield(self):
@@ -291,24 +336,135 @@ class QueryingTests(TestCase):
         )
 
     def test_isnull(self):
-        self.assertSequenceEqual(
-            NullableIntegerArrayModel.objects.filter(field__isnull=True), self.objs[-1:]
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                NullableIntegerArrayModel.objects.filter(field__isnull=True), self.objs[-1:]
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__nullableintegerarraymodel",
+            [{"$match": {"$or": [{"field": {"$exists": False}}, {"field": None}]}}],
         )
 
     def test_gt(self):
-        self.assertSequenceEqual(
-            NullableIntegerArrayModel.objects.filter(field__gt=[0]), self.objs[:4]
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                NullableIntegerArrayModel.objects.filter(field__gt=Array(0)), self.objs[:4]
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__nullableintegerarraymodel",
+            [{"$match": {"field": {"$gt": [0]}}}],
+        )
+
+    def test_gt_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                NullableIntegerArrayModel.objects.filter(field__gt=Array(Value(0) * 3)),
+                self.objs[:4],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__nullableintegerarraymodel",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$gt": ["$field", [{"$multiply": [{"$literal": 0}, {"$literal": 3}]}]]
+                        }
+                    }
+                }
+            ],
         )
 
     def test_lt(self):
-        self.assertSequenceEqual(
-            NullableIntegerArrayModel.objects.filter(field__lt=[2]), self.objs[:1]
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                NullableIntegerArrayModel.objects.filter(field__lt=[2]), self.objs[:1]
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__nullableintegerarraymodel",
+            [
+                {
+                    "$match": {
+                        "$and": [
+                            {"field": {"$lt": [2]}},
+                            {"$and": [{"field": {"$exists": True}}, {"field": {"$ne": None}}]},
+                        ]
+                    }
+                }
+            ],
+        )
+
+    def test_lt_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                NullableIntegerArrayModel.objects.filter(field__lt=Array(Value(1) + 1)),
+                self.objs[:1],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__nullableintegerarraymodel",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$and": [
+                                {"$lt": ["$field", [{"$add": [{"$literal": 1}, {"$literal": 1}]}]]},
+                                {
+                                    "$not": {
+                                        "$or": [
+                                            {"$eq": [{"$type": "$field"}, "missing"]},
+                                            {"$eq": ["$field", None]},
+                                        ]
+                                    }
+                                },
+                            ]
+                        }
+                    }
+                }
+            ],
         )
 
     def test_in(self):
-        self.assertSequenceEqual(
-            NullableIntegerArrayModel.objects.filter(field__in=[[1], [2]]),
-            self.objs[:2],
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                NullableIntegerArrayModel.objects.filter(field__in=[[1], [2]]),
+                self.objs[:2],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__nullableintegerarraymodel",
+            [{"$match": {"field": {"$in": ([1], [2])}}}],
+        )
+
+    def test_in_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                NullableIntegerArrayModel.objects.filter(
+                    field__in=Array(Array(Value(1) * 1), Array(2))
+                ),
+                self.objs[:2],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__nullableintegerarraymodel",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$in": [
+                                "$field",
+                                [
+                                    [{"$multiply": [{"$literal": 1}, {"$literal": 1}]}],
+                                    [{"$literal": 2}],
+                                ],
+                            ]
+                        }
+                    }
+                }
+            ],
         )
 
     def test_in_subquery(self):
@@ -353,9 +509,44 @@ class QueryingTests(TestCase):
         )
 
     def test_contains(self):
-        self.assertSequenceEqual(
-            NullableIntegerArrayModel.objects.filter(field__contains=[2]),
-            self.objs[1:3],
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                NullableIntegerArrayModel.objects.filter(field__contains=[2]),
+                self.objs[1:3],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__nullableintegerarraymodel",
+            [{"$match": {"field": {"$all": [2]}}}],
+        )
+
+    def test_contains_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                NullableIntegerArrayModel.objects.filter(field__contains=[Value(1) + 1]),
+                self.objs[1:3],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__nullableintegerarraymodel",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$and": [
+                                {"$ne": ["$field", None]},
+                                {"$ne": [[{"$add": [{"$literal": 1}, {"$literal": 1}]}], None]},
+                                {
+                                    "$setIsSubset": [
+                                        [{"$add": [{"$literal": 1}, {"$literal": 1}]}],
+                                        "$field",
+                                    ]
+                                },
+                            ]
+                        }
+                    }
+                }
+            ],
         )
 
     def test_contains_subquery(self):
@@ -395,7 +586,15 @@ class QueryingTests(TestCase):
 
     def test_icontains(self):
         instance = CharArrayModel.objects.create(field=["FoO"])
-        self.assertSequenceEqual(CharArrayModel.objects.filter(field__icontains="foo"), [instance])
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                CharArrayModel.objects.filter(field__icontains="foo"), [instance]
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__chararraymodel",
+            [{"$match": {"field": {"$regex": "foo", "$options": "i"}}}],
+        )
 
     def test_contains_charfield(self):
         self.assertSequenceEqual(CharArrayModel.objects.filter(field__contains=["text"]), [])
@@ -456,9 +655,48 @@ class QueryingTests(TestCase):
         )
 
     def test_overlap(self):
-        self.assertSequenceEqual(
-            NullableIntegerArrayModel.objects.filter(field__overlap=[1, 2]),
-            self.objs[0:3],
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                NullableIntegerArrayModel.objects.filter(field__overlap=[1, 2]),
+                self.objs[0:3],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__nullableintegerarraymodel",
+            [{"$match": {"field": {"$in": [1, 2]}}}],
+        )
+
+    def test_overlap_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                NullableIntegerArrayModel.objects.filter(field__overlap=[1, Value(1) + 1]),
+                self.objs[0:3],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__nullableintegerarraymodel",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$and": [
+                                {"$ne": ["$field", None]},
+                                {
+                                    "$size": {
+                                        "$setIntersection": [
+                                            [
+                                                {"$literal": 1},
+                                                {"$add": [{"$literal": 1}, {"$literal": 1}]},
+                                            ],
+                                            "$field",
+                                        ]
+                                    }
+                                },
+                            ]
+                        }
+                    }
+                }
+            ],
         )
 
     def test_index_annotation(self):

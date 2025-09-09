@@ -1,3 +1,4 @@
+from bson import SON
 from django.test import TestCase
 
 from django_mongodb_backend.test import MongoTestCaseMixin
@@ -5,18 +6,32 @@ from django_mongodb_backend.test import MongoTestCaseMixin
 from .models import Book, Number
 
 
-class NumericLookupTests(TestCase):
+class NumericLookupTests(MongoTestCaseMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.objs = Number.objects.bulk_create(Number(num=x) for x in range(5))
         # Null values should be excluded in less than queries.
-        Number.objects.create()
+        cls.null_number = Number.objects.create()
 
     def test_lt(self):
         self.assertQuerySetEqual(Number.objects.filter(num__lt=3), self.objs[:3])
 
     def test_lte(self):
         self.assertQuerySetEqual(Number.objects.filter(num__lte=3), self.objs[:4])
+
+    def test_empty_range(self):
+        with self.assertNumQueries(0):
+            self.assertQuerySetEqual(Number.objects.filter(num__range=[3, 1]), [])
+
+    def test_full_range(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertQuerySetEqual(
+                Number.objects.filter(num__range=[None, None]), [self.null_number, *self.objs]
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query, "lookup__number", [{"$addFields": {"num": "$num"}}, {"$sort": SON([("num", 1)])}]
+        )
 
 
 class RegexTests(MongoTestCaseMixin, TestCase):
@@ -29,15 +44,7 @@ class RegexTests(MongoTestCaseMixin, TestCase):
         self.assertAggregateQuery(
             query,
             "lookup__book",
-            [
-                {
-                    "$match": {
-                        "$expr": {
-                            "$regexMatch": {"input": "$title", "regex": "Moby Dick", "options": ""}
-                        }
-                    }
-                }
-            ],
+            [{"$match": {"title": {"$regex": "Moby Dick", "$options": ""}}}],
         )
 
 

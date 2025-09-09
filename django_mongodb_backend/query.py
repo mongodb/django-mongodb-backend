@@ -11,8 +11,6 @@ from django.db.models.sql.datastructures import Join
 from django.db.models.sql.where import AND, OR, XOR, ExtraWhere, NothingNode, WhereNode
 from pymongo.errors import BulkWriteError, DuplicateKeyError, PyMongoError
 
-from .query_conversion.query_optimizer import convert_expr_to_match
-
 
 def wrap_database_errors(func):
     @wraps(func)
@@ -89,7 +87,7 @@ class MongoQuery:
         for query in self.subqueries or ():
             pipeline.extend(query.get_pipeline())
         if self.match_mql:
-            pipeline.extend(convert_expr_to_match(self.match_mql))
+            pipeline.append({"$match": self.match_mql})
         if self.aggregation_pipeline:
             pipeline.extend(self.aggregation_pipeline)
         if self.project_fields:
@@ -156,7 +154,9 @@ def join(self, compiler, connection, pushed_filter_expression=None):
                     # lhs_fields.
                     if hand_side_value.alias != self.table_alias:
                         pos = len(lhs_fields)
-                        lhs_fields.append(hand_side_value.as_mql(compiler, connection))
+                        lhs_fields.append(
+                            hand_side_value.as_mql(compiler, connection, as_expr=True)
+                        )
                     else:
                         pos = None
                     columns.append((hand_side_value, pos))
@@ -168,6 +168,7 @@ def join(self, compiler, connection, pushed_filter_expression=None):
             target.remote_field = col.target.remote_field
             column_target = Col(compiler.collection_name, target)
             if parent_pos is not None:
+                column_target.is_simple_column = False
                 target_col = f"${parent_template}{parent_pos}"
                 column_target.target.db_column = target_col
                 column_target.target.set_attributes_from_name(target_col)
@@ -184,10 +185,10 @@ def join(self, compiler, connection, pushed_filter_expression=None):
         lhs, rhs = connection.ops.prepare_join_on_clause(
             self.parent_alias, lhs, compiler.collection_name, rhs
         )
-        lhs_fields.append(lhs.as_mql(compiler, connection))
+        lhs_fields.append(lhs.as_mql(compiler, connection, as_expr=True))
         # In the lookup stage, the reference to this column doesn't include the
         # collection name.
-        rhs_fields.append(rhs.as_mql(compiler, connection))
+        rhs_fields.append(rhs.as_mql(compiler, connection, as_expr=True))
     # Handle any join conditions besides matching field pairs.
     extra = self.join_field.get_extra_restriction(self.table_alias, self.parent_alias)
     extra_conditions = []
@@ -211,6 +212,21 @@ def join(self, compiler, connection, pushed_filter_expression=None):
                 compiler, connection
             )
         )
+    # Match the conditions:
+    #   self.table_name.field1 = parent_table.field1
+    # AND
+    #   self.table_name.field2 = parent_table.field2
+    # AND
+    #   ...
+    condition = {
+        "$expr": {
+            "$and": [
+                {"$eq": [f"$${parent_template}{i}", field]} for i, field in enumerate(rhs_fields)
+            ]
+        }
+    }
+    if extra_conditions:
+        condition = {"$and": [condition, *extra_conditions]}
     lookup_pipeline = [
         {
             "$lookup": {
@@ -222,25 +238,7 @@ def join(self, compiler, connection, pushed_filter_expression=None):
                     f"{parent_template}{i}": parent_field
                     for i, parent_field in enumerate(lhs_fields)
                 },
-                "pipeline": [
-                    {
-                        # Match the conditions:
-                        #   self.table_name.field1 = parent_table.field1
-                        # AND
-                        #   self.table_name.field2 = parent_table.field2
-                        # AND
-                        #   ...
-                        "$match": {
-                            "$expr": {
-                                "$and": [
-                                    {"$eq": [f"$${parent_template}{i}", field]}
-                                    for i, field in enumerate(rhs_fields)
-                                ]
-                                + extra_conditions
-                            }
-                        }
-                    }
-                ],
+                "pipeline": [{"$match": condition}],
                 # Rename the output as table_alias.
                 "as": self.table_alias,
             }
@@ -274,7 +272,7 @@ def join(self, compiler, connection, pushed_filter_expression=None):
     return lookup_pipeline
 
 
-def where_node(self, compiler, connection):
+def where_node(self, compiler, connection, as_expr=False):
     if self.connector == AND:
         full_needed, empty_needed = len(self.children), 1
     else:
@@ -297,14 +295,16 @@ def where_node(self, compiler, connection):
         if len(self.children) > 2:
             rhs_sum = Mod(rhs_sum, 2)
         rhs = Exact(1, rhs_sum)
-        return self.__class__([lhs, rhs], AND, self.negated).as_mql(compiler, connection)
+        return self.__class__([lhs, rhs], AND, self.negated).as_mql(
+            compiler, connection, as_expr=as_expr
+        )
     else:
         operator = "$or"
 
     children_mql = []
     for child in self.children:
         try:
-            mql = child.as_mql(compiler, connection)
+            mql = child.as_mql(compiler, connection, as_expr=as_expr)
         except EmptyResultSet:
             empty_needed -= 1
         except FullResultSet:
@@ -331,13 +331,17 @@ def where_node(self, compiler, connection):
         raise FullResultSet
 
     if self.negated and mql:
-        mql = {"$not": mql}
+        mql = {"$not": [mql]} if as_expr else {"$nor": [mql]}
 
     return mql
+
+
+def nothing_node(self, compiler, connection, as_expr=False):  # noqa: ARG001
+    return self.as_sql(compiler, connection)
 
 
 def register_nodes():
     ExtraWhere.as_mql = extra_where
     Join.as_mql = join
-    NothingNode.as_mql = NothingNode.as_sql
+    NothingNode.as_mql = nothing_node
     WhereNode.as_mql = where_node
