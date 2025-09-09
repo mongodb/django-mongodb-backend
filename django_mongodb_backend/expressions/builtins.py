@@ -6,6 +6,7 @@ from bson import Decimal128
 from django.core.exceptions import EmptyResultSet, FullResultSet
 from django.db import NotSupportedError
 from django.db.models.expressions import (
+    BaseExpression,
     Case,
     Col,
     ColPairs,
@@ -13,6 +14,7 @@ from django.db.models.expressions import (
     Exists,
     ExpressionList,
     ExpressionWrapper,
+    Func,
     NegatedExpression,
     OrderBy,
     RawSQL,
@@ -23,17 +25,20 @@ from django.db.models.expressions import (
     Value,
     When,
 )
+from django.db.models.fields.json import KeyTransform
 from django.db.models.sql import Query
 
-from ..query_utils import process_lhs
+from django_mongodb_backend.fields.array import Array
+
+from ..query_utils import is_direct_value, process_lhs
 
 
-def case(self, compiler, connection):
+def case(self, compiler, connection, as_path=False):
     case_parts = []
     for case in self.cases:
         case_mql = {}
         try:
-            case_mql["case"] = case.as_mql(compiler, connection)
+            case_mql["case"] = case.as_mql(compiler, connection, as_path=False)
         except EmptyResultSet:
             continue
         except FullResultSet:
@@ -45,12 +50,16 @@ def case(self, compiler, connection):
         default_mql = self.default.as_mql(compiler, connection)
     if not case_parts:
         return default_mql
-    return {
+    expr = {
         "$switch": {
             "branches": case_parts,
             "default": default_mql,
         }
     }
+    if as_path:
+        return {"$expr": expr}
+
+    return expr
 
 
 def col(self, compiler, connection, as_path=False):  # noqa: ARG001
@@ -76,34 +85,34 @@ def col(self, compiler, connection, as_path=False):  # noqa: ARG001
     return f"{prefix}{self.target.column}"
 
 
-def col_pairs(self, compiler, connection):
+def col_pairs(self, compiler, connection, as_path=False):
     cols = self.get_cols()
     if len(cols) > 1:
         raise NotSupportedError("ColPairs is not supported.")
-    return cols[0].as_mql(compiler, connection)
+    return cols[0].as_mql(compiler, connection, as_path=as_path)
 
 
-def combined_expression(self, compiler, connection):
+def combined_expression(self, compiler, connection, as_path=False):
     expressions = [
-        self.lhs.as_mql(compiler, connection),
-        self.rhs.as_mql(compiler, connection),
+        self.lhs.as_mql(compiler, connection, as_path=as_path),
+        self.rhs.as_mql(compiler, connection, as_path=as_path),
     ]
     return connection.ops.combine_expression(self.connector, expressions)
 
 
-def expression_wrapper(self, compiler, connection):
-    return self.expression.as_mql(compiler, connection)
+def expression_wrapper(self, compiler, connection, as_path=False):
+    return self.expression.as_mql(compiler, connection, as_path=as_path)
 
 
-def negated_expression(self, compiler, connection):
-    return {"$not": expression_wrapper(self, compiler, connection)}
+def negated_expression(self, compiler, connection, as_path=False):
+    return {"$not": expression_wrapper(self, compiler, connection, as_path=as_path)}
 
 
 def order_by(self, compiler, connection):
     return self.expression.as_mql(compiler, connection)
 
 
-def query(self, compiler, connection, get_wrapping_pipeline=None):
+def query(self, compiler, connection, get_wrapping_pipeline=None, as_path=False):
     subquery_compiler = self.get_compiler(connection=connection)
     subquery_compiler.pre_sql_setup(with_col_aliases=False)
     field_name, expr = subquery_compiler.columns[0]
@@ -145,6 +154,8 @@ def query(self, compiler, connection, get_wrapping_pipeline=None):
         # Erase project_fields since the required value is projected above.
         subquery.project_fields = None
     compiler.subqueries.append(subquery)
+    if as_path:
+        return f"{table_output}.{field_name}"
     return f"${table_output}.{field_name}"
 
 
@@ -152,7 +163,7 @@ def raw_sql(self, compiler, connection):  # noqa: ARG001
     raise NotSupportedError("RawSQL is not supported on MongoDB.")
 
 
-def ref(self, compiler, connection):  # noqa: ARG001
+def ref(self, compiler, connection, as_path=False):  # noqa: ARG001
     prefix = (
         f"{self.source.alias}."
         if isinstance(self.source, Col) and self.source.alias != compiler.collection_name
@@ -162,32 +173,47 @@ def ref(self, compiler, connection):  # noqa: ARG001
         refs, _ = compiler.columns[self.ordinal - 1]
     else:
         refs = self.refs
-    return f"${prefix}{refs}"
+    if not as_path:
+        prefix = f"${prefix}"
+    return f"{prefix}{refs}"
 
 
-def star(self, compiler, connection):  # noqa: ARG001
+def star(self, compiler, connection, **extra):  # noqa: ARG001
     return {"$literal": True}
 
 
-def subquery(self, compiler, connection, get_wrapping_pipeline=None):
-    return self.query.as_mql(compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline)
+def subquery(self, compiler, connection, get_wrapping_pipeline=None, as_path=False):
+    expr = self.query.as_mql(
+        compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline, as_path=False
+    )
+    if as_path:
+        return {"$expr": expr}
+    return expr
 
 
-def exists(self, compiler, connection, get_wrapping_pipeline=None):
+def exists(self, compiler, connection, get_wrapping_pipeline=None, as_path=False):
     try:
-        lhs_mql = subquery(self, compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline)
+        lhs_mql = subquery(
+            self,
+            compiler,
+            connection,
+            get_wrapping_pipeline=get_wrapping_pipeline,
+            as_path=as_path,
+        )
     except EmptyResultSet:
         return Value(False).as_mql(compiler, connection)
-    return connection.mongo_operators["isnull"](lhs_mql, False)
+    if as_path:
+        return {"$expr": connection.mongo_operators_match["isnull"](lhs_mql, False)}
+    return connection.mongo_operators_expr["isnull"](lhs_mql, False)
 
 
-def when(self, compiler, connection):
-    return self.condition.as_mql(compiler, connection)
+def when(self, compiler, connection, as_path=False):
+    return self.condition.as_mql(compiler, connection, as_path=as_path)
 
 
-def value(self, compiler, connection):  # noqa: ARG001
+def value(self, compiler, connection, as_path=False):  # noqa: ARG001
     value = self.value
-    if isinstance(value, (list, int)):
+    if isinstance(value, (list, int)) and not as_path:
         # Wrap lists & numbers in $literal to prevent ambiguity when Value
         # appears in $project.
         return {"$literal": value}
@@ -209,6 +235,36 @@ def value(self, compiler, connection):  # noqa: ARG001
     return value
 
 
+@staticmethod
+def _is_constant_value(value):
+    if isinstance(value, list | Array):
+        iterable = value.get_source_expressions() if isinstance(value, Array) else value
+        return all(_is_constant_value(e) for e in iterable)
+    if is_direct_value(value):
+        return True
+    return isinstance(value, Func | Value) and not (
+        value.contains_aggregate
+        or value.contains_over_clause
+        or value.contains_column_references
+        or value.contains_subquery
+    )
+
+
+@staticmethod
+def _is_simple_column(lhs):
+    while isinstance(lhs, KeyTransform):
+        if "." in getattr(lhs, "key_name", ""):
+            return False
+        lhs = lhs.lhs
+    col = lhs.source if isinstance(lhs, Ref) else lhs
+    # Foreign columns from parent cannot be addressed as single match
+    return isinstance(col, Col) and col.alias is not None
+
+
+def _is_simple_expression(self):
+    return self.is_simple_column(self.lhs) and self.is_constant_value(self.rhs)
+
+
 def register_expressions():
     Case.as_mql = case
     Col.as_mql = col
@@ -227,3 +283,6 @@ def register_expressions():
     Subquery.as_mql = subquery
     When.as_mql = when
     Value.as_mql = value
+    BaseExpression.is_simple_expression = _is_simple_expression
+    BaseExpression.is_simple_column = _is_simple_column
+    BaseExpression.is_constant_value = _is_constant_value

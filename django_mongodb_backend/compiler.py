@@ -327,14 +327,14 @@ class SQLCompiler(compiler.SQLCompiler):
             pipeline = self._build_aggregation_pipeline(ids, group)
             if self.having:
                 having = self.having.replace_expressions(all_replacements).as_mql(
-                    self, self.connection
+                    self, self.connection, as_path=True
                 )
                 # Add HAVING subqueries.
                 for query in self.subqueries or ():
                     pipeline.extend(query.get_pipeline())
                 # Remove the added subqueries.
                 self.subqueries = []
-                pipeline.append({"$match": {"$expr": having}})
+                pipeline.append({"$match": having})
             self.aggregation_pipeline = pipeline
         self.annotations = {
             target: expr.replace_expressions(all_replacements)
@@ -481,11 +481,11 @@ class SQLCompiler(compiler.SQLCompiler):
             query.lookup_pipeline = self.get_lookup_pipeline()
             where = self.get_where()
             try:
-                expr = where.as_mql(self, self.connection) if where else {}
+                expr = where.as_mql(self, self.connection, as_path=True) if where else {}
             except FullResultSet:
                 query.match_mql = {}
             else:
-                query.match_mql = {"$expr": expr}
+                query.match_mql = expr
         if extra_fields:
             query.extra_fields = self.get_project_fields(extra_fields, force_expression=True)
         query.subqueries = self.subqueries
@@ -643,7 +643,9 @@ class SQLCompiler(compiler.SQLCompiler):
             for alias, expr in self.columns:
                 # Unfold foreign fields.
                 if isinstance(expr, Col) and expr.alias != self.collection_name:
-                    ids[expr.alias][expr.target.column] = expr.as_mql(self, self.connection)
+                    ids[expr.alias][expr.target.column] = expr.as_mql(
+                        self, self.connection, as_path=False
+                    )
                 else:
                     ids[alias] = f"${alias}"
             # Convert defaultdict to dict so it doesn't appear as
@@ -707,16 +709,16 @@ class SQLCompiler(compiler.SQLCompiler):
                     # For brevity/simplicity, project {"field_name": 1}
                     # instead of {"field_name": "$field_name"}.
                     if isinstance(expr, Col) and name == expr.target.column and not force_expression
-                    else expr.as_mql(self, self.connection)
+                    else expr.as_mql(self, self.connection, as_path=False)
                 )
             except EmptyResultSet:
                 empty_result_set_value = getattr(expr, "empty_result_set_value", NotImplemented)
                 value = (
                     False if empty_result_set_value is NotImplemented else empty_result_set_value
                 )
-                fields[collection][name] = Value(value).as_mql(self, self.connection)
+                fields[collection][name] = Value(value).as_mql(self, self.connection, as_path=False)
             except FullResultSet:
-                fields[collection][name] = Value(True).as_mql(self, self.connection)
+                fields[collection][name] = Value(True).as_mql(self, self.connection, as_path=False)
         # Annotations (stored in None) and the main collection's fields
         # should appear in the top-level of the fields dict.
         fields.update(fields.pop(None, {}))

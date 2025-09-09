@@ -11,9 +11,7 @@ class MQLTests(MongoTestCaseMixin, TestCase):
     def test_all(self):
         with self.assertNumQueries(1) as ctx:
             list(Author.objects.all())
-        self.assertAggregateQuery(
-            ctx.captured_queries[0]["sql"], "queries__author", [{"$match": {}}]
-        )
+        self.assertAggregateQuery(ctx.captured_queries[0]["sql"], "queries__author", [])
 
     def test_join(self):
         with self.assertNumQueries(1) as ctx:
@@ -29,12 +27,14 @@ class MQLTests(MongoTestCaseMixin, TestCase):
                         "pipeline": [
                             {
                                 "$match": {
-                                    "$expr": {
-                                        "$and": [
-                                            {"$eq": ["$$parent__field__0", "$_id"]},
-                                            {"$eq": ["$name", "Bob"]},
-                                        ]
-                                    }
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
+                                            }
+                                        },
+                                        {"name": "Bob"},
+                                    ]
                                 }
                             }
                         ],
@@ -62,12 +62,14 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                         "pipeline": [
                             {
                                 "$match": {
-                                    "$expr": {
-                                        "$and": [
-                                            {"$eq": ["$$parent__field__0", "$_id"]},
-                                            {"$eq": ["$name", "John"]},
-                                        ]
-                                    }
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
+                                            }
+                                        },
+                                        {"name": "John"},
+                                    ]
                                 }
                             }
                         ],
@@ -123,22 +125,19 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                         "pipeline": [
                             {
                                 "$match": {
-                                    "$expr": {
-                                        "$and": [
-                                            {"$eq": ["$$parent__field__0", "$_id"]},
-                                            {
-                                                "$and": [
-                                                    {
-                                                        "$eq": [
-                                                            "$group_id",
-                                                            ObjectId("6891ff7822e475eddc20f159"),
-                                                        ]
-                                                    },
-                                                    {"$eq": ["$name", "parent"]},
-                                                ]
-                                            },
-                                        ]
-                                    }
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
+                                            }
+                                        },
+                                        {
+                                            "$and": [
+                                                {"group_id": ObjectId("6891ff7822e475eddc20f159")},
+                                                {"name": "parent"},
+                                            ]
+                                        },
+                                    ]
                                 }
                             }
                         ],
@@ -171,17 +170,16 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                         "pipeline": [
                             {
                                 "$match": {
-                                    "$expr": {
-                                        "$and": [
-                                            {"$eq": ["$$parent__field__0", "$order_id"]},
-                                            {
-                                                "$eq": [
-                                                    "$status",
-                                                    ObjectId("6891ff7822e475eddc20f159"),
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [
+                                                    {"$eq": ["$$parent__field__0", "$order_id"]}
                                                 ]
-                                            },
-                                        ]
-                                    }
+                                            }
+                                        },
+                                        {"status": ObjectId("6891ff7822e475eddc20f159")},
+                                    ]
                                 }
                             }
                         ],
@@ -215,17 +213,16 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                         "pipeline": [
                             {
                                 "$match": {
-                                    "$expr": {
-                                        "$and": [
-                                            {"$eq": ["$$parent__field__0", "$order_id"]},
-                                            {
-                                                "$eq": [
-                                                    "$status",
-                                                    ObjectId("6891ff7822e475eddc20f159"),
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [
+                                                    {"$eq": ["$$parent__field__0", "$order_id"]}
                                                 ]
-                                            },
-                                        ]
-                                    }
+                                            }
+                                        },
+                                        {"status": ObjectId("6891ff7822e475eddc20f159")},
+                                    ]
                                 }
                             }
                         ],
@@ -240,12 +237,14 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                         "pipeline": [
                             {
                                 "$match": {
-                                    "$expr": {
-                                        "$and": [
-                                            {"$eq": ["$$parent__field__0", "$_id"]},
-                                            {"$eq": ["$name", "My Order"]},
-                                        ]
-                                    }
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
+                                            }
+                                        },
+                                        {"name": "My Order"},
+                                    ]
                                 }
                             }
                         ],
@@ -276,6 +275,7 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
             [
                 {
                     "$lookup": {
+                        "as": "queries__author",
                         "from": "queries__author",
                         "let": {"parent__field__0": "$author_id"},
                         "pipeline": [
@@ -285,11 +285,10 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                                 }
                             }
                         ],
-                        "as": "queries__author",
                     }
                 },
                 {"$unwind": "$queries__author"},
-                {"$match": {"$expr": {"$not": {"$eq": ["$queries__author.name", "John"]}}}},
+                {"$match": {"$nor": [{"queries__author.name": "John"}]}},
             ],
         )
 
@@ -341,21 +340,25 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
             [
                 {
                     "$lookup": {
+                        "as": "queries__orderitem",
                         "from": "queries__orderitem",
                         "let": {"parent__field__0": "$_id", "parent__field__1": "$_id"},
                         "pipeline": [
                             {
                                 "$match": {
-                                    "$expr": {
-                                        "$and": [
-                                            {"$eq": ["$$parent__field__0", "$order_id"]},
-                                            {"$eq": ["$status", "$$parent__field__1"]},
-                                        ]
-                                    }
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [
+                                                    {"$eq": ["$$parent__field__0", "$order_id"]}
+                                                ]
+                                            }
+                                        },
+                                        {"$expr": {"$eq": ["$status", "$$parent__field__1"]}},
+                                    ]
                                 }
                             }
                         ],
-                        "as": "queries__orderitem",
                     }
                 },
                 {"$unwind": "$queries__orderitem"},
@@ -398,12 +401,14 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                         "pipeline": [
                             {
                                 "$match": {
-                                    "$expr": {
-                                        "$and": [
-                                            {"$eq": ["$$parent__field__0", "$_id"]},
-                                            {"$eq": ["$name", "Alice"]},
-                                        ]
-                                    }
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
+                                            }
+                                        },
+                                        {"name": "Alice"},
+                                    ]
                                 }
                             }
                         ],
@@ -416,6 +421,7 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
         )
 
     def test_subquery_join_is_pushed(self):
+        # TODO; isn't fully OPTIMIZED
         with self.assertNumQueries(1) as ctx:
             list(Library.objects.filter(~models.Q(readers__name="Alice")))
 
@@ -436,12 +442,21 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                                     "pipeline": [
                                         {
                                             "$match": {
-                                                "$expr": {
-                                                    "$and": [
-                                                        {"$eq": ["$$parent__field__0", "$_id"]},
-                                                        {"$eq": ["$name", "Alice"]},
-                                                    ]
-                                                }
+                                                "$and": [
+                                                    {
+                                                        "$expr": {
+                                                            "$and": [
+                                                                {
+                                                                    "$eq": [
+                                                                        "$$parent__field__0",
+                                                                        "$_id",
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    {"name": "Alice"},
+                                                ]
                                             }
                                         }
                                     ],
@@ -480,21 +495,28 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 },
                 {
                     "$match": {
-                        "$expr": {
-                            "$not": {
-                                "$eq": [
-                                    {
-                                        "$not": {
-                                            "$or": [
-                                                {"$eq": [{"$type": "$__subquery0.a"}, "missing"]},
-                                                {"$eq": ["$__subquery0.a", None]},
-                                            ]
-                                        }
-                                    },
-                                    True,
-                                ]
+                        "$nor": [
+                            {
+                                "$expr": {
+                                    "$eq": [
+                                        {
+                                            "$not": {
+                                                "$or": [
+                                                    {
+                                                        "$eq": [
+                                                            {"$type": "$__subquery0.a"},
+                                                            "missing",
+                                                        ]
+                                                    },
+                                                    {"$eq": ["$__subquery0.a", None]},
+                                                ]
+                                            }
+                                        },
+                                        True,
+                                    ]
+                                }
                             }
-                        }
+                        ]
                     }
                 },
             ],
@@ -531,12 +553,14 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                         "pipeline": [
                             {
                                 "$match": {
-                                    "$expr": {
-                                        "$and": [
-                                            {"$eq": ["$$parent__field__0", "$_id"]},
-                                            {"$eq": ["$name", "Alice"]},
-                                        ]
-                                    }
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
+                                            }
+                                        },
+                                        {"name": "Alice"},
+                                    ]
                                 }
                             }
                         ],

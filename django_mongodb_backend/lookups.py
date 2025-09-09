@@ -11,10 +11,17 @@ from django.db.models.lookups import (
 from .query_utils import process_lhs, process_rhs
 
 
-def builtin_lookup(self, compiler, connection):
-    lhs_mql = process_lhs(self, compiler, connection)
+def builtin_lookup(self, compiler, connection, as_path=False):
+    if as_path and self.is_simple_expression():
+        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        value = process_rhs(self, compiler, connection, as_path=True)
+        return connection.mongo_operators_match[self.lookup_name](lhs_mql, value)
+
     value = process_rhs(self, compiler, connection)
-    return connection.mongo_operators[self.lookup_name](lhs_mql, value)
+    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+    if as_path:
+        return {"$expr": connection.mongo_operators_expr[self.lookup_name](lhs_mql, value)}
+    return connection.mongo_operators_expr[self.lookup_name](lhs_mql, value)
 
 
 _field_resolve_expression_parameter = FieldGetDbPrepValueIterableMixin.resolve_expression_parameter
@@ -33,14 +40,14 @@ def field_resolve_expression_parameter(self, compiler, connection, sql, param):
     return sql, sql_params
 
 
-def in_(self, compiler, connection):
+def in_(self, compiler, connection, **extra):
     db_rhs = getattr(self.rhs, "_db", None)
     if db_rhs is not None and db_rhs != connection.alias:
         raise ValueError(
             "Subqueries aren't allowed across different databases. Force "
             "the inner query to be evaluated using `list(inner_query)`."
         )
-    return builtin_lookup(self, compiler, connection)
+    return builtin_lookup(self, compiler, connection, **extra)
 
 
 def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr):  # noqa: ARG001
@@ -75,11 +82,16 @@ def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr)
     ]
 
 
-def is_null(self, compiler, connection):
+def is_null(self, compiler, connection, as_path=False):
     if not isinstance(self.rhs, bool):
         raise ValueError("The QuerySet value for an isnull lookup must be True or False.")
-    lhs_mql = process_lhs(self, compiler, connection)
-    return connection.mongo_operators["isnull"](lhs_mql, self.rhs)
+    if as_path and self.is_simple_expression():
+        lhs_mql = process_lhs(self, compiler, connection, as_path=as_path)
+        return connection.mongo_operators_match["isnull"](lhs_mql, self.rhs)
+    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+    if as_path:
+        return {"$expr": connection.mongo_operators_expr["isnull"](lhs_mql, self.rhs)}
+    return connection.mongo_operators_expr["isnull"](lhs_mql, self.rhs)
 
 
 # from https://www.pcre.org/current/doc/html/pcre2pattern.html#SEC4
