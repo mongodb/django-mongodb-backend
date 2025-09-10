@@ -37,6 +37,7 @@ classifiers = [
 docs = [
     "sphinx>=7",
     "furo>=2025.7.19",
+    "sphinx-copybutton",
 ]
 
 [project.urls]

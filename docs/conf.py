@@ -34,6 +34,7 @@ toc_object_entries = False
 extensions = [
     "djangodocs",
     "sphinx.ext.intersphinx",
+    "sphinx_copybutton",
 ]
 
 # templates_path = ["_templates"]
@@ -57,3 +58,9 @@ intersphinx_mapping = {
 
 html_theme = "furo"
 html_static_path = ["_static"]
+
+# -- Options for copy button -------------------------------------------------
+# https://sphinx-copybutton.readthedocs.io/en/latest/use.html#use-and-customize
+
+copybutton_prompt_text = r">>> |\.\.\. |\$ "
+copybutton_prompt_is_regexp = True
