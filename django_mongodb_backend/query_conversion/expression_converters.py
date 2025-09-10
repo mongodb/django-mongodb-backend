@@ -77,7 +77,7 @@ class BinaryConverter(BaseConverter):
             # Check if first argument is a simple field reference.
             if (field_name := cls.convert_path_name(field_expr)) and cls.is_simple_value(value):
                 if cls.operator == "$eq":
-                    return {field_name: value}
+                    return {field_name: {"$exists": False} if value is None else value}
                 return {field_name: {cls.operator: value}}
         return None
 
