@@ -6,7 +6,7 @@ class BaseConverter:
         raise NotImplementedError("Subclasses must implement this method.")
 
     @classmethod
-    def is_simple_field_name(cls, field_name):
+    def is_simple_path_name(cls, field_name):
         return (
             isinstance(field_name, str)
             and field_name != ""
@@ -29,19 +29,19 @@ class BaseConverter:
         ):
             input_expr = get_field_expr["input"]
             field_name = get_field_expr["field"]
-            return cls.convert_field_name(input_expr) and (
-                isinstance(field_name, str) and not field_name.startswith("$")
+            return cls.convert_path_name(input_expr) and (
+                isinstance(field_name, str) and "$" not in field_name and "." not in field_name
             )
         return False
 
     @classmethod
-    def convert_field_name(cls, field_name):
-        if cls.is_simple_field_name(field_name):
+    def convert_path_name(cls, field_name):
+        if cls.is_simple_path_name(field_name):
             return field_name[1:]
         if cls.is_simple_get_field(field_name):
             get_field_input = field_name["$getField"]["input"]
-            get_field_field = field_name["$getField"]["field"]
-            return f"{cls.convert_field_name(get_field_input)}.{get_field_field}"
+            get_field_field_name = field_name["$getField"]["field"]
+            return f"{cls.convert_path_name(get_field_input)}.{get_field_field_name}"
         return None
 
     @classmethod
@@ -75,7 +75,7 @@ class BinaryConverter(BaseConverter):
         if isinstance(args, list) and len(args) == 2:
             field_expr, value = args
             # Check if first argument is a simple field reference.
-            if (field_name := cls.convert_field_name(field_expr)) and cls.is_simple_value(value):
+            if (field_name := cls.convert_path_name(field_expr)) and cls.is_simple_value(value):
                 if cls.operator == "$eq":
                     return {field_name: value}
                 return {field_name: {cls.operator: value}}
