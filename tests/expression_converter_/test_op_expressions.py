@@ -142,7 +142,7 @@ class InTests(ConversionTestCase):
 
     def _test_conversion_valid_type(self, _type):
         self.assertConversionEqual(
-            {"$in": ["$age", [_type]]}, _wrap_condition_if_null(_type, {"age": {"$in": [_type]}})
+            {"$in": ["$age", [_type]]}, _wrap_condition_if_null(_type, {"age": {"$in": [_type]}}, "age")
         )
 
     def test_conversion_various_types(self):
