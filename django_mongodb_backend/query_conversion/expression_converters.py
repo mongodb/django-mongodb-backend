@@ -79,10 +79,6 @@ class BinaryConverter(BaseConverter):
                 if cls.operator == "$eq":
                     return {field_name: value}
                 return {field_name: {cls.operator: value}}
-            # If simple getFields are found, still mutate the original args list
-            for i, arg in enumerate(args):
-                if cls.is_simple_get_field(arg):
-                    args[i] = "$" + cls.convert_field_name(arg)
         return None
 
 
@@ -140,15 +136,6 @@ class InConverter(BaseConverter):
                 and all(cls.is_simple_value(v) for v in values)
             ):
                 return {field_name: {"$in": values}}
-            # Mutate the original list
-            for i, arg in enumerate(in_args):
-                if cls.is_simple_get_field(arg):
-                    in_args[i] = "$" + cls.convert_field_name(arg)
-                if isinstance(arg, list | tuple | set):
-                    arg[i] = [
-                        "$" + cls.convert_field_name(v) if cls.is_simple_get_field(v) else v
-                        for v in arg
-                    ]
         return None
 
 

@@ -223,7 +223,18 @@ class ConvertExprToMatchTests(SimpleTestCase):
                 ]
             }
         }
-        expected = [{"$match": {"$expr": {"$gt": ["$price.value", "$discounted_price.value"]}}}]
+        expected = [
+            {
+                "$match": {
+                    "$expr": {
+                        "$gt": [
+                            {"$getField": {"input": "$price", "field": "value"}},
+                            {"$getField": {"input": "$discounted_price", "field": "value"}},
+                        ]
+                    }
+                }
+            }
+        ]
         self.assertOptimizerEqual(expr, expected)
 
     def test_getfield_usage_on_onesided_binary_operator(self):
