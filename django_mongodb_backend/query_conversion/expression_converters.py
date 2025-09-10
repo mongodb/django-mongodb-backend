@@ -131,7 +131,7 @@ class InConverter(BaseConverter):
             field_expr, values = in_args
             # Check if first argument is a simple field reference
             # Check if second argument is a list of simple values
-            if (field_name := cls.convert_field_name(field_expr)) and (
+            if (field_name := cls.convert_path_name(field_expr)) and (
                 isinstance(values, list | tuple | set)
                 and all(cls.is_simple_value(v) for v in values)
             ):
