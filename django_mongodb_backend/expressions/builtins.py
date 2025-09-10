@@ -103,7 +103,7 @@ def order_by(self, compiler, connection):
     return self.expression.as_mql(compiler, connection)
 
 
-def query(self, compiler, connection, get_wrapping_pipeline=None):
+def query(self, compiler, connection, get_wrapping_pipeline=None, as_path=False):
     subquery_compiler = self.get_compiler(connection=connection)
     subquery_compiler.pre_sql_setup(with_col_aliases=False)
     field_name, expr = subquery_compiler.columns[0]
@@ -145,6 +145,8 @@ def query(self, compiler, connection, get_wrapping_pipeline=None):
         # Erase project_fields since the required value is projected above.
         subquery.project_fields = None
     compiler.subqueries.append(subquery)
+    if as_path:
+        return f"{table_output}.{field_name}"
     return f"${table_output}.{field_name}"
 
 
@@ -167,20 +169,31 @@ def ref(self, compiler, connection, as_path=False):  # noqa: ARG001
     return f"{prefix}{refs}"
 
 
-def star(self, compiler, connection):  # noqa: ARG001
+def star(self, compiler, connection, **extra):  # noqa: ARG001
     return {"$literal": True}
 
 
-def subquery(self, compiler, connection, get_wrapping_pipeline=None):
-    return self.query.as_mql(compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline)
+def subquery(self, compiler, connection, get_wrapping_pipeline=None, **extra):
+    return self.query.as_mql(
+        compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline, **extra
+    )
 
 
-def exists(self, compiler, connection, get_wrapping_pipeline=None):
+def exists(self, compiler, connection, get_wrapping_pipeline=None, as_path=False, **extra):
     try:
-        lhs_mql = subquery(self, compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline)
+        lhs_mql = subquery(
+            self,
+            compiler,
+            connection,
+            get_wrapping_pipeline=get_wrapping_pipeline,
+            as_path=as_path,
+            **extra,
+        )
     except EmptyResultSet:
         return Value(False).as_mql(compiler, connection)
-    return connection.mongo_operators["isnull"](lhs_mql, False)
+    if as_path:
+        return connection.mongo_operators_match["isnull"](lhs_mql, False)
+    return connection.mongo_operators_expr["isnull"](lhs_mql, False)
 
 
 def when(self, compiler, connection, **extra):

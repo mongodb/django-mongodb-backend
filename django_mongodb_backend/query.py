@@ -11,8 +11,6 @@ from django.db.models.sql.datastructures import Join
 from django.db.models.sql.where import AND, OR, XOR, ExtraWhere, NothingNode, WhereNode
 from pymongo.errors import BulkWriteError, DuplicateKeyError, PyMongoError
 
-from .query_conversion.query_optimizer import convert_expr_to_match
-
 
 def wrap_database_errors(func):
     @wraps(func)
@@ -89,7 +87,7 @@ class MongoQuery:
         for query in self.subqueries or ():
             pipeline.extend(query.get_pipeline())
         if self.match_mql:
-            pipeline.extend(convert_expr_to_match(self.match_mql))
+            pipeline.append({"$match": self.match_mql})
         if self.aggregation_pipeline:
             pipeline.extend(self.aggregation_pipeline)
         if self.project_fields:
@@ -275,7 +273,7 @@ def join(self, compiler, connection, pushed_filter_expression=None):
     return lookup_pipeline
 
 
-def where_node(self, compiler, connection):
+def where_node(self, compiler, connection, **extra):
     if self.connector == AND:
         full_needed, empty_needed = len(self.children), 1
     else:
@@ -298,14 +296,14 @@ def where_node(self, compiler, connection):
         if len(self.children) > 2:
             rhs_sum = Mod(rhs_sum, 2)
         rhs = Exact(1, rhs_sum)
-        return self.__class__([lhs, rhs], AND, self.negated).as_mql(compiler, connection)
+        return self.__class__([lhs, rhs], AND, self.negated).as_mql(compiler, connection, **extra)
     else:
         operator = "$or"
 
     children_mql = []
     for child in self.children:
         try:
-            mql = child.as_mql(compiler, connection)
+            mql = child.as_mql(compiler, connection, **extra)
         except EmptyResultSet:
             empty_needed -= 1
         except FullResultSet:
@@ -332,7 +330,7 @@ def where_node(self, compiler, connection):
         raise FullResultSet
 
     if self.negated and mql:
-        mql = {"$nor": mql}
+        mql = {"$nor": [mql]}
 
     return mql
 

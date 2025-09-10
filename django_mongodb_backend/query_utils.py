@@ -53,8 +53,7 @@ def regex_expr(field, regex_vals, insensitive=False):
     return {"$regexMatch": {"input": field, "regex": regex, "options": options}}
 
 
-def regex_match(field, regex_vals, insensitive=False):
-    regex = {"$concat": regex_vals} if isinstance(regex_vals, tuple) else regex_vals
+def regex_match(field, regex, insensitive=False):
     options = "i" if insensitive else ""
     # return {"$regexMatch": {"input": field, "regex": regex, "options": options}}
     return {field: {"$regex": regex, "$options": options}}

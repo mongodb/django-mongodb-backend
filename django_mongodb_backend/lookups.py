@@ -1,5 +1,5 @@
 from django.db import NotSupportedError
-from django.db.models.expressions import Value
+from django.db.models.expressions import Col, Ref, Value
 from django.db.models.fields.related_lookups import In, RelatedIn
 from django.db.models.lookups import (
     BuiltinLookup,
@@ -16,9 +16,13 @@ def is_constant_value(value):
     return is_direct_value(value) or isinstance(value, Value)
 
 
+def is_simple_column(lhs):
+    return isinstance(lhs, Col | Ref)
+
+
 def builtin_lookup(self, compiler, connection, as_expr=False):
     value = process_rhs(self, compiler, connection)
-    if is_constant_value(self.rhs) and not as_expr:
+    if is_simple_column(self.lhs) and is_constant_value(self.rhs) and not as_expr:
         lhs_mql = process_lhs(self, compiler, connection, as_path=True)
         return connection.mongo_operators_match[self.lookup_name](lhs_mql, value)
 
