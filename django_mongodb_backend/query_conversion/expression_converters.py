@@ -77,7 +77,9 @@ class BinaryConverter(BaseConverter):
             # Check if first argument is a simple field reference.
             if (field_name := cls.convert_path_name(field_expr)) and cls.is_simple_value(value):
                 if cls.operator == "$eq":
-                    return {field_name: {"$exists": False} if value is None else value}
+                    if value is None:
+                        return {"$and": [{field_name: {"$exists": True}}, {field_name: None}]}
+                    return {field_name: value}
                 return {field_name: {cls.operator: value}}
         return None
 
@@ -131,7 +133,7 @@ class InConverter(BaseConverter):
             field_expr, values = in_args
             # Check if first argument is a simple field reference
             # Check if second argument is a list of simple values
-            if (field_name := cls.convert_path_name(field_expr)) and (
+            if (field_name := cls.(field_expr)) and (
                 isinstance(values, list | tuple | set)
                 and all(cls.is_simple_value(v) for v in values)
             ):
