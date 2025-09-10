@@ -11,8 +11,8 @@ class BaseConverter:
             isinstance(field_name, str)
             and field_name != ""
             and field_name.startswith("$")
-            # Special case for _ separated field names
-            and field_name[1:].replace("_", "").isalnum()
+            # Case for catching variables
+            and not field_name.startswith("$$")
         )
 
     @classmethod
