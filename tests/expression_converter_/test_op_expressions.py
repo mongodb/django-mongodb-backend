@@ -163,9 +163,7 @@ class InTests(ConversionTestCase):
                 ],
             ]
         }
-        # Not optimized but should still convert getFields
-        expected = {"$in": ["$root.age", ["$value.age"]]}
-        self.assertConversionEqual(expr, expected)
+        self.assertNotOptimizable(expr)
 
 
 class LogicalTests(ConversionTestCase):
