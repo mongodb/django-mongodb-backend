@@ -75,9 +75,7 @@ class ConversionTestCase(SimpleTestCase):
                 },
             ]
         }
-        # Not optimized but should still convert getFields
-        expected = {logical_op: ["$root.age", "$value.age"]}
-        self.assertConversionEqual(expr, expected)
+        self.assertNotOptimizable(expr)
 
 
 class ExpressionTests(ConversionTestCase):
