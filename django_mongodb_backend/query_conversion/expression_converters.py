@@ -76,13 +76,12 @@ class BinaryConverter(BaseConverter):
             field_expr, value = args
             # Check if first argument is a simple field reference.
             if (field_name := cls.convert_path_name(field_expr)) and cls.is_simple_value(value):
-                query = {"$and": [{"$exists": True}]} if value is None else None
-                core_check = None
                 if cls.operator == "$eq":
-                    core_check = {field_name: value}
+                    query = {field_name: value}
+                else:
+                    query = {field_name: {cls.operator: value}}
                 if value is None:
-                    core_check = {field_name: {cls.operator: None}}
-                query = query["$and"].append(core_check) if query else core_check
+                    query = {"$and": [{field_name: {"$exists": True}}, query]}
                 return query
         return None
 
@@ -141,7 +140,11 @@ class InConverter(BaseConverter):
                 and all(cls.is_simple_value(v) for v in values)
             ):
                 core_check = {field_name: {"$in": values}}
-                return {"$and": [{"$exists": True}, core_check]} if None in values else core_check
+                return (
+                    {"$and": [{field_name: {"$exists": True}}, core_check]}
+                    if None in values
+                    else core_check
+                )
         return None
 
 
