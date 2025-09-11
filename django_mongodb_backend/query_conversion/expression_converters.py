@@ -27,7 +27,7 @@ class BinaryConverter(BaseConverter):
             {"$gt": ["$price", 100]}
         }
     is converted to:
-        {"$gt": ["price", 100]}
+        {"price": {"$gt": 100}}
     """
 
     operator: str
