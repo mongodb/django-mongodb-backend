@@ -7,6 +7,12 @@ from django.test import SimpleTestCase
 from django_mongodb_backend.query_conversion.expression_converters import convert_expression
 
 
+def _wrap_condition_if_null(_type, condition, path):
+    if _type is None:
+        return {"$and": [{path: {"$exists": True}}, condition]}
+    return condition
+
+
 class ConversionTestCase(SimpleTestCase):
     CONVERTIBLE_TYPES = {
         "int": 42,
@@ -53,10 +59,14 @@ class EqTests(ConversionTestCase):
         self.assertNotOptimizable({"$eq": ["$status", {"$gt": 5}]})
 
     def _test_conversion_valid_type(self, _type):
-        self.assertConversionEqual({"$eq": ["$age", _type]}, {"age": _type})
+        self.assertConversionEqual(
+            {"$eq": ["$age", _type]}, _wrap_condition_if_null(_type, {"age": _type}, "age")
+        )
 
     def _test_conversion_valid_array_type(self, _type):
-        self.assertConversionEqual({"$eq": ["$age", _type]}, {"age": _type})
+        self.assertConversionEqual(
+            {"$eq": ["$age", _type]}, _wrap_condition_if_null(_type, {"age": _type}, "age")
+        )
 
     def test_conversion_various_types(self):
         self._test_conversion_various_types(self._test_conversion_valid_type)
@@ -78,7 +88,10 @@ class InTests(ConversionTestCase):
         self.assertNotOptimizable({"$in": ["$status", [{"bad": "val"}]]})
 
     def _test_conversion_valid_type(self, _type):
-        self.assertConversionEqual({"$in": ["$age", [_type]]}, {"age": {"$in": [_type]}})
+        self.assertConversionEqual(
+            {"$in": ["$age", [_type]]},
+            _wrap_condition_if_null(_type, {"age": {"$in": [_type]}}, "age"),
+        )
 
     def test_conversion_various_types(self):
         for _type, val in self.CONVERTIBLE_TYPES.items():
@@ -170,7 +183,10 @@ class GtTests(ConversionTestCase):
         self.assertNotOptimizable({"$gt": ["$price", {}]})
 
     def _test_conversion_valid_type(self, _type):
-        self.assertConversionEqual({"$gt": ["$price", _type]}, {"price": {"$gt": _type}})
+        self.assertConversionEqual(
+            {"$gt": ["$price", _type]},
+            _wrap_condition_if_null(_type, {"price": {"$gt": _type}}, "price"),
+        )
 
     def test_conversion_various_types(self):
         self._test_conversion_various_types(self._test_conversion_valid_type)
@@ -193,7 +209,7 @@ class GteTests(ConversionTestCase):
     def _test_conversion_valid_type(self, _type):
         expr = {"$gte": ["$price", _type]}
         expected = {"price": {"$gte": _type}}
-        self.assertConversionEqual(expr, expected)
+        self.assertConversionEqual(expr, _wrap_condition_if_null(_type, expected, "price"))
 
     def test_conversion_various_types(self):
         self._test_conversion_various_types(self._test_conversion_valid_type)
@@ -210,7 +226,10 @@ class LtTests(ConversionTestCase):
         self.assertNotOptimizable({"$lt": ["$price", {}]})
 
     def _test_conversion_valid_type(self, _type):
-        self.assertConversionEqual({"$lt": ["$price", _type]}, {"price": {"$lt": _type}})
+        self.assertConversionEqual(
+            {"$lt": ["$price", _type]},
+            _wrap_condition_if_null(_type, {"price": {"$lt": _type}}, "price"),
+        )
 
     def test_conversion_various_types(self):
         self._test_conversion_various_types(self._test_conversion_valid_type)
@@ -227,7 +246,10 @@ class LteTests(ConversionTestCase):
         self.assertNotOptimizable({"$lte": ["$price", {}]})
 
     def _test_conversion_valid_type(self, _type):
-        self.assertConversionEqual({"$lte": ["$price", _type]}, {"price": {"$lte": _type}})
+        self.assertConversionEqual(
+            {"$lte": ["$price", _type]},
+            _wrap_condition_if_null(_type, {"price": {"$lte": _type}}, "price"),
+        )
 
     def test_conversion_various_types(self):
         self._test_conversion_various_types(self._test_conversion_valid_type)
