@@ -7,7 +7,9 @@ from django_mongodb_backend.fields import ObjectIdAutoField
 class MethodTests(SimpleTestCase):
     def test_deconstruct(self):
         field = ObjectIdAutoField()
+        field.name = "field_name"
         name, path, args, kwargs = field.deconstruct()
+        self.assertEqual(name, "field_name")
         self.assertEqual(path, "django_mongodb_backend.fields.ObjectIdAutoField")
         self.assertEqual(args, [])
         self.assertEqual(kwargs, {"primary_key": True})

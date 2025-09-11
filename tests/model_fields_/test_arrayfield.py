@@ -84,7 +84,11 @@ class BasicTests(SimpleTestCase):
 
     def test_deconstruct(self):
         field = ArrayField(models.IntegerField())
+        field.name = "field_name"
         name, path, args, kwargs = field.deconstruct()
+        self.assertEqual(name, "field_name")
+        self.assertEqual(path, "django_mongodb_backend.fields.ArrayField")
+        self.assertEqual(args, [])
         self.assertEqual(kwargs.keys(), {"base_field"})
         new = ArrayField(*args, **kwargs)
         self.assertEqual(type(new.base_field), type(field.base_field))
@@ -92,23 +96,19 @@ class BasicTests(SimpleTestCase):
 
     def test_deconstruct_with_max_size(self):
         field = ArrayField(models.IntegerField(), max_size=3)
-        name, path, args, kwargs = field.deconstruct()
+        _, _, args, kwargs = field.deconstruct()
         new = ArrayField(*args, **kwargs)
         self.assertEqual(new.max_size, field.max_size)
 
     def test_deconstruct_args(self):
         field = ArrayField(models.CharField(max_length=20))
-        name, path, args, kwargs = field.deconstruct()
+        _, _, args, kwargs = field.deconstruct()
         new = ArrayField(*args, **kwargs)
         self.assertEqual(new.base_field.max_length, field.base_field.max_length)
 
     def test_subclass_deconstruct(self):
-        field = ArrayField(models.IntegerField())
-        name, path, args, kwargs = field.deconstruct()
-        self.assertEqual(path, "django_mongodb_backend.fields.ArrayField")
-
         field = ArrayFieldSubclass()
-        name, path, args, kwargs = field.deconstruct()
+        _, path, _, _ = field.deconstruct()
         self.assertEqual(path, "model_fields_.models.ArrayFieldSubclass")
 
 
