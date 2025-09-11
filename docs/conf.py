@@ -34,6 +34,7 @@ toc_object_entries = False
 extensions = [
     "djangodocs",
     "sphinx.ext.intersphinx",
+    "sphinx_copybutton",
 ]
 
 # templates_path = ["_templates"]
@@ -45,7 +46,8 @@ intersphinx_mapping = {
         "https://docs.djangoproject.com/en/5.2/_objects/",
     ),
     "mongodb": ("https://www.mongodb.com/docs/languages/python/django-mongodb/v5.2/", None),
-    "pymongo": ("https://pymongo.readthedocs.io/en/stable/", None),
+    "pymongo": ("https://www.mongodb.com/docs/languages/python/pymongo-driver/current/", None),
+    "pymongo-api": ("https://pymongo.readthedocs.io/en/stable/", None),
     "python": ("https://docs.python.org/3/", None),
     "atlas": ("https://www.mongodb.com/docs/atlas/", None),
     "manual": ("https://www.mongodb.com/docs/manual/", None),
@@ -56,3 +58,9 @@ intersphinx_mapping = {
 
 html_theme = "furo"
 html_static_path = ["_static"]
+
+# -- Options for copy button -------------------------------------------------
+# https://sphinx-copybutton.readthedocs.io/en/latest/use.html#use-and-customize
+
+copybutton_prompt_text = r">>> |\.\.\. |\$ "
+copybutton_prompt_is_regexp = True
