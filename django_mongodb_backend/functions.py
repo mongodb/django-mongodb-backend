@@ -65,7 +65,11 @@ EXTRACT_OPERATORS = {
 }
 
 
-def cast(self, compiler, connection):
+# TODO: ALL THOSE FUNCTION MAY CHECK AS_EXPR OR AS_PATH=FALSE. JUST NEED TO REVIEW ALL THE
+# TEST THAT HAVE THOSE OPERATOR.
+
+
+def cast(self, compiler, connection, **extra):  # noqa: ARG001
     output_type = connection.data_types[self.output_field.get_internal_type()]
     lhs_mql = process_lhs(self, compiler, connection)[0]
     if max_length := self.output_field.max_length:
@@ -95,7 +99,7 @@ def cot(self, compiler, connection):
     return {"$divide": [1, {"$tan": lhs_mql}]}
 
 
-def extract(self, compiler, connection):
+def extract(self, compiler, connection, **extra):  # noqa: ARG001
     lhs_mql = process_lhs(self, compiler, connection)
     operator = EXTRACT_OPERATORS.get(self.lookup_name)
     if operator is None:
@@ -105,7 +109,7 @@ def extract(self, compiler, connection):
     return {f"${operator}": lhs_mql}
 
 
-def func(self, compiler, connection):
+def func(self, compiler, connection, **extra):  # noqa: ARG001
     lhs_mql = process_lhs(self, compiler, connection)
     if self.function is None:
         raise NotSupportedError(f"{self} may need an as_mql() method.")
@@ -117,7 +121,7 @@ def left(self, compiler, connection):
     return self.get_substr().as_mql(compiler, connection)
 
 
-def length(self, compiler, connection):
+def length(self, compiler, connection, as_path=False, as_expr=None):  # noqa: ARG001
     # Check for null first since $strLenCP only accepts strings.
     lhs_mql = process_lhs(self, compiler, connection)
     return {"$cond": {"if": {"$eq": [lhs_mql, None]}, "then": None, "else": {"$strLenCP": lhs_mql}}}
@@ -194,7 +198,7 @@ def trim(operator):
     return wrapped
 
 
-def trunc(self, compiler, connection):
+def trunc(self, compiler, connection, **extra):  # noqa: ARG001
     lhs_mql = process_lhs(self, compiler, connection)
     lhs_mql = {"date": lhs_mql, "unit": self.kind, "startOfWeek": "mon"}
     if timezone := self.get_tzname():

@@ -46,14 +46,14 @@ def field_resolve_expression_parameter(self, compiler, connection, sql, param):
     return sql, sql_params
 
 
-def in_(self, compiler, connection):
+def in_(self, compiler, connection, **extra):
     db_rhs = getattr(self.rhs, "_db", None)
     if db_rhs is not None and db_rhs != connection.alias:
         raise ValueError(
             "Subqueries aren't allowed across different databases. Force "
             "the inner query to be evaluated using `list(inner_query)`."
         )
-    return builtin_lookup(self, compiler, connection)
+    return builtin_lookup(self, compiler, connection, **extra)
 
 
 def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr):  # noqa: ARG001
@@ -91,7 +91,7 @@ def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr)
 def is_null(self, compiler, connection, as_expr=False):
     if not isinstance(self.rhs, bool):
         raise ValueError("The QuerySet value for an isnull lookup must be True or False.")
-    if is_constant_value(self.rhs) and not as_expr:
+    if is_constant_value(self.rhs) and not as_expr and is_simple_column(self.lhs):
         lhs_mql = process_lhs(self, compiler, connection, as_path=True)
         return connection.mongo_operators_match["isnull"](lhs_mql, self.rhs)
     lhs_mql = process_lhs(self, compiler, connection)
