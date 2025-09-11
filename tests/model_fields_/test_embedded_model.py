@@ -32,7 +32,9 @@ from .utils import truncate_ms
 class MethodTests(SimpleTestCase):
     def test_deconstruct(self):
         field = EmbeddedModelField("Data", null=True)
+        field.name = "field_name"
         name, path, args, kwargs = field.deconstruct()
+        self.assertEqual(name, "field_name")
         self.assertEqual(path, "django_mongodb_backend.fields.EmbeddedModelField")
         self.assertEqual(args, [])
         self.assertEqual(kwargs, {"embedded_model": "Data", "null": True})

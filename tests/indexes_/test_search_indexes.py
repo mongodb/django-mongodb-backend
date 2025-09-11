@@ -77,6 +77,8 @@ class VectorSearchIndexTests(SimpleTestCase):
     def test_deconstruct(self):
         index = VectorSearchIndex(name="recent_test_idx", fields=["number"], similarities="cosine")
         name, args, kwargs = index.deconstruct()
+        self.assertEqual(name, "django_mongodb_backend.indexes.VectorSearchIndex")
+        self.assertEqual(args, ())
         self.assertEqual(
             kwargs, {"name": "recent_test_idx", "fields": ["number"], "similarities": "cosine"}
         )
