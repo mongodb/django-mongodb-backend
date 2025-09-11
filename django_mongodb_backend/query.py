@@ -329,8 +329,9 @@ def where_node(self, compiler, connection, **extra):
     if not mql:
         raise FullResultSet
 
+    as_expr = extra.get("as_expr")
     if self.negated and mql:
-        mql = {"$nor": [mql]}
+        mql = {"$nor": [mql]} if not as_expr else {"$not": [mql]}
 
     return mql
 
