@@ -72,7 +72,7 @@ class LookupMQLTests(MongoTestCaseMixin, TestCase):
 
 class NullValueLookupTests(MongoTestCaseMixin, TestCase):
     _OPERATOR_PREDICATE_MAP = {
-        "eq": lambda field: {field: None},
+        "exact": lambda field: {field: None},
         "in": lambda field: {field: {"$in": [None]}},
     }
 
@@ -89,7 +89,9 @@ class NullValueLookupTests(MongoTestCaseMixin, TestCase):
     def _test_none_filter_nullable_json(self, op, predicate, field):
         with self.assertNumQueries(1) as ctx:
             self.assertQuerySetEqual(
-                NullableJSONModel.objects.filter(**{f"{field}__{op}": None}),
+                NullableJSONModel.objects.filter(
+                    **{f"{field}__{op}": [None] if op == "in" else None}
+                ),
                 [],
             )
         self.assertAggregateQuery(
@@ -100,7 +102,9 @@ class NullValueLookupTests(MongoTestCaseMixin, TestCase):
 
     def _test_none_filter_binary_operator(self, op, predicate, field):
         with self.assertNumQueries(1) as ctx:
-            self.assertQuerySetEqual(Book.objects.filter(**{f"{field}__{op}": None}), [])
+            self.assertQuerySetEqual(
+                Book.objects.filter(**{f"{field}__{op}": [None] if op == "in" else None}), []
+            )
         self.assertAggregateQuery(
             ctx.captured_queries[0]["sql"],
             "lookup__book",
@@ -116,20 +120,20 @@ class NullValueLookupTests(MongoTestCaseMixin, TestCase):
             ],
         )
 
-    def _test_with_raw_data(self, model, test_function):
+    def _test_with_raw_data(self, model, test_function, field):
         collection = connection.database.get_collection(model._meta.db_table)
         try:
             collection.insert_one({"_id": self.unique_id})
 
             for op, predicate in self._OPERATOR_PREDICATE_MAP.items():
                 with self.subTest(op=op):
-                    test_function(op, predicate, "title")
+                    test_function(op, predicate, field)
 
         finally:
             collection.delete_one({"_id": self.unique_id})
 
     def test_none_filter_nullable_json(self):
-        self._test_with_raw_data(NullableJSONModel, self._test_none_filter_nullable_json)
+        self._test_with_raw_data(NullableJSONModel, self._test_none_filter_nullable_json, "value")
 
     def test_none_filter_binary_operator(self):
-        self._test_with_raw_data(Book, self._test_none_filter_binary_operator)
+        self._test_with_raw_data(Book, self._test_none_filter_binary_operator, "title")
