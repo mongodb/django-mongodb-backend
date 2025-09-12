@@ -28,12 +28,13 @@ from django.db.models.sql import Query
 from ..query_utils import process_lhs
 
 
-def case(self, compiler, connection):
+# EXTRA IS TOTALLY IGNORED
+def case(self, compiler, connection, **extra):  # noqa: ARG001
     case_parts = []
     for case in self.cases:
         case_mql = {}
         try:
-            case_mql["case"] = case.as_mql(compiler, connection)
+            case_mql["case"] = case.as_mql(compiler, connection, as_expr=True)
         except EmptyResultSet:
             continue
         except FullResultSet:
@@ -53,7 +54,7 @@ def case(self, compiler, connection):
     }
 
 
-def col(self, compiler, connection, as_path=False):  # noqa: ARG001
+def col(self, compiler, connection, as_path=False, as_expr=None):  # noqa: ARG001
     # If the column is part of a subquery and belongs to one of the parent
     # queries, it will be stored for reference using $let in a $lookup stage.
     # If the query is built with `alias_cols=False`, treat the column as
@@ -71,7 +72,7 @@ def col(self, compiler, connection, as_path=False):  # noqa: ARG001
     # Add the column's collection's alias for columns in joined collections.
     has_alias = self.alias and self.alias != compiler.collection_name
     prefix = f"{self.alias}." if has_alias else ""
-    if not as_path:
+    if not as_path or as_expr:
         prefix = f"${prefix}"
     return f"{prefix}{self.target.column}"
 
@@ -83,16 +84,16 @@ def col_pairs(self, compiler, connection):
     return cols[0].as_mql(compiler, connection)
 
 
-def combined_expression(self, compiler, connection):
+def combined_expression(self, compiler, connection, **extra):
     expressions = [
-        self.lhs.as_mql(compiler, connection),
-        self.rhs.as_mql(compiler, connection),
+        self.lhs.as_mql(compiler, connection, **extra),
+        self.rhs.as_mql(compiler, connection, **extra),
     ]
     return connection.ops.combine_expression(self.connector, expressions)
 
 
-def expression_wrapper(self, compiler, connection):
-    return self.expression.as_mql(compiler, connection)
+def expression_wrapper(self, compiler, connection, **extra):
+    return self.expression.as_mql(compiler, connection, **extra)
 
 
 def negated_expression(self, compiler, connection):
@@ -103,7 +104,7 @@ def order_by(self, compiler, connection):
     return self.expression.as_mql(compiler, connection)
 
 
-def query(self, compiler, connection, get_wrapping_pipeline=None):
+def query(self, compiler, connection, get_wrapping_pipeline=None, as_path=False, as_expr=None):
     subquery_compiler = self.get_compiler(connection=connection)
     subquery_compiler.pre_sql_setup(with_col_aliases=False)
     field_name, expr = subquery_compiler.columns[0]
@@ -145,6 +146,8 @@ def query(self, compiler, connection, get_wrapping_pipeline=None):
         # Erase project_fields since the required value is projected above.
         subquery.project_fields = None
     compiler.subqueries.append(subquery)
+    if as_path and not as_expr:
+        return f"{table_output}.{field_name}"
     return f"${table_output}.{field_name}"
 
 
@@ -152,7 +155,7 @@ def raw_sql(self, compiler, connection):  # noqa: ARG001
     raise NotSupportedError("RawSQL is not supported on MongoDB.")
 
 
-def ref(self, compiler, connection):  # noqa: ARG001
+def ref(self, compiler, connection, as_path=False):  # noqa: ARG001
     prefix = (
         f"{self.source.alias}."
         if isinstance(self.source, Col) and self.source.alias != compiler.collection_name
@@ -162,30 +165,43 @@ def ref(self, compiler, connection):  # noqa: ARG001
         refs, _ = compiler.columns[self.ordinal - 1]
     else:
         refs = self.refs
-    return f"${prefix}{refs}"
+    if not as_path:
+        prefix = f"${prefix}"
+    return f"{prefix}{refs}"
 
 
-def star(self, compiler, connection):  # noqa: ARG001
+def star(self, compiler, connection, **extra):  # noqa: ARG001
     return {"$literal": True}
 
 
-def subquery(self, compiler, connection, get_wrapping_pipeline=None):
-    return self.query.as_mql(compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline)
+def subquery(self, compiler, connection, get_wrapping_pipeline=None, **extra):
+    return self.query.as_mql(
+        compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline, **extra
+    )
 
 
-def exists(self, compiler, connection, get_wrapping_pipeline=None):
+def exists(self, compiler, connection, get_wrapping_pipeline=None, as_path=False, **extra):
     try:
-        lhs_mql = subquery(self, compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline)
+        lhs_mql = subquery(
+            self,
+            compiler,
+            connection,
+            get_wrapping_pipeline=get_wrapping_pipeline,
+            as_path=as_path,
+            **extra,
+        )
     except EmptyResultSet:
         return Value(False).as_mql(compiler, connection)
-    return connection.mongo_operators["isnull"](lhs_mql, False)
+    if as_path:
+        return connection.mongo_operators_match["isnull"](lhs_mql, False)
+    return connection.mongo_operators_expr["isnull"](lhs_mql, False)
 
 
-def when(self, compiler, connection):
-    return self.condition.as_mql(compiler, connection)
+def when(self, compiler, connection, **extra):
+    return self.condition.as_mql(compiler, connection, **extra)
 
 
-def value(self, compiler, connection):  # noqa: ARG001
+def value(self, compiler, connection, **extra):  # noqa: ARG001
     value = self.value
     if isinstance(value, (list, int)):
         # Wrap lists & numbers in $literal to prevent ambiguity when Value

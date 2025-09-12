@@ -334,7 +334,7 @@ class SQLCompiler(compiler.SQLCompiler):
                     pipeline.extend(query.get_pipeline())
                 # Remove the added subqueries.
                 self.subqueries = []
-                pipeline.append({"$match": {"$expr": having}})
+                pipeline.append({"$match": having})
             self.aggregation_pipeline = pipeline
         self.annotations = {
             target: expr.replace_expressions(all_replacements)
@@ -485,7 +485,7 @@ class SQLCompiler(compiler.SQLCompiler):
             except FullResultSet:
                 query.match_mql = {}
             else:
-                query.match_mql = {"$expr": expr}
+                query.match_mql = expr
         if extra_fields:
             query.extra_fields = self.get_project_fields(extra_fields, force_expression=True)
         query.subqueries = self.subqueries
@@ -707,7 +707,7 @@ class SQLCompiler(compiler.SQLCompiler):
                     # For brevity/simplicity, project {"field_name": 1}
                     # instead of {"field_name": "$field_name"}.
                     if isinstance(expr, Col) and name == expr.target.column and not force_expression
-                    else expr.as_mql(self, self.connection)
+                    else expr.as_mql(self, self.connection, as_expr=force_expression)
                 )
             except EmptyResultSet:
                 empty_result_set_value = getattr(expr, "empty_result_set_value", NotImplemented)
