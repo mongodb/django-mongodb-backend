@@ -17,3 +17,10 @@ class Number(models.Model):
 
     def __str__(self):
         return str(self.num)
+
+
+class NullableJSONModel(models.Model):
+    value = models.JSONField(blank=True, null=True)
+
+    class Meta:
+        required_db_features = {"supports_json_field"}
