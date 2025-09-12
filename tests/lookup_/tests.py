@@ -123,7 +123,7 @@ class NullValueLookupTests(MongoTestCaseMixin, TestCase):
 
             for op, predicate in self._OPERATOR_PREDICATE_MAP.items():
                 with self.subTest(op=op):
-                    test_function(op, predicate)
+                    test_function(op, predicate, "title")
 
         finally:
             collection.delete_one({"_id": self.unique_id})
