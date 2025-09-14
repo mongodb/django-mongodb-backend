@@ -164,7 +164,7 @@ def join(self, compiler, connection, pushed_filter_expression=None):
         for col, parent_pos in columns:
             target = col.target.clone()
             target.remote_field = col.target.remote_field
-            column_target = Col(compiler.collection_name, target)
+            column_target = Col(None, target)
             if parent_pos is not None:
                 target_col = f"${parent_template}{parent_pos}"
                 column_target.target.db_column = target_col
@@ -273,7 +273,7 @@ def join(self, compiler, connection, pushed_filter_expression=None):
     return lookup_pipeline
 
 
-def where_node(self, compiler, connection, **extra):
+def where_node(self, compiler, connection, as_path=True):
     if self.connector == AND:
         full_needed, empty_needed = len(self.children), 1
     else:
@@ -296,14 +296,16 @@ def where_node(self, compiler, connection, **extra):
         if len(self.children) > 2:
             rhs_sum = Mod(rhs_sum, 2)
         rhs = Exact(1, rhs_sum)
-        return self.__class__([lhs, rhs], AND, self.negated).as_mql(compiler, connection, **extra)
+        return self.__class__([lhs, rhs], AND, self.negated).as_mql(
+            compiler, connection, as_path=as_path
+        )
     else:
         operator = "$or"
 
     children_mql = []
     for child in self.children:
         try:
-            mql = child.as_mql(compiler, connection, **extra)
+            mql = child.as_mql(compiler, connection, as_path=as_path)
         except EmptyResultSet:
             empty_needed -= 1
         except FullResultSet:
@@ -329,15 +331,18 @@ def where_node(self, compiler, connection, **extra):
     if not mql:
         raise FullResultSet
 
-    as_expr = extra.get("as_expr")
     if self.negated and mql:
-        mql = {"$nor": [mql]} if not as_expr else {"$not": [mql]}
+        mql = {"$nor": [mql]} if as_path else {"$not": [mql]}
 
     return mql
+
+
+def nothing_node(self, compiler, connection, as_path=None):  # noqa: ARG001
+    return self.as_sql(compiler, connection)
 
 
 def register_nodes():
     ExtraWhere.as_mql = extra_where
     Join.as_mql = join
-    NothingNode.as_mql = NothingNode.as_sql
+    NothingNode.as_mql = nothing_node
     WhereNode.as_mql = where_node

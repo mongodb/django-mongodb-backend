@@ -34,7 +34,7 @@ def case(self, compiler, connection, **extra):  # noqa: ARG001
     for case in self.cases:
         case_mql = {}
         try:
-            case_mql["case"] = case.as_mql(compiler, connection, as_expr=True)
+            case_mql["case"] = case.as_mql(compiler, connection, as_path=False)
         except EmptyResultSet:
             continue
         except FullResultSet:
@@ -54,7 +54,7 @@ def case(self, compiler, connection, **extra):  # noqa: ARG001
     }
 
 
-def col(self, compiler, connection, as_path=False, as_expr=None):  # noqa: ARG001
+def col(self, compiler, connection, as_path=False):  # noqa: ARG001
     # If the column is part of a subquery and belongs to one of the parent
     # queries, it will be stored for reference using $let in a $lookup stage.
     # If the query is built with `alias_cols=False`, treat the column as
@@ -72,16 +72,16 @@ def col(self, compiler, connection, as_path=False, as_expr=None):  # noqa: ARG00
     # Add the column's collection's alias for columns in joined collections.
     has_alias = self.alias and self.alias != compiler.collection_name
     prefix = f"{self.alias}." if has_alias else ""
-    if not as_path or as_expr:
+    if not as_path:
         prefix = f"${prefix}"
     return f"{prefix}{self.target.column}"
 
 
-def col_pairs(self, compiler, connection):
+def col_pairs(self, compiler, connection, as_path=False):
     cols = self.get_cols()
     if len(cols) > 1:
         raise NotSupportedError("ColPairs is not supported.")
-    return cols[0].as_mql(compiler, connection)
+    return cols[0].as_mql(compiler, connection, as_path=as_path)
 
 
 def combined_expression(self, compiler, connection, **extra):
@@ -96,15 +96,15 @@ def expression_wrapper(self, compiler, connection, **extra):
     return self.expression.as_mql(compiler, connection, **extra)
 
 
-def negated_expression(self, compiler, connection):
-    return {"$not": expression_wrapper(self, compiler, connection)}
+def negated_expression(self, compiler, connection, **extra):
+    return {"$not": expression_wrapper(self, compiler, connection, **extra)}
 
 
 def order_by(self, compiler, connection):
     return self.expression.as_mql(compiler, connection)
 
 
-def query(self, compiler, connection, get_wrapping_pipeline=None, as_path=False, as_expr=None):
+def query(self, compiler, connection, get_wrapping_pipeline=None, as_path=False):
     subquery_compiler = self.get_compiler(connection=connection)
     subquery_compiler.pre_sql_setup(with_col_aliases=False)
     field_name, expr = subquery_compiler.columns[0]
@@ -146,7 +146,7 @@ def query(self, compiler, connection, get_wrapping_pipeline=None, as_path=False,
         # Erase project_fields since the required value is projected above.
         subquery.project_fields = None
     compiler.subqueries.append(subquery)
-    if as_path and not as_expr:
+    if as_path:
         return f"{table_output}.{field_name}"
     return f"${table_output}.{field_name}"
 
@@ -201,8 +201,10 @@ def when(self, compiler, connection, **extra):
     return self.condition.as_mql(compiler, connection, **extra)
 
 
-def value(self, compiler, connection, **extra):  # noqa: ARG001
+def value(self, compiler, connection, as_path=False):  # noqa: ARG001
     value = self.value
+    if as_path:
+        return value
     if isinstance(value, (list, int)):
         # Wrap lists & numbers in $literal to prevent ambiguity when Value
         # appears in $project.

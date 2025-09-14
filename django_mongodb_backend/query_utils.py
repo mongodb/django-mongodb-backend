@@ -27,15 +27,18 @@ def process_lhs(node, compiler, connection, **extra):
     return node.lhs.as_mql(compiler, connection, **extra)
 
 
-def process_rhs(node, compiler, connection):
+def process_rhs(node, compiler, connection, as_path=False):
     rhs = node.rhs
     if hasattr(rhs, "as_mql"):
         if getattr(rhs, "subquery", False) and hasattr(node, "get_subquery_wrapping_pipeline"):
             value = rhs.as_mql(
-                compiler, connection, get_wrapping_pipeline=node.get_subquery_wrapping_pipeline
+                compiler,
+                connection,
+                get_wrapping_pipeline=node.get_subquery_wrapping_pipeline,
+                as_path=as_path,
             )
         else:
-            value = rhs.as_mql(compiler, connection)
+            value = rhs.as_mql(compiler, connection, as_path=as_path)
     else:
         _, value = node.process_rhs(compiler, connection)
         lookup_name = node.lookup_name

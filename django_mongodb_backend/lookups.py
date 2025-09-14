@@ -1,5 +1,6 @@
 from django.db import NotSupportedError
 from django.db.models.expressions import Col, Ref, Value
+from django.db.models.fields.json import KeyTransform
 from django.db.models.fields.related_lookups import In, RelatedIn
 from django.db.models.lookups import (
     BuiltinLookup,
@@ -17,16 +18,25 @@ def is_constant_value(value):
 
 
 def is_simple_column(lhs):
-    return isinstance(lhs, Col | Ref)
+    while isinstance(lhs, KeyTransform):
+        if "." in lhs.key_name:
+            return False
+        lhs = lhs.lhs
+    if not isinstance(lhs, Col | Ref):
+        return False
+    col = lhs if isinstance(lhs, Col) else lhs.source
+    # Foreign columns from parent cannot be addressed as single match
+    return col.alias is not None
 
 
-def builtin_lookup(self, compiler, connection, as_expr=False):
-    value = process_rhs(self, compiler, connection)
-    if is_simple_column(self.lhs) and is_constant_value(self.rhs) and not as_expr:
+def builtin_lookup(self, compiler, connection, as_path=False):
+    if is_simple_column(self.lhs) and is_constant_value(self.rhs) and as_path:
         lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        value = process_rhs(self, compiler, connection, as_path=True)
         return connection.mongo_operators_match[self.lookup_name](lhs_mql, value)
 
-    lhs_mql = process_lhs(self, compiler, connection)
+    value = process_rhs(self, compiler, connection)
+    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
     return {"$expr": connection.mongo_operators_expr[self.lookup_name](lhs_mql, value)}
 
 
@@ -88,13 +98,13 @@ def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr)
     ]
 
 
-def is_null(self, compiler, connection, as_expr=False):
+def is_null(self, compiler, connection, as_path=False):
     if not isinstance(self.rhs, bool):
         raise ValueError("The QuerySet value for an isnull lookup must be True or False.")
-    if is_constant_value(self.rhs) and not as_expr and is_simple_column(self.lhs):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+    if is_constant_value(self.rhs) and as_path and is_simple_column(self.lhs):
+        lhs_mql = process_lhs(self, compiler, connection, as_path=as_path)
         return connection.mongo_operators_match["isnull"](lhs_mql, self.rhs)
-    lhs_mql = process_lhs(self, compiler, connection)
+    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
     return {"$expr": connection.mongo_operators_expr["isnull"](lhs_mql, self.rhs)}
 
 

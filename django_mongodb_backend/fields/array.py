@@ -7,6 +7,7 @@ from django.db.models.lookups import Exact, FieldGetDbPrepValueMixin, In, Lookup
 from django.utils.translation import gettext_lazy as _
 
 from ..forms import SimpleArrayField
+from ..lookups import is_constant_value, is_simple_column
 from ..query_utils import process_lhs, process_rhs
 from ..utils import prefix_validation_error
 from ..validators import ArrayMaxLengthValidator, LengthValidator
@@ -251,15 +252,17 @@ class ArrayRHSMixin:
 class ArrayContains(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
     lookup_name = "contains"
 
-    def as_mql(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection)
-        value = process_rhs(self, compiler, connection)
+    def as_mql(self, compiler, connection, as_path=False):
+        lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+        value = process_rhs(self, compiler, connection, as_path=False)
         return {
-            "$and": [
-                {"$ne": [lhs_mql, None]},
-                {"$ne": [value, None]},
-                {"$setIsSubset": [value, lhs_mql]},
-            ]
+            "$expr": {
+                "$and": [
+                    {"$ne": [lhs_mql, None]},
+                    {"$ne": [value, None]},
+                    {"$setIsSubset": [value, lhs_mql]},
+                ]
+            }
         }
 
 
@@ -267,9 +270,20 @@ class ArrayContains(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
 class ArrayContainedBy(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
     lookup_name = "contained_by"
 
-    def as_mql(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection)
-        value = process_rhs(self, compiler, connection)
+    def as_mql(self, compiler, connection, as_path=False):
+        if as_path and is_simple_column(self.lhs) and is_constant_value(self.rhs):
+            lhs_mql = process_lhs(self, compiler, connection, as_path=as_path)
+            value = process_rhs(self, compiler, connection, as_path=as_path)
+            return {
+                "$and": [
+                    # {lhs_mql: {"$ne": None}},
+                    {value: {"$ne": None}},
+                    {lhs_mql: {"$all": value}},
+                ]
+            }
+
+        lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+        value = process_rhs(self, compiler, connection, as_path=False)
         return {
             "$and": [
                 {"$ne": [lhs_mql, None]},

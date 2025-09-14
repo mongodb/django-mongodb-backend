@@ -34,7 +34,7 @@ def _get_condition_mql(self, model, schema_editor):
 
 def builtin_lookup_idx(self, compiler, connection):
     lhs_mql = self.lhs.target.column
-    value = process_rhs(self, compiler, connection)
+    value = process_rhs(self, compiler, connection, as_path=True)
     try:
         operator = MONGO_INDEX_OPERATORS[self.lookup_name]
     except KeyError:

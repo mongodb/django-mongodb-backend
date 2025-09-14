@@ -71,7 +71,7 @@ EXTRACT_OPERATORS = {
 
 def cast(self, compiler, connection, **extra):  # noqa: ARG001
     output_type = connection.data_types[self.output_field.get_internal_type()]
-    lhs_mql = process_lhs(self, compiler, connection)[0]
+    lhs_mql = process_lhs(self, compiler, connection, as_path=False)[0]
     if max_length := self.output_field.max_length:
         lhs_mql = {"$substrCP": [lhs_mql, 0, max_length]}
     # Skip the conversion for "object" as it doesn't need to be transformed for
@@ -121,9 +121,9 @@ def left(self, compiler, connection):
     return self.get_substr().as_mql(compiler, connection)
 
 
-def length(self, compiler, connection, as_path=False, as_expr=None):  # noqa: ARG001
+def length(self, compiler, connection, as_path=False):  # noqa: ARG001
     # Check for null first since $strLenCP only accepts strings.
-    lhs_mql = process_lhs(self, compiler, connection)
+    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
     return {"$cond": {"if": {"$eq": [lhs_mql, None]}, "then": None, "else": {"$strLenCP": lhs_mql}}}
 
 
@@ -179,7 +179,7 @@ def str_index(self, compiler, connection):
     return {"$add": [{"$indexOfCP": lhs}, 1]}
 
 
-def substr(self, compiler, connection):
+def substr(self, compiler, connection, **extra):  # noqa: ARG001
     lhs = process_lhs(self, compiler, connection)
     # The starting index is zero-indexed on MongoDB rather than one-indexed.
     lhs[1] = {"$add": [lhs[1], -1]}
@@ -236,7 +236,7 @@ def trunc_convert_value(self, value, expression, connection):
     return _trunc_convert_value(self, value, expression, connection)
 
 
-def trunc_date(self, compiler, connection):
+def trunc_date(self, compiler, connection, **extra):  # noqa: ARG001
     # Cast to date rather than truncate to date.
     lhs_mql = process_lhs(self, compiler, connection)
     tzname = self.get_tzname()

@@ -142,6 +142,17 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         "iregex": lambda a, b: regex_expr(a, b, insensitive=True),
     }
 
+    def range_match(a, b):
+        ## TODO: MAKE A TEST TO TEST WHEN BOTH ENDS ARE NONE. WHAT SHALL I RETURN?
+        conditions = []
+        if b[0] is not None:
+            conditions.append({a: {"$gte": b[0]}})
+        if b[1] is not None:
+            conditions.append({a: {"$lte": b[1]}})
+        if not conditions:
+            return {"$literal": True}
+        return {"$and": conditions}
+
     mongo_operators_match = {
         "exact": lambda a, b: {a: b},
         "gt": lambda a, b: {a: {"$gt": b}},
@@ -156,12 +167,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         },
         "in": lambda a, b: {a: {"$in": list(b)}},
         "isnull": _isnull_operator_match,
-        "range": lambda a, b: {
-            "$and": [
-                {"$or": [DatabaseWrapper._isnull_operator_match(b[0], True), {a: {"$gte": b[0]}}]},
-                {"$or": [DatabaseWrapper._isnull_operator_match(b[1], True), {a: {"$lte": b[1]}}]},
-            ]
-        },
+        "range": range_match,
         "iexact": lambda a, b: regex_match(a, f"^{b}$", insensitive=True),
         "startswith": lambda a, b: regex_match(a, f"^{b}"),
         "istartswith": lambda a, b: regex_match(a, f"^{b}", insensitive=True),
