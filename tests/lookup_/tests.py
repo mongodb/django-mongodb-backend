@@ -85,31 +85,33 @@ class NullValueLookupTests(MongoTestCaseMixin, TestCase):
 
     def test_none_filter_nullable_json_exact(self):
         with self.assertNumQueries(1) as ctx:
-            self.assertQuerySetEqual(
-                NullableJSONModel.objects.filter(value=None),
-                self.null_objs[:-1],
-            )
+            list(NullableJSONModel.objects.filter(value=None))
         self.assertAggregateQuery(
             ctx.captured_queries[0]["sql"],
             "lookup__nullablejsonmodel",
             [{"$match": {"$and": [{"value": {"$exists": True}}, {"value": None}]}}],
         )
+        self.assertQuerySetEqual(
+            NullableJSONModel.objects.filter(value=None),
+            self.null_objs[:-1],
+        )
 
     def test_none_filter_nullable_json_in(self):
         with self.assertNumQueries(1) as ctx:
-            self.assertQuerySetEqual(
-                NullableJSONModel.objects.filter(value__in=[None]),
-                self.null_objs[:-1],
-            )
+            list(NullableJSONModel.objects.filter(value__in=[None]))
         self.assertAggregateQuery(
             ctx.captured_queries[0]["sql"],
             "lookup__nullablejsonmodel",
             [{"$match": {"$and": [{"value": {"$exists": True}}, {"value": {"$in": [None]}}]}}],
         )
+        self.assertQuerySetEqual(
+            NullableJSONModel.objects.filter(value__in=[None]),
+            self.null_objs[:-1],
+        )
 
     def test_none_filter_binary_operator_exact(self):
         with self.assertNumQueries(1) as ctx:
-            self.assertQuerySetEqual(Book.objects.filter(title=None), [])
+            list(Book.objects.filter(title=None))
         self.assertAggregateQuery(
             ctx.captured_queries[0]["sql"],
             "lookup__book",
@@ -124,10 +126,11 @@ class NullValueLookupTests(MongoTestCaseMixin, TestCase):
                 }
             ],
         )
+        self.assertQuerySetEqual(Book.objects.filter(title=None), [])
 
     def test_none_filter_binary_operator_in(self):
         with self.assertNumQueries(1) as ctx:
-            self.assertQuerySetEqual(Book.objects.filter(title__in=[None]), [])
+            list(Book.objects.filter(title__in=[None]))
         self.assertAggregateQuery(
             ctx.captured_queries[0]["sql"],
             "lookup__book",
@@ -142,3 +145,4 @@ class NullValueLookupTests(MongoTestCaseMixin, TestCase):
                 }
             ],
         )
+        self.assertQuerySetEqual(Book.objects.filter(title__in=[None]), [])
