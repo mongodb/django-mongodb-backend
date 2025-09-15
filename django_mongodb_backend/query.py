@@ -88,6 +88,7 @@ class MongoQuery:
             pipeline.extend(query.get_pipeline())
         if self.match_mql:
             pipeline.append({"$match": self.match_mql})
+            # pipeline.append({"$match": {"$expr": self.match_mql}})
         if self.aggregation_pipeline:
             pipeline.extend(self.aggregation_pipeline)
         if self.project_fields:
@@ -272,7 +273,7 @@ def join(self, compiler, connection, pushed_filter_expression=None):
     return lookup_pipeline
 
 
-def where_node(self, compiler, connection, as_path=True):
+def where_node(self, compiler, connection, as_path=False):
     if self.connector == AND:
         full_needed, empty_needed = len(self.children), 1
     else:

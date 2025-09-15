@@ -481,7 +481,7 @@ class SQLCompiler(compiler.SQLCompiler):
             query.lookup_pipeline = self.get_lookup_pipeline()
             where = self.get_where()
             try:
-                expr = where.as_mql(self, self.connection) if where else {}
+                expr = where.as_mql(self, self.connection, as_path=True) if where else {}
             except FullResultSet:
                 query.match_mql = {}
             else:

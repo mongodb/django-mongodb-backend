@@ -70,7 +70,7 @@ EXTRACT_OPERATORS = {
 # TEST THAT HAVE THOSE OPERATOR.
 
 
-def cast(self, compiler, connection, **extra):  # noqa: ARG001
+def cast(self, compiler, connection, as_path=False):  # noqa: ARG001
     output_type = connection.data_types[self.output_field.get_internal_type()]
     lhs_mql = process_lhs(self, compiler, connection, as_path=False)[0]
     if max_length := self.output_field.max_length:
@@ -82,6 +82,7 @@ def cast(self, compiler, connection, **extra):  # noqa: ARG001
         lhs_mql = {"$convert": {"input": lhs_mql, "to": output_type}}
     if decimal_places := getattr(self.output_field, "decimal_places", None):
         lhs_mql = {"$trunc": [lhs_mql, decimal_places]}
+
     return lhs_mql
 
 
@@ -89,32 +90,41 @@ def concat(self, compiler, connection, as_path=False):
     return self.get_source_expressions()[0].as_mql(compiler, connection, as_path=as_path)
 
 
-def concat_pair(self, compiler, connection, as_path=False):  # noqa: ARG001
+def concat_pair(self, compiler, connection, as_path=False):
     # null on either side results in null for expression, wrap with coalesce.
     coalesced = self.coalesce()
+    if as_path:
+        return {"$expr": super(ConcatPair, coalesced).as_mql(compiler, connection, as_path=False)}
     return super(ConcatPair, coalesced).as_mql(compiler, connection, as_path=False)
 
 
-def cot(self, compiler, connection, as_path=False):  # noqa: ARG001
-    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+def cot(self, compiler, connection, as_path=False):
+    lhs_mql = process_lhs(self, compiler, connection, as_path=as_path)
+    if as_path:
+        return {"$expr": {"$divide": [1, {"$tan": lhs_mql}]}}
     return {"$divide": [1, {"$tan": lhs_mql}]}
 
 
-def extract(self, compiler, connection, **extra):  # noqa: ARG001
-    lhs_mql = process_lhs(self, compiler, connection)
+def extract(self, compiler, connection, as_path=False):
+    lhs_mql = process_lhs(self, compiler, connection, as_path=as_path)
     operator = EXTRACT_OPERATORS.get(self.lookup_name)
     if operator is None:
         raise NotSupportedError(f"{self.__class__.__name__} is not supported.")
     if timezone := self.get_tzname():
         lhs_mql = {"date": lhs_mql, "timezone": timezone}
-    return {f"${operator}": lhs_mql}
+    expr = {f"${operator}": lhs_mql}
+    if as_path:
+        return {"$expr": expr}
+    return expr
 
 
-def func(self, compiler, connection, **extra):  # noqa: ARG001
-    lhs_mql = process_lhs(self, compiler, connection)
+def func(self, compiler, connection, as_path=False):
+    lhs_mql = process_lhs(self, compiler, connection, as_path=as_path)
     if self.function is None:
         raise NotSupportedError(f"{self} may need an as_mql() method.")
     operator = MONGO_OPERATORS.get(self.__class__, self.function.lower())
+    if as_path:
+        return {"$expr": {f"${operator}": lhs_mql}}
     return {f"${operator}": lhs_mql}
 
 
@@ -122,10 +132,13 @@ def left(self, compiler, connection, as_path=False):  # noqa: ARG001
     return self.get_substr().as_mql(compiler, connection, as_path=False)
 
 
-def length(self, compiler, connection, as_path=False):  # noqa: ARG001
+def length(self, compiler, connection, as_path=False):
     # Check for null first since $strLenCP only accepts strings.
     lhs_mql = process_lhs(self, compiler, connection, as_path=False)
-    return {"$cond": {"if": {"$eq": [lhs_mql, None]}, "then": None, "else": {"$strLenCP": lhs_mql}}}
+    expr = {"$cond": {"if": {"$eq": [lhs_mql, None]}, "then": None, "else": {"$strLenCP": lhs_mql}}}
+    if as_path:
+        return {"$expr": expr}
+    return expr
 
 
 def log(self, compiler, connection, as_path=False):  # noqa: ARG001
@@ -139,12 +152,15 @@ def now(self, compiler, connection, as_path=False):  # noqa: ARG001
     return "$$NOW"
 
 
-def null_if(self, compiler, connection, as_path=False):  # noqa: ARG001
+def null_if(self, compiler, connection, as_path=False):
     """Return None if expr1==expr2 else expr1."""
     expr1, expr2 = (
         expr.as_mql(compiler, connection, as_path=False) for expr in self.get_source_expressions()
     )
-    return {"$cond": {"if": {"$eq": [expr1, expr2]}, "then": None, "else": expr1}}
+    expr = {"$cond": {"if": {"$eq": [expr1, expr2]}, "then": None, "else": expr1}}
+    if as_path:
+        return {"$expr": expr}
+    return expr
 
 
 def preserve_null(operator):

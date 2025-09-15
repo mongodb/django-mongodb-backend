@@ -137,6 +137,8 @@ def key_transform(self, compiler, connection, as_path=False):
         return build_json_mql_path(lhs_mql, key_transforms, as_path=True)
     # Collect all key transforms in order.
     lhs_mql = previous.as_mql(compiler, connection, as_path=False)
+    if as_path:
+        return {"$expr": build_json_mql_path(lhs_mql, key_transforms, as_path=False)}
     return build_json_mql_path(lhs_mql, key_transforms, as_path=False)
 
 
@@ -157,7 +159,10 @@ def key_transform_in(self, compiler, connection, as_path=False):
     value = process_rhs(self, compiler, connection)
     # Construct the expression to check if lhs_mql values are in rhs values.
     expr = connection.mongo_operators_expr[self.lookup_name](lhs_mql, value)
-    return {"$expr": {"$and": [_has_key_predicate(lhs_mql, root_column), expr]}}
+    expr = {"$and": [_has_key_predicate(lhs_mql, root_column), expr]}
+    if as_path:
+        return {"$expr": expr}
+    return expr
 
 
 def key_transform_is_null(self, compiler, connection, as_path=False):
@@ -179,7 +184,10 @@ def key_transform_is_null(self, compiler, connection, as_path=False):
     while isinstance(previous, KeyTransform):
         previous = previous.lhs
     root_column = previous.as_mql(compiler, connection)
-    return {"$expr": _has_key_predicate(lhs_mql, root_column, negated=rhs_mql)}
+    expr = _has_key_predicate(lhs_mql, root_column, negated=rhs_mql)
+    if as_path:
+        return {"$expr": expr}
+    return expr
 
 
 def key_transform_numeric_lookup_mixin(self, compiler, connection, as_path=False):
@@ -194,7 +202,10 @@ def key_transform_numeric_lookup_mixin(self, compiler, connection, as_path=False
     expr = builtin_lookup(self, compiler, connection, as_path=False)
     # Check if the type of lhs is not "missing" or "null".
     not_missing_or_null = {"$not": {"$in": [{"$type": lhs}, ["missing", "null"]]}}
-    return {"$expr": {"$and": [expr, not_missing_or_null]}}
+    expr = {"$and": [expr, not_missing_or_null]}
+    if as_path:
+        return {"$expr": expr}
+    return expr
 
 
 def key_transform_exact(self, compiler, connection, as_path=False):
@@ -206,6 +217,8 @@ def key_transform_exact(self, compiler, connection, as_path=False):
                 _has_key_predicate(lhs_mql, None, as_path=True),
             ]
         }
+    if as_path:
+        return {"$expr": builtin_lookup(self, compiler, connection, as_path=False)}
     return builtin_lookup(self, compiler, connection, as_path=False)
 
 

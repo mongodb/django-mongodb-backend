@@ -264,14 +264,21 @@ class ArrayContains(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
             return {lhs_mql: {"$all": value}}
         lhs_mql = process_lhs(self, compiler, connection, as_path=False)
         value = process_rhs(self, compiler, connection, as_path=False)
+        expr = {
+            "$and": [
+                {"$ne": [lhs_mql, None]},
+                {"$ne": [value, None]},
+                {"$setIsSubset": [value, lhs_mql]},
+            ]
+        }
+        if as_path:
+            return {"$expr": expr}
         return {
-            "$expr": {
-                "$and": [
-                    {"$ne": [lhs_mql, None]},
-                    {"$ne": [value, None]},
-                    {"$setIsSubset": [value, lhs_mql]},
-                ]
-            }
+            "$and": [
+                {"$ne": [lhs_mql, None]},
+                {"$ne": [value, None]},
+                {"$setIsSubset": [value, lhs_mql]},
+            ]
         }
 
 
@@ -282,15 +289,16 @@ class ArrayContainedBy(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
     def as_mql(self, compiler, connection, as_path=False):
         lhs_mql = process_lhs(self, compiler, connection, as_path=False)
         value = process_rhs(self, compiler, connection, as_path=False)
-        return {
-            "$expr": {
-                "$and": [
-                    {"$ne": [lhs_mql, None]},
-                    {"$ne": [value, None]},
-                    {"$setIsSubset": [lhs_mql, value]},
-                ]
-            }
+        expr = {
+            "$and": [
+                {"$ne": [lhs_mql, None]},
+                {"$ne": [value, None]},
+                {"$setIsSubset": [lhs_mql, value]},
+            ]
         }
+        if as_path:
+            return {"$expr": expr}
+        return expr
 
 
 @ArrayField.register_lookup
@@ -345,14 +353,15 @@ class ArrayOverlap(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
 
         lhs_mql = process_lhs(self, compiler, connection, as_path=False)
         value = process_rhs(self, compiler, connection, as_path=False)
-        return {
-            "$expr": {
-                "$and": [
-                    {"$ne": [lhs_mql, None]},
-                    {"$size": {"$setIntersection": [value, lhs_mql]}},
-                ]
-            }
+        expr = {
+            "$and": [
+                {"$ne": [lhs_mql, None]},
+                {"$size": {"$setIntersection": [value, lhs_mql]}},
+            ]
         }
+        if as_path:
+            return {"$expr": expr}
+        return expr
 
 
 @ArrayField.register_lookup
@@ -362,7 +371,10 @@ class ArrayLenTransform(Transform):
 
     def as_mql(self, compiler, connection, as_path=False):
         lhs_mql = process_lhs(self, compiler, connection, as_path=False)
-        return {"$cond": {"if": {"$isArray": lhs_mql}, "then": {"$size": lhs_mql}, "else": None}}
+        expr = {"$cond": {"if": {"$isArray": lhs_mql}, "then": {"$size": lhs_mql}, "else": None}}
+        if as_path:
+            return {"$expr": expr}
+        return expr
 
 
 @ArrayField.register_lookup
