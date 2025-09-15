@@ -92,22 +92,18 @@ class NullValueLookupTests(MongoTestCaseMixin, TestCase):
             [{"$match": {"$and": [{"value": {"$exists": True}}, {"value": None}]}}],
         )
         self.assertQuerySetEqual(
-            NullableJSONModel.objects.filter(value=None),
-            self.null_objs[:-1],
+            NullableJSONModel.objects.filter(value=None), self.null_objs[:-1], ordered=False
         )
 
     def test_none_filter_nullable_json_in(self):
         with self.assertNumQueries(1) as ctx:
-            list(NullableJSONModel.objects.filter(value__in=[None]))
+            objs = list(NullableJSONModel.objects.filter(value__in=[None]))
         self.assertAggregateQuery(
             ctx.captured_queries[0]["sql"],
             "lookup__nullablejsonmodel",
             [{"$match": {"$and": [{"value": {"$exists": True}}, {"value": {"$in": [None]}}]}}],
         )
-        self.assertQuerySetEqual(
-            NullableJSONModel.objects.filter(value__in=[None]),
-            self.null_objs[:-1],
-        )
+        self.assertQuerySetEqual(objs, self.null_objs[:-1], ordered=False)
 
     def test_none_filter_binary_operator_exact(self):
         with self.assertNumQueries(1) as ctx:
@@ -126,7 +122,7 @@ class NullValueLookupTests(MongoTestCaseMixin, TestCase):
                 }
             ],
         )
-        self.assertQuerySetEqual(Book.objects.filter(title=None), [])
+        self.assertQuerySetEqual(Book.objects.filter(title=None), [], ordered=False)
 
     def test_none_filter_binary_operator_in(self):
         with self.assertNumQueries(1) as ctx:
@@ -145,4 +141,4 @@ class NullValueLookupTests(MongoTestCaseMixin, TestCase):
                 }
             ],
         )
-        self.assertQuerySetEqual(Book.objects.filter(title__in=[None]), [])
+        self.assertQuerySetEqual(Book.objects.filter(title__in=[None]), [], ordered=False)

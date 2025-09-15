@@ -2,11 +2,8 @@ from django.db import models
 
 
 class Book(models.Model):
-    title = models.CharField(max_length=10, default=None)
-    isbn = models.CharField(max_length=13, default=None)
-
-    class Meta:
-        ordering = ("title",)
+    title = models.CharField(max_length=10)
+    isbn = models.CharField(max_length=13)
 
     def __str__(self):
         return self.title or "Title Not Found"
