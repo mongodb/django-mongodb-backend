@@ -83,28 +83,38 @@ class NullValueLookupTests(MongoTestCaseMixin, TestCase):
         )
 
         cls.null_objs = NullableJSONModel.objects.bulk_create(NullableJSONModel() for _ in range(5))
-        cls.null_objs.append(NullableJSONModel.objects.create(value={"name": None}))
         cls.unique_id = ObjectId()
+        for model in (Book, NullableJSONModel):
+            collection = connection.database.get_collection(model._meta.db_table)
+            collection.insert_one({"_id": cls.unique_id})
 
-    def _test_none_filter_nullable_json(self, op, predicate, field):
+    def test_none_filter_nullable_json_exact(self):
         with self.assertNumQueries(1) as ctx:
             self.assertQuerySetEqual(
-                NullableJSONModel.objects.filter(
-                    **{f"{field}__{op}": [None] if op == "in" else None}
-                ),
-                [],
+                NullableJSONModel.objects.filter(value=None),
+                self.null_objs[:-1],
             )
         self.assertAggregateQuery(
             ctx.captured_queries[0]["sql"],
             "lookup__nullablejsonmodel",
-            [{"$match": {"$and": [{"$exists": False}, predicate(field)]}}],
+            [{"$match": {"$and": [{"value": {"$exists": True}}, {"value": None}]}}],
         )
 
-    def _test_none_filter_binary_operator(self, op, predicate, field):
+    def test_none_filter_nullable_json_in(self):
         with self.assertNumQueries(1) as ctx:
             self.assertQuerySetEqual(
-                Book.objects.filter(**{f"{field}__{op}": [None] if op == "in" else None}), []
+                NullableJSONModel.objects.filter(value__in=[None]),
+                self.null_objs[:-1],
             )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "lookup__nullablejsonmodel",
+            [{"$match": {"$and": [{"value": {"$exists": True}}, {"value": {"$in": [None]}}]}}],
+        )
+
+    def test_none_filter_binary_operator_exact(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertQuerySetEqual(Book.objects.filter(title=None), [])
         self.assertAggregateQuery(
             ctx.captured_queries[0]["sql"],
             "lookup__book",
@@ -112,28 +122,28 @@ class NullValueLookupTests(MongoTestCaseMixin, TestCase):
                 {
                     "$match": {
                         "$or": [
-                            {"$and": [{field: {"$exists": True}}, predicate(field)]},
-                            {"$expr": {"$eq": [{"$type": f"${field}"}, "missing"]}},
+                            {"$and": [{"title": {"$exists": True}}, {"title": None}]},
+                            {"$expr": {"$eq": [{"$type": "$title"}, "missing"]}},
                         ]
                     }
                 }
             ],
         )
 
-    def _test_with_raw_data(self, model, test_function, field):
-        collection = connection.database.get_collection(model._meta.db_table)
-        try:
-            collection.insert_one({"_id": self.unique_id})
-
-            for op, predicate in self._OPERATOR_PREDICATE_MAP.items():
-                with self.subTest(op=op):
-                    test_function(op, predicate, field)
-
-        finally:
-            collection.delete_one({"_id": self.unique_id})
-
-    def test_none_filter_nullable_json(self):
-        self._test_with_raw_data(NullableJSONModel, self._test_none_filter_nullable_json, "value")
-
-    def test_none_filter_binary_operator(self):
-        self._test_with_raw_data(Book, self._test_none_filter_binary_operator, "title")
+    def test_none_filter_binary_operator_in(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertQuerySetEqual(Book.objects.filter(title__in=[None]), [])
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "lookup__book",
+            [
+                {
+                    "$match": {
+                        "$or": [
+                            {"$and": [{"title": {"$exists": True}}, {"title": None}]},
+                            {"$expr": {"$eq": [{"$type": "$title"}, "missing"]}},
+                        ]
+                    }
+                }
+            ],
+        )
