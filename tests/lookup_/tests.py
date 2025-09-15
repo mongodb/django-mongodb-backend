@@ -71,11 +71,6 @@ class LookupMQLTests(MongoTestCaseMixin, TestCase):
 
 
 class NullValueLookupTests(MongoTestCaseMixin, TestCase):
-    _OPERATOR_PREDICATE_MAP = {
-        "exact": lambda field: {field: None},
-        "in": lambda field: {field: {"$in": [None]}},
-    }
-
     @classmethod
     def setUpTestData(cls):
         cls.book_objs = Book.objects.bulk_create(
