@@ -48,7 +48,9 @@ def builtin_lookup(self, compiler, connection, as_path=False):
 
     value = process_rhs(self, compiler, connection)
     lhs_mql = process_lhs(self, compiler, connection, as_path=False)
-    return {"$expr": connection.mongo_operators_expr[self.lookup_name](lhs_mql, value)}
+    if as_path:
+        return {"$expr": connection.mongo_operators_expr[self.lookup_name](lhs_mql, value)}
+    return connection.mongo_operators_expr[self.lookup_name](lhs_mql, value)
 
 
 _field_resolve_expression_parameter = FieldGetDbPrepValueIterableMixin.resolve_expression_parameter
@@ -116,7 +118,9 @@ def is_null(self, compiler, connection, as_path=False):
         lhs_mql = process_lhs(self, compiler, connection, as_path=as_path)
         return connection.mongo_operators_match["isnull"](lhs_mql, self.rhs)
     lhs_mql = process_lhs(self, compiler, connection, as_path=False)
-    return {"$expr": connection.mongo_operators_expr["isnull"](lhs_mql, self.rhs)}
+    if as_path:
+        return {"$expr": connection.mongo_operators_expr["isnull"](lhs_mql, self.rhs)}
+    return connection.mongo_operators_expr["isnull"](lhs_mql, self.rhs)
 
 
 # from https://www.pcre.org/current/doc/html/pcre2pattern.html#SEC4

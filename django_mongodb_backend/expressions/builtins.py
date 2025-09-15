@@ -29,6 +29,7 @@ from ..query_utils import process_lhs
 
 
 # EXTRA IS TOTALLY IGNORED
+# shall check if we could optimize match here
 def case(self, compiler, connection, **extra):  # noqa: ARG001
     case_parts = []
     for case in self.cases:

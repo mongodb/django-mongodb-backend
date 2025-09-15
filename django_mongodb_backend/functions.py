@@ -157,15 +157,18 @@ def preserve_null(operator):
             lhs_mql = process_lhs(self, compiler, connection, as_path=True)
             return lhs_mql.upper()
         lhs_mql = process_lhs(self, compiler, connection, as_path=False)
-        return {
-            "$expr": {
-                "$cond": {
-                    "if": connection.mongo_operators_expr["isnull"](lhs_mql, True),
-                    "then": None,
-                    "else": {f"${operator}": lhs_mql},
-                }
+        inner_expression = {
+            "$cond": {
+                "if": connection.mongo_operators_expr["isnull"](lhs_mql, True),
+                "then": None,
+                "else": {f"${operator}": lhs_mql},
             }
         }
+        # we need to wrap this, because it will be handled in a no expression tree.
+        # needed in MongoDB 6.
+        if as_path:
+            return {"$expr": inner_expression}
+        return inner_expression
 
     return wrapped
 
