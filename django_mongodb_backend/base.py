@@ -123,7 +123,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         "lte": lambda a, b: {
             "$and": [{"$lte": [a, b]}, DatabaseWrapper._isnull_operator(a, False)]
         },
-        "in": lambda a, b: {"$in": [a, b]},
+        "in": lambda a, b: {"$in": (a, b)},
         "isnull": _isnull_operator,
         "range": lambda a, b: {
             "$and": [
@@ -165,7 +165,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         "lte": lambda a, b: {
             "$and": [{a: {"$lte": b}}, DatabaseWrapper._isnull_operator_match(a, False)]
         },
-        "in": lambda a, b: {a: {"$in": list(b)}},
+        "in": lambda a, b: {a: {"$in": tuple(b)}},
         "isnull": _isnull_operator_match,
         "range": range_match,
         "iexact": lambda a, b: regex_match(a, f"^{b}$", insensitive=True),

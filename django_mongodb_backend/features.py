@@ -90,9 +90,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "auth_tests.test_views.LoginTest.test_login_session_without_hash_session_key",
         # GenericRelation.value_to_string() assumes integer pk.
         "contenttypes_tests.test_fields.GenericRelationTests.test_value_to_string",
-        # icontains doesn't work on ArrayField:
-        # Unsupported conversion from array to string in $convert
-        "model_fields_.test_arrayfield.QueryingTests.test_icontains",
         # ArrayField's contained_by lookup crashes with Exists: "both operands "
         # of $setIsSubset must be arrays. Second argument is of type: null"
         # https://jira.mongodb.org/browse/SERVER-99186

@@ -75,7 +75,7 @@ class EmbeddedModelArrayField(ArrayField):
             return lookup
 
         class EmbeddedModelArrayFieldLookups(Lookup):
-            def as_mql(self, compiler, connection):
+            def as_mql(self, compiler, connection, as_path=False):
                 raise ValueError(
                     "Lookups aren't supported on EmbeddedModelArrayField. "
                     "Try querying one of its embedded fields instead."
@@ -114,7 +114,7 @@ class _EmbeddedModelArrayOutputField(ArrayField):
 
 
 class EmbeddedModelArrayFieldBuiltinLookup(Lookup):
-    def process_rhs(self, compiler, connection):
+    def process_rhs(self, compiler, connection, as_path=False):
         value = self.rhs
         if not self.get_db_prep_lookup_value_is_iterable:
             value = [value]
@@ -128,17 +128,17 @@ class EmbeddedModelArrayFieldBuiltinLookup(Lookup):
             for v in value
         ]
 
-    def as_mql(self, compiler, connection):
+    def as_mql(self, compiler, connection, as_path=False):
         # Querying a subfield within the array elements (via nested
         # KeyTransform). Replicate MongoDB's implicit ANY-match by mapping over
         # the array and applying $in on the subfield.
         lhs_mql = process_lhs(self, compiler, connection)
         inner_lhs_mql = lhs_mql["$ifNull"][0]["$map"]["in"]
         values = process_rhs(self, compiler, connection)
-        lhs_mql["$ifNull"][0]["$map"]["in"] = connection.mongo_operators[self.lookup_name](
+        lhs_mql["$ifNull"][0]["$map"]["in"] = connection.mongo_operators_expr[self.lookup_name](
             inner_lhs_mql, values
         )
-        return {"$anyElementTrue": lhs_mql}
+        return {"$expr": {"$anyElementTrue": lhs_mql}}
 
 
 @_EmbeddedModelArrayOutputField.register_lookup
@@ -275,7 +275,11 @@ class KeyTransform(Transform):
             f"{suggestion}"
         )
 
-    def as_mql(self, compiler, connection):
+    def as_mql(self, compiler, connection, as_path=False):
+        if as_path:
+            inner_lhs_mql = self._lhs.as_mql(compiler, connection, as_path=True)
+            lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+            return f"{inner_lhs_mql}.{lhs_mql}"
         inner_lhs_mql = self._lhs.as_mql(compiler, connection)
         lhs_mql = process_lhs(self, compiler, connection)
         return {

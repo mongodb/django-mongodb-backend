@@ -164,12 +164,13 @@ def join(self, compiler, connection, pushed_filter_expression=None):
         for col, parent_pos in columns:
             target = col.target.clone()
             target.remote_field = col.target.remote_field
-            column_target = Col(None, target)
             if parent_pos is not None:
+                column_target = Col(None, target)
                 target_col = f"${parent_template}{parent_pos}"
                 column_target.target.db_column = target_col
                 column_target.target.set_attributes_from_name(target_col)
             else:
+                column_target = Col(compiler.collection_name, target)
                 column_target.target = col.target
             replacements[col] = column_target
         return replacements
@@ -206,10 +207,26 @@ def join(self, compiler, connection, pushed_filter_expression=None):
         rerooted_replacement = _get_reroot_replacements(pushed_filter_expression)
         extra_conditions.append(
             pushed_filter_expression.replace_expressions(rerooted_replacement).as_mql(
-                compiler, connection
+                compiler, connection, as_path=True
             )
         )
-    extra_conditions = {"$and": extra_conditions} if extra_conditions else {}
+
+    # Match the conditions:
+    #   self.table_name.field1 = parent_table.field1
+    # AND
+    #   self.table_name.field2 = parent_table.field2
+    # AND
+    #   ...
+    condition = {
+        "$expr": {
+            "$and": [
+                {"$eq": [f"$${parent_template}{i}", field]} for i, field in enumerate(rhs_fields)
+            ]
+        }
+    }
+    if extra_conditions:
+        condition = {"$and": [condition, *extra_conditions]}
+
     lookup_pipeline = [
         {
             "$lookup": {
@@ -221,25 +238,7 @@ def join(self, compiler, connection, pushed_filter_expression=None):
                     f"{parent_template}{i}": parent_field
                     for i, parent_field in enumerate(lhs_fields)
                 },
-                "pipeline": [
-                    {
-                        # Match the conditions:
-                        #   self.table_name.field1 = parent_table.field1
-                        # AND
-                        #   self.table_name.field2 = parent_table.field2
-                        # AND
-                        #   ...
-                        "$match": {
-                            "$expr": {
-                                "$and": [
-                                    {"$eq": [f"$${parent_template}{i}", field]}
-                                    for i, field in enumerate(rhs_fields)
-                                ]
-                            },
-                            **extra_conditions,
-                        }
-                    }
-                ],
+                "pipeline": [{"$match": condition}],
                 # Rename the output as table_alias.
                 "as": self.table_alias,
             }

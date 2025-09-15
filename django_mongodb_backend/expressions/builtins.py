@@ -203,9 +203,7 @@ def when(self, compiler, connection, **extra):
 
 def value(self, compiler, connection, as_path=False):  # noqa: ARG001
     value = self.value
-    if as_path:
-        return value
-    if isinstance(value, (list, int)):
+    if isinstance(value, (list, int)) and not as_path:
         # Wrap lists & numbers in $literal to prevent ambiguity when Value
         # appears in $project.
         return {"$literal": value}

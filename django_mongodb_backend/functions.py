@@ -39,6 +39,7 @@ from django.db.models.functions.text import (
     Upper,
 )
 
+from .lookups import is_constant_value
 from .query_utils import process_lhs
 
 MONGO_OPERATORS = {
@@ -84,18 +85,18 @@ def cast(self, compiler, connection, **extra):  # noqa: ARG001
     return lhs_mql
 
 
-def concat(self, compiler, connection):
-    return self.get_source_expressions()[0].as_mql(compiler, connection)
+def concat(self, compiler, connection, as_path=False):
+    return self.get_source_expressions()[0].as_mql(compiler, connection, as_path=as_path)
 
 
-def concat_pair(self, compiler, connection):
+def concat_pair(self, compiler, connection, as_path=False):  # noqa: ARG001
     # null on either side results in null for expression, wrap with coalesce.
     coalesced = self.coalesce()
-    return super(ConcatPair, coalesced).as_mql(compiler, connection)
+    return super(ConcatPair, coalesced).as_mql(compiler, connection, as_path=False)
 
 
-def cot(self, compiler, connection):
-    lhs_mql = process_lhs(self, compiler, connection)
+def cot(self, compiler, connection, as_path=False):  # noqa: ARG001
+    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
     return {"$divide": [1, {"$tan": lhs_mql}]}
 
 
@@ -117,8 +118,8 @@ def func(self, compiler, connection, **extra):  # noqa: ARG001
     return {f"${operator}": lhs_mql}
 
 
-def left(self, compiler, connection):
-    return self.get_substr().as_mql(compiler, connection)
+def left(self, compiler, connection, as_path=False):  # noqa: ARG001
+    return self.get_substr().as_mql(compiler, connection, as_path=False)
 
 
 def length(self, compiler, connection, as_path=False):  # noqa: ARG001
@@ -127,28 +128,35 @@ def length(self, compiler, connection, as_path=False):  # noqa: ARG001
     return {"$cond": {"if": {"$eq": [lhs_mql, None]}, "then": None, "else": {"$strLenCP": lhs_mql}}}
 
 
-def log(self, compiler, connection):
+def log(self, compiler, connection, as_path=False):  # noqa: ARG001
     # This function is usually log(base, num) but on MongoDB it's log(num, base).
     clone = self.copy()
     clone.set_source_expressions(self.get_source_expressions()[::-1])
     return func(clone, compiler, connection)
 
 
-def now(self, compiler, connection):  # noqa: ARG001
+def now(self, compiler, connection, as_path=False):  # noqa: ARG001
     return "$$NOW"
 
 
-def null_if(self, compiler, connection):
+def null_if(self, compiler, connection, as_path=False):  # noqa: ARG001
     """Return None if expr1==expr2 else expr1."""
-    expr1, expr2 = (expr.as_mql(compiler, connection) for expr in self.get_source_expressions())
+    expr1, expr2 = (
+        expr.as_mql(compiler, connection, as_path=False) for expr in self.get_source_expressions()
+    )
     return {"$cond": {"if": {"$eq": [expr1, expr2]}, "then": None, "else": expr1}}
 
 
 def preserve_null(operator):
     # If the argument is null, the function should return null, not
     # $toLower/Upper's behavior of returning an empty string.
-    def wrapped(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection)
+    def wrapped(self, compiler, connection, as_path=False):
+        if is_constant_value(self.lhs) and as_path:
+            if self.lhs is None:
+                return None
+            lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+            return lhs_mql.upper()
+        lhs_mql = process_lhs(self, compiler, connection, as_path=False)
         return {
             "$expr": {
                 "$cond": {
@@ -162,24 +170,29 @@ def preserve_null(operator):
     return wrapped
 
 
-def replace(self, compiler, connection):
-    expression, text, replacement = process_lhs(self, compiler, connection)
+def replace(self, compiler, connection, as_path=False):
+    expression, text, replacement = process_lhs(self, compiler, connection, as_path=as_path)
     return {"$replaceAll": {"input": expression, "find": text, "replacement": replacement}}
 
 
-def round_(self, compiler, connection):
+def round_(self, compiler, connection, as_path=False):  # noqa: ARG001
     # Round needs its own function because it's a special case that inherits
     # from Transform but has two arguments.
-    return {"$round": [expr.as_mql(compiler, connection) for expr in self.get_source_expressions()]}
+    return {
+        "$round": [
+            expr.as_mql(compiler, connection, as_path=False)
+            for expr in self.get_source_expressions()
+        ]
+    }
 
 
-def str_index(self, compiler, connection):
+def str_index(self, compiler, connection, as_path=False):  # noqa: ARG001
     lhs = process_lhs(self, compiler, connection)
     # StrIndex should be 0-indexed (not found) but it's -1-indexed on MongoDB.
     return {"$add": [{"$indexOfCP": lhs}, 1]}
 
 
-def substr(self, compiler, connection, **extra):  # noqa: ARG001
+def substr(self, compiler, connection, as_path=False):  # noqa: ARG001
     lhs = process_lhs(self, compiler, connection)
     # The starting index is zero-indexed on MongoDB rather than one-indexed.
     lhs[1] = {"$add": [lhs[1], -1]}
@@ -191,14 +204,14 @@ def substr(self, compiler, connection, **extra):  # noqa: ARG001
 
 
 def trim(operator):
-    def wrapped(self, compiler, connection):
+    def wrapped(self, compiler, connection, as_path=False):  # noqa: ARG001
         lhs = process_lhs(self, compiler, connection)
         return {f"${operator}": {"input": lhs}}
 
     return wrapped
 
 
-def trunc(self, compiler, connection, **extra):  # noqa: ARG001
+def trunc(self, compiler, connection, as_path=False):  # noqa: ARG001
     lhs_mql = process_lhs(self, compiler, connection)
     lhs_mql = {"date": lhs_mql, "unit": self.kind, "startOfWeek": "mon"}
     if timezone := self.get_tzname():
@@ -257,11 +270,11 @@ def trunc_date(self, compiler, connection, **extra):  # noqa: ARG001
     }
 
 
-def trunc_time(self, compiler, connection):
+def trunc_time(self, compiler, connection, as_path=False):  # noqa: ARG001
     tzname = self.get_tzname()
     if tzname and tzname != "UTC":
         raise NotSupportedError(f"TruncTime with tzinfo ({tzname}) isn't supported on MongoDB.")
-    lhs_mql = process_lhs(self, compiler, connection)
+    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
     return {
         "$dateFromString": {
             "dateString": {

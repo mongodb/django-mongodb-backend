@@ -1,5 +1,5 @@
 from django.db import NotSupportedError
-from django.db.models.expressions import Col, Ref, Value
+from django.db.models.expressions import Col, Func, Ref, Value
 from django.db.models.fields.json import KeyTransform
 from django.db.models.fields.related_lookups import In, RelatedIn
 from django.db.models.lookups import (
@@ -14,7 +14,20 @@ from .query_utils import is_direct_value, process_lhs, process_rhs
 
 
 def is_constant_value(value):
-    return is_direct_value(value) or isinstance(value, Value)
+    from django_mongodb_backend.fields.array import Array  # noqa: PLC0415
+
+    if isinstance(value, Array):
+        return all(is_constant_value(e) for e in value.get_source_expressions())
+
+    return is_direct_value(value) or (
+        isinstance(value, Func | Value)
+        and not (
+            value.contains_aggregate
+            or value.contains_over_clause
+            or value.contains_column_references
+            or value.contains_subquery
+        )
+    )
 
 
 def is_simple_column(lhs):
@@ -22,11 +35,9 @@ def is_simple_column(lhs):
         if "." in lhs.key_name:
             return False
         lhs = lhs.lhs
-    if not isinstance(lhs, Col | Ref):
-        return False
-    col = lhs if isinstance(lhs, Col) else lhs.source
+    col = lhs.source if isinstance(lhs, Ref) else lhs
     # Foreign columns from parent cannot be addressed as single match
-    return col.alias is not None
+    return isinstance(col, Col) and col.alias is not None
 
 
 def builtin_lookup(self, compiler, connection, as_path=False):
