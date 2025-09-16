@@ -7,6 +7,12 @@ from django.test import SimpleTestCase
 from django_mongodb_backend.query_conversion.expression_converters import convert_expression
 
 
+def _wrap_condition_if_null(_type, condition, path):
+    if _type is None:
+        return {"$and": [{path: {"$exists": True}}, condition]}
+    return condition
+
+
 class ConversionTestCase(SimpleTestCase):
     CONVERTIBLE_TYPES = {
         "int": 42,
@@ -33,6 +39,50 @@ class ConversionTestCase(SimpleTestCase):
             with self.subTest(_type=_type, val=val):
                 conversion_test(val)
 
+    def _test_conversion_getfield(self, logical_op, value=10):
+        expr = {logical_op: [{"$getField": {"input": "$item", "field": "age"}}, value]}
+        self.assertConversionEqual(
+            expr, {"item.age": value} if logical_op == "$eq" else {"item.age": {logical_op: value}}
+        )
+
+    def _test_conversion_nested_getfield(self, logical_op, value=10):
+        expr = {
+            logical_op: [
+                {
+                    "$getField": {
+                        "input": {"$getField": {"input": "$item", "field": "shelf_life"}},
+                        "field": "age",
+                    }
+                },
+                value,
+            ]
+        }
+        self.assertConversionEqual(
+            expr,
+            {"item.shelf_life.age": value}
+            if logical_op == "$eq"
+            else {"item.shelf_life.age": {logical_op: value}},
+        )
+
+    def _test_conversion_dual_getfield_ineligible(self, logical_op):
+        expr = {
+            logical_op: [
+                {
+                    "$getField": {
+                        "input": "$root",
+                        "field": "age",
+                    }
+                },
+                {
+                    "$getField": {
+                        "input": "$value",
+                        "field": "age",
+                    }
+                },
+            ]
+        }
+        self.assertNotOptimizable(expr)
+
 
 class ExpressionTests(ConversionTestCase):
     def test_non_dict(self):
@@ -53,16 +103,29 @@ class EqTests(ConversionTestCase):
         self.assertNotOptimizable({"$eq": ["$status", {"$gt": 5}]})
 
     def _test_conversion_valid_type(self, _type):
-        self.assertConversionEqual({"$eq": ["$age", _type]}, {"age": _type})
+        self.assertConversionEqual(
+            {"$eq": ["$age", _type]}, _wrap_condition_if_null(_type, {"age": _type}, "age")
+        )
 
     def _test_conversion_valid_array_type(self, _type):
-        self.assertConversionEqual({"$eq": ["$age", _type]}, {"age": _type})
+        self.assertConversionEqual(
+            {"$eq": ["$age", _type]}, _wrap_condition_if_null(_type, {"age": _type}, "age")
+        )
 
     def test_conversion_various_types(self):
         self._test_conversion_various_types(self._test_conversion_valid_type)
 
     def test_conversion_various_array_types(self):
         self._test_conversion_various_types(self._test_conversion_valid_array_type)
+
+    def test_conversion_getfield(self):
+        self._test_conversion_getfield("$eq")
+
+    def test_conversion_nested_getfield(self):
+        self._test_conversion_nested_getfield("$eq")
+
+    def test_conversion_dual_getfield_ineligible(self):
+        self._test_conversion_dual_getfield_ineligible("$eq")
 
 
 class InTests(ConversionTestCase):
@@ -78,12 +141,42 @@ class InTests(ConversionTestCase):
         self.assertNotOptimizable({"$in": ["$status", [{"bad": "val"}]]})
 
     def _test_conversion_valid_type(self, _type):
-        self.assertConversionEqual({"$in": ["$age", [_type]]}, {"age": {"$in": [_type]}})
+        self.assertConversionEqual(
+            {"$in": ["$age", [_type]]},
+            _wrap_condition_if_null(_type, {"age": {"$in": [_type]}}, "age"),
+        )
 
     def test_conversion_various_types(self):
         for _type, val in self.CONVERTIBLE_TYPES.items():
             with self.subTest(_type=_type, val=val):
                 self._test_conversion_valid_type(val)
+
+    def test_conversion_getfield(self):
+        self._test_conversion_getfield("$in", [10])
+
+    def test_conversion_nested_getfield(self):
+        self._test_conversion_nested_getfield("$in", [10])
+
+    def test_conversion_dual_getfield_ineligible(self):
+        expr = {
+            "$in": [
+                {
+                    "$getField": {
+                        "input": "$root",
+                        "field": "age",
+                    }
+                },
+                [
+                    {
+                        "$getField": {
+                            "input": "$value",
+                            "field": "age",
+                        }
+                    }
+                ],
+            ]
+        }
+        self.assertNotOptimizable(expr)
 
 
 class LogicalTests(ConversionTestCase):
@@ -146,6 +239,7 @@ class LogicalTests(ConversionTestCase):
                 {"$in": ["$category", ["electronics", "books"]]},
                 {"$eq": ["$verified", True]},
                 {"$lte": ["$price", 2000]},
+                {"$eq": [{"$getField": {"input": "$root", "field": "age"}}, 10]},
             ]
         }
         expected = {
@@ -154,6 +248,7 @@ class LogicalTests(ConversionTestCase):
                 {"category": {"$in": ["electronics", "books"]}},
                 {"verified": True},
                 {"price": {"$lte": 2000}},
+                {"root.age": 10},
             ]
         }
         self.assertConversionEqual(expr, expected)
@@ -170,10 +265,22 @@ class GtTests(ConversionTestCase):
         self.assertNotOptimizable({"$gt": ["$price", {}]})
 
     def _test_conversion_valid_type(self, _type):
-        self.assertConversionEqual({"$gt": ["$price", _type]}, {"price": {"$gt": _type}})
+        self.assertConversionEqual(
+            {"$gt": ["$price", _type]},
+            _wrap_condition_if_null(_type, {"price": {"$gt": _type}}, "price"),
+        )
 
     def test_conversion_various_types(self):
         self._test_conversion_various_types(self._test_conversion_valid_type)
+
+    def test_conversion_getfield(self):
+        self._test_conversion_getfield("$gt")
+
+    def test_conversion_nested_getfield(self):
+        self._test_conversion_nested_getfield("$gt")
+
+    def test_conversion_dual_getfield_ineligible(self):
+        self._test_conversion_dual_getfield_ineligible("$gt")
 
 
 class GteTests(ConversionTestCase):
@@ -193,10 +300,19 @@ class GteTests(ConversionTestCase):
     def _test_conversion_valid_type(self, _type):
         expr = {"$gte": ["$price", _type]}
         expected = {"price": {"$gte": _type}}
-        self.assertConversionEqual(expr, expected)
+        self.assertConversionEqual(expr, _wrap_condition_if_null(_type, expected, "price"))
 
     def test_conversion_various_types(self):
         self._test_conversion_various_types(self._test_conversion_valid_type)
+
+    def test_conversion_getfield(self):
+        self._test_conversion_getfield("$gte")
+
+    def test_conversion_nested_getfield(self):
+        self._test_conversion_nested_getfield("$gte")
+
+    def test_conversion_dual_getfield_ineligible(self):
+        self._test_conversion_dual_getfield_ineligible("$gte")
 
 
 class LtTests(ConversionTestCase):
@@ -210,10 +326,22 @@ class LtTests(ConversionTestCase):
         self.assertNotOptimizable({"$lt": ["$price", {}]})
 
     def _test_conversion_valid_type(self, _type):
-        self.assertConversionEqual({"$lt": ["$price", _type]}, {"price": {"$lt": _type}})
+        self.assertConversionEqual(
+            {"$lt": ["$price", _type]},
+            _wrap_condition_if_null(_type, {"price": {"$lt": _type}}, "price"),
+        )
 
     def test_conversion_various_types(self):
         self._test_conversion_various_types(self._test_conversion_valid_type)
+
+    def test_conversion_getfield(self):
+        self._test_conversion_getfield("$lt")
+
+    def test_conversion_nested_getfield(self):
+        self._test_conversion_nested_getfield("$lt")
+
+    def test_conversion_dual_getfield_ineligible(self):
+        self._test_conversion_dual_getfield_ineligible("$lt")
 
 
 class LteTests(ConversionTestCase):
@@ -227,7 +355,19 @@ class LteTests(ConversionTestCase):
         self.assertNotOptimizable({"$lte": ["$price", {}]})
 
     def _test_conversion_valid_type(self, _type):
-        self.assertConversionEqual({"$lte": ["$price", _type]}, {"price": {"$lte": _type}})
+        self.assertConversionEqual(
+            {"$lte": ["$price", _type]},
+            _wrap_condition_if_null(_type, {"price": {"$lte": _type}}, "price"),
+        )
 
     def test_conversion_various_types(self):
         self._test_conversion_various_types(self._test_conversion_valid_type)
+
+    def test_conversion_getfield(self):
+        self._test_conversion_getfield("$lte")
+
+    def test_conversion_nested_getfield(self):
+        self._test_conversion_nested_getfield("$lte")
+
+    def test_conversion_dual_getfield_ineligible(self):
+        self._test_conversion_dual_getfield_ineligible("$lte")
