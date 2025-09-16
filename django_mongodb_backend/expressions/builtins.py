@@ -241,8 +241,9 @@ def value(self, compiler, connection, as_path=False):  # noqa: ARG001
 
 @staticmethod
 def _is_constant_value(value):
-    if isinstance(value, Array):
-        return all(_is_constant_value(e) for e in value.get_source_expressions())
+    if isinstance(value, list | Array):
+        iterable = value.get_source_expressions() if isinstance(value, Array) else value
+        return all(_is_constant_value(e) for e in iterable)
     if isinstance(value, Value) or is_direct_value(value):
         v = value.value if isinstance(value, Value) else value
         return not isinstance(v, str) or "." not in v

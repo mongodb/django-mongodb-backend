@@ -73,11 +73,11 @@ def _has_key_predicate(path, root_column=None, negated=False, as_path=False):
 
 def has_key_lookup(self, compiler, connection, as_path=False):
     """Return MQL to check for the existence of a key."""
+    as_path = as_path and self.is_simple_expression()
+    lhs = process_lhs(self, compiler, connection, as_path=as_path)
     rhs = self.rhs
-    lhs = process_lhs(self, compiler, connection)
     if not isinstance(rhs, (list, tuple)):
         rhs = [rhs]
-    as_path = as_path and self.is_simple_expression()
     paths = []
     # Transform any "raw" keys into KeyTransforms to allow consistent handling
     # in the code that follows.
