@@ -1,7 +1,6 @@
 from itertools import chain
 
 from django.db import NotSupportedError
-from django.db.models.expressions import Value
 from django.db.models.fields.json import (
     ContainedBy,
     DataContains,
@@ -17,7 +16,7 @@ from django.db.models.fields.json import (
     KeyTransformNumericLookupMixin,
 )
 
-from ..lookups import builtin_lookup, is_constant_value, is_simple_column
+from ..lookups import builtin_lookup
 from ..query_utils import process_lhs, process_rhs
 
 
@@ -72,23 +71,13 @@ def _has_key_predicate(path, root_column=None, negated=False, as_path=False):
     return result
 
 
-def has_key_lookup_rhs_check(rhs):
-    for key in rhs:
-        if not is_constant_value(key):
-            return False
-        value = key.value if isinstance(key, Value) else key
-        if isinstance(value, str) and "." in value:
-            return False
-    return True
-
-
 def has_key_lookup(self, compiler, connection, as_path=False):
     """Return MQL to check for the existence of a key."""
     rhs = self.rhs
     lhs = process_lhs(self, compiler, connection)
     if not isinstance(rhs, (list, tuple)):
         rhs = [rhs]
-    as_path = as_path and is_simple_column(self.lhs) and has_key_lookup_rhs_check(rhs)
+    as_path = as_path and self.is_simple_expression()
     paths = []
     # Transform any "raw" keys into KeyTransforms to allow consistent handling
     # in the code that follows.
@@ -132,7 +121,7 @@ def key_transform(self, compiler, connection, as_path=False):
     while isinstance(previous, KeyTransform):
         key_transforms.insert(0, previous.key_name)
         previous = previous.lhs
-    if as_path and is_simple_column(self.lhs):
+    if as_path and self.is_simple_column(self.lhs):
         lhs_mql = previous.as_mql(compiler, connection, as_path=True)
         return build_json_mql_path(lhs_mql, key_transforms, as_path=True)
     # Collect all key transforms in order.
@@ -147,7 +136,7 @@ def key_transform_in(self, compiler, connection, as_path=False):
     Return MQL to check if a JSON path exists and that its values are in the
     set of specified values (rhs).
     """
-    if as_path and is_simple_column(self.lhs) and is_constant_value(self.rhs):
+    if as_path and self.is_simple_expression():
         return builtin_lookup(self, compiler, connection, as_path=True)
 
     lhs_mql = process_lhs(self, compiler, connection)
@@ -175,7 +164,7 @@ def key_transform_is_null(self, compiler, connection, as_path=False):
 
     Reference: https://code.djangoproject.com/ticket/32252
     """
-    if as_path and is_simple_column(self.lhs) and is_constant_value(self.rhs):
+    if as_path and self.is_simple_expression():
         lhs_mql = process_lhs(self, compiler, connection, as_path=True)
         rhs_mql = process_rhs(self, compiler, connection)
         return _has_key_predicate(lhs_mql, None, negated=rhs_mql, as_path=True)
@@ -195,7 +184,7 @@ def key_transform_numeric_lookup_mixin(self, compiler, connection, as_path=False
     Return MQL to check if the field exists (i.e., is not "missing" or "null")
     and that the field matches the given numeric lookup expression.
     """
-    if is_simple_column(self.lhs) and is_constant_value(self.rhs) and as_path:
+    if as_path and self.is_simple_expression():
         return builtin_lookup(self, compiler, connection, as_path=True)
 
     lhs = process_lhs(self, compiler, connection, as_path=False)
@@ -209,7 +198,7 @@ def key_transform_numeric_lookup_mixin(self, compiler, connection, as_path=False
 
 
 def key_transform_exact(self, compiler, connection, as_path=False):
-    if is_simple_column(self.lhs) and is_constant_value(self.rhs) and as_path:
+    if as_path and self.is_simple_expression():
         lhs_mql = process_lhs(self, compiler, connection, as_path=True)
         return {
             "$and": [

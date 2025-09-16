@@ -7,7 +7,6 @@ from django.db.models.lookups import Exact, FieldGetDbPrepValueMixin, In, Lookup
 from django.utils.translation import gettext_lazy as _
 
 from ..forms import SimpleArrayField
-from ..lookups import is_constant_value, is_simple_column
 from ..query_utils import process_lhs, process_rhs
 from ..utils import prefix_validation_error
 from ..validators import ArrayMaxLengthValidator, LengthValidator
@@ -256,7 +255,7 @@ class ArrayContains(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
     lookup_name = "contains"
 
     def as_mql(self, compiler, connection, as_path=False):
-        if as_path and is_simple_column(self.lhs) and is_constant_value(self.rhs):
+        if as_path and self.is_simple_expression():
             lhs_mql = process_lhs(self, compiler, connection, as_path=as_path)
             value = process_rhs(self, compiler, connection, as_path=as_path)
             if value is None:
@@ -346,7 +345,7 @@ class ArrayOverlap(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
         ]
 
     def as_mql(self, compiler, connection, as_path=False):
-        if as_path and is_simple_column(self.lhs) and is_constant_value(self.rhs):
+        if as_path and self.is_simple_expression():
             lhs_mql = process_lhs(self, compiler, connection, as_path=True)
             value = process_rhs(self, compiler, connection, as_path=True)
             return {lhs_mql: {"$in": value}}

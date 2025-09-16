@@ -39,7 +39,6 @@ from django.db.models.functions.text import (
     Upper,
 )
 
-from .lookups import is_constant_value
 from .query_utils import process_lhs
 
 MONGO_OPERATORS = {
@@ -167,7 +166,7 @@ def preserve_null(operator):
     # If the argument is null, the function should return null, not
     # $toLower/Upper's behavior of returning an empty string.
     def wrapped(self, compiler, connection, as_path=False):
-        if is_constant_value(self.lhs) and as_path:
+        if as_path and self.is_constant_value(self.lhs):
             if self.lhs is None:
                 return None
             lhs_mql = process_lhs(self, compiler, connection, as_path=True)

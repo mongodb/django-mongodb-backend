@@ -6,6 +6,7 @@ from bson import Decimal128
 from django.core.exceptions import EmptyResultSet, FullResultSet
 from django.db import NotSupportedError
 from django.db.models.expressions import (
+    BaseExpression,
     Case,
     Col,
     ColPairs,
@@ -13,6 +14,7 @@ from django.db.models.expressions import (
     Exists,
     ExpressionList,
     ExpressionWrapper,
+    Func,
     NegatedExpression,
     OrderBy,
     RawSQL,
@@ -23,9 +25,12 @@ from django.db.models.expressions import (
     Value,
     When,
 )
+from django.db.models.fields.json import KeyTransform
 from django.db.models.sql import Query
 
-from ..query_utils import process_lhs
+from django_mongodb_backend.fields.array import Array
+
+from ..query_utils import is_direct_value, process_lhs
 
 
 # EXTRA IS TOTALLY IGNORED
@@ -234,6 +239,36 @@ def value(self, compiler, connection, as_path=False):  # noqa: ARG001
     return value
 
 
+@staticmethod
+def _is_constant_value(value):
+    if isinstance(value, Array):
+        return all(_is_constant_value(e) for e in value.get_source_expressions())
+    if isinstance(value, Value) or is_direct_value(value):
+        v = value.value if isinstance(value, Value) else value
+        return not isinstance(v, str) or "." not in v
+    return isinstance(value, Func | Value) and not (
+        value.contains_aggregate
+        or value.contains_over_clause
+        or value.contains_column_references
+        or value.contains_subquery
+    )
+
+
+@staticmethod
+def _is_simple_column(lhs):
+    while isinstance(lhs, KeyTransform):
+        if "." in getattr(lhs, "key_name", ""):
+            return False
+        lhs = lhs.lhs
+    col = lhs.source if isinstance(lhs, Ref) else lhs
+    # Foreign columns from parent cannot be addressed as single match
+    return isinstance(col, Col) and col.alias is not None
+
+
+def is_simple_expression(self):
+    return self.is_simple_column(self.lhs) and self.is_constant_value(self.rhs)
+
+
 def register_expressions():
     Case.as_mql = case
     Col.as_mql = col
@@ -252,3 +287,6 @@ def register_expressions():
     Subquery.as_mql = subquery
     When.as_mql = when
     Value.as_mql = value
+    BaseExpression.is_simple_expression = is_simple_expression
+    BaseExpression.is_simple_column = _is_simple_column
+    BaseExpression.is_constant_value = _is_constant_value
