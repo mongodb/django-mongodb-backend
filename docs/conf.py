@@ -51,6 +51,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "atlas": ("https://www.mongodb.com/docs/atlas/", None),
     "manual": ("https://www.mongodb.com/docs/manual/", None),
+    "sphinx": ("https://www.sphinx-doc.org/en/master", None),
 }
 
 # -- Options for HTML output -------------------------------------------------

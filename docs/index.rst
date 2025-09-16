@@ -61,7 +61,7 @@ Miscellaneous
 =============
 
 - :doc:`releases/index`
-- :doc:`internals`
+- :doc:`internals/index`
 
 .. Keep this toctree in sync with contents.rst.
 
@@ -75,4 +75,4 @@ Miscellaneous
     howto/index
     faq
     releases/index
-    internals
+    internals/index
