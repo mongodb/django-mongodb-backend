@@ -30,7 +30,7 @@ from ..query_utils import process_lhs
 
 # EXTRA IS TOTALLY IGNORED
 # shall check if we could optimize match here
-def case(self, compiler, connection, **extra):  # noqa: ARG001
+def case(self, compiler, connection, as_path=False):
     case_parts = []
     for case in self.cases:
         case_mql = {}
@@ -47,12 +47,16 @@ def case(self, compiler, connection, **extra):  # noqa: ARG001
         default_mql = self.default.as_mql(compiler, connection)
     if not case_parts:
         return default_mql
-    return {
+    expr = {
         "$switch": {
             "branches": case_parts,
             "default": default_mql,
         }
     }
+    if as_path:
+        return {"$expr": expr}
+
+    return expr
 
 
 def col(self, compiler, connection, as_path=False):  # noqa: ARG001
@@ -98,6 +102,7 @@ def expression_wrapper(self, compiler, connection, **extra):
 
 
 def negated_expression(self, compiler, connection, **extra):
+    # review
     return {"$not": expression_wrapper(self, compiler, connection, **extra)}
 
 
@@ -175,10 +180,13 @@ def star(self, compiler, connection, **extra):  # noqa: ARG001
     return {"$literal": True}
 
 
-def subquery(self, compiler, connection, get_wrapping_pipeline=None, **extra):
-    return self.query.as_mql(
-        compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline, **extra
+def subquery(self, compiler, connection, get_wrapping_pipeline=None, as_path=False):
+    expr = self.query.as_mql(
+        compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline, as_path=False
     )
+    if as_path:
+        return {"$expr": expr}
+    return expr
 
 
 def exists(self, compiler, connection, get_wrapping_pipeline=None, as_path=False, **extra):
@@ -194,7 +202,7 @@ def exists(self, compiler, connection, get_wrapping_pipeline=None, as_path=False
     except EmptyResultSet:
         return Value(False).as_mql(compiler, connection)
     if as_path:
-        return connection.mongo_operators_match["isnull"](lhs_mql, False)
+        return {"$expr": connection.mongo_operators_match["isnull"](lhs_mql, False)}
     return connection.mongo_operators_expr["isnull"](lhs_mql, False)
 
 

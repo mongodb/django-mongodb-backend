@@ -194,7 +194,7 @@ def join(self, compiler, connection, pushed_filter_expression=None):
     if extra:
         replacements = _get_reroot_replacements(extra)
         extra_conditions.append(
-            extra.replace_expressions(replacements).as_mql(compiler, connection)
+            extra.replace_expressions(replacements).as_mql(compiler, connection, as_path=True)
         )
     # pushed_filter_expression is a Where expression from the outer WHERE
     # clause that involves fields from the joined (right-hand) table and

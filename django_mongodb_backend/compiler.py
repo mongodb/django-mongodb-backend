@@ -327,7 +327,7 @@ class SQLCompiler(compiler.SQLCompiler):
             pipeline = self._build_aggregation_pipeline(ids, group)
             if self.having:
                 having = self.having.replace_expressions(all_replacements).as_mql(
-                    self, self.connection
+                    self, self.connection, as_path=True
                 )
                 # Add HAVING subqueries.
                 for query in self.subqueries or ():
@@ -643,7 +643,9 @@ class SQLCompiler(compiler.SQLCompiler):
             for alias, expr in self.columns:
                 # Unfold foreign fields.
                 if isinstance(expr, Col) and expr.alias != self.collection_name:
-                    ids[expr.alias][expr.target.column] = expr.as_mql(self, self.connection)
+                    ids[expr.alias][expr.target.column] = expr.as_mql(
+                        self, self.connection, as_path=True
+                    )
                 else:
                     ids[alias] = f"${alias}"
             # Convert defaultdict to dict so it doesn't appear as
