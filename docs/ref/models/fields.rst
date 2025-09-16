@@ -315,8 +315,6 @@ These indexes use 0-based indexing.
 
 .. class:: EmbeddedModelArrayField(embedded_model, max_size=None, **kwargs)
 
-    .. versionadded:: 5.2.0b1
-
     Similar to :class:`EmbeddedModelField`, but stores a **list** of models of
     type ``embedded_model`` rather than a single instance.
 
@@ -360,8 +358,6 @@ These indexes use 0-based indexing.
 
 .. class:: PolymorphicEmbeddedModelField(embedded_models, **kwargs)
 
-    .. versionadded:: 5.2.0b2
-
     Stores a model of one of the types in ``embedded_models``.
 
     .. attribute:: embedded_models
@@ -389,8 +385,6 @@ These indexes use 0-based indexing.
 --------------------------------------
 
 .. class:: PolymorphicEmbeddedModelArrayField(embedded_models, **kwargs)
-
-    .. versionadded:: 5.2.0b2
 
     Similar to :class:`PolymorphicEmbeddedModelField`, but stores a **list** of
     models of type ``embedded_models`` rather than a single instance.

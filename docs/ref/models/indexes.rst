@@ -28,8 +28,6 @@ minutes, depending on the size of the collection.
 
 .. class:: SearchIndex(fields=(), name=None)
 
-    .. versionadded:: 5.2.0b0
-
     Creates a basic :doc:`search index <atlas:atlas-search/index-definitions>`
     on the given field(s).
 
@@ -47,8 +45,6 @@ minutes, depending on the size of the collection.
 ---------------------
 
 .. class:: VectorSearchIndex(*, fields=(), name=None, similarities)
-
-    .. versionadded:: 5.2.0b0
 
     A subclass of :class:`SearchIndex` that creates a :doc:`vector search index
     <atlas:atlas-vector-search/vector-search-type>` on the given field(s).

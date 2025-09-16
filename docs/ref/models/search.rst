@@ -4,8 +4,6 @@ Atlas Search queries
 
 .. currentmodule:: django_mongodb_backend.expressions
 
-.. versionadded:: 5.2.0b2
-
 Atlas Search expressions
 ========================
 

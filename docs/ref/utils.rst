@@ -42,7 +42,3 @@ following parts can be considered stable.
 
     But for maximum flexibility, construct :setting:`DATABASES` manually as
     described in :ref:`configuring-databases-setting`.
-
-    .. versionchanged:: 5.2b2
-
-        The ``options`` parameter was added.
