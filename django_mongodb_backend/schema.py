@@ -503,7 +503,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         field_list = []
         for field in fields:
             if getattr(field, "encrypted", False):
-                key_alt_name = f"{db_table}_{field.column}"
+                key_alt_name = f"{db_table}.{field.column}"
                 if create_data_keys:
                     data_key = client_encryption.create_data_key(
                         kms_provider=kms_provider,
