@@ -14,6 +14,12 @@ following parts can be considered stable.
 
 .. function:: parse_uri(uri, db_name=None, options=None, test=None)
 
+    .. deprecated:: 5.2.2
+
+        ``parse_uri()`` is deprecated in favor of putting the connection string
+        in ``DATABASES["HOST"]``. See :ref:`the deprecation timeline
+        <parse-uri-deprecation>` for upgrade instructions.
+
     Parses a MongoDB `connection string`_ into a dictionary suitable for
     Django's :setting:`DATABASES` setting.
 
