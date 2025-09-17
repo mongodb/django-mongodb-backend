@@ -154,6 +154,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "validation.test_unique.PerformUniqueChecksTest.test_unique_db_default",
         },
         "Insert expressions aren't supported.": {
+            "basic.tests.ModelTest.test_save_expressions",
             "bulk_create.tests.BulkCreateTests.test_bulk_insert_now",
             "bulk_create.tests.BulkCreateTests.test_bulk_insert_expressions",
             "expressions.tests.BasicExpressionsTests.test_new_object_create",
