@@ -399,10 +399,14 @@ class IndexTransform(Transform):
         self.base_field = base_field
 
     def as_mql(self, compiler, connection, as_path=False):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=as_path)
-        if as_path:
+        if as_path and self.is_simple_column(self.lhs):
+            lhs_mql = process_lhs(self, compiler, connection, as_path=as_path)
             return f"{lhs_mql}.{self.index}"
-        return {"$arrayElemAt": [lhs_mql, self.index]}
+        lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+        expr = {"$arrayElemAt": [lhs_mql, self.index]}
+        if as_path:
+            return {"$expr": expr}
+        return expr
 
     @property
     def output_field(self):

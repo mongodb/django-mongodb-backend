@@ -33,8 +33,6 @@ from django_mongodb_backend.fields.array import Array
 from ..query_utils import is_direct_value, process_lhs
 
 
-# EXTRA IS TOTALLY IGNORED
-# shall check if we could optimize match here
 def case(self, compiler, connection, as_path=False):
     case_parts = []
     for case in self.cases:
@@ -94,21 +92,20 @@ def col_pairs(self, compiler, connection, as_path=False):
     return cols[0].as_mql(compiler, connection, as_path=as_path)
 
 
-def combined_expression(self, compiler, connection, **extra):
+def combined_expression(self, compiler, connection, as_path=False):
     expressions = [
-        self.lhs.as_mql(compiler, connection, **extra),
-        self.rhs.as_mql(compiler, connection, **extra),
+        self.lhs.as_mql(compiler, connection, as_path=as_path),
+        self.rhs.as_mql(compiler, connection, as_path=as_path),
     ]
     return connection.ops.combine_expression(self.connector, expressions)
 
 
-def expression_wrapper(self, compiler, connection, **extra):
-    return self.expression.as_mql(compiler, connection, **extra)
+def expression_wrapper(self, compiler, connection, as_path=False):
+    return self.expression.as_mql(compiler, connection, as_path=as_path)
 
 
-def negated_expression(self, compiler, connection, **extra):
-    # review
-    return {"$not": expression_wrapper(self, compiler, connection, **extra)}
+def negated_expression(self, compiler, connection, as_path=False):
+    return {"$not": expression_wrapper(self, compiler, connection, as_path=as_path)}
 
 
 def order_by(self, compiler, connection):
@@ -194,7 +191,7 @@ def subquery(self, compiler, connection, get_wrapping_pipeline=None, as_path=Fal
     return expr
 
 
-def exists(self, compiler, connection, get_wrapping_pipeline=None, as_path=False, **extra):
+def exists(self, compiler, connection, get_wrapping_pipeline=None, as_path=False):
     try:
         lhs_mql = subquery(
             self,
@@ -202,7 +199,6 @@ def exists(self, compiler, connection, get_wrapping_pipeline=None, as_path=False
             connection,
             get_wrapping_pipeline=get_wrapping_pipeline,
             as_path=as_path,
-            **extra,
         )
     except EmptyResultSet:
         return Value(False).as_mql(compiler, connection)
@@ -211,8 +207,8 @@ def exists(self, compiler, connection, get_wrapping_pipeline=None, as_path=False
     return connection.mongo_operators_expr["isnull"](lhs_mql, False)
 
 
-def when(self, compiler, connection, **extra):
-    return self.condition.as_mql(compiler, connection, **extra)
+def when(self, compiler, connection, as_path=False):
+    return self.condition.as_mql(compiler, connection, as_path=as_path)
 
 
 def value(self, compiler, connection, as_path=False):  # noqa: ARG001
@@ -244,9 +240,8 @@ def _is_constant_value(value):
     if isinstance(value, list | Array):
         iterable = value.get_source_expressions() if isinstance(value, Array) else value
         return all(_is_constant_value(e) for e in iterable)
-    if isinstance(value, Value) or is_direct_value(value):
-        v = value.value if isinstance(value, Value) else value
-        return not isinstance(v, str) or "." not in v
+    if is_direct_value(value):
+        return True
     return isinstance(value, Func | Value) and not (
         value.contains_aggregate
         or value.contains_over_clause
@@ -266,7 +261,7 @@ def _is_simple_column(lhs):
     return isinstance(col, Col) and col.alias is not None
 
 
-def is_simple_expression(self):
+def _is_simple_expression(self):
     return self.is_simple_column(self.lhs) and self.is_constant_value(self.rhs)
 
 
@@ -288,6 +283,6 @@ def register_expressions():
     Subquery.as_mql = subquery
     When.as_mql = when
     Value.as_mql = value
-    BaseExpression.is_simple_expression = is_simple_expression
+    BaseExpression.is_simple_expression = _is_simple_expression
     BaseExpression.is_simple_column = _is_simple_column
     BaseExpression.is_constant_value = _is_constant_value

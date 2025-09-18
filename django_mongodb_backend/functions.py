@@ -65,11 +65,7 @@ EXTRACT_OPERATORS = {
 }
 
 
-# TODO: ALL THOSE FUNCTION MAY CHECK AS_EXPR OR AS_PATH=FALSE. JUST NEED TO REVIEW ALL THE
-# TEST THAT HAVE THOSE OPERATOR.
-
-
-def cast(self, compiler, connection, as_path=False):  # noqa: ARG001
+def cast(self, compiler, connection, as_path=False):
     output_type = connection.data_types[self.output_field.get_internal_type()]
     lhs_mql = process_lhs(self, compiler, connection, as_path=False)[0]
     if max_length := self.output_field.max_length:
@@ -82,6 +78,8 @@ def cast(self, compiler, connection, as_path=False):  # noqa: ARG001
     if decimal_places := getattr(self.output_field, "decimal_places", None):
         lhs_mql = {"$trunc": [lhs_mql, decimal_places]}
 
+    if as_path:
+        return {"$expr": lhs_mql}
     return lhs_mql
 
 
@@ -98,7 +96,7 @@ def concat_pair(self, compiler, connection, as_path=False):
 
 
 def cot(self, compiler, connection, as_path=False):
-    lhs_mql = process_lhs(self, compiler, connection, as_path=as_path)
+    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
     if as_path:
         return {"$expr": {"$divide": [1, {"$tan": lhs_mql}]}}
     return {"$divide": [1, {"$tan": lhs_mql}]}
@@ -118,7 +116,7 @@ def extract(self, compiler, connection, as_path=False):
 
 
 def func(self, compiler, connection, as_path=False):
-    lhs_mql = process_lhs(self, compiler, connection, as_path=as_path)
+    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
     if self.function is None:
         raise NotSupportedError(f"{self} may need an as_mql() method.")
     operator = MONGO_OPERATORS.get(self.__class__, self.function.lower())
@@ -127,8 +125,8 @@ def func(self, compiler, connection, as_path=False):
     return {f"${operator}": lhs_mql}
 
 
-def left(self, compiler, connection, as_path=False):  # noqa: ARG001
-    return self.get_substr().as_mql(compiler, connection, as_path=False)
+def left(self, compiler, connection, as_path=False):
+    return self.get_substr().as_mql(compiler, connection, as_path=as_path)
 
 
 def length(self, compiler, connection, as_path=False):
@@ -140,11 +138,11 @@ def length(self, compiler, connection, as_path=False):
     return expr
 
 
-def log(self, compiler, connection, as_path=False):  # noqa: ARG001
+def log(self, compiler, connection, as_path=False):
     # This function is usually log(base, num) but on MongoDB it's log(num, base).
     clone = self.copy()
     clone.set_source_expressions(self.get_source_expressions()[::-1])
-    return func(clone, compiler, connection)
+    return func(clone, compiler, connection, as_path=as_path)
 
 
 def now(self, compiler, connection, as_path=False):  # noqa: ARG001
