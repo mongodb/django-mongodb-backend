@@ -1,64 +1,99 @@
 from django.db import connections
+from django.test import TestCase
 
-from .models import Patient
-from .test_base import QueryableEncryptionTestCase
+from . import models  # your encryption_ models file with Encrypted*Test classes
 
 
-class SchemaTests(QueryableEncryptionTestCase):
+class SchemaTests(TestCase):
     maxDiff = None
 
-    def test_get_encrypted_fields(self):
-        """
-        Test class method called by schema editor and management command to get
-        encrypted fields for `create_collection` and `auto_encryption_opts`
-        respectively.
-
-        This method is called per collection when creating a new collection and
-        per database when setting up auto encryption options.
-
-        Data keys are not tested here as they are expected to differ each time.
-        """
-        expected_encrypted_fields = {
+    # Expected encrypted fields map per model
+    expected_map = {
+        "EncryptedBinaryTest": {
             "fields": [
-                {
-                    "bsonType": "long",
-                    "path": "patient_id",
-                    "queries": {"queryType": "equality"},
-                },
-                {
-                    "bsonType": "string",
-                    "path": "full_name",
-                },
-                {
-                    "bsonType": "string",
-                    "path": "notes",
-                    "queries": {"queryType": "equality"},
-                },
-                {
-                    "bsonType": "date",
-                    "path": "registration_date",
-                    "queries": {"queryType": "equality"},
-                },
-                {
-                    "bsonType": "bool",
-                    "path": "is_active",
-                    "queries": {"queryType": "equality"},
-                },
-                {
-                    "bsonType": "string",
-                    "path": "contact_email",
-                    "queries": {"queryType": "equality"},
-                },
+                {"bsonType": "binData", "path": "value", "queries": {"queryType": "equality"}}
             ]
-        }
+        },
+        "EncryptedBooleanTest": {
+            "fields": [{"bsonType": "bool", "path": "value", "queries": {"queryType": "equality"}}]
+        },
+        "EncryptedCharTest": {
+            "fields": [
+                {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
+            ]
+        },
+        "EncryptedEmailTest": {
+            "fields": [
+                {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
+            ]
+        },
+        "EncryptedGenericIPAddressTest": {
+            "fields": [
+                {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
+            ]
+        },
+        "EncryptedTextTest": {
+            "fields": [
+                {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
+            ]
+        },
+        "EncryptedURLTest": {
+            "fields": [
+                {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
+            ]
+        },
+        "EncryptedBigIntegerTest": {
+            "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "EncryptedDateTest": {
+            "fields": [{"bsonType": "date", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "EncryptedDateTimeTest": {
+            "fields": [{"bsonType": "date", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "EncryptedDecimalTest": {
+            "fields": [{"bsonType": "decimal", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "EncryptedDurationTest": {
+            "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "EncryptedFloatTest": {
+            "fields": [{"bsonType": "double", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "EncryptedIntegerTest": {
+            "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "EncryptedPositiveBigIntegerTest": {
+            "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "EncryptedPositiveIntegerTest": {
+            "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "EncryptedPositiveSmallIntegerTest": {
+            "fields": [{"bsonType": "int", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "EncryptedSmallIntegerTest": {
+            "fields": [{"bsonType": "int", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "EncryptedTimeTest": {
+            "fields": [{"bsonType": "date", "path": "value", "queries": {"queryType": "range"}}]
+        },
+    }
+
+    def test_get_encrypted_fields_all_models(self):
+        """
+        Loops through all Encrypted*Test models,
+        checks their encrypted fields map from the schema editor,
+        and compares to expected BSON type & queries mapping.
+        """
         connection = connections["encrypted"]
-        with connection.schema_editor() as editor:
-            client = connection.connection
-            encrypted_fields = editor._get_encrypted_fields(Patient, client)
-            for field in encrypted_fields["fields"]:
-                # Remove data keys from the output; they are expected to differ
-                field.pop("keyId", None)
-            self.assertEqual(
-                encrypted_fields,
-                expected_encrypted_fields,
-            )
+
+        for model_name, expected in self.expected_map.items():
+            with self.subTest(model=model_name):
+                model_class = getattr(models, model_name)
+                with connection.schema_editor() as editor:
+                    client = connection.connection
+                    encrypted_fields = editor._get_encrypted_fields(model_class, client)
+                    for field in encrypted_fields["fields"]:
+                        field.pop("keyId", None)  # Remove dynamic value
+                    self.assertEqual(encrypted_fields, expected)

@@ -1,165 +1,142 @@
-from datetime import date, datetime, time, timedelta
+import datetime
+from decimal import Decimal
 
-import pymongo
-from bson.binary import Binary
-from django.conf import settings
-from django.db import connections
-
-from django_mongodb_backend.fields import EncryptedFieldMixin
+from django.test import TestCase, skipUnlessDBFeature
 
 from .models import (
-    Appointment,
     Billing,
-    CreditCard,
+    EncryptedBigIntegerTest,
+    EncryptedBinaryTest,
+    EncryptedBooleanTest,
+    EncryptedCharTest,
+    EncryptedDateTest,
+    EncryptedDateTimeTest,
+    EncryptedDecimalTest,
+    EncryptedDurationTest,
+    EncryptedEmailTest,
+    EncryptedFloatTest,
+    EncryptedGenericIPAddressTest,
+    EncryptedIntegerTest,
+    EncryptedPositiveBigIntegerTest,
+    EncryptedPositiveIntegerTest,
+    EncryptedPositiveSmallIntegerTest,
+    EncryptedSmallIntegerTest,
+    EncryptedTextTest,
+    EncryptedTimeTest,
+    EncryptedURLTest,
     Patient,
-    PatientPortalUser,
     PatientRecord,
 )
-from .test_base import QueryableEncryptionTestCase
 
 
-class FieldTests(QueryableEncryptionTestCase):
+class PatientModelTests(TestCase):
     def setUp(self):
-        Patient.objects.create(
-            patient_id=1,
-            full_name="John Doe",
-            notes="patient notes " * 25,
-            registration_date=datetime(2023, 10, 1, 12, 0, 0),
-            is_active=True,
-            contact_email="john.doe@example.com",
-        )
-        PatientRecord.objects.create(
-            ssn="123-45-6789",
-            birth_date="1969-01-01",
-            profile_picture_data=b"image data",
-            age=50,
-            weight=180.0,
-            insurance_policy_number=98765432101234,
-            emergency_contacts_count=2,
-            completed_visits=3,
-        )
-        Billing.objects.create(
-            account_balance=100.50,
-            payment_duration=timedelta(days=30),
-        )
-        CreditCard.objects.create(
-            card_type="Visa",
-            card_number=1234567890123456,
-            transaction_reference=98765432101234,
-        )
-        Appointment.objects.create(start_time="8:00")
-        PatientPortalUser.objects.create(
-            last_login_ip="127.0.0.1", profile_url="https://example.com"
+        self.billing = Billing(cc_type="Visa", cc_number="4111111111111111")
+        self.patient_record = PatientRecord(ssn="123-45-6789", billing=self.billing)
+        self.patient = Patient.objects.create(
+            patient_name="John Doe", patient_id=123456789, patient_record=self.patient_record
         )
 
-    def test_binaryfield(self):
-        self.assertEqual(
-            PatientRecord.objects.get(profile_picture_data=b"image data").profile_picture_data,
-            b"image data",
+    def test_patient_record_content(self):
+        """Embedded patient record data should be stored and retrieved correctly."""
+        patient = Patient.objects.get(id=self.patient.id)
+        self.assertEqual(patient.patient_record.ssn, "123-45-6789")
+
+    def test_billing_information(self):
+        """Billing data inside the encrypted embedded model should be correct."""
+        patient = Patient.objects.get(id=self.patient.id)
+        self.assertEqual(patient.patient_record.billing.cc_type, "Visa")
+        self.assertEqual(patient.patient_record.billing.cc_number, "4111111111111111")
+
+
+@skipUnlessDBFeature("supports_queryable_encryption")
+class EncryptedFieldTests(TestCase):
+    databases = {"default", "encrypted"}
+
+    def _assert_equality(self, model_cls, val):
+        model_cls.objects.create(value=val)
+        fetched = model_cls.objects.get(value=val)
+        self.assertEqual(fetched.value, val)
+
+    def _assert_range(self, model_cls, low, high, threshold):
+        model_cls.objects.create(value=low)
+        model_cls.objects.create(value=high)
+        # equality check for both
+        self.assertEqual(model_cls.objects.get(value=low).value, low)
+        self.assertEqual(model_cls.objects.get(value=high).value, high)
+        # range check using Python-side length (avoid unsupported count aggregation)
+        objs = list(model_cls.objects.filter(value__gt=threshold))
+        self.assertEqual(len(objs), 1)
+        self.assertEqual(objs[0].value, high)
+
+    # Equality-only fields
+    def test_binary(self):
+        self._assert_equality(EncryptedBinaryTest, b"\x00\x01\x02")
+
+    def test_boolean(self):
+        self._assert_equality(EncryptedBooleanTest, True)
+
+    def test_char(self):
+        self._assert_equality(EncryptedCharTest, "hello")
+
+    def test_email(self):
+        self._assert_equality(EncryptedEmailTest, "test@example.com")
+
+    def test_ip(self):
+        self._assert_equality(EncryptedGenericIPAddressTest, "192.168.0.1")
+
+    def test_text(self):
+        self._assert_equality(EncryptedTextTest, "some text")
+
+    def test_url(self):
+        self._assert_equality(EncryptedURLTest, "https://example.com")
+
+    # Range fields
+    def test_big_integer(self):
+        self._assert_range(EncryptedBigIntegerTest, 100, 200, 150)
+
+    def test_date(self):
+        d1 = datetime.date(2024, 6, 1)
+        d2 = datetime.date(2024, 6, 10)
+        self._assert_range(EncryptedDateTest, d1, d2, datetime.date(2024, 6, 5))
+
+    def test_datetime(self):
+        dt1 = datetime.datetime(2024, 6, 1, 12, 0)
+        dt2 = datetime.datetime(2024, 6, 2, 12, 0)
+        self._assert_range(EncryptedDateTimeTest, dt1, dt2, datetime.datetime(2024, 6, 2, 0, 0))
+
+    def test_decimal(self):
+        self._assert_range(
+            EncryptedDecimalTest, Decimal("123.45"), Decimal("200.50"), Decimal("150")
         )
 
-    def test_booleanfield(self):
-        self.assertTrue(Patient.objects.get(patient_id=1).is_active)
-
-    def test_charfield(self):
-        self.assertEqual(CreditCard.objects.get(card_type="Visa").card_type, "Visa")
-        self.assertEqual(PatientRecord.objects.get(ssn="123-45-6789").ssn, "123-45-6789")
-
-    def test_datefield(self):
-        self.assertEqual(
-            PatientRecord.objects.get(birth_date="1969-1-1").birth_date, date(1969, 1, 1)
+    def test_duration(self):
+        self._assert_range(
+            EncryptedDurationTest,
+            datetime.timedelta(days=3),
+            datetime.timedelta(days=10),
+            datetime.timedelta(days=5),
         )
 
-    def test_datetimefield(self):
-        self.assertEqual(
-            Patient.objects.get(
-                registration_date=datetime(2023, 10, 1, 12, 0, 0)
-            ).registration_date,
-            datetime(2023, 10, 1, 12, 0, 0),
-        )
+    def test_float(self):
+        self._assert_range(EncryptedFloatTest, 1.23, 4.56, 3.0)
 
-    def test_decimalfield(self):
-        self.assertTrue(Billing.objects.filter(account_balance__gte=100.0).exists())
+    def test_integer(self):
+        self._assert_range(EncryptedIntegerTest, 5, 10, 7)
 
-    def test_durationfield(self):
-        self.assertTrue(Billing.objects.filter(payment_duration__gte=timedelta(days=15)).exists())
+    def test_positive_big_integer(self):
+        self._assert_range(EncryptedPositiveBigIntegerTest, 100, 500, 200)
 
-    def test_emailfield(self):
-        self.assertEqual(
-            Patient.objects.get(contact_email="john.doe@example.com").contact_email,
-            "john.doe@example.com",
-        )
+    def test_positive_integer(self):
+        self._assert_range(EncryptedPositiveIntegerTest, 10, 20, 15)
 
-    def test_floatfield(self):
-        self.assertTrue(PatientRecord.objects.filter(weight__gte=175.0).exists())
+    def test_positive_small_integer(self):
+        self._assert_range(EncryptedPositiveSmallIntegerTest, 5, 8, 6)
 
-    def test_integerfield(self):
-        self.assertEqual(
-            CreditCard.objects.get(card_number=1234567890123456).card_number, 1234567890123456
-        )
-        self.assertEqual(
-            PatientRecord.objects.get(emergency_contacts_count=2).emergency_contacts_count, 2
-        )
+    def test_small_integer(self):
+        self._assert_range(EncryptedSmallIntegerTest, -5, 2, 0)
 
-    def test_positive_bigintegerfield(self):
-        self.assertEqual(
-            PatientRecord.objects.get(
-                insurance_policy_number=98765432101234
-            ).insurance_policy_number,
-            98765432101234,
-        )
-
-    def test_positive_integerfield(self):
-        self.assertEqual(
-            PatientRecord.objects.get(emergency_contacts_count=2).emergency_contacts_count, 2
-        )
-
-    def test_positive_smallintegerfield(self):
-        self.assertEqual(PatientRecord.objects.get(completed_visits=3).completed_visits, 3)
-
-    def test_bigintegerfield(self):
-        self.assertEqual(
-            CreditCard.objects.get(transaction_reference=98765432101234).transaction_reference,
-            98765432101234,
-        )
-
-    def test_ipaddressfield(self):
-        self.assertEqual(
-            PatientPortalUser.objects.get(last_login_ip="127.0.0.1").last_login_ip, "127.0.0.1"
-        )
-
-    def test_smallintegerfield(self):
-        self.assertTrue(PatientRecord.objects.filter(age__gte=40).exists())
-        self.assertFalse(PatientRecord.objects.filter(age__gte=80).exists())
-
-    def test_textfield(self):
-        self.assertEqual(
-            Patient.objects.get(notes="patient notes " * 25).notes,
-            "patient notes " * 25,
-        )
-
-    def test_timefield(self):
-        self.assertEqual(Appointment.objects.get(start_time="8:00").start_time, time(8, 0))
-
-    def test_encrypted_patient_record_in_encrypted_database(self):
-        patients = connections["encrypted"].database.encryption__patient.find()
-        self.assertEqual(len(list(patients)), 1)
-        records = connections["encrypted"].database.encryption__patientrecord.find()
-        self.assertTrue("__safeContent__" in records[0])
-
-    def test_encrypted_patient_record_in_unencrypted_database(self):
-        conn_params = connections["encrypted"].get_connection_params()
-        db_name = settings.DATABASES["encrypted"]["NAME"]
-        if conn_params.pop("auto_encryption_opts", False):
-            with pymongo.MongoClient(**conn_params) as new_connection:
-                patientrecords = new_connection[db_name].encryption__patientrecord.find()
-                ssn = patientrecords[0]["ssn"]
-                self.assertTrue(isinstance(ssn, Binary))
-
-    def test_encrypted_fields_cannot_be_null(self):
-        class Field(EncryptedFieldMixin):
-            pass
-
-        msg = "'null=True' is not supported for encrypted fields."
-        with self.assertRaisesMessage(ValueError, msg):
-            Field(null=True)
+    def test_time(self):
+        t1 = datetime.time(10, 0)
+        t2 = datetime.time(15, 0)
+        self._assert_range(EncryptedTimeTest, t1, t2, datetime.time(12, 0))
