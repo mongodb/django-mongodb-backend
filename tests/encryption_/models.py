@@ -1,6 +1,7 @@
 from django.db import models
 
 from django_mongodb_backend.fields import (
+    EmbeddedModelField,
     EncryptedBigIntegerField,
     EncryptedBinaryField,
     EncryptedBooleanField,
@@ -21,60 +22,112 @@ from django_mongodb_backend.fields import (
     EncryptedTimeField,
     EncryptedURLField,
 )
-
-EQUALITY_QUERY = {"queryType": "equality"}
-RANGE_QUERY = {"queryType": "range"}
+from django_mongodb_backend.models import EmbeddedModel
 
 
-class QueryableEncryptionModelBase(models.Model):
+class Billing(EmbeddedModel):
+    cc_type = models.CharField(max_length=50)
+    cc_number = models.CharField(max_length=20)
+
+
+class PatientRecord(EmbeddedModel):
+    ssn = models.CharField(max_length=11)
+    billing = EmbeddedModelField(Billing)
+
+
+class Patient(models.Model):
+    patient_name = models.CharField(max_length=255)
+    patient_id = models.BigIntegerField()
+    patient_record = EmbeddedModelField(PatientRecord)
+
+    def __str__(self):
+        return f"{self.patient_name} ({self.patient_id})"
+
+
+class EncryptedModel(models.Model):
+    """
+    Abstract base model for all Encrypted models
+    that require the 'supports_queryable_encryption' DB feature.
+    """
+
     class Meta:
         abstract = True
         required_db_features = {"supports_queryable_encryption"}
 
 
-class Appointment(QueryableEncryptionModelBase):
-    start_time = EncryptedTimeField(queries=EQUALITY_QUERY)
+# Equality-queryable fields
+class EncryptedBinaryTest(EncryptedModel):
+    value = EncryptedBinaryField(queries={"queryType": "equality"})
 
 
-class Billing(QueryableEncryptionModelBase):
-    account_balance = EncryptedDecimalField(max_digits=10, decimal_places=2, queries=RANGE_QUERY)
-    payment_duration = EncryptedDurationField(queries=RANGE_QUERY)  # Duration for billing period
+class EncryptedBooleanTest(EncryptedModel):
+    value = EncryptedBooleanField(queries={"queryType": "equality"})
 
 
-class CreditCard(QueryableEncryptionModelBase):
-    card_type = EncryptedCharField(max_length=20, queries=EQUALITY_QUERY)
-    card_number = EncryptedIntegerField(queries=EQUALITY_QUERY)
-    transaction_reference = EncryptedBigIntegerField(
-        queries=EQUALITY_QUERY
-    )  # Simulating a long transaction ID
+class EncryptedCharTest(EncryptedModel):
+    value = EncryptedCharField(max_length=255, queries={"queryType": "equality"})
 
 
-class PatientPortalUser(QueryableEncryptionModelBase):
-    last_login_ip = EncryptedGenericIPAddressField(queries=EQUALITY_QUERY)
-    profile_url = EncryptedURLField(queries=EQUALITY_QUERY)
+class EncryptedEmailTest(EncryptedModel):
+    value = EncryptedEmailField(max_length=255, queries={"queryType": "equality"})
 
 
-class PatientRecord(QueryableEncryptionModelBase):
-    ssn = EncryptedCharField(max_length=11, queries=EQUALITY_QUERY)
-    birth_date = EncryptedDateField(queries=RANGE_QUERY)
-    profile_picture_data = EncryptedBinaryField(queries=EQUALITY_QUERY)
-    age = EncryptedSmallIntegerField(queries={**RANGE_QUERY, "min": 0, "max": 100})
-    weight = EncryptedFloatField(queries=RANGE_QUERY)
-    insurance_policy_number = EncryptedPositiveBigIntegerField(queries=EQUALITY_QUERY)
-    emergency_contacts_count = EncryptedPositiveIntegerField(queries=EQUALITY_QUERY)
-    completed_visits = EncryptedPositiveSmallIntegerField(queries=EQUALITY_QUERY)
-
-    # TODO: Embed Billing model
-    # billing = EncryptedEmbeddedField(Billing)
+class EncryptedGenericIPAddressTest(EncryptedModel):
+    value = EncryptedGenericIPAddressField(queries={"queryType": "equality"})
 
 
-class Patient(QueryableEncryptionModelBase):
-    patient_id = EncryptedIntegerField(queries=EQUALITY_QUERY)
-    full_name = EncryptedCharField(max_length=100)
-    notes = EncryptedTextField(queries=EQUALITY_QUERY)
-    registration_date = EncryptedDateTimeField(queries=EQUALITY_QUERY)
-    is_active = EncryptedBooleanField(queries=EQUALITY_QUERY)
-    contact_email = EncryptedEmailField(queries=EQUALITY_QUERY)
+class EncryptedTextTest(EncryptedModel):
+    value = EncryptedTextField(queries={"queryType": "equality"})
 
-    # TODO: Embed PatientRecord model
-    # patient_record = EncryptedEmbeddedField(PatientRecord)
+
+class EncryptedURLTest(EncryptedModel):
+    value = EncryptedURLField(max_length=500, queries={"queryType": "equality"})
+
+
+# Range-queryable fields (also support equality)
+class EncryptedBigIntegerTest(EncryptedModel):
+    value = EncryptedBigIntegerField(queries={"queryType": "range"})
+
+
+class EncryptedDateTest(EncryptedModel):
+    value = EncryptedDateField(queries={"queryType": "range"})
+
+
+class EncryptedDateTimeTest(EncryptedModel):
+    value = EncryptedDateTimeField(queries={"queryType": "range"})
+
+
+class EncryptedDecimalTest(EncryptedModel):
+    value = EncryptedDecimalField(max_digits=10, decimal_places=2, queries={"queryType": "range"})
+
+
+class EncryptedDurationTest(EncryptedModel):
+    value = EncryptedDurationField(queries={"queryType": "range"})
+
+
+class EncryptedFloatTest(EncryptedModel):
+    value = EncryptedFloatField(queries={"queryType": "range"})
+
+
+class EncryptedIntegerTest(EncryptedModel):
+    value = EncryptedIntegerField(queries={"queryType": "range"})
+
+
+class EncryptedPositiveBigIntegerTest(EncryptedModel):
+    value = EncryptedPositiveBigIntegerField(queries={"queryType": "range"})
+
+
+class EncryptedPositiveIntegerTest(EncryptedModel):
+    value = EncryptedPositiveIntegerField(queries={"queryType": "range"})
+
+
+class EncryptedPositiveSmallIntegerTest(EncryptedModel):
+    value = EncryptedPositiveSmallIntegerField(queries={"queryType": "range"})
+
+
+class EncryptedSmallIntegerTest(EncryptedModel):
+    value = EncryptedSmallIntegerField(queries={"queryType": "range"})
+
+
+class EncryptedTimeTest(EncryptedModel):
+    value = EncryptedTimeField(queries={"queryType": "range"})
