@@ -1,5 +1,14 @@
 from django.db import models
 
+from django_mongodb_backend.fields import EmbeddedModelField
+
+
+class EncryptedEmbeddedModelField(EmbeddedModelField):
+    encrypted = True
+
+    def db_type(self, connection):
+        return "object"
+
 
 class EncryptedFieldMixin:
     encrypted = True

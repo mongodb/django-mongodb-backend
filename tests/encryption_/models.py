@@ -1,7 +1,6 @@
 from django.db import models
 
 from django_mongodb_backend.fields import (
-    EmbeddedModelField,
     EncryptedBigIntegerField,
     EncryptedBinaryField,
     EncryptedBooleanField,
@@ -11,6 +10,7 @@ from django_mongodb_backend.fields import (
     EncryptedDecimalField,
     EncryptedDurationField,
     EncryptedEmailField,
+    EncryptedEmbeddedModelField,
     EncryptedFloatField,
     EncryptedGenericIPAddressField,
     EncryptedIntegerField,
@@ -22,23 +22,23 @@ from django_mongodb_backend.fields import (
     EncryptedTimeField,
     EncryptedURLField,
 )
-from django_mongodb_backend.models import EmbeddedModel
+from django_mongodb_backend.models import EncryptedEmbeddedModel
 
 
-class Billing(EmbeddedModel):
+class Billing(EncryptedEmbeddedModel):
     cc_type = models.CharField(max_length=50)
     cc_number = models.CharField(max_length=20)
 
 
-class PatientRecord(EmbeddedModel):
-    ssn = models.CharField(max_length=11)
-    billing = EmbeddedModelField(Billing)
+class PatientRecord(EncryptedEmbeddedModel):
+    ssn = EncryptedCharField(max_length=11, queries={"queryType": "equality"})
+    billing = EncryptedEmbeddedModelField(Billing)
 
 
 class Patient(models.Model):
     patient_name = models.CharField(max_length=255)
     patient_id = models.BigIntegerField()
-    patient_record = EmbeddedModelField(PatientRecord)
+    patient_record = EncryptedEmbeddedModelField(PatientRecord)
 
     def __str__(self):
         return f"{self.patient_name} ({self.patient_id})"

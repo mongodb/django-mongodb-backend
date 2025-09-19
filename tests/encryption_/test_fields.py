@@ -29,7 +29,10 @@ from .models import (
 )
 
 
+@skipUnlessDBFeature("supports_queryable_encryption")
 class PatientModelTests(TestCase):
+    databases = {"default", "encrypted"}
+
     def setUp(self):
         self.billing = Billing(cc_type="Visa", cc_number="4111111111111111")
         self.patient_record = PatientRecord(ssn="123-45-6789", billing=self.billing)
@@ -37,14 +40,9 @@ class PatientModelTests(TestCase):
             patient_name="John Doe", patient_id=123456789, patient_record=self.patient_record
         )
 
-    def test_patient_record_content(self):
-        """Embedded patient record data should be stored and retrieved correctly."""
+    def test_patient(self):
         patient = Patient.objects.get(id=self.patient.id)
         self.assertEqual(patient.patient_record.ssn, "123-45-6789")
-
-    def test_billing_information(self):
-        """Billing data inside the encrypted embedded model should be correct."""
-        patient = Patient.objects.get(id=self.patient.id)
         self.assertEqual(patient.patient_record.billing.cc_type, "Visa")
         self.assertEqual(patient.patient_record.billing.cc_number, "4111111111111111")
 
