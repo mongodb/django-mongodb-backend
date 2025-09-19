@@ -22,7 +22,7 @@ from django_mongodb_backend.fields import (
     EncryptedTimeField,
     EncryptedURLField,
 )
-from django_mongodb_backend.models import EncryptedEmbeddedModel
+from django_mongodb_backend.models import EmbeddedModel, EncryptedEmbeddedModel
 
 
 class Billing(EncryptedEmbeddedModel):
@@ -30,7 +30,7 @@ class Billing(EncryptedEmbeddedModel):
     cc_number = models.CharField(max_length=20)
 
 
-class PatientRecord(EncryptedEmbeddedModel):
+class PatientRecord(EmbeddedModel):
     ssn = EncryptedCharField(max_length=11, queries={"queryType": "equality"})
     billing = EncryptedEmbeddedModelField(Billing)
 
