@@ -23,6 +23,7 @@ from django.db.models.expressions import (
     Value,
     When,
 )
+from django.db.models.indexes import IndexExpression
 from django.db.models.sql import Query
 
 from ..query_utils import process_lhs
@@ -95,12 +96,25 @@ def expression_wrapper(self, compiler, connection):
     return self.expression.as_mql(compiler, connection)
 
 
+def index_expression(self, compiler, connection):
+    result = []
+    for expr in self.get_source_expressions():
+        if expr is None:
+            continue
+        for sub_expr in expr.get_source_expressions():
+            try:
+                result.append(sub_expr.as_mql(compiler, connection, as_path=True))
+            except FullResultSet:
+                result.append(Value(True).as_mql(compiler, connection))
+    return result
+
+
 def negated_expression(self, compiler, connection):
     return {"$not": expression_wrapper(self, compiler, connection)}
 
 
-def order_by(self, compiler, connection):
-    return self.expression.as_mql(compiler, connection)
+def order_by(self, compiler, connection, **extra_args):
+    return self.expression.as_mql(compiler, connection, **extra_args)
 
 
 def query(self, compiler, connection, get_wrapping_pipeline=None):
@@ -217,6 +231,7 @@ def register_expressions():
     Exists.as_mql = exists
     ExpressionList.as_mql = process_lhs
     ExpressionWrapper.as_mql = expression_wrapper
+    IndexExpression.as_mql = index_expression
     NegatedExpression.as_mql = negated_expression
     OrderBy.as_mql = order_by
     Query.as_mql = query
