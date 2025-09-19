@@ -3,7 +3,7 @@ from django.apps import apps
 from django.core.management.base import BaseCommand
 from django.db import DEFAULT_DB_ALIAS, connections, router
 
-from django_mongodb_backend.model_utils import model_has_encrypted_fields
+from django_mongodb_backend.utils import model_has_encrypted_fields
 
 
 class Command(BaseCommand):

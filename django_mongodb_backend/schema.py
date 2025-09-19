@@ -11,9 +11,8 @@ from django_mongodb_backend.indexes import SearchIndex
 
 from .fields import EmbeddedModelField
 from .gis.schema import GISSchemaEditor
-from .model_utils import model_has_encrypted_fields
 from .query import wrap_database_errors
-from .utils import OperationCollector
+from .utils import OperationCollector, model_has_encrypted_fields
 
 
 def ignore_embedded_models(func):
@@ -502,6 +501,9 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         db_table = model._meta.db_table
         field_list = []
         for field in fields:
+            if isinstance(field, EmbeddedModelField):
+                # Recursively get encrypted fields for the embedded model.
+                self._get_encrypted_fields(field.embedded_model, client, create_data_keys)
             if getattr(field, "encrypted", False):
                 key_alt_name = f"{db_table}.{field.column}"
                 if create_data_keys:
@@ -524,7 +526,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                     "path": field.column,
                     "keyId": data_key,
                 }
-                if field.queries:
+                if getattr(field, "queries", False):
                     field_dict["queries"] = field.queries
                 field_list.append(field_dict)
         return {"fields": field_list}
