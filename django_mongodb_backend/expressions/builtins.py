@@ -14,7 +14,6 @@ from django.db.models.expressions import (
     Exists,
     ExpressionList,
     ExpressionWrapper,
-    Func,
     NegatedExpression,
     OrderBy,
     RawSQL,
@@ -25,12 +24,9 @@ from django.db.models.expressions import (
     Value,
     When,
 )
-from django.db.models.fields.json import KeyTransform
 from django.db.models.sql import Query
 
-from django_mongodb_backend.fields.array import Array
-
-from ..query_utils import is_direct_value, process_lhs
+from ..query_utils import process_lhs
 
 
 def case(self, compiler, connection, as_path=False):
@@ -235,34 +231,14 @@ def value(self, compiler, connection, as_path=False):  # noqa: ARG001
     return value
 
 
-@staticmethod
-def _is_constant_value(value):
-    if isinstance(value, list | Array):
-        iterable = value.get_source_expressions() if isinstance(value, Array) else value
-        return all(_is_constant_value(e) for e in iterable)
-    if is_direct_value(value):
-        return True
-    return isinstance(value, Func | Value) and not (
-        value.contains_aggregate
-        or value.contains_over_clause
-        or value.contains_column_references
-        or value.contains_subquery
-    )
+def base_expression(self, compiler, connection, as_path=False):
+    if as_path and getattr(self, "is_simple_expression", lambda: False)():
+        self.is_simple_expression()
+        if hasattr(self, "as_mql_path"):
+            return self.as_mql_path(compiler, connection)
 
-
-@staticmethod
-def _is_simple_column(lhs):
-    while isinstance(lhs, KeyTransform):
-        if "." in getattr(lhs, "key_name", ""):
-            return False
-        lhs = lhs.lhs
-    col = lhs.source if isinstance(lhs, Ref) else lhs
-    # Foreign columns from parent cannot be addressed as single match
-    return isinstance(col, Col) and col.alias is not None
-
-
-def _is_simple_expression(self):
-    return self.is_simple_column(self.lhs) and self.is_constant_value(self.rhs)
+    expr = self.as_mql_expr(compiler, connection)
+    return {"$expr": expr} if as_path else expr
 
 
 def register_expressions():
@@ -283,6 +259,4 @@ def register_expressions():
     Subquery.as_mql = subquery
     When.as_mql = when
     Value.as_mql = value
-    BaseExpression.is_simple_expression = _is_simple_expression
-    BaseExpression.is_simple_column = _is_simple_column
-    BaseExpression.is_constant_value = _is_constant_value
+    BaseExpression.as_mql = base_expression

@@ -1,6 +1,7 @@
 from django.core.exceptions import FullResultSet
 from django.db.models.aggregates import Aggregate
-from django.db.models.expressions import Value
+from django.db.models.expressions import Col, Func, Ref, Value
+from django.db.models.fields.json import KeyTransform
 
 
 def is_direct_value(node):
@@ -60,3 +61,30 @@ def regex_match(field, regex, insensitive=False):
     options = "i" if insensitive else ""
     # return {"$regexMatch": {"input": field, "regex": regex, "options": options}}
     return {field: {"$regex": regex, "$options": options}}
+
+
+def is_constant_value(value):
+    if isinstance(value, list):
+        return all(map(is_constant_value, value))
+    if is_direct_value(value):
+        return True
+    return isinstance(value, Func | Value) and not (
+        value.contains_aggregate
+        or value.contains_over_clause
+        or value.contains_column_references
+        or value.contains_subquery
+    )
+
+
+def is_simple_column(lhs):
+    while isinstance(lhs, KeyTransform):
+        if "." in getattr(lhs, "key_name", ""):
+            return False
+        lhs = lhs.lhs
+    col = lhs.source if isinstance(lhs, Ref) else lhs
+    # Foreign columns from parent cannot be addressed as single match
+    return isinstance(col, Col) and col.alias is not None
+
+
+def is_simple_expression(self):
+    return is_simple_column(self.lhs) and is_constant_value(self.rhs)

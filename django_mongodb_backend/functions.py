@@ -125,6 +125,18 @@ def func(self, compiler, connection, as_path=False):
     return {f"${operator}": lhs_mql}
 
 
+def func_path(self, compiler, connection):  # noqa: ARG001
+    raise NotSupportedError(f"{self} May need an as_mql_path() method.")
+
+
+def func_expr(self, compiler, connection):
+    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+    if self.function is None:
+        raise NotSupportedError(f"{self} may need an as_mql() method.")
+    operator = MONGO_OPERATORS.get(self.__class__, self.function.lower())
+    return {f"${operator}": lhs_mql}
+
+
 def left(self, compiler, connection, as_path=False):
     return self.get_substr().as_mql(compiler, connection, as_path=as_path)
 
@@ -312,7 +324,8 @@ def register_functions():
     ConcatPair.as_mql = concat_pair
     Cot.as_mql = cot
     Extract.as_mql = extract
-    Func.as_mql = func
+    Func.as_mql_path = func_path
+    Func.as_mql_expr = func_expr
     JSONArray.as_mql = process_lhs
     Left.as_mql = left
     Length.as_mql = length
