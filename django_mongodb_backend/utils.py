@@ -193,3 +193,13 @@ class OperationCollector(OperationDebugWrapper):
             self.log(method, args, kwargs)
 
         return wrapper
+
+
+def model_has_encrypted_fields(model):
+    from django_mongodb_backend.models import EncryptedEmbeddedModel  # noqa: PLC0415
+
+    for field in model._meta.fields:
+        if getattr(field, "encrypted", False):
+            return True
+
+    return bool(issubclass(model, EncryptedEmbeddedModel))
