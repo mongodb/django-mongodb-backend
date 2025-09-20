@@ -70,7 +70,7 @@ class PolymorphicEmbeddedModelArrayField(ArrayField):
             return lookup
 
         class EmbeddedModelArrayFieldLookups(Lookup):
-            def as_mql(self, compiler, connection):
+            def as_mql(self, compiler, connection, as_path=False):
                 raise ValueError(
                     "Lookups aren't supported on PolymorphicEmbeddedModelArrayField. "
                     "Try querying one of its embedded fields instead."

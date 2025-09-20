@@ -29,15 +29,7 @@ class RegexTests(MongoTestCaseMixin, TestCase):
         self.assertAggregateQuery(
             query,
             "lookup__book",
-            [
-                {
-                    "$match": {
-                        "$expr": {
-                            "$regexMatch": {"input": "$title", "regex": "Moby Dick", "options": ""}
-                        }
-                    }
-                }
-            ],
+            [{"$match": {"title": {"$regex": "Moby Dick", "$options": ""}}}],
         )
 
 
