@@ -167,6 +167,7 @@ def join(self, compiler, connection, pushed_filter_expression=None):
             target.remote_field = col.target.remote_field
             if parent_pos is not None:
                 column_target = Col(None, target)
+                column_target.is_simple_column = False
                 target_col = f"${parent_template}{parent_pos}"
                 column_target.target.db_column = target_col
                 column_target.target.set_attributes_from_name(target_col)

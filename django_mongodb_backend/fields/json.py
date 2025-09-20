@@ -1,3 +1,4 @@
+from functools import partialmethod
 from itertools import chain
 
 from django.db import NotSupportedError
@@ -16,7 +17,7 @@ from django.db.models.fields.json import (
     KeyTransformNumericLookupMixin,
 )
 
-from ..lookups import builtin_lookup
+from ..lookups import builtin_lookup_expr, builtin_lookup_path
 from ..query_utils import process_lhs, process_rhs
 
 
@@ -71,17 +72,20 @@ def _has_key_predicate(path, root_column=None, negated=False, as_path=False):
     return result
 
 
+def has_key_check_simple_expression(self):
+    rhs = [self.rhs] if not isinstance(self.rhs, (list, tuple)) else self.rhs
+    return self.is_simple_column and all(key.isalnum() for key in rhs)
+
+
 def has_key_lookup(self, compiler, connection, as_path=False):
     """Return MQL to check for the existence of a key."""
     rhs = self.rhs
     if not isinstance(rhs, (list, tuple)):
         rhs = [rhs]
-    as_path = as_path and self.is_simple_expression() and all("." not in v for v in rhs)
     lhs = process_lhs(self, compiler, connection, as_path=as_path)
     paths = []
     # Transform any "raw" keys into KeyTransforms to allow consistent handling
     # in the code that follows.
-
     for key in rhs:
         rhs_json_path = key if isinstance(key, KeyTransform) else KeyTransform(key, self.lhs)
         paths.append(rhs_json_path.as_mql(compiler, connection, as_path=as_path))
@@ -89,10 +93,7 @@ def has_key_lookup(self, compiler, connection, as_path=False):
     for path in paths:
         keys.append(_has_key_predicate(path, lhs, as_path=as_path))
 
-    result = keys[0] if self.mongo_operator is None else {self.mongo_operator: keys}
-    if not as_path:
-        result = {"$expr": result}
-    return result
+    return keys[0] if self.mongo_operator is None else {self.mongo_operator: keys}
 
 
 _process_rhs = JSONExact.process_rhs
@@ -121,14 +122,9 @@ def key_transform(self, compiler, connection, as_path=False):
     while isinstance(previous, KeyTransform):
         key_transforms.insert(0, previous.key_name)
         previous = previous.lhs
-    if as_path and self.is_simple_column(self.lhs):
-        lhs_mql = previous.as_mql(compiler, connection, as_path=True)
-        return build_json_mql_path(lhs_mql, key_transforms, as_path=True)
     # Collect all key transforms in order.
-    lhs_mql = previous.as_mql(compiler, connection, as_path=False)
-    if as_path:
-        return {"$expr": build_json_mql_path(lhs_mql, key_transforms, as_path=False)}
-    return build_json_mql_path(lhs_mql, key_transforms, as_path=False)
+    lhs_mql = previous.as_mql(compiler, connection, as_path=as_path)
+    return build_json_mql_path(lhs_mql, key_transforms, as_path=as_path)
 
 
 def key_transform_in(self, compiler, connection, as_path=False):
@@ -137,7 +133,7 @@ def key_transform_in(self, compiler, connection, as_path=False):
     set of specified values (rhs).
     """
     if as_path and self.is_simple_expression():
-        return builtin_lookup(self, compiler, connection, as_path=True)
+        return builtin_lookup_path(self, compiler, connection)
 
     lhs_mql = process_lhs(self, compiler, connection)
     # Traverse to the root column.
@@ -154,7 +150,24 @@ def key_transform_in(self, compiler, connection, as_path=False):
     return expr
 
 
-def key_transform_is_null(self, compiler, connection, as_path=False):
+def key_transform_in_path(self, compiler, connection):
+    return builtin_lookup_path(self, compiler, connection)
+
+
+def key_transform_in_expr(self, compiler, connection):
+    lhs_mql = process_lhs(self, compiler, connection)
+    # Traverse to the root column.
+    previous = self.lhs
+    while isinstance(previous, KeyTransform):
+        previous = previous.lhs
+    root_column = previous.as_mql(compiler, connection)
+    value = process_rhs(self, compiler, connection)
+    # Construct the expression to check if lhs_mql values are in rhs values.
+    expr = connection.mongo_operators_expr[self.lookup_name](lhs_mql, value)
+    return {"$and": [_has_key_predicate(lhs_mql, root_column), expr]}
+
+
+def key_transform_is_null_path(self, compiler, connection):
     """
     Return MQL to check the nullability of a key.
 
@@ -164,51 +177,62 @@ def key_transform_is_null(self, compiler, connection, as_path=False):
 
     Reference: https://code.djangoproject.com/ticket/32252
     """
-    if as_path and self.is_simple_expression():
-        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-        rhs_mql = process_rhs(self, compiler, connection)
-        return _has_key_predicate(lhs_mql, None, negated=rhs_mql, as_path=True)
-    # Get the root column.
+    lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+    rhs_mql = process_rhs(self, compiler, connection, as_path=True)
+    return _has_key_predicate(lhs_mql, None, negated=rhs_mql, as_path=True)
+
+
+def key_transform_is_null_expr(self, compiler, connection):
     previous = self.lhs
     while isinstance(previous, KeyTransform):
         previous = previous.lhs
     root_column = previous.as_mql(compiler, connection)
-    expr = _has_key_predicate(lhs_mql, root_column, negated=rhs_mql)
-    if as_path:
-        return {"$expr": expr}
-    return expr
+    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+    rhs_mql = process_rhs(self, compiler, connection)
+    return _has_key_predicate(lhs_mql, root_column, negated=rhs_mql)
 
 
-def key_transform_numeric_lookup_mixin(self, compiler, connection, as_path=False):
+def key_transform_numeric_lookup_mixin_path(self, compiler, connection):
     """
     Return MQL to check if the field exists (i.e., is not "missing" or "null")
     and that the field matches the given numeric lookup expression.
     """
-    if as_path and self.is_simple_expression():
-        return builtin_lookup(self, compiler, connection, as_path=True)
+    return builtin_lookup_path(self, compiler, connection)
 
+
+def key_transform_numeric_lookup_mixin_expr(self, compiler, connection):
+    """
+    Return MQL to check if the field exists (i.e., is not "missing" or "null")
+    and that the field matches the given numeric lookup expression.
+    """
     lhs = process_lhs(self, compiler, connection, as_path=False)
-    expr = builtin_lookup(self, compiler, connection, as_path=False)
+    expr = builtin_lookup_expr(self, compiler, connection)
     # Check if the type of lhs is not "missing" or "null".
     not_missing_or_null = {"$not": {"$in": [{"$type": lhs}, ["missing", "null"]]}}
-    expr = {"$and": [expr, not_missing_or_null]}
-    if as_path:
-        return {"$expr": expr}
-    return expr
+    return {"$and": [expr, not_missing_or_null]}
 
 
-def key_transform_exact(self, compiler, connection, as_path=False):
-    if as_path and self.is_simple_expression():
-        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-        return {
-            "$and": [
-                builtin_lookup(self, compiler, connection, as_path=True),
-                _has_key_predicate(lhs_mql, None, as_path=True),
-            ]
-        }
-    if as_path:
-        return {"$expr": builtin_lookup(self, compiler, connection, as_path=False)}
-    return builtin_lookup(self, compiler, connection, as_path=False)
+def key_transform_exact_path(self, compiler, connection):
+    lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+    return {
+        "$and": [
+            builtin_lookup_path(self, compiler, connection),
+            _has_key_predicate(lhs_mql, None, as_path=True),
+        ]
+    }
+
+
+def key_transform_exact_expr(self, compiler, connection):
+    return builtin_lookup_expr(self, compiler, connection)
+
+
+def keytransform_is_simple_column(self):
+    previous = self
+    while isinstance(previous, KeyTransform):
+        if not previous.key_name.isalnum():
+            return False
+        previous = previous.lhs
+    return previous.is_simple_column
 
 
 def register_json_field():
@@ -216,11 +240,20 @@ def register_json_field():
     DataContains.as_mql = data_contains
     HasAnyKeys.mongo_operator = "$or"
     HasKey.mongo_operator = None
-    HasKeyLookup.as_mql = has_key_lookup
+    HasKeyLookup.as_mql_path = partialmethod(has_key_lookup, as_path=True)
+    HasKeyLookup.as_mql_expr = partialmethod(has_key_lookup, as_path=False)
+    HasKeyLookup.is_simple_expression = has_key_check_simple_expression
     HasKeys.mongo_operator = "$and"
     JSONExact.process_rhs = json_exact_process_rhs
-    KeyTransform.as_mql = key_transform
-    KeyTransformIn.as_mql = key_transform_in
-    KeyTransformIsNull.as_mql = key_transform_is_null
-    KeyTransformNumericLookupMixin.as_mql = key_transform_numeric_lookup_mixin
-    KeyTransformExact.as_mql = key_transform_exact
+    KeyTransform.is_simple_column = property(keytransform_is_simple_column)
+    KeyTransform.is_simple_expression = keytransform_is_simple_column
+    KeyTransform.as_mql_path = partialmethod(key_transform, as_path=True)
+    KeyTransform.as_mql_expr = partialmethod(key_transform, as_path=False)
+    KeyTransformIn.as_mql_path = key_transform_in_path
+    KeyTransformIn.as_mql_expr = key_transform_in_expr
+    KeyTransformIsNull.as_mql_path = key_transform_is_null_path
+    KeyTransformIsNull.as_mql_expr = key_transform_is_null_expr
+    KeyTransformNumericLookupMixin.as_mql_path = key_transform_numeric_lookup_mixin_path
+    KeyTransformNumericLookupMixin.as_mql_expr = key_transform_numeric_lookup_mixin_expr
+    KeyTransformExact.as_mql_expr = key_transform_exact_expr
+    KeyTransformExact.as_mql_path = key_transform_exact_path

@@ -186,7 +186,9 @@ class QueryingTests(TestCase):
             kwargs = {f"main_section__artifacts__metadata__origin__{lookup}": ["Pergamon", "Egypt"]}
             with CaptureQueriesContext(connection) as captured_queries:
                 self.assertCountEqual(Exhibit.objects.filter(**kwargs), [])
-                self.assertIn(f"'field': '{lookup}'", captured_queries[0]["sql"])
+            self.assertIn(
+                f"'main_section.artifacts.metadata.origin.{lookup}':", captured_queries[0]["sql"]
+            )
 
     def test_len(self):
         self.assertCountEqual(Exhibit.objects.filter(sections__len=10), [])

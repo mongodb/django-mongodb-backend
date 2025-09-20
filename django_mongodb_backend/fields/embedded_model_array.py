@@ -5,6 +5,7 @@ from django.db.models import Field, lookups
 from django.db.models.expressions import Col
 from django.db.models.fields.related import lazy_related_operation
 from django.db.models.lookups import Lookup, Transform
+from django.utils.functional import cached_property
 
 from .. import forms
 from ..query_utils import process_lhs, process_rhs
@@ -128,7 +129,7 @@ class EmbeddedModelArrayFieldBuiltinLookup(Lookup):
             for v in value
         ]
 
-    def as_mql(self, compiler, connection, as_path=False):
+    def as_mql_expr(self, compiler, connection):
         # Querying a subfield within the array elements (via nested
         # KeyTransform). Replicate MongoDB's implicit ANY-match by mapping over
         # the array and applying $in on the subfield.
@@ -138,7 +139,7 @@ class EmbeddedModelArrayFieldBuiltinLookup(Lookup):
         lhs_mql["$ifNull"][0]["$map"]["in"] = connection.mongo_operators_expr[self.lookup_name](
             inner_lhs_mql, values
         )
-        return {"$expr": {"$anyElementTrue": lhs_mql}}
+        return {"$anyElementTrue": lhs_mql}
 
 
 @_EmbeddedModelArrayOutputField.register_lookup
@@ -225,6 +226,7 @@ class EmbeddedModelArrayFieldLessThanOrEqual(
 
 class KeyTransform(Transform):
     field_class_name = "EmbeddedModelArrayField"
+    PREFIX_ITERABLE = "item"
 
     def __init__(self, key_name, array_field, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -233,7 +235,7 @@ class KeyTransform(Transform):
         # Lookups iterate over the array of embedded models. A virtual column
         # of the queried field's type represents each element.
         column_target = array_field.base_field.embedded_model._meta.get_field(key_name).clone()
-        column_name = f"$item.{key_name}"
+        column_name = f"${self.PREFIX_ITERABLE}.{key_name}"
         column_target.db_column = column_name
         column_target.set_attributes_from_name(column_name)
         self._lhs = Col(None, column_target)
@@ -242,6 +244,18 @@ class KeyTransform(Transform):
     def __call__(self, this, *args, **kwargs):
         self._lhs = self._sub_transform(self._lhs, *args, **kwargs)
         return self
+
+    def is_simple_expression(self):
+        return self.is_simple_column
+
+    @cached_property
+    def is_simple_column(self):
+        previous = self
+        while isinstance(previous, KeyTransform):
+            if not previous.key_name.isalnum():
+                return False
+            previous = previous.lhs
+        return previous.is_simple_column and self._lhs.is_simple_column
 
     def get_lookup(self, name):
         return self.output_field.get_lookup(name)
@@ -275,11 +289,14 @@ class KeyTransform(Transform):
             f"{suggestion}"
         )
 
-    def as_mql(self, compiler, connection, as_path=False):
-        if as_path:
-            inner_lhs_mql = self._lhs.as_mql(compiler, connection, as_path=True)
-            lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-            return f"{inner_lhs_mql}.{lhs_mql}"
+    def as_mql_path(self, compiler, connection):
+        inner_lhs_mql = self._lhs.as_mql(compiler, connection, as_path=True).removeprefix(
+            f"${self.PREFIX_ITERABLE}."
+        )
+        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        return f"{lhs_mql}.{inner_lhs_mql}"
+
+    def as_mql_expr(self, compiler, connection):
         inner_lhs_mql = self._lhs.as_mql(compiler, connection)
         lhs_mql = process_lhs(self, compiler, connection)
         return {
@@ -287,7 +304,7 @@ class KeyTransform(Transform):
                 {
                     "$map": {
                         "input": lhs_mql,
-                        "as": "item",
+                        "as": self.PREFIX_ITERABLE,
                         "in": inner_lhs_mql,
                     }
                 },

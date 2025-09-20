@@ -5,6 +5,7 @@ from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import models
 from django.db.models.fields.related import lazy_related_operation
 from django.db.models.lookups import Transform
+from django.utils.functional import cached_property
 
 from .. import forms
 
@@ -165,6 +166,18 @@ class KeyTransform(Transform):
     def get_lookup(self, name):
         return self.ref_field.get_lookup(name)
 
+    def is_simple_expression(self):
+        return self.is_simple_column
+
+    @cached_property
+    def is_simple_column(self):
+        previous = self
+        while isinstance(previous, KeyTransform):
+            if not previous.key_name.isalnum():
+                return False
+            previous = previous.lhs
+        return previous.is_simple_column
+
     def get_transform(self, name):
         """
         Validate that `name` is either a field of an embedded model or a
@@ -184,16 +197,22 @@ class KeyTransform(Transform):
             f"{suggestion}"
         )
 
-    def as_mql(self, compiler, connection, as_path=False):
+    def as_mql_path(self, compiler, connection):
         previous = self
         key_transforms = []
         while isinstance(previous, KeyTransform):
             key_transforms.insert(0, previous.key_name)
             previous = previous.lhs
-        if as_path:
-            mql = previous.as_mql(compiler, connection, as_path=True)
-            mql_path = ".".join(key_transforms)
-            return f"{mql}.{mql_path}"
+        mql = previous.as_mql(compiler, connection, as_path=True)
+        mql_path = ".".join(key_transforms)
+        return f"{mql}.{mql_path}"
+
+    def as_mql_expr(self, compiler, connection):
+        previous = self
+        key_transforms = []
+        while isinstance(previous, KeyTransform):
+            key_transforms.insert(0, previous.key_name)
+            previous = previous.lhs
         mql = previous.as_mql(compiler, connection)
         for key in key_transforms:
             mql = {"$getField": {"input": mql, "field": key}}

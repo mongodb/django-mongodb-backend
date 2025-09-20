@@ -14,7 +14,6 @@ from django.db.models.expressions import (
     Exists,
     ExpressionList,
     ExpressionWrapper,
-    Func,
     NegatedExpression,
     OrderBy,
     RawSQL,
@@ -25,15 +24,12 @@ from django.db.models.expressions import (
     Value,
     When,
 )
-from django.db.models.fields.json import KeyTransform
 from django.db.models.sql import Query
 
-from django_mongodb_backend.fields.array import Array
-
-from ..query_utils import is_direct_value, process_lhs
+from ..query_utils import process_lhs
 
 
-def case(self, compiler, connection, as_path=False):
+def case(self, compiler, connection):
     case_parts = []
     for case in self.cases:
         case_mql = {}
@@ -50,16 +46,12 @@ def case(self, compiler, connection, as_path=False):
         default_mql = self.default.as_mql(compiler, connection)
     if not case_parts:
         return default_mql
-    expr = {
+    return {
         "$switch": {
             "branches": case_parts,
             "default": default_mql,
         }
     }
-    if as_path:
-        return {"$expr": expr}
-
-    return expr
 
 
 def col(self, compiler, connection, as_path=False):  # noqa: ARG001
@@ -100,12 +92,12 @@ def combined_expression(self, compiler, connection, as_path=False):
     return connection.ops.combine_expression(self.connector, expressions)
 
 
-def expression_wrapper(self, compiler, connection, as_path=False):
-    return self.expression.as_mql(compiler, connection, as_path=as_path)
+def expression_wrapper_expr(self, compiler, connection):
+    return self.expression.as_mql(compiler, connection, as_path=False)
 
 
-def negated_expression(self, compiler, connection, as_path=False):
-    return {"$not": expression_wrapper(self, compiler, connection, as_path=as_path)}
+def negated_expression_expr(self, compiler, connection):
+    return {"$not": expression_wrapper_expr(self, compiler, connection)}
 
 
 def order_by(self, compiler, connection):
@@ -178,32 +170,26 @@ def ref(self, compiler, connection, as_path=False):  # noqa: ARG001
     return f"{prefix}{refs}"
 
 
-def star(self, compiler, connection, **extra):  # noqa: ARG001
+@property
+def ref_is_simple_column(self):
+    return isinstance(self.source, Col) and self.source.alias is not None
+
+
+def star(self, compiler, connection, as_path=False):  # noqa: ARG001
     return {"$literal": True}
 
 
-def subquery(self, compiler, connection, get_wrapping_pipeline=None, as_path=False):
-    expr = self.query.as_mql(
+def subquery(self, compiler, connection, get_wrapping_pipeline=None):
+    return self.query.as_mql(
         compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline, as_path=False
     )
-    if as_path:
-        return {"$expr": expr}
-    return expr
 
 
-def exists(self, compiler, connection, get_wrapping_pipeline=None, as_path=False):
+def exists(self, compiler, connection, get_wrapping_pipeline=None):
     try:
-        lhs_mql = subquery(
-            self,
-            compiler,
-            connection,
-            get_wrapping_pipeline=get_wrapping_pipeline,
-            as_path=as_path,
-        )
+        lhs_mql = subquery(self, compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline)
     except EmptyResultSet:
         return Value(False).as_mql(compiler, connection)
-    if as_path:
-        return {"$expr": connection.mongo_operators_match["isnull"](lhs_mql, False)}
     return connection.mongo_operators_expr["isnull"](lhs_mql, False)
 
 
@@ -235,54 +221,37 @@ def value(self, compiler, connection, as_path=False):  # noqa: ARG001
     return value
 
 
-@staticmethod
-def _is_constant_value(value):
-    if isinstance(value, list | Array):
-        iterable = value.get_source_expressions() if isinstance(value, Array) else value
-        return all(_is_constant_value(e) for e in iterable)
-    if is_direct_value(value):
-        return True
-    return isinstance(value, Func | Value) and not (
-        value.contains_aggregate
-        or value.contains_over_clause
-        or value.contains_column_references
-        or value.contains_subquery
-    )
+def base_expression(self, compiler, connection, as_path=False, **extra):
+    if (
+        as_path
+        and hasattr(self, "as_mql_path")
+        and getattr(self, "is_simple_expression", lambda: False)()
+    ):
+        return self.as_mql_path(compiler, connection, **extra)
 
-
-@staticmethod
-def _is_simple_column(lhs):
-    while isinstance(lhs, KeyTransform):
-        if "." in getattr(lhs, "key_name", ""):
-            return False
-        lhs = lhs.lhs
-    col = lhs.source if isinstance(lhs, Ref) else lhs
-    # Foreign columns from parent cannot be addressed as single match
-    return isinstance(col, Col) and col.alias is not None
-
-
-def _is_simple_expression(self):
-    return self.is_simple_column(self.lhs) and self.is_constant_value(self.rhs)
+    expr = self.as_mql_expr(compiler, connection, **extra)
+    return {"$expr": expr} if as_path else expr
 
 
 def register_expressions():
-    Case.as_mql = case
+    BaseExpression.as_mql = base_expression
+    BaseExpression.is_simple_column = False
+    Case.as_mql_expr = case
     Col.as_mql = col
+    Col.is_simple_column = True
     ColPairs.as_mql = col_pairs
-    CombinedExpression.as_mql = combined_expression
-    Exists.as_mql = exists
+    CombinedExpression.as_mql_expr = combined_expression
+    Exists.as_mql_expr = exists
     ExpressionList.as_mql = process_lhs
-    ExpressionWrapper.as_mql = expression_wrapper
-    NegatedExpression.as_mql = negated_expression
-    OrderBy.as_mql = order_by
+    ExpressionWrapper.as_mql_expr = expression_wrapper_expr
+    NegatedExpression.as_mql_expr = negated_expression_expr
+    OrderBy.as_mql_expr = order_by
     Query.as_mql = query
     RawSQL.as_mql = raw_sql
     Ref.as_mql = ref
+    Ref.is_simple_column = ref_is_simple_column
     ResolvedOuterRef.as_mql = ResolvedOuterRef.as_sql
     Star.as_mql = star
-    Subquery.as_mql = subquery
+    Subquery.as_mql_expr = subquery
     When.as_mql = when
     Value.as_mql = value
-    BaseExpression.is_simple_expression = _is_simple_expression
-    BaseExpression.is_simple_column = _is_simple_column
-    BaseExpression.is_constant_value = _is_constant_value

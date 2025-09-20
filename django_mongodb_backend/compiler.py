@@ -709,7 +709,7 @@ class SQLCompiler(compiler.SQLCompiler):
                     # For brevity/simplicity, project {"field_name": 1}
                     # instead of {"field_name": "$field_name"}.
                     if isinstance(expr, Col) and name == expr.target.column and not force_expression
-                    else expr.as_mql(self, self.connection, as_path=False)
+                    else expr.as_mql(self, self.connection)
                 )
             except EmptyResultSet:
                 empty_result_set_value = getattr(expr, "empty_result_set_value", NotImplemented)

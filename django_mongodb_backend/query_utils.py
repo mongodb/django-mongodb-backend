@@ -1,13 +1,14 @@
 from django.core.exceptions import FullResultSet
 from django.db.models.aggregates import Aggregate
-from django.db.models.expressions import Value
+from django.db.models.expressions import CombinedExpression, Value
+from django.db.models.sql.query import Query
 
 
 def is_direct_value(node):
     return not hasattr(node, "as_sql")
 
 
-def process_lhs(node, compiler, connection, **extra):
+def process_lhs(node, compiler, connection, as_path=False):
     if not hasattr(node, "lhs"):
         # node is a Func or Expression, possibly with multiple source expressions.
         result = []
@@ -15,16 +16,16 @@ def process_lhs(node, compiler, connection, **extra):
             if expr is None:
                 continue
             try:
-                result.append(expr.as_mql(compiler, connection, **extra))
+                result.append(expr.as_mql(compiler, connection, as_path=as_path))
             except FullResultSet:
-                result.append(Value(True).as_mql(compiler, connection, **extra))
+                result.append(Value(True).as_mql(compiler, connection, as_path=as_path))
         if isinstance(node, Aggregate):
             return result[0]
         return result
     # node is a Transform with just one source expression, aliased as "lhs".
     if is_direct_value(node.lhs):
         return node
-    return node.lhs.as_mql(compiler, connection, **extra)
+    return node.lhs.as_mql(compiler, connection, as_path=as_path)
 
 
 def process_rhs(node, compiler, connection, as_path=False):
@@ -60,3 +61,37 @@ def regex_match(field, regex, insensitive=False):
     options = "i" if insensitive else ""
     # return {"$regexMatch": {"input": field, "regex": regex, "options": options}}
     return {field: {"$regex": regex, "$options": options}}
+
+
+def is_constant_value(value):
+    if isinstance(value, CombinedExpression):
+        # Temporary: treat all CombinedExpressions as non-constant until
+        # constant cases are handled
+        return False
+    if isinstance(value, list):
+        return all(map(is_constant_value, value))
+    if is_direct_value(value):
+        return True
+    if hasattr(value, "get_source_expressions"):
+        # Temporary: similar limitation as above, sub-expressions should be
+        # resolved in the future
+        simple_sub_expressions = all(map(is_constant_value, value.get_source_expressions()))
+    else:
+        simple_sub_expressions = True
+    return (
+        simple_sub_expressions
+        and isinstance(value, Value)
+        and not (
+            isinstance(value, Query)
+            or value.contains_aggregate
+            or value.contains_over_clause
+            or value.contains_column_references
+            or value.contains_subquery
+        )
+    )
+
+
+def is_simple_expression(self):
+    simple_column = getattr(self.lhs, "is_simple_column", False)
+    constant_value = is_constant_value(self.rhs)
+    return simple_column and constant_value

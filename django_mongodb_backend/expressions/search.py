@@ -933,12 +933,15 @@ class SearchTextLookup(Lookup):
     def __repr__(self):
         return f"SearchText({self.lhs}, {self.rhs})"
 
-    def as_mql(self, compiler, connection, as_path=False):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=as_path)
-        value = process_rhs(self, compiler, connection, as_path=as_path)
-        if as_path:
-            return {lhs_mql: {"$gte": value}}
-        return {"$expr": {"$gte": [lhs_mql, value]}}
+    def as_mql_expr(self, compiler, connection):
+        lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+        value = process_rhs(self, compiler, connection, as_path=False)
+        return {"$gte": [lhs_mql, value]}
+
+    def as_mql_path(self, compiler, connection):
+        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        value = process_rhs(self, compiler, connection, as_path=True)
+        return {lhs_mql: {"$gte": value}}
 
 
 CharField.register_lookup(SearchTextLookup)
