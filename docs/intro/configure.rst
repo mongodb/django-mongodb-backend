@@ -122,7 +122,7 @@ If you have a connection string, you can provide it like this::
 .. versionchanged:: 5.2.1
 
     Support for the connection string in ``"HOST"`` was added. Previous
-    versions recommended using :func:`~django_mongodb_backend.utils.parse_uri`.
+    versions recommended using ``django_mongodb_backend.utils.parse_uri()``.
 
 Alternatively, you can separate the connection string so that your settings
 look more like what you usually see with Django. This constructs a
