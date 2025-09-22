@@ -39,17 +39,17 @@ jobs:
     outputs:
       version: ${{ steps.pre-publish.outputs.version }}
     steps:
-      - uses: mongodb-labs/drivers-github-tools/secure-checkout@v2
+      - uses: mongodb-labs/drivers-github-tools/secure-checkout@0e9d3008f418020d3039c45e633e887829110d9b # v3
         with:
           app_id: ${{ vars.APP_ID }}
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
-      - uses: mongodb-labs/drivers-github-tools/setup@v2
+      - uses: mongodb-labs/drivers-github-tools/setup@0e9d3008f418020d3039c45e633e887829110d9b # v3
         with:
           aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
           aws_region_name: ${{ vars.AWS_REGION_NAME }}
           aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
           artifactory_username: ${{ vars.ARTIFACTORY_USERNAME }}
-      - uses: mongodb-labs/drivers-github-tools/python/pre-publish@v2
+      - uses: mongodb-labs/drivers-github-tools/python/pre-publish@0e9d3008f418020d3039c45e633e887829110d9b # v3
         id: pre-publish
         with:
           dry_run: ${{ env.DRY_RUN }}
@@ -99,17 +99,17 @@ jobs:
       attestations: write
       security-events: write
     steps:
-      - uses: mongodb-labs/drivers-github-tools/secure-checkout@v2
+      - uses: mongodb-labs/drivers-github-tools/secure-checkout@0e9d3008f418020d3039c45e633e887829110d9b # v3
         with:
           app_id: ${{ vars.APP_ID }}
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
-      - uses: mongodb-labs/drivers-github-tools/setup@v2
+      - uses: mongodb-labs/drivers-github-tools/setup@0e9d3008f418020d3039c45e633e887829110d9b # v3
         with:
           aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
           aws_region_name: ${{ vars.AWS_REGION_NAME }}
           aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
           artifactory_username: ${{ vars.ARTIFACTORY_USERNAME }}
-      - uses: mongodb-labs/drivers-github-tools/python/post-publish@v2
+      - uses: mongodb-labs/drivers-github-tools/python/post-publish@0e9d3008f418020d3039c45e633e887829110d9b # v3
         with:
           following_version: ${{ env.FOLLOWING_VERSION }}
           product_name: ${{ env.PRODUCT_NAME }}
