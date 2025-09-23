@@ -14,11 +14,3 @@ class EmbeddedModel(models.Model):
 
     def save(self, *args, **kwargs):
         raise NotSupportedError("EmbeddedModels cannot be saved.")
-
-
-class EncryptedEmbeddedModel(EmbeddedModel):
-    encrypted = True
-
-    class Meta:
-        abstract = True
-        required_db_features = {"supports_queryable_encryption"}
