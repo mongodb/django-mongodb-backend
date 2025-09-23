@@ -35,6 +35,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     supports_json_field_contains = False
     # BSON Date type doesn't support microsecond precision.
     supports_microsecond_precision = False
+    supports_on_delete_db_cascade = False
+    supports_on_delete_db_default = False
+    supports_on_delete_db_null = False
     supports_paramstyle_pyformat = False
     supports_select_difference = False
     supports_select_intersection = False
@@ -481,6 +484,8 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             # There is no way to distinguish between a JSON "null" (represented
             # by Value(None, JSONField())) and a SQL null (queried using the
             # isnull lookup). Both of these queries return both nulls.
+            "model_fields.test_jsonfield.JSONExactNoneDeprecationTests",
+            "model_fields.test_jsonfield.JSONNullTests",
             "model_fields.test_jsonfield.TestSaveLoad.test_json_null_different_from_sql_null",
             # Some queries with Q objects, e.g. Q(value__foo="bar"), don't work
             # properly, particularly with QuerySet.exclude().
