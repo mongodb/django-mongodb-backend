@@ -66,6 +66,15 @@ class DatabaseOperations(GISOperations, BaseDatabaseOperations):
             return None
         return Decimal128(value)
 
+    def adapt_durationfield_value(self, value):
+        """DurationField stores milliseconds rather than microseconds."""
+        value = super().adapt_durationfield_value(value)
+        if value is not None:
+            value //= 1000
+            # Store value as Int64 (long).
+            value = Int64(value)
+        return value
+
     def adapt_integerfield_value(self, value, internal_type):
         """Store non-SmallIntegerField variants as Int64 (long)."""
         if value is None:
