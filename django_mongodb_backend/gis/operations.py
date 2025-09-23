@@ -48,6 +48,7 @@ class GISOperations(BaseSpatialOperations):
         "LineLocatePoint",
         "MakeValid",
         "MemSize",
+        "NumDimensions",
         "NumGeometries",
         "NumPoints",
         "Perimeter",
