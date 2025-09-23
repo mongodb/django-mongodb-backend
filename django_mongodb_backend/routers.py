@@ -23,18 +23,16 @@ class MongoRouter:
 # This function is intended to be monkey-patched as a method of ConnectionRouter.
 def kms_provider(self, model, *args, **kwargs):
     """
-    Monkey-patched method for ConnectionRouter to resolve a KMS provider for a given model.
-    Iterates through all configured database routers, calling their `kms_provider` method (if present)
-    to determine the appropriate Key Management Service (KMS) provider for the specified model.
-    Returns the first non-None result found. Raises ImproperlyConfigured if no provider is found.
+    Return the Key Management Service (KMS) provider for a given model.
+
+    Call each router's kms_provider() method (if present), and return the
+    first non-None result. Raise ImproperlyConfigured if no provider is found.
     """
     for router in self.routers:
         func = getattr(router, "kms_provider", None)
-        if func and callable(func):
-            result = func(model, *args, **kwargs)
-            if result is not None:
-                return result
-    raise ImproperlyConfigured("No kms_provider found in database router.")
+        if func and callable(func) and (result := func(model, *args, **kwargs)):
+            return result
+    raise ImproperlyConfigured("No kms_provider found in database routers.")
 
 
 def register_routers():
