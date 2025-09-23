@@ -38,6 +38,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     # BSON Date type doesn't support microsecond precision.
     supports_microsecond_precision = False
     supports_nulls_distinct_unique_constraints = True
+    supports_on_delete_db_cascade = False
+    supports_on_delete_db_default = False
+    supports_on_delete_db_null = False
     supports_paramstyle_pyformat = False
     supports_sequence_reset = False
     supports_slicing_ordering_in_compound = True
@@ -109,6 +112,12 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_mixed_scenario",
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_respects_mixed_manual_order",
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_with_existing_children",
+        # To be fixed
+        # https://github.com/django/django/commit/2831eaed797627e6e6410b06f74dadeb63316e09
+        "model_fields.test_decimalfield.DecimalFieldTests.test_roundtrip_integer_with_trailing_zeros",
+        # This is a bit obscure and might not be supported.
+        # https://github.com/django/django/pull/20864
+        "model_fields.test_jsonfield.TestQuerying.test_json_type_casting_with_coalesce",
     }
 
     @cached_property
@@ -207,9 +216,10 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "many_to_many.tests.ManyToManyQueryTests.test_count_join_optimization_disabled",
             "many_to_many.tests.ManyToManyQueryTests.test_exists_join_optimization_disabled",
             "many_to_many.tests.ManyToManyTests.test_custom_default_manager_exists_count",
-            "many_to_one.tests.ManyToOneTests.test_selects",
+            "many_to_one.tests.ManyToOneTests.test_joined_sql",
             "migrations.test_commands.MigrateTests.test_migrate_syncdb_app_label",
             "migrations.test_commands.MigrateTests.test_migrate_syncdb_deferred_sql_executed_with_schemaeditor",
+            "migrations.test_commands.MigrateTests.test_migrate_syncdb_installed_truncated_db_model",
             "model_fields.test_jsonfield.TestQuerying.test_key_sql_injection_escape",
             "prefetch_related.test_prefetch_related_objects.PrefetchRelatedObjectsTests.test_foreignkey_reverse",
             "prefetch_related.tests.MultiTableInheritanceTest.test_child_link_prefetch",
@@ -219,7 +229,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "schema.tests.SchemaTests.test_rename_table_renames_deferred_sql_references",
         },
         "Test checks for SQL in str(queryset.query)": {
-            "aggregation_regress.tests.AggregationTests.test_more_more5",
+            "aggregation_regress.tests.AggregationTests.test_group_by_field_uniqueness",
             "aggregation_regress.tests.AggregationTests.test_reverse_join_trimming",
             "aggregation_regress.tests.JoinPromotionTests",
             "custom_lookups.tests.YearLteTests",
@@ -322,6 +332,8 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             # There is no way to distinguish between a JSON "null" (represented
             # by Value(None, JSONField())) and a SQL null (queried using the
             # isnull lookup). Both of these queries return both nulls.
+            "model_fields.test_jsonfield.JSONExactNoneDeprecationTests",
+            "model_fields.test_jsonfield.JSONNullTests",
             "model_fields.test_jsonfield.TestSaveLoad.test_json_null_different_from_sql_null",
             # Some queries with Q objects, e.g. Q(value__foo="bar"), don't work
             # properly, particularly with QuerySet.exclude().
@@ -331,6 +343,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             # returns objects where the key doesn't exist.
             "model_fields.test_jsonfield.TestQuerying.test_none_key",
             "model_fields.test_jsonfield.TestQuerying.test_none_key_exclude",
+            "model_fields.test_jsonfield.TestQuerying.test_key_iexact_none",
         },
         "Queries without a collection aren't supported on MongoDB.": {
             "queries.test_q.QCheckTests",
@@ -628,8 +641,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "defer.tests.DeferTests.test_defer_extra",
             "delete_regress.tests.Ticket19102Tests.test_ticket_19102_extra",
             "extra_regress.tests.ExtraRegressTests",
-            "lookup.tests.LookupTests.test_values",
-            "lookup.tests.LookupTests.test_values_list",
+            "lookup.tests.LookupTests.test_values_extra",
+            "lookup.tests.LookupTests.test_values_list_extra",
+            "many_to_one.tests.ManyToOneTests.test_joined_extra",
             "ordering.tests.OrderingTests.test_extra_ordering",
             "ordering.tests.OrderingTests.test_extra_ordering_quoting",
             "queries.test_qs_combinators.QuerySetSetOperationTests.test_union_multiple_models_with_values_list_and_order_by_extra_select",
@@ -652,8 +666,8 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "aggregation.tests.AggregateTestCase.test_coalesced_empty_result_set",
             "aggregation_regress.tests.AggregationTests.test_annotate_with_extra",
             "aggregation_regress.tests.AggregationTests.test_annotation",
-            "aggregation_regress.tests.AggregationTests.test_more_more3",
-            "aggregation_regress.tests.AggregationTests.test_more_more_more3",
+            "aggregation_regress.tests.AggregationTests.test_extra_select_grouping_with_params",
+            "aggregation_regress.tests.AggregationTests.test_values_extra_grouping",
             "async.test_async_queryset.AsyncQuerySetTest.test_raw",
             "custom_methods.tests.MethodsTests.test_custom_methods",
             "expressions.tests.BasicExpressionsTests.test_annotate_values_filter",
@@ -662,6 +676,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "model_fields.test_jsonfield.TestQuerying.test_nested_key_transform_raw_expression",
             "ordering.tests.OrderingTests.test_extra_ordering_with_table_name",
             "queries.tests.Queries1Tests.test_order_by_rawsql",
+            "queries.tests.Queries5Tests.test_ordering_with_extra",
             "queries.tests.ValuesQuerysetTests.test_named_values_list_with_fields",
             "queries.tests.ValuesQuerysetTests.test_named_values_list_without_fields",
             "raw_query.tests.RawQueryTests",
@@ -671,6 +686,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "schema.test_logging.SchemaLoggerTests.test_extra_args"
         },
         (NotSupportedError, "MongoDB does not support cursor.execute()."): {
+            "backends.base.test_operations.DatabaseOperationTests.test_last_executed_query_base_fallback",
             "backends.tests.BackendTestCase.test_queries",
             "backends.tests.BackendTestCase.test_queries_bare_where",
             "backends.tests.BackendTestCase.test_queries_limit",
