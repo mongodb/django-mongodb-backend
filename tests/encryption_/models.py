@@ -22,10 +22,10 @@ from django_mongodb_backend.fields import (
     EncryptedTimeField,
     EncryptedURLField,
 )
-from django_mongodb_backend.models import EmbeddedModel, EncryptedEmbeddedModel
+from django_mongodb_backend.models import EmbeddedModel
 
 
-class Billing(EncryptedEmbeddedModel):
+class Billing(EmbeddedModel):
     cc_type = models.CharField(max_length=50)
     cc_number = models.CharField(max_length=20)
 
