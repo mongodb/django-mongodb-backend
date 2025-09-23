@@ -36,6 +36,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     # BSON Date type doesn't support microsecond precision.
     supports_microsecond_precision = False
     supports_nulls_distinct_unique_constraints = True
+    supports_on_delete_db_cascade = False
+    supports_on_delete_db_default = False
+    supports_on_delete_db_null = False
     supports_paramstyle_pyformat = False
     supports_sequence_reset = False
     supports_slicing_ordering_in_compound = True
@@ -333,11 +336,12 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "aggregation.tests.AggregateTestCase.test_coalesced_empty_result_set",
             "aggregation_regress.tests.AggregationTests.test_annotate_with_extra",
             "aggregation_regress.tests.AggregationTests.test_annotation",
-            "aggregation_regress.tests.AggregationTests.test_more_more3",
-            "aggregation_regress.tests.AggregationTests.test_more_more_more3",
+            "aggregation_regress.tests.AggregationTests.test_extra_select_grouping_with_params",
+            "aggregation_regress.tests.AggregationTests.test_values_extra_grouping",
             "annotations.tests.NonAggregateAnnotationTestCase.test_raw_sql_with_inherited_field",
             "async.test_async_queryset.AsyncQuerySetTest.test_raw",
             "backends.base.test_base.ExecuteWrapperTests",
+            "backends.base.test_operations.DatabaseOperationTests.test_last_executed_query_base_fallback",
             "backends.tests.BackendTestCase.test_cursor_contextmanager",
             "backends.tests.BackendTestCase.test_cursor_executemany",
             "backends.tests.BackendTestCase.test_cursor_executemany_with_empty_params_list",
@@ -356,6 +360,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "expressions.tests.BasicExpressionsTests.test_filtering_on_rawsql_that_is_boolean",
             "expressions.tests.BasicExpressionsTests.test_order_by_multiline_sql",
             "migrations.test_commands.MigrateTests.test_migrate_plan",
+            "migrations.test_commands.MigrateTests.test_migrate_syncdb_installed_truncated_db_model",
             "migrations.test_multidb.MultiDBOperationTests.test_run_sql_migrate_foo_router_with_hints",
             "migrations.test_operations.OperationTests.test_run_sql",
             "migrations.test_operations.OperationTests.test_run_sql_params",
@@ -380,7 +385,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "view_tests.tests.test_debug.DebugViewQueriesAllowedTests.test_handle_db_exception",
         },
         "Test checks for SQL in str(queryset.query)": {
-            "aggregation_regress.tests.AggregationTests.test_more_more5",
+            "aggregation_regress.tests.AggregationTests.test_group_by_field_uniqueness",
             "aggregation_regress.tests.AggregationTests.test_reverse_join_trimming",
             "aggregation_regress.tests.JoinPromotionTests",
             "custom_lookups.tests.YearLteTests",
@@ -494,6 +499,8 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             # There is no way to distinguish between a JSON "null" (represented
             # by Value(None, JSONField())) and a SQL null (queried using the
             # isnull lookup). Both of these queries return both nulls.
+            "model_fields.test_jsonfield.JSONExactNoneDeprecationTests",
+            "model_fields.test_jsonfield.JSONNullTests",
             "model_fields.test_jsonfield.TestSaveLoad.test_json_null_different_from_sql_null",
             # Some queries with Q objects, e.g. Q(value__foo="bar"), don't work
             # properly, particularly with QuerySet.exclude().
@@ -503,6 +510,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             # returns objects where the key doesn't exist.
             "model_fields.test_jsonfield.TestQuerying.test_none_key",
             "model_fields.test_jsonfield.TestQuerying.test_none_key_exclude",
+            "model_fields.test_jsonfield.TestQuerying.test_key_iexact_none",
         },
         "Queries without a collection aren't supported on MongoDB.": {
             "queries.test_q.QCheckTests",
