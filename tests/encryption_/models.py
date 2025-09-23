@@ -1,6 +1,7 @@
 from django.db import models
 
 from django_mongodb_backend.fields import (
+    EmbeddedModelField,
     EncryptedBigIntegerField,
     EncryptedBinaryField,
     EncryptedBooleanField,
@@ -38,7 +39,7 @@ class PatientRecord(EmbeddedModel):
 class Patient(models.Model):
     patient_name = models.CharField(max_length=255)
     patient_id = models.BigIntegerField()
-    patient_record = EncryptedEmbeddedModelField(PatientRecord)
+    patient_record = EmbeddedModelField(PatientRecord)
 
     def __str__(self):
         return f"{self.patient_name} ({self.patient_id})"
