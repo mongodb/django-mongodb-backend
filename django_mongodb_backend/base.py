@@ -47,6 +47,9 @@ class Cursor:
     def callproc(self, procname, params=None, kparams=None):
         raise NotSupportedError("MongoDB does not support cursor.callproc().")
 
+    def close(self):
+        pass
+
 
 logger = logging.getLogger("django.db.backends.base")
 
