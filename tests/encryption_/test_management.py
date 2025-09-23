@@ -1,0 +1,119 @@
+from io import StringIO
+
+from bson import json_util
+from django.core.management import call_command
+from django.test import TestCase, modify_settings, skipUnlessDBFeature
+
+
+@skipUnlessDBFeature("supports_queryable_encryption")
+@modify_settings(INSTALLED_APPS={"prepend": "django_mongodb_backend"})
+class CommandTests(TestCase):
+    maxDiff = None
+
+    # Expected encrypted field maps for all Encrypted* models
+    expected_maps = {
+        # Equality-queryable fields
+        "encryption__encryptedbinarytest": {
+            "fields": [
+                {"bsonType": "binData", "path": "value", "queries": {"queryType": "equality"}}
+            ]
+        },
+        "encryption__encryptedbooleantest": {
+            "fields": [{"bsonType": "bool", "path": "value", "queries": {"queryType": "equality"}}]
+        },
+        "encryption__encryptedchartest": {
+            "fields": [
+                {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
+            ]
+        },
+        "encryption__encryptedemailtest": {
+            "fields": [
+                {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
+            ]
+        },
+        "encryption__encryptedgenericipaddresstest": {
+            "fields": [
+                {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
+            ]
+        },
+        "encryption__encryptedtexttest": {
+            "fields": [
+                {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
+            ]
+        },
+        "encryption__encryptedurltest": {
+            "fields": [
+                {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
+            ]
+        },
+        # Range-queryable fields
+        "encryption__encryptedbigintegertest": {
+            "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "encryption__encrypteddatetest": {
+            "fields": [{"bsonType": "date", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "encryption__encrypteddatetimetest": {
+            "fields": [{"bsonType": "date", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "encryption__encrypteddecimaltest": {
+            "fields": [{"bsonType": "decimal", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "encryption__encrypteddurationtest": {
+            "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "encryption__encryptedfloattest": {
+            "fields": [{"bsonType": "double", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "encryption__encryptedintegertest": {
+            "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "encryption__encryptedpositivebigintegertest": {
+            "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "encryption__encryptedpositiveintegertest": {
+            "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "encryption__encryptedpositivesmallintegertest": {
+            "fields": [{"bsonType": "int", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "encryption__encryptedsmallintegertest": {
+            "fields": [{"bsonType": "int", "path": "value", "queries": {"queryType": "range"}}]
+        },
+        "encryption__encryptedtimetest": {
+            "fields": [{"bsonType": "date", "path": "value", "queries": {"queryType": "range"}}]
+        },
+    }
+
+    def _compare_output(self, expected, actual):
+        for field in actual["fields"]:
+            field.pop("keyId", None)  # remove dynamic keyId
+        self.assertEqual(expected, actual)
+
+    def test_show_encrypted_fields_map(self):
+        out = StringIO()
+        call_command("showencryptedfieldsmap", "--database", "encrypted", verbosity=0, stdout=out)
+        command_output = json_util.loads(out.getvalue())
+
+        # Loop through each expected model
+        for model_key, expected in self.expected_maps.items():
+            with self.subTest(model=model_key):
+                self.assertIn(model_key, command_output)
+                self._compare_output(expected, command_output[model_key])
+
+    def test_create_new_keys(self):
+        out = StringIO()
+        call_command(
+            "showencryptedfieldsmap",
+            "--database",
+            "encrypted",
+            "--create-data-keys",
+            verbosity=0,
+            stdout=out,
+        )
+        command_output = json_util.loads(out.getvalue())
+
+        for model_key, expected in self.expected_maps.items():
+            with self.subTest(model=model_key):
+                self.assertIn(model_key, command_output)
+                self._compare_output(expected, command_output[model_key])

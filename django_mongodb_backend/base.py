@@ -266,7 +266,10 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def get_database_version(self):
         """Return a tuple of the database's version."""
-        return tuple(self.connection.server_info()["versionArray"])
+        # TODO: Replace with `tuple(self.connection.server_info()["versionArray"])` once
+        # pymongocrypt >= 1.14.2 is required and PYTHON-5429 is resolved.
+        # See: https://jira.mongodb.org/browse/PYTHON-5429
+        return tuple(self.connection.admin.command("buildInfo")["versionArray"])
 
     ## Transaction API for django_mongodb_backend.transaction.atomic()
     @async_unsafe
