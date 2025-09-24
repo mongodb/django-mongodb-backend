@@ -207,6 +207,46 @@ class SearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
             with connection.schema_editor() as editor:
                 editor.remove_index(index=index, model=SearchIndexTestModel)
 
+    def test_field_mappings(self):
+        index = SearchIndex(
+            name="recent_test_idx",
+            field_mappings={
+                "custom_field": {
+                    "type": "string",
+                    "analyzer": "lucene.standard",
+                    "searchAnalyzer": "lucene.standard",
+                    "norms": "include",
+                    "store": True,
+                    "indexOptions": "offsets",
+                }
+            },
+        )
+        with connection.schema_editor() as editor:
+            editor.add_index(index=index, model=SearchIndexTestModel)
+        try:
+            index_info = connection.introspection.get_constraints(
+                cursor=None,
+                table_name=SearchIndexTestModel._meta.db_table,
+            )
+            expected_options = {
+                "dynamic": False,
+                "fields": {
+                    "custom_field": {
+                        "type": "string",
+                        "analyzer": "lucene.standard",
+                        "searchAnalyzer": "lucene.standard",
+                        "norms": "include",
+                        "store": True,
+                        "indexOptions": "offsets",
+                    }
+                },
+            }
+            self.assertCountEqual(index_info[index.name]["columns"], index.fields)
+            self.assertEqual(index_info[index.name]["options"], expected_options)
+        finally:
+            with connection.schema_editor() as editor:
+                editor.remove_index(index=index, model=SearchIndexTestModel)
+
     def test_analyzer_inclusion(self):
         index = SearchIndex(
             name="recent_test_idx",
