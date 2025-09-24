@@ -184,6 +184,8 @@ class DatabaseOperations(GISOperations, BaseDatabaseOperations):
         if value is not None:
             # Apply database converters to each field of the embedded model.
             for field in expression.output_field.embedded_model._meta.fields:
+                if field.blank:
+                    continue
                 field_expr = Expression(output_field=field)
                 converters = connection.ops.get_db_converters(
                     field_expr
