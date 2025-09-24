@@ -118,7 +118,7 @@ class SearchIndex(Index):
                 "Atlas Search field mappings."
             )
         if analyzer is not None and not isinstance(analyzer, str):
-            raise ValueError(f"Analyzer must be a string. got type: {type(analyzer)}")
+            raise ValueError(f"analyzer must be a string. got type: {type(analyzer)}")
         if search_analyzer is not None and not isinstance(search_analyzer, str):
             raise ValueError(f"search_analyzer must be a string. got type: {type(search_analyzer)}")
         self.field_mappings = field_mappings
