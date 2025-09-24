@@ -2,7 +2,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.core.exceptions import FieldDoesNotExist, ValidationError
-from django.db import models
+from django.db import connection, models
 from django.test import SimpleTestCase, TestCase
 from django.test.utils import isolate_apps
 
@@ -160,6 +160,15 @@ class QueryingTests(TestCase):
         msg = "The models of field 'favorite_toy' have no field named 'manufacturer'."
         with self.assertRaisesMessage(FieldDoesNotExist, msg):
             (Person.objects.filter(pet__favorite_toy__manufacturer="Maker 1"),)
+
+    def test_missing_field_in_data(self):
+        """
+        Loading a model with a PolymorphicEmbeddedModelField that has a missing
+        sub-field (e.g. data not written by Django) that uses a database
+        converter (in this case, weight is a DecimalField) doesn't crash.
+        """
+        connection.database.model_fields__person.update_many({}, {"$unset": {"pet.weight": ""}})
+        self.assertIsNone(Person.objects.first().pet.weight)
 
 
 class InvalidLookupTests(SimpleTestCase):
