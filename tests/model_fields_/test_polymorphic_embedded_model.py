@@ -2,7 +2,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.core.exceptions import FieldDoesNotExist, ValidationError
-from django.db import models
+from django.db import connection, models
 from django.test import SimpleTestCase, TestCase
 from django.test.utils import isolate_apps
 
@@ -90,6 +90,16 @@ class ModelTests(TestCase):
         # The values may differ by a millisecond since they aren't generated
         # simultaneously.
         self.assertAlmostEqual(updated_at, created_at, delta=timedelta(microseconds=1000))
+
+    def test_missing_field_in_data(self):
+        """
+        Loading a model with a PolymorphicEmbeddedModelField that has a missing
+        subfield (e.g. data not written by Django) that uses a database
+        converter (in this case, weight is a DecimalField) doesn't crash.
+        """
+        Person.objects.create(pet=Cat(name="Pheobe", weight="3.5"))
+        connection.database.model_fields__person.update_many({}, {"$unset": {"pet.weight": ""}})
+        self.assertIsNone(Person.objects.first().pet.weight)
 
 
 class QueryingTests(TestCase):

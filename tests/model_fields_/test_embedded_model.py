@@ -2,7 +2,7 @@ import operator
 from datetime import timedelta
 
 from django.core.exceptions import FieldDoesNotExist, ValidationError
-from django.db import models
+from django.db import connection, models
 from django.db.models import (
     Exists,
     ExpressionWrapper,
@@ -106,6 +106,16 @@ class ModelTests(TestCase):
         obj.save()
         self.assertEqual(obj.data.auto_now_add, auto_now_add)
         self.assertGreater(obj.data.auto_now, auto_now_two)
+
+    def test_missing_field_in_data(self):
+        """
+        Loading a model with an EmbeddedModelField that has a missing subfield
+        (e.g. data not written by Django) that uses a database converter (in
+        this case, integer is an IntegerField) doesn't crash.
+        """
+        Holder.objects.create(data=Data(integer=5))
+        connection.database.model_fields__holder.update_many({}, {"$unset": {"data.integer": ""}})
+        self.assertIsNone(Holder.objects.first().data.integer)
 
 
 class QueryingTests(TestCase):

@@ -15,7 +15,10 @@ New features
 Bug fixes
 ---------
 
-- ...
+- Fixed a ``KeyError`` crash when loading models with ``EmbeddedModel`` fields
+  that use a database converter, if the field isn't present in the data (e.g.
+  data not written by Django, or after a field was added to an existing
+  ``EmbeddedModel``).
 
 Deprecated features
 -------------------

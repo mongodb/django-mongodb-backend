@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.core.exceptions import FieldDoesNotExist
-from django.db import models
+from django.db import connection, models
 from django.test import SimpleTestCase, TestCase
 from django.test.utils import isolate_apps
 
@@ -61,6 +61,16 @@ class ModelTests(TestCase):
         Owner.objects.create(name="Bob")
         owner = Owner.objects.get(name="Bob")
         self.assertIsNone(owner.pets)
+
+    def test_missing_field_in_data(self):
+        """
+        Loading a model with a PolymorphicEmbeddedModelArrayField that has a
+        missing subfield (e.g. data not written by Django) that uses a database
+        converter (in this case, weight is a DecimalField) doesn't crash.
+        """
+        Owner.objects.create(name="Bob", pets=[Cat(name="Phoebe", weight="3.5")])
+        connection.database.model_fields__owner.update_many({}, {"$unset": {"pets.$[].weight": ""}})
+        self.assertIsNone(Owner.objects.first().pets[0].weight)
 
 
 class QueryingTests(TestCase):

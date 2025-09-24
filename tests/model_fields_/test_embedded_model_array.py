@@ -62,6 +62,18 @@ class ModelTests(TestCase):
         movie = Movie.objects.get(title="Lion King")
         self.assertIsNone(movie.reviews)
 
+    def test_missing_field_in_data(self):
+        """
+        Loading a model with an EmbeddedModelArrayField that has a missing
+        subfield (e.g. data not written by Django) that uses a database
+        converter (in this case, rating is an IntegerField) doesn't crash.
+        """
+        Movie.objects.create(title="Lion King", reviews=[Review(title="The best", rating=10)])
+        connection.database.model_fields__movie.update_many(
+            {}, {"$unset": {"reviews.$[].rating": ""}}
+        )
+        self.assertIsNone(Movie.objects.first().reviews[0].rating)
+
 
 class QueryingTests(TestCase):
     @classmethod
