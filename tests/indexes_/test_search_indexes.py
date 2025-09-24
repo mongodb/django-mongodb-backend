@@ -211,7 +211,7 @@ class SearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
         index = SearchIndex(
             name="recent_test_idx",
             field_mappings={
-                "custom_field": {
+                "char": {
                     "type": "string",
                     "analyzer": "lucene.standard",
                     "searchAnalyzer": "lucene.standard",
@@ -231,7 +231,7 @@ class SearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
             expected_options = {
                 "dynamic": False,
                 "fields": {
-                    "custom_field": {
+                    "char": {
                         "type": "string",
                         "analyzer": "lucene.standard",
                         "searchAnalyzer": "lucene.standard",
