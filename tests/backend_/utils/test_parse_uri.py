@@ -3,10 +3,13 @@ from unittest.mock import patch
 import pymongo
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
+from django.test.utils import ignore_warnings
+from django.utils.deprecation import RemovedInDjango60Warning
 
 from django_mongodb_backend import parse_uri
 
 
+@ignore_warnings(category=RemovedInDjango60Warning)
 class ParseURITests(SimpleTestCase):
     def test_simple_uri(self):
         settings_dict = parse_uri("mongodb://cluster0.example.mongodb.net/myDatabase")
@@ -105,3 +108,10 @@ class ParseURITests(SimpleTestCase):
     def test_no_scheme(self):
         with self.assertRaisesMessage(pymongo.errors.InvalidURI, "Invalid URI scheme"):
             parse_uri("cluster0.example.mongodb.net")
+
+
+class ParseURIDeprecationTests(SimpleTestCase):
+    def test_message(self):
+        msg = 'parse_uri() is deprecated. Put the connection string in DATABASES["HOST"] instead.'
+        with self.assertRaisesMessage(RemovedInDjango60Warning, msg):
+            parse_uri("mongodb://cluster0.example.mongodb.net/")

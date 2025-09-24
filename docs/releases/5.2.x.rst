@@ -17,6 +17,14 @@ Bug fixes
 
 - ...
 
+Deprecated features
+-------------------
+
+- ``django_mongodb_backend.utils.parse_uri()`` is deprecated in favor of
+  putting the connection string in ``DATABASES["HOST"]``. See
+  :ref:`the deprecation timeline <parse-uri-deprecation>` for upgrade
+  instructions.
+
 5.2.1
 =====
 
