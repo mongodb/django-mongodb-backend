@@ -202,7 +202,7 @@ class SearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
                 },
             }
             self.assertCountEqual(index_info[index.name]["columns"], index.fields)
-            self.assertEqual(index_info[index.name]["options"], expected_options)
+            self.assertEqual(index_info[index.name]["options"]["mappings"], expected_options)
         finally:
             with connection.schema_editor() as editor:
                 editor.remove_index(index=index, model=SearchIndexTestModel)
@@ -212,12 +212,10 @@ class SearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
             name="recent_test_idx",
             field_mappings={
                 "char": {
-                    "type": "string",
-                    "analyzer": "lucene.standard",
-                    "searchAnalyzer": "lucene.standard",
+                    "indexOptions": "offsets",
                     "norms": "include",
                     "store": True,
-                    "indexOptions": "offsets",
+                    "type": "string",
                 }
             },
         )
@@ -232,17 +230,15 @@ class SearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
                 "dynamic": False,
                 "fields": {
                     "char": {
-                        "type": "string",
-                        "analyzer": "lucene.standard",
-                        "searchAnalyzer": "lucene.standard",
+                        "indexOptions": "offsets",
                         "norms": "include",
                         "store": True,
-                        "indexOptions": "offsets",
+                        "type": "string",
                     }
                 },
             }
             self.assertCountEqual(index_info[index.name]["columns"], index.fields)
-            self.assertEqual(index_info[index.name]["options"], expected_options)
+            self.assertEqual(index_info[index.name]["options"]["mappings"], expected_options)
         finally:
             with connection.schema_editor() as editor:
                 editor.remove_index(index=index, model=SearchIndexTestModel)
@@ -262,16 +258,18 @@ class SearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
                 table_name=SearchIndexTestModel._meta.db_table,
             )
             expected_options = {
-                "dynamic": False,
                 "analyzer": "lucene.simple",
                 "searchAnalyzer": "lucene.simple",
-                "fields": {
-                    "char": {
-                        "indexOptions": "offsets",
-                        "norms": "include",
-                        "store": True,
-                        "type": "string",
-                    }
+                "mappings": {
+                    "dynamic": False,
+                    "fields": {
+                        "char": {
+                            "indexOptions": "offsets",
+                            "norms": "include",
+                            "store": True,
+                            "type": "string",
+                        }
+                    },
                 },
             }
             self.assertCountEqual(index_info[index.name]["columns"], index.fields)

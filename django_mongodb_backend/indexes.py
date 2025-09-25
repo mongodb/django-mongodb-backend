@@ -193,7 +193,7 @@ class SearchIndex(Index):
         if self.search_analyzer is not None:
             analyzers["searchAnalyzer"] = self.search_analyzer
         return SearchIndexModel(
-            definition={"mappings": {"dynamic": False, "fields": fields, **analyzers}},
+            definition={"mappings": {"dynamic": False, "fields": fields}, **analyzers},
             name=self.name,
         )
 

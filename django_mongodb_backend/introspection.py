@@ -44,7 +44,11 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                 type_ = VectorSearchIndex.suffix
                 options = details
             else:
-                options = details["latestDefinition"]["mappings"]
+                options = {
+                    "analyzer": details["latestDefinition"].get("analyzer"),
+                    "searchAnalyzer": details["latestDefinition"].get("searchAnalyzer"),
+                    "mappings": details["latestDefinition"]["mappings"],
+                }
                 columns = list(options.get("fields", {}).keys())
                 type_ = SearchIndex.suffix
             constraints[details["name"]] = {
