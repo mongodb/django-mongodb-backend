@@ -49,7 +49,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                     "searchAnalyzer": details["latestDefinition"].get("searchAnalyzer"),
                     "mappings": details["latestDefinition"]["mappings"],
                 }
-                columns = list(options.get("fields", {}).keys())
+                columns = list(options["mappings"].get("fields", {}).keys())
                 type_ = SearchIndex.suffix
             constraints[details["name"]] = {
                 "check": False,
