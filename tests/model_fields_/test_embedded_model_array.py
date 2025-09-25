@@ -283,8 +283,8 @@ class QueryingTests(TestCase):
             Exhibit.objects.filter(sections__section__in=[10]).first()
 
     def test_invalid_nested_field(self):
-        msg = "Cannot perform multiple levels of array traversal in a query."
-        with self.assertRaisesMessage(ValueError, msg):
+        msg = "Artifact has no field named 'xx'"
+        with self.assertRaisesMessage(FieldDoesNotExist, msg):
             Exhibit.objects.filter(sections__artifacts__xx=10).first()
 
     def test_invalid_lookup(self):

@@ -177,8 +177,8 @@ class QueryingTests(TestCase):
             Owner.objects.filter(pets__xxx=10).first()
 
     def test_invalid_nested_field(self):
-        msg = "Cannot perform multiple levels of array traversal in a query."
-        with self.assertRaisesMessage(ValueError, msg):
+        msg = "The models of field 'toys' have no field named 'xxx'."
+        with self.assertRaisesMessage(FieldDoesNotExist, msg):
             Owner.objects.filter(pets__toys__xxx=10).first()
 
     def test_invalid_lookup(self):

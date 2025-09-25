@@ -7,8 +7,10 @@ from django.db.models.lookups import Lookup, Transform
 
 from . import PolymorphicEmbeddedModelField
 from .array import ArrayField, ArrayLenTransform
-from .embedded_model_array import KeyTransform as ArrayFieldKeyTransform
-from .embedded_model_array import KeyTransformFactory as ArrayFieldKeyTransformFactory
+from .embedded_model_array import (
+    EmbeddedModelArrayFieldTransform,
+    EmbeddedModelArrayFieldTransformFactory,
+)
 
 
 class PolymorphicEmbeddedModelArrayField(ArrayField):
@@ -62,7 +64,15 @@ class PolymorphicEmbeddedModelArrayField(ArrayField):
         transform = super().get_transform(name)
         if transform:
             return transform
-        return KeyTransformFactory(name, self)
+        for model in self.base_field.embedded_models:
+            with contextlib.suppress(FieldDoesNotExist):
+                field = model._meta.get_field(name)
+                break
+        else:
+            raise FieldDoesNotExist(
+                f"The models of field '{self.name}' have no field named '{name}'."
+            )
+        return PolymorphicArrayFieldTransformFactory(field)
 
     def _get_lookup(self, lookup_name):
         lookup = super()._get_lookup(lookup_name)
@@ -79,32 +89,23 @@ class PolymorphicEmbeddedModelArrayField(ArrayField):
         return EmbeddedModelArrayFieldLookups
 
 
-class KeyTransform(ArrayFieldKeyTransform):
+class PolymorphicArrayFieldTransform(EmbeddedModelArrayFieldTransform):
     field_class_name = "PolymorphicEmbeddedModelArrayField"
 
-    def __init__(self, key_name, array_field, *args, **kwargs):
-        # Skip ArrayFieldKeyTransform.__init__()
+    def __init__(self, field, *args, **kwargs):
+        # Skip EmbeddedModelArrayFieldTransform.__init__()
         Transform.__init__(self, *args, **kwargs)
-        self.array_field = array_field
-        self.key_name = key_name
-        for model in array_field.base_field.embedded_models:
-            with contextlib.suppress(FieldDoesNotExist):
-                field = model._meta.get_field(key_name)
-                break
-        else:
-            raise FieldDoesNotExist(
-                f"The models of field '{array_field.name}' have no field named '{key_name}'."
-            )
         # Lookups iterate over the array of embedded models. A virtual column
         # of the queried field's type represents each element.
         column_target = field.clone()
-        column_name = f"$item.{key_name}"
+        column_name = f"$item.{field.column}"
+        column_target.name = f"{field.name}"
         column_target.db_column = column_name
         column_target.set_attributes_from_name(column_name)
         self._lhs = Col(None, column_target)
         self._sub_transform = None
 
 
-class KeyTransformFactory(ArrayFieldKeyTransformFactory):
+class PolymorphicArrayFieldTransformFactory(EmbeddedModelArrayFieldTransformFactory):
     def __call__(self, *args, **kwargs):
-        return KeyTransform(self.key_name, self.base_field, *args, **kwargs)
+        return PolymorphicArrayFieldTransform(self.field, *args, **kwargs)
