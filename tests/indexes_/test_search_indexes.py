@@ -53,6 +53,29 @@ class SearchIndexTests(SimpleTestCase):
         with self.assertRaisesMessage(TypeError, msg):
             SearchIndex(condition="")
 
+    def test_fields_and_field_mappings(self):
+        msg = "Cannot provide fields and fields_mappings"
+        with self.assertRaisesMessage(ValueError, msg):
+            SearchIndex(fields=["foo"], field_mappings={"foo": {}})
+
+    def test_field_mappings_type(self):
+        msg = (
+            "field_mappings must be a dictionary mapping field names to their "
+            "Atlas Search field mappings."
+        )
+        with self.assertRaisesMessage(ValueError, msg):
+            SearchIndex(field_mappings={"foo"})
+
+    def test_analyzer_type(self):
+        msg = "analyzer must be a string. got type: <class 'int'>"
+        with self.assertRaisesMessage(ValueError, msg):
+            SearchIndex(analyzer=42)
+
+    def test_search_analyzer_type(self):
+        msg = "search_analyzer must be a string. got type: <class 'list'>"
+        with self.assertRaisesMessage(ValueError, msg):
+            SearchIndex(search_analyzer=["foo"])
+
 
 class VectorSearchIndexTests(SimpleTestCase):
     def test_no_init_args(self):
@@ -176,6 +199,77 @@ class SearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
                     "object_id": {"type": "objectId"},
                     "vector_float": {"dynamic": False, "fields": {}, "type": "embeddedDocuments"},
                     "vector_integer": {"dynamic": False, "fields": {}, "type": "embeddedDocuments"},
+                },
+            }
+            self.assertCountEqual(index_info[index.name]["columns"], index.fields)
+            self.assertEqual(index_info[index.name]["options"]["mappings"], expected_options)
+        finally:
+            with connection.schema_editor() as editor:
+                editor.remove_index(index=index, model=SearchIndexTestModel)
+
+    def test_field_mappings(self):
+        index = SearchIndex(
+            name="recent_test_idx",
+            field_mappings={
+                "char": {
+                    "indexOptions": "offsets",
+                    "norms": "include",
+                    "store": True,
+                    "type": "string",
+                }
+            },
+        )
+        with connection.schema_editor() as editor:
+            editor.add_index(index=index, model=SearchIndexTestModel)
+        try:
+            index_info = connection.introspection.get_constraints(
+                cursor=None,
+                table_name=SearchIndexTestModel._meta.db_table,
+            )
+            expected_options = {
+                "dynamic": False,
+                "fields": {
+                    "char": {
+                        "indexOptions": "offsets",
+                        "norms": "include",
+                        "store": True,
+                        "type": "string",
+                    }
+                },
+            }
+            self.assertCountEqual(index_info[index.name]["columns"], index.fields)
+            self.assertEqual(index_info[index.name]["options"]["mappings"], expected_options)
+        finally:
+            with connection.schema_editor() as editor:
+                editor.remove_index(index=index, model=SearchIndexTestModel)
+
+    def test_analyzer_inclusion(self):
+        index = SearchIndex(
+            name="recent_test_idx",
+            fields=["char"],
+            analyzer="lucene.simple",
+            search_analyzer="lucene.simple",
+        )
+        with connection.schema_editor() as editor:
+            editor.add_index(index=index, model=SearchIndexTestModel)
+        try:
+            index_info = connection.introspection.get_constraints(
+                cursor=None,
+                table_name=SearchIndexTestModel._meta.db_table,
+            )
+            expected_options = {
+                "analyzer": "lucene.simple",
+                "searchAnalyzer": "lucene.simple",
+                "mappings": {
+                    "dynamic": False,
+                    "fields": {
+                        "char": {
+                            "indexOptions": "offsets",
+                            "norms": "include",
+                            "store": True,
+                            "type": "string",
+                        }
+                    },
                 },
             }
             self.assertCountEqual(index_info[index.name]["columns"], index.fields)

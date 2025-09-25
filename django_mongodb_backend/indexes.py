@@ -109,8 +109,36 @@ class SearchIndex(Index):
     suffix = "six"
     _error_id_prefix = "django_mongodb_backend.indexes.SearchIndex"
 
-    def __init__(self, *, fields=(), name=None):
+    def __init__(
+        self, *, fields=(), field_mappings=None, name=None, analyzer=None, search_analyzer=None
+    ):
+        if field_mappings and not isinstance(field_mappings, dict):
+            raise ValueError(
+                "field_mappings must be a dictionary mapping field names to their "
+                "Atlas Search field mappings."
+            )
+        if analyzer is not None and not isinstance(analyzer, str):
+            raise ValueError(f"analyzer must be a string. got type: {type(analyzer)}")
+        if search_analyzer is not None and not isinstance(search_analyzer, str):
+            raise ValueError(f"search_analyzer must be a string. got type: {type(search_analyzer)}")
+        self.field_mappings = field_mappings
+        self.analyzer = analyzer
+        self.search_analyzer = search_analyzer
+        if field_mappings:
+            if fields:
+                raise ValueError("Cannot provide fields and fields_mappings")
+            fields = [*self.field_mappings.keys()]
         super().__init__(fields=fields, name=name)
+
+    def deconstruct(self):
+        path, args, kwargs = super().deconstruct()
+        if self.field_mappings is not None:
+            kwargs["field_mappings"] = self.field_mappings
+        if self.analyzer is not None:
+            kwargs["analyzer"] = self.analyzer
+        if self.search_analyzer is not None:
+            kwargs["search_analyzer"] = self.search_analyzer
+        return path, args, kwargs
 
     def check(self, model, connection):
         errors = []
@@ -152,12 +180,21 @@ class SearchIndex(Index):
             return None
         fields = {}
         for field_name, _ in self.fields_orders:
-            field = model._meta.get_field(field_name)
-            type_ = self.search_index_data_types(field.db_type(schema_editor.connection))
             field_path = column_prefix + model._meta.get_field(field_name).column
-            fields[field_path] = {"type": type_}
+            if self.field_mappings:
+                fields[field_path] = self.field_mappings[field_name]
+            else:
+                field = model._meta.get_field(field_name)
+                type_ = self.search_index_data_types(field.db_type(schema_editor.connection))
+                fields[field_path] = {"type": type_}
+        analyzers = {}
+        if self.analyzer is not None:
+            analyzers["analyzer"] = self.analyzer
+        if self.search_analyzer is not None:
+            analyzers["searchAnalyzer"] = self.search_analyzer
         return SearchIndexModel(
-            definition={"mappings": {"dynamic": False, "fields": fields}}, name=self.name
+            definition={"mappings": {"dynamic": False, "fields": fields}, **analyzers},
+            name=self.name,
         )
 
 

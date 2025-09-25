@@ -26,7 +26,7 @@ minutes, depending on the size of the collection.
 ``SearchIndex``
 ---------------
 
-.. class:: SearchIndex(fields=(), name=None)
+.. class:: SearchIndex(fields=(), field_mappings=None, name=None, analyzer=None, search_analyzer=None)
 
     Creates a basic :doc:`search index <atlas:atlas-search/index-definitions>`
     on the given field(s).
@@ -35,11 +35,28 @@ minutes, depending on the size of the collection.
     supported. See the :ref:`Atlas documentation <atlas:bson-data-chart>` for a
     complete list of unsupported data types.
 
+    Use ``field_mappings`` (instead of ``fields``) to create an advanced search
+    index. ``field_mappings`` is a dictionary that maps field names to index
+    options (see ``definition["mappings"]["fields"]`` in the
+    :ref:`atlas:fts-static-mapping-example`).
+
     If ``name`` isn't provided, one will be generated automatically. If you
     need to reference the name in your search query and don't provide your own
     name, you can lookup the generated one using ``Model._meta.indexes[0].name``
     (substituting the name of your model as well as a different list index if
     your model has multiple indexes).
+
+    Use ``analyzer`` or ``search_analyzer`` to configure the
+    indexing and searching analyzer, respectively, for
+    the search index definition. If these fields are not provided,
+    they will default to ``lucene.standard`` at the server level.
+    (See ``definition["mappings"]["analyzer"]``
+    and ``definition["mappings"]["searchAnalyzer"]``
+    in the :ref:`atlas:fts-static-mapping-example`).
+
+    .. versionchanged:: 5.2.2
+
+        The ``fields_mappings``, ``analyzer``, and ``search_analyzer`` arguments were added.
 
 ``VectorSearchIndex``
 ---------------------
