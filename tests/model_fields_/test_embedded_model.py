@@ -107,6 +107,15 @@ class ModelTests(TestCase):
         self.assertEqual(obj.data.auto_now_add, auto_now_add)
         self.assertGreater(obj.data.auto_now, auto_now_two)
 
+    def test_embedded_model_respects_db_column(self):
+        """
+        EmbeddedModel data respects Field.db_column. In this case, Data.integer
+        has db_column="integer_".
+        """
+        obj = Holder.objects.create(data=Data(integer=5))
+        query = connection.database.model_fields__holder.find({"_id": obj.pk})
+        self.assertEqual(query[0]["data"]["integer_"], 5)
+
 
 class QueryingTests(TestCase):
     @classmethod
@@ -231,7 +240,7 @@ class QueryingTests(TestCase):
         (e.g. data not written by Django) that uses a database converter (in
         this case, integer is an IntegerField) doesn't crash.
         """
-        connection.database.model_fields__holder.update_many({}, {"$unset": {"data.integer": ""}})
+        connection.database.model_fields__holder.update_many({}, {"$unset": {"data.integer_": ""}})
         self.assertIsNone(Holder.objects.first().data.integer)
 
 

@@ -121,9 +121,9 @@ class PolymorphicEmbeddedModelField(models.Field):
         model_class = self._get_model_from_label(value.pop("_label"))
         instance = model_class(
             **{
-                field.attname: field.to_python(value[field.attname])
+                field.attname: field.to_python(value[field.column])
                 for field in model_class._meta.fields
-                if field.attname in value
+                if field.column in value
             }
         )
         instance._state.adding = False
@@ -150,7 +150,7 @@ class PolymorphicEmbeddedModelField(models.Field):
             # Exclude unset primary keys (e.g. {'id': None}).
             if field.primary_key and value is None:
                 continue
-            field_values[field.attname] = value
+            field_values[field.column] = value
         # Store the model's label to know the class to use for initializing
         # upon retrieval.
         field_values["_label"] = embedded_instance._meta.label

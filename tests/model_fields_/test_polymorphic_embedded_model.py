@@ -91,6 +91,15 @@ class ModelTests(TestCase):
         # simultaneously.
         self.assertAlmostEqual(updated_at, created_at, delta=timedelta(microseconds=1000))
 
+    def test_embedded_model_respects_db_column(self):
+        """
+        EmbeddedModel data respects Field.db_column. In this case, Cat.name
+        has db_column="name_".
+        """
+        obj = Person.objects.create(pet=Cat(name="Phoebe"))
+        query = connection.database.model_fields__person.find({"_id": obj.pk})
+        self.assertEqual(query[0]["pet"]["name_"], "Phoebe")
+
 
 class QueryingTests(TestCase):
     @classmethod
