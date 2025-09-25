@@ -72,6 +72,15 @@ class ModelTests(TestCase):
         connection.database.model_fields__owner.update_many({}, {"$unset": {"pets.$[].weight": ""}})
         self.assertIsNone(Owner.objects.first().pets[0].weight)
 
+    def test_embedded_model_field_respects_db_column(self):
+        """
+        EmbeddedModel data respects Field.db_column. In this case, Cat.name
+        has db_column="name_".
+        """
+        obj = Owner.objects.create(name="Bob", pets=[Cat(name="Phoebe", weight="3.5")])
+        query = connection.database.model_fields__owner.find({"_id": obj.pk})
+        self.assertEqual(query[0]["pets"][0]["name_"], "Phoebe")
+
 
 class QueryingTests(TestCase):
     @classmethod

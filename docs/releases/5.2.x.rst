@@ -19,6 +19,8 @@ Bug fixes
   that use a database converter, if the field isn't present in the data (e.g.
   data not written by Django, or after a field was added to an existing
   ``EmbeddedModel``).
+- Made ``EmbeddedModel`` fields respect
+  :attr:`~django.db.models.Field.db_column`.
 
 Deprecated features
 -------------------

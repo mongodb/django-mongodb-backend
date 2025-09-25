@@ -114,8 +114,17 @@ class ModelTests(TestCase):
         this case, integer is an IntegerField) doesn't crash.
         """
         Holder.objects.create(data=Data(integer=5))
-        connection.database.model_fields__holder.update_many({}, {"$unset": {"data.integer": ""}})
+        connection.database.model_fields__holder.update_many({}, {"$unset": {"data.integer_": ""}})
         self.assertIsNone(Holder.objects.first().data.integer)
+
+    def test_embedded_model_field_respects_db_column(self):
+        """
+        EmbeddedModel data respects Field.db_column. In this case, Data.integer
+        has db_column="integer_".
+        """
+        obj = Holder.objects.create(data=Data(integer=5))
+        query = connection.database.model_fields__holder.find({"_id": obj.pk})
+        self.assertEqual(query[0]["data"]["integer_"], 5)
 
 
 class QueryingTests(TestCase):

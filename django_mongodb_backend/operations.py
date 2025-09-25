@@ -184,14 +184,14 @@ class DatabaseOperations(GISOperations, BaseDatabaseOperations):
         if value is not None:
             # Apply database converters to each field of the embedded model.
             for field in expression.output_field.embedded_model._meta.fields:
-                if field.attname not in value:
+                if field.column not in value:
                     continue
                 field_expr = Expression(output_field=field)
                 converters = connection.ops.get_db_converters(
                     field_expr
                 ) + field_expr.get_db_converters(connection)
                 for converter in converters:
-                    value[field.attname] = converter(value[field.attname], field_expr, connection)
+                    value[field.column] = converter(value[field.column], field_expr, connection)
         return value
 
     def convert_jsonfield_value(self, value, expression, connection):
@@ -206,14 +206,14 @@ class DatabaseOperations(GISOperations, BaseDatabaseOperations):
             model_class = expression.output_field._get_model_from_label(value["_label"])
             # Apply database converters to each field of the embedded model.
             for field in model_class._meta.fields:
-                if field.attname not in value:
+                if field.column not in value:
                     continue
                 field_expr = Expression(output_field=field)
                 converters = connection.ops.get_db_converters(
                     field_expr
                 ) + field_expr.get_db_converters(connection)
                 for converter in converters:
-                    value[field.attname] = converter(value[field.attname], field_expr, connection)
+                    value[field.column] = converter(value[field.column], field_expr, connection)
         return value
 
     def convert_timefield_value(self, value, expression, connection):

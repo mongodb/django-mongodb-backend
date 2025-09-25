@@ -74,6 +74,15 @@ class ModelTests(TestCase):
         )
         self.assertIsNone(Movie.objects.first().reviews[0].rating)
 
+    def test_embedded_model_field_respects_db_column(self):
+        """
+        EmbeddedModel data respects Field.db_column. In this case,
+        Review.title has db_column="title_".
+        """
+        obj = Movie.objects.create(title="Lion King", reviews=[Review(title="Awesome", rating=10)])
+        query = connection.database.model_fields__movie.find({"_id": obj.pk})
+        self.assertEqual(query[0]["reviews"][0]["title_"], "Awesome")
+
 
 class QueryingTests(TestCase):
     @classmethod
