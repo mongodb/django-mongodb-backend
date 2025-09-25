@@ -5,7 +5,7 @@ from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import models
 from django.db.models.fields.related import lazy_related_operation
 
-from .embedded_model import KeyTransformFactory
+from .embedded_model import EmbeddedModelTransformFactory
 from .utils import get_mongodb_connection
 
 
@@ -170,7 +170,7 @@ class PolymorphicEmbeddedModelField(models.Field):
             raise FieldDoesNotExist(
                 f"The models of field '{self.name}' have no field named '{name}'."
             )
-        return KeyTransformFactory(name, field)
+        return EmbeddedModelTransformFactory(field)
 
     def validate(self, value, model_instance):
         super().validate(value, model_instance)

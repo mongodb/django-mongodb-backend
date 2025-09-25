@@ -132,7 +132,7 @@ class EmbeddedModelField(models.Field):
         if transform:
             return transform
         field = self.embedded_model._meta.get_field(name)
-        return KeyTransformFactory(name, field)
+        return EmbeddedModelTransformFactory(field)
 
     def validate(self, value, model_instance):
         super().validate(value, model_instance)
@@ -156,23 +156,24 @@ class EmbeddedModelField(models.Field):
         )
 
 
-class KeyTransform(Transform):
-    def __init__(self, key_name, ref_field, *args, **kwargs):
+class EmbeddedModelTransform(Transform):
+    def __init__(self, field, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.key_name = str(key_name)
-        self.ref_field = ref_field
+        # self.field aliases self._field via BaseExpression.field returning
+        # self.output_field.
+        self._field = field
 
     def get_lookup(self, name):
-        return self.ref_field.get_lookup(name)
+        return self.field.get_lookup(name)
 
     def get_transform(self, name):
         """
         Validate that `name` is either a field of an embedded model or a
         lookup on an embedded model's field.
         """
-        if transform := self.ref_field.get_transform(name):
+        if transform := self.field.get_transform(name):
             return transform
-        suggested_lookups = difflib.get_close_matches(name, self.ref_field.get_lookups())
+        suggested_lookups = difflib.get_close_matches(name, self.field.get_lookups())
         if suggested_lookups:
             suggested_lookups = " or ".join(suggested_lookups)
             suggestion = f", perhaps you meant {suggested_lookups}?"
@@ -180,15 +181,15 @@ class KeyTransform(Transform):
             suggestion = "."
         raise FieldDoesNotExist(
             f"Unsupported lookup '{name}' for "
-            f"{self.ref_field.__class__.__name__} '{self.ref_field.name}'"
+            f"{self.field.__class__.__name__} '{self.field.name}'"
             f"{suggestion}"
         )
 
     def as_mql(self, compiler, connection, as_path=False):
         previous = self
         columns = []
-        while isinstance(previous, KeyTransform):
-            columns.insert(0, previous.ref_field.column)
+        while isinstance(previous, EmbeddedModelTransform):
+            columns.insert(0, previous.field.column)
             previous = previous.lhs
         if as_path:
             mql = previous.as_mql(compiler, connection, as_path=True)
@@ -201,13 +202,12 @@ class KeyTransform(Transform):
 
     @property
     def output_field(self):
-        return self.ref_field
+        return self._field
 
 
-class KeyTransformFactory:
-    def __init__(self, key_name, ref_field):
-        self.key_name = key_name
-        self.ref_field = ref_field
+class EmbeddedModelTransformFactory:
+    def __init__(self, field):
+        self.field = field
 
     def __call__(self, *args, **kwargs):
-        return KeyTransform(self.key_name, self.ref_field, *args, **kwargs)
+        return EmbeddedModelTransform(self.field, *args, **kwargs)
