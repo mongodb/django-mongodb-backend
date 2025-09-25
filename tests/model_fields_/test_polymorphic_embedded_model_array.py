@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.core.exceptions import FieldDoesNotExist
-from django.db import models
+from django.db import connection, models
 from django.test import SimpleTestCase, TestCase
 from django.test.utils import isolate_apps
 
@@ -61,6 +61,15 @@ class ModelTests(TestCase):
         Owner.objects.create(name="Bob")
         owner = Owner.objects.get(name="Bob")
         self.assertIsNone(owner.pets)
+
+    def test_embedded_model_respects_db_column(self):
+        """
+        EmbeddedModel data respects Field.db_column. In this case, Cat.name
+        has db_column="name_".
+        """
+        obj = Owner.objects.create(name="Bob", pets=[Cat(name="Phoebe", weight="3.5")])
+        query = connection.database.model_fields__owner.find({"_id": obj.pk})
+        self.assertEqual(query[0]["pets"][0]["name_"], "Phoebe")
 
 
 class QueryingTests(TestCase):

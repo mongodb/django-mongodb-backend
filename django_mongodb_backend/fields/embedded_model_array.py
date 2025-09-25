@@ -67,7 +67,8 @@ class EmbeddedModelArrayField(ArrayField):
         transform = super().get_transform(name)
         if transform:
             return transform
-        return KeyTransformFactory(name, self)
+        field = self.base_field.embedded_model._meta.get_field(name)
+        return EmbeddedModelArrayFieldTransformFactory(field)
 
     def _get_lookup(self, lookup_name):
         lookup = super()._get_lookup(lookup_name)
@@ -223,17 +224,15 @@ class EmbeddedModelArrayFieldLessThanOrEqual(
     pass
 
 
-class KeyTransform(Transform):
+class EmbeddedModelArrayFieldTransform(Transform):
     field_class_name = "EmbeddedModelArrayField"
 
-    def __init__(self, key_name, array_field, *args, **kwargs):
+    def __init__(self, field, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.array_field = array_field
-        self.key_name = key_name
         # Lookups iterate over the array of embedded models. A virtual column
         # of the queried field's type represents each element.
-        column_target = array_field.base_field.embedded_model._meta.get_field(key_name).clone()
-        column_name = f"$item.{key_name}"
+        column_target = field.clone()
+        column_name = f"$item.{field.column}"
         column_target.db_column = column_name
         column_target.set_attributes_from_name(column_name)
         self._lhs = Col(None, column_target)
@@ -254,7 +253,7 @@ class KeyTransform(Transform):
         # Once the sub-lhs is a transform, all the filters are applied over it.
         # Otherwise get the transform from the nested embedded model field.
         if transform := self._lhs.get_transform(name):
-            if isinstance(transform, KeyTransformFactory):
+            if isinstance(transform, EmbeddedModelArrayFieldTransformFactory):
                 raise ValueError("Cannot perform multiple levels of array traversal in a query.")
             self._sub_transform = transform
             return self
@@ -296,10 +295,9 @@ class KeyTransform(Transform):
         return _EmbeddedModelArrayOutputField(self._lhs.output_field)
 
 
-class KeyTransformFactory:
-    def __init__(self, key_name, base_field):
-        self.key_name = key_name
-        self.base_field = base_field
+class EmbeddedModelArrayFieldTransformFactory:
+    def __init__(self, field):
+        self.field = field
 
     def __call__(self, *args, **kwargs):
-        return KeyTransform(self.key_name, self.base_field, *args, **kwargs)
+        return EmbeddedModelArrayFieldTransform(self.field, *args, **kwargs)

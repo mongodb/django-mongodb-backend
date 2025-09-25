@@ -93,9 +93,9 @@ class EmbeddedModelField(models.Field):
             return value
         instance = self.embedded_model(
             **{
-                field.attname: field.to_python(value[field.attname])
+                field.attname: field.to_python(value[field.column])
                 for field in self.embedded_model._meta.fields
-                if field.attname in value
+                if field.column in value
             }
         )
         instance._state.adding = False
@@ -122,7 +122,7 @@ class EmbeddedModelField(models.Field):
             # Exclude unset primary keys (e.g. {'id': None}).
             if field.primary_key and value is None:
                 continue
-            field_values[field.attname] = value
+            field_values[field.column] = value
         # This instance will exist in the database soon.
         embedded_instance._state.adding = False
         return field_values
@@ -132,7 +132,7 @@ class EmbeddedModelField(models.Field):
         if transform:
             return transform
         field = self.embedded_model._meta.get_field(name)
-        return KeyTransformFactory(name, field)
+        return EmbeddedModelTransformFactory(field)
 
     def validate(self, value, model_instance):
         super().validate(value, model_instance)
@@ -156,10 +156,9 @@ class EmbeddedModelField(models.Field):
         )
 
 
-class KeyTransform(Transform):
-    def __init__(self, key_name, ref_field, *args, **kwargs):
+class EmbeddedModelTransform(Transform):
+    def __init__(self, ref_field, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.key_name = str(key_name)
         self.ref_field = ref_field
 
     def get_lookup(self, name):
@@ -186,17 +185,17 @@ class KeyTransform(Transform):
 
     def as_mql(self, compiler, connection, as_path=False):
         previous = self
-        key_transforms = []
-        while isinstance(previous, KeyTransform):
-            key_transforms.insert(0, previous.key_name)
+        columns = []
+        while isinstance(previous, EmbeddedModelTransform):
+            columns.insert(0, previous.ref_field.column)
             previous = previous.lhs
         if as_path:
             mql = previous.as_mql(compiler, connection, as_path=True)
-            mql_path = ".".join(key_transforms)
+            mql_path = ".".join(columns)
             return f"{mql}.{mql_path}"
         mql = previous.as_mql(compiler, connection)
-        for key in key_transforms:
-            mql = {"$getField": {"input": mql, "field": key}}
+        for column in columns:
+            mql = {"$getField": {"input": mql, "field": column}}
         return mql
 
     @property
@@ -204,10 +203,9 @@ class KeyTransform(Transform):
         return self.ref_field
 
 
-class KeyTransformFactory:
-    def __init__(self, key_name, ref_field):
-        self.key_name = key_name
+class EmbeddedModelTransformFactory:
+    def __init__(self, ref_field):
         self.ref_field = ref_field
 
     def __call__(self, *args, **kwargs):
-        return KeyTransform(self.key_name, self.ref_field, *args, **kwargs)
+        return EmbeddedModelTransform(self.ref_field, *args, **kwargs)

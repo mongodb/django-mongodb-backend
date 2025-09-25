@@ -125,7 +125,7 @@ class Holder(models.Model):
 
 
 class Data(EmbeddedModel):
-    integer = models.IntegerField(db_column="custom_column")
+    integer = models.IntegerField(db_column="integer_")
     auto_now = models.DateTimeField(auto_now=True)
     auto_now_add = models.DateTimeField(auto_now_add=True)
     json_value = models.JSONField()
@@ -175,7 +175,7 @@ class Movie(models.Model):
 
 
 class Review(EmbeddedModel):
-    title = models.CharField(max_length=255)
+    title = models.CharField(max_length=255, db_column="title_")
     rating = models.DecimalField(max_digits=6, decimal_places=1)
 
     def __str__(self):
@@ -261,7 +261,7 @@ class Dog(EmbeddedModel):
 
 
 class Cat(EmbeddedModel):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, db_column="name_")
     purs = models.BooleanField(default=True)
     weight = models.DecimalField(max_digits=4, decimal_places=2, blank=True, null=True)
     favorite_toy = PolymorphicEmbeddedModelField(["Mouse"], blank=True, null=True)
