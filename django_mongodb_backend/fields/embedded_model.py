@@ -132,7 +132,7 @@ class EmbeddedModelField(models.Field):
         if transform:
             return transform
         field = self.embedded_model._meta.get_field(name)
-        return KeyTransformFactory(name, field)
+        return EmbeddedModelTransformFactory(field)
 
     def validate(self, value, model_instance):
         super().validate(value, model_instance)
@@ -156,10 +156,9 @@ class EmbeddedModelField(models.Field):
         )
 
 
-class KeyTransform(Transform):
-    def __init__(self, key_name, ref_field, *args, **kwargs):
+class EmbeddedModelTransform(Transform):
+    def __init__(self, ref_field, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.key_name = str(key_name)
         self.ref_field = ref_field
 
     def get_lookup(self, name):
@@ -187,7 +186,7 @@ class KeyTransform(Transform):
     def as_mql(self, compiler, connection, as_path=False):
         previous = self
         columns = []
-        while isinstance(previous, KeyTransform):
+        while isinstance(previous, EmbeddedModelTransform):
             columns.insert(0, previous.ref_field.column)
             previous = previous.lhs
         if as_path:
@@ -204,10 +203,9 @@ class KeyTransform(Transform):
         return self.ref_field
 
 
-class KeyTransformFactory:
-    def __init__(self, key_name, ref_field):
-        self.key_name = key_name
+class EmbeddedModelTransformFactory:
+    def __init__(self, ref_field):
         self.ref_field = ref_field
 
     def __call__(self, *args, **kwargs):
-        return KeyTransform(self.key_name, self.ref_field, *args, **kwargs)
+        return EmbeddedModelTransform(self.ref_field, *args, **kwargs)
