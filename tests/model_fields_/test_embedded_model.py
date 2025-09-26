@@ -225,6 +225,15 @@ class QueryingTests(TestCase):
         )
         self.assertCountEqual(Book.objects.filter(author__address__city="NYC"), [obj])
 
+    def test_annotate(self):
+        obj = Book.objects.create(
+            author=Author(name="Shakespeare", age=55, address=Address(city="NYC", state="NY"))
+        )
+        book_from_ny = (
+            Book.objects.annotate(city=F("author__address__city")).filter(city="NYC").first()
+        )
+        self.assertCountEqual(book_from_ny.city, obj.author.address.city)
+
 
 class ArrayFieldTests(TestCase):
     @classmethod

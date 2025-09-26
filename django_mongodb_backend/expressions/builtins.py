@@ -172,7 +172,7 @@ def ref(self, compiler, connection, as_path=False):  # noqa: ARG001
 
 @property
 def ref_is_simple_column(self):
-    return isinstance(self.source, Col) and self.source.alias is not None
+    return self.source.is_simple_column
 
 
 def star(self, compiler, connection, as_path=False):  # noqa: ARG001

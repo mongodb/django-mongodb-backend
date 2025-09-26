@@ -8,6 +8,7 @@ from django.db.models.lookups import Lookup, Transform
 from django.utils.functional import cached_property
 
 from .. import forms
+from ..lookups import builtin_lookup_path
 from ..query_utils import process_lhs, process_rhs
 from . import EmbeddedModelField
 from .array import ArrayField, ArrayLenTransform
@@ -140,6 +141,9 @@ class EmbeddedModelArrayFieldBuiltinLookup(Lookup):
             inner_lhs_mql, values
         )
         return {"$anyElementTrue": lhs_mql}
+
+    def as_mql_path(self, compiler, connection):
+        return builtin_lookup_path(self, compiler, connection)
 
 
 @_EmbeddedModelArrayOutputField.register_lookup
