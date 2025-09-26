@@ -9,7 +9,7 @@ from django.db.models.lookups import (
     UUIDTextMixin,
 )
 
-from .query_utils import is_simple_expression, process_lhs, process_rhs
+from .query_utils import is_constant_value, process_lhs, process_rhs
 
 
 def builtin_lookup_path(self, compiler, connection):
@@ -136,6 +136,12 @@ def pattern_lookup_prep_lookup_value(self, value):
 
 def uuid_text_mixin(self, compiler, connection):  # noqa: ARG001
     raise NotSupportedError("Pattern lookups on UUIDField are not supported.")
+
+
+def is_simple_expression(self):
+    simple_column = getattr(self.lhs, "is_simple_column", False)
+    constant_value = is_constant_value(self.rhs)
+    return simple_column and constant_value
 
 
 def register_lookups():

@@ -88,7 +88,6 @@ class MongoQuery:
             pipeline.extend(query.get_pipeline())
         if self.match_mql:
             pipeline.append({"$match": self.match_mql})
-            # pipeline.append({"$match": {"$expr": self.match_mql}})
         if self.aggregation_pipeline:
             pipeline.extend(self.aggregation_pipeline)
         if self.project_fields:
@@ -165,14 +164,13 @@ def join(self, compiler, connection, pushed_filter_expression=None):
         for col, parent_pos in columns:
             target = col.target.clone()
             target.remote_field = col.target.remote_field
+            column_target = Col(compiler.collection_name, target)
             if parent_pos is not None:
-                column_target = Col(None, target)
                 column_target.is_simple_column = False
                 target_col = f"${parent_template}{parent_pos}"
                 column_target.target.db_column = target_col
                 column_target.target.set_attributes_from_name(target_col)
             else:
-                column_target = Col(compiler.collection_name, target)
                 column_target.target = col.target
             replacements[col] = column_target
         return replacements

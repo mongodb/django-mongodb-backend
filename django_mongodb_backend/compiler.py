@@ -643,9 +643,7 @@ class SQLCompiler(compiler.SQLCompiler):
             for alias, expr in self.columns:
                 # Unfold foreign fields.
                 if isinstance(expr, Col) and expr.alias != self.collection_name:
-                    ids[expr.alias][expr.target.column] = expr.as_mql(
-                        self, self.connection, as_path=False
-                    )
+                    ids[expr.alias][expr.target.column] = expr.as_mql(self, self.connection)
                 else:
                     ids[alias] = f"${alias}"
             # Convert defaultdict to dict so it doesn't appear as

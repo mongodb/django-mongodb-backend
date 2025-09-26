@@ -89,9 +89,3 @@ def is_constant_value(value):
             or value.contains_subquery
         )
     )
-
-
-def is_simple_expression(self):
-    simple_column = getattr(self.lhs, "is_simple_column", False)
-    constant_value = is_constant_value(self.rhs)
-    return simple_column and constant_value
