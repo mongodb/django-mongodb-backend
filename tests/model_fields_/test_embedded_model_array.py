@@ -291,6 +291,13 @@ class QueryingTests(TestCase):
         qs = Tour.objects.filter(exhibit__sections__number=1)
         self.assertCountEqual(qs, [self.egypt_tour, self.wonders_tour])
 
+    def test_foreign_field_exact_expr(self):
+        """Querying from a foreign key to an EmbeddedModelArrayField."""
+        with self.assertNumQueries(1) as ctx:
+            qs = Tour.objects.filter(exhibit__sections__number=Value(2) - Value(1))
+            self.assertCountEqual(qs, [self.egypt_tour, self.wonders_tour])
+        self.assertIn("anyElementTrue", ctx.captured_queries[0]["sql"])
+
     def test_foreign_field_with_slice(self):
         qs = Tour.objects.filter(exhibit__sections__0_2__number__in=[1, 2])
         self.assertCountEqual(qs, [self.wonders_tour, self.egypt_tour])
