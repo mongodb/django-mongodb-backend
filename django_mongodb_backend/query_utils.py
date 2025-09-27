@@ -1,13 +1,14 @@
 from django.core.exceptions import FullResultSet
 from django.db.models.aggregates import Aggregate
-from django.db.models.expressions import Value
+from django.db.models.expressions import CombinedExpression, Value
+from django.db.models.sql.query import Query
 
 
 def is_direct_value(node):
     return not hasattr(node, "as_sql")
 
 
-def process_lhs(node, compiler, connection):
+def process_lhs(node, compiler, connection, as_path=False):
     if not hasattr(node, "lhs"):
         # node is a Func or Expression, possibly with multiple source expressions.
         result = []
@@ -15,27 +16,30 @@ def process_lhs(node, compiler, connection):
             if expr is None:
                 continue
             try:
-                result.append(expr.as_mql(compiler, connection))
+                result.append(expr.as_mql(compiler, connection, as_path=as_path))
             except FullResultSet:
-                result.append(Value(True).as_mql(compiler, connection))
+                result.append(Value(True).as_mql(compiler, connection, as_path=as_path))
         if isinstance(node, Aggregate):
             return result[0]
         return result
     # node is a Transform with just one source expression, aliased as "lhs".
     if is_direct_value(node.lhs):
         return node
-    return node.lhs.as_mql(compiler, connection)
+    return node.lhs.as_mql(compiler, connection, as_path=as_path)
 
 
-def process_rhs(node, compiler, connection):
+def process_rhs(node, compiler, connection, as_path=False):
     rhs = node.rhs
     if hasattr(rhs, "as_mql"):
         if getattr(rhs, "subquery", False) and hasattr(node, "get_subquery_wrapping_pipeline"):
             value = rhs.as_mql(
-                compiler, connection, get_wrapping_pipeline=node.get_subquery_wrapping_pipeline
+                compiler,
+                connection,
+                get_wrapping_pipeline=node.get_subquery_wrapping_pipeline,
+                as_path=as_path,
             )
         else:
-            value = rhs.as_mql(compiler, connection)
+            value = rhs.as_mql(compiler, connection, as_path=as_path)
     else:
         _, value = node.process_rhs(compiler, connection)
         lookup_name = node.lookup_name
@@ -47,7 +51,40 @@ def process_rhs(node, compiler, connection):
     return value
 
 
-def regex_match(field, regex_vals, insensitive=False):
+def regex_expr(field, regex_vals, insensitive=False):
     regex = {"$concat": regex_vals} if isinstance(regex_vals, tuple) else regex_vals
     options = "i" if insensitive else ""
     return {"$regexMatch": {"input": field, "regex": regex, "options": options}}
+
+
+def regex_match(field, regex, insensitive=False):
+    options = "i" if insensitive else ""
+    return {field: {"$regex": regex, "$options": options}}
+
+
+def is_constant_value(value):
+    if isinstance(value, CombinedExpression):
+        # Temporary: treat all CombinedExpressions as non-constant until
+        # constant cases are handled
+        return False
+    if isinstance(value, list):
+        return all(map(is_constant_value, value))
+    if is_direct_value(value):
+        return True
+    if hasattr(value, "get_source_expressions"):
+        # Temporary: similar limitation as above, sub-expressions should be
+        # resolved in the future
+        simple_sub_expressions = all(map(is_constant_value, value.get_source_expressions()))
+    else:
+        simple_sub_expressions = True
+    return (
+        simple_sub_expressions
+        and isinstance(value, Value)
+        and not (
+            isinstance(value, Query)
+            or value.contains_aggregate
+            or value.contains_over_clause
+            or value.contains_column_references
+            or value.contains_subquery
+        )
+    )

@@ -6,6 +6,7 @@ from bson import Decimal128
 from django.core.exceptions import EmptyResultSet, FullResultSet
 from django.db import NotSupportedError
 from django.db.models.expressions import (
+    BaseExpression,
     Case,
     Col,
     ColPairs,
@@ -28,12 +29,24 @@ from django.db.models.sql import Query
 from ..query_utils import process_lhs
 
 
+def base_expression(self, compiler, connection, as_path=False, **extra):
+    if (
+        as_path
+        and hasattr(self, "as_mql_path")
+        and getattr(self, "is_simple_expression", lambda: False)()
+    ):
+        return self.as_mql_path(compiler, connection, **extra)
+
+    expr = self.as_mql_expr(compiler, connection, **extra)
+    return {"$expr": expr} if as_path else expr
+
+
 def case(self, compiler, connection):
     case_parts = []
     for case in self.cases:
         case_mql = {}
         try:
-            case_mql["case"] = case.as_mql(compiler, connection)
+            case_mql["case"] = case.as_mql(compiler, connection, as_path=False)
         except EmptyResultSet:
             continue
         except FullResultSet:
@@ -76,34 +89,34 @@ def col(self, compiler, connection, as_path=False):  # noqa: ARG001
     return f"{prefix}{self.target.column}"
 
 
-def col_pairs(self, compiler, connection):
+def col_pairs(self, compiler, connection, as_path=False):
     cols = self.get_cols()
     if len(cols) > 1:
         raise NotSupportedError("ColPairs is not supported.")
-    return cols[0].as_mql(compiler, connection)
+    return cols[0].as_mql(compiler, connection, as_path=as_path)
 
 
-def combined_expression(self, compiler, connection):
+def combined_expression(self, compiler, connection, as_path=False):
     expressions = [
-        self.lhs.as_mql(compiler, connection),
-        self.rhs.as_mql(compiler, connection),
+        self.lhs.as_mql(compiler, connection, as_path=as_path),
+        self.rhs.as_mql(compiler, connection, as_path=as_path),
     ]
     return connection.ops.combine_expression(self.connector, expressions)
 
 
-def expression_wrapper(self, compiler, connection):
-    return self.expression.as_mql(compiler, connection)
+def expression_wrapper_expr(self, compiler, connection):
+    return self.expression.as_mql(compiler, connection, as_path=False)
 
 
-def negated_expression(self, compiler, connection):
-    return {"$not": expression_wrapper(self, compiler, connection)}
+def negated_expression_expr(self, compiler, connection):
+    return {"$not": expression_wrapper_expr(self, compiler, connection)}
 
 
 def order_by(self, compiler, connection):
     return self.expression.as_mql(compiler, connection)
 
 
-def query(self, compiler, connection, get_wrapping_pipeline=None):
+def query(self, compiler, connection, get_wrapping_pipeline=None, as_path=False):
     subquery_compiler = self.get_compiler(connection=connection)
     subquery_compiler.pre_sql_setup(with_col_aliases=False)
     field_name, expr = subquery_compiler.columns[0]
@@ -145,6 +158,8 @@ def query(self, compiler, connection, get_wrapping_pipeline=None):
         # Erase project_fields since the required value is projected above.
         subquery.project_fields = None
     compiler.subqueries.append(subquery)
+    if as_path:
+        return f"{table_output}.{field_name}"
     return f"${table_output}.{field_name}"
 
 
@@ -152,7 +167,7 @@ def raw_sql(self, compiler, connection):  # noqa: ARG001
     raise NotSupportedError("RawSQL is not supported on MongoDB.")
 
 
-def ref(self, compiler, connection):  # noqa: ARG001
+def ref(self, compiler, connection, as_path=False):  # noqa: ARG001
     prefix = (
         f"{self.source.alias}."
         if isinstance(self.source, Col) and self.source.alias != compiler.collection_name
@@ -162,15 +177,24 @@ def ref(self, compiler, connection):  # noqa: ARG001
         refs, _ = compiler.columns[self.ordinal - 1]
     else:
         refs = self.refs
-    return f"${prefix}{refs}"
+    if not as_path:
+        prefix = f"${prefix}"
+    return f"{prefix}{refs}"
 
 
-def star(self, compiler, connection):  # noqa: ARG001
+@property
+def ref_is_simple_column(self):
+    return self.source.is_simple_column
+
+
+def star(self, compiler, connection, as_path=False):  # noqa: ARG001
     return {"$literal": True}
 
 
 def subquery(self, compiler, connection, get_wrapping_pipeline=None):
-    return self.query.as_mql(compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline)
+    return self.query.as_mql(
+        compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline, as_path=False
+    )
 
 
 def exists(self, compiler, connection, get_wrapping_pipeline=None):
@@ -178,16 +202,16 @@ def exists(self, compiler, connection, get_wrapping_pipeline=None):
         lhs_mql = subquery(self, compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline)
     except EmptyResultSet:
         return Value(False).as_mql(compiler, connection)
-    return connection.mongo_operators["isnull"](lhs_mql, False)
+    return connection.mongo_expr_operators["isnull"](lhs_mql, False)
 
 
-def when(self, compiler, connection):
-    return self.condition.as_mql(compiler, connection)
+def when(self, compiler, connection, as_path=False):
+    return self.condition.as_mql(compiler, connection, as_path=as_path)
 
 
-def value(self, compiler, connection):  # noqa: ARG001
+def value(self, compiler, connection, as_path=False):  # noqa: ARG001
     value = self.value
-    if isinstance(value, (list, int)):
+    if isinstance(value, (list, int)) and not as_path:
         # Wrap lists & numbers in $literal to prevent ambiguity when Value
         # appears in $project.
         return {"$literal": value}
@@ -210,20 +234,24 @@ def value(self, compiler, connection):  # noqa: ARG001
 
 
 def register_expressions():
-    Case.as_mql = case
+    BaseExpression.as_mql = base_expression
+    BaseExpression.is_simple_column = False
+    Case.as_mql_expr = case
     Col.as_mql = col
+    Col.is_simple_column = True
     ColPairs.as_mql = col_pairs
-    CombinedExpression.as_mql = combined_expression
-    Exists.as_mql = exists
+    CombinedExpression.as_mql_expr = combined_expression
+    Exists.as_mql_expr = exists
     ExpressionList.as_mql = process_lhs
-    ExpressionWrapper.as_mql = expression_wrapper
-    NegatedExpression.as_mql = negated_expression
-    OrderBy.as_mql = order_by
+    ExpressionWrapper.as_mql_expr = expression_wrapper_expr
+    NegatedExpression.as_mql_expr = negated_expression_expr
+    OrderBy.as_mql_expr = order_by
     Query.as_mql = query
     RawSQL.as_mql = raw_sql
     Ref.as_mql = ref
+    Ref.is_simple_column = ref_is_simple_column
     ResolvedOuterRef.as_mql = ResolvedOuterRef.as_sql
     Star.as_mql = star
-    Subquery.as_mql = subquery
+    Subquery.as_mql_expr = subquery
     When.as_mql = when
     Value.as_mql = value

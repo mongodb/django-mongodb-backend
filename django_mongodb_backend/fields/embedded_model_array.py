@@ -5,8 +5,10 @@ from django.db.models import Field, lookups
 from django.db.models.expressions import Col
 from django.db.models.fields.related import lazy_related_operation
 from django.db.models.lookups import Lookup, Transform
+from django.utils.functional import cached_property
 
 from .. import forms
+from ..lookups import builtin_lookup_path
 from ..query_utils import process_lhs, process_rhs
 from . import EmbeddedModelField
 from .array import ArrayField, ArrayLenTransform
@@ -75,7 +77,7 @@ class EmbeddedModelArrayField(ArrayField):
             return lookup
 
         class EmbeddedModelArrayFieldLookups(Lookup):
-            def as_mql(self, compiler, connection):
+            def as_mql(self, compiler, connection, as_path=False):
                 raise ValueError(
                     "Lookups aren't supported on EmbeddedModelArrayField. "
                     "Try querying one of its embedded fields instead."
@@ -114,7 +116,7 @@ class _EmbeddedModelArrayOutputField(ArrayField):
 
 
 class EmbeddedModelArrayFieldBuiltinLookup(Lookup):
-    def process_rhs(self, compiler, connection):
+    def process_rhs(self, compiler, connection, as_path=False):
         value = self.rhs
         if not self.get_db_prep_lookup_value_is_iterable:
             value = [value]
@@ -128,17 +130,20 @@ class EmbeddedModelArrayFieldBuiltinLookup(Lookup):
             for v in value
         ]
 
-    def as_mql(self, compiler, connection):
+    def as_mql_expr(self, compiler, connection):
         # Querying a subfield within the array elements (via nested
         # KeyTransform). Replicate MongoDB's implicit ANY-match by mapping over
         # the array and applying $in on the subfield.
         lhs_mql = process_lhs(self, compiler, connection)
         inner_lhs_mql = lhs_mql["$ifNull"][0]["$map"]["in"]
         values = process_rhs(self, compiler, connection)
-        lhs_mql["$ifNull"][0]["$map"]["in"] = connection.mongo_operators[self.lookup_name](
+        lhs_mql["$ifNull"][0]["$map"]["in"] = connection.mongo_expr_operators[self.lookup_name](
             inner_lhs_mql, values
         )
         return {"$anyElementTrue": lhs_mql}
+
+    def as_mql_path(self, compiler, connection):
+        return builtin_lookup_path(self, compiler, connection)
 
 
 @_EmbeddedModelArrayOutputField.register_lookup
@@ -243,6 +248,18 @@ class KeyTransform(Transform):
         self._lhs = self._sub_transform(self._lhs, *args, **kwargs)
         return self
 
+    def is_simple_expression(self):
+        return self.is_simple_column
+
+    @cached_property
+    def is_simple_column(self):
+        previous = self
+        while isinstance(previous, KeyTransform):
+            if not previous.key_name.isalnum():
+                return False
+            previous = previous.lhs
+        return previous.is_simple_column and self._lhs.is_simple_column
+
     def get_lookup(self, name):
         return self.output_field.get_lookup(name)
 
@@ -275,7 +292,7 @@ class KeyTransform(Transform):
             f"{suggestion}"
         )
 
-    def as_mql(self, compiler, connection):
+    def as_mql_expr(self, compiler, connection):
         inner_lhs_mql = self._lhs.as_mql(compiler, connection)
         lhs_mql = process_lhs(self, compiler, connection)
         return {
@@ -290,6 +307,11 @@ class KeyTransform(Transform):
                 [],
             ]
         }
+
+    def as_mql_path(self, compiler, connection):
+        inner_lhs_mql = self._lhs.as_mql(compiler, connection, as_path=True).removeprefix("$item.")
+        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        return f"{lhs_mql}.{inner_lhs_mql}"
 
     @property
     def output_field(self):

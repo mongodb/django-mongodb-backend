@@ -64,16 +64,16 @@ def count(self, compiler, connection, resolve_inner_expression=False, **extra_co
     return {"$add": [{"$size": lhs_mql}, exits_null]}
 
 
-def stddev_variance(self, compiler, connection, **extra_context):
+def stddev_variance(self, compiler, connection, **extra_context):  # noqa: ARG001
     if self.function.endswith("_SAMP"):
         operator = "stdDevSamp"
     elif self.function.endswith("_POP"):
         operator = "stdDevPop"
-    return aggregate(self, compiler, connection, operator=operator, **extra_context)
+    return aggregate(self, compiler, connection, operator=operator)
 
 
 def register_aggregates():
-    Aggregate.as_mql = aggregate
-    Count.as_mql = count
-    StdDev.as_mql = stddev_variance
-    Variance.as_mql = stddev_variance
+    Aggregate.as_mql_expr = aggregate
+    Count.as_mql_expr = count
+    StdDev.as_mql_expr = stddev_variance
+    Variance.as_mql_expr = stddev_variance
