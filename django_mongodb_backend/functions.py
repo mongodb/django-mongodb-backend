@@ -117,7 +117,7 @@ def func(self, compiler, connection, as_path=False):
 
 
 def func_path(self, compiler, connection):  # noqa: ARG001
-    raise NotSupportedError(f"{self} May need an as_mql_path() method.")
+    raise NotSupportedError(f"{self} may need an as_mql_path() method.")
 
 
 def func_expr(self, compiler, connection):
