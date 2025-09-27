@@ -15,13 +15,13 @@ from .query_utils import is_constant_value, process_lhs, process_rhs
 def builtin_lookup_path(self, compiler, connection):
     lhs_mql = process_lhs(self, compiler, connection, as_path=True)
     value = process_rhs(self, compiler, connection, as_path=True)
-    return connection.mongo_operators_match[self.lookup_name](lhs_mql, value)
+    return connection.mongo_match_operators[self.lookup_name](lhs_mql, value)
 
 
 def builtin_lookup_expr(self, compiler, connection):
     value = process_rhs(self, compiler, connection, as_path=False)
     lhs_mql = process_lhs(self, compiler, connection, as_path=False)
-    return connection.mongo_operators_expr[self.lookup_name](lhs_mql, value)
+    return connection.mongo_expr_operators[self.lookup_name](lhs_mql, value)
 
 
 _field_resolve_expression_parameter = FieldGetDbPrepValueIterableMixin.resolve_expression_parameter
@@ -89,14 +89,14 @@ def is_null_path(self, compiler, connection):
     if not isinstance(self.rhs, bool):
         raise ValueError("The QuerySet value for an isnull lookup must be True or False.")
     lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-    return connection.mongo_operators_match["isnull"](lhs_mql, self.rhs)
+    return connection.mongo_match_operators["isnull"](lhs_mql, self.rhs)
 
 
 def is_null_expr(self, compiler, connection):
     if not isinstance(self.rhs, bool):
         raise ValueError("The QuerySet value for an isnull lookup must be True or False.")
     lhs_mql = process_lhs(self, compiler, connection, as_path=False)
-    return connection.mongo_operators_expr["isnull"](lhs_mql, self.rhs)
+    return connection.mongo_expr_operators["isnull"](lhs_mql, self.rhs)
 
 
 # from https://www.pcre.org/current/doc/html/pcre2pattern.html#SEC4

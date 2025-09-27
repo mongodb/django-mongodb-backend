@@ -254,13 +254,6 @@ class ArrayRHSMixin:
 class ArrayContains(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
     lookup_name = "contains"
 
-    def as_mql_path(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-        value = process_rhs(self, compiler, connection, as_path=True)
-        if value is None:
-            return False
-        return {lhs_mql: {"$all": value}}
-
     def as_mql_expr(self, compiler, connection):
         lhs_mql = process_lhs(self, compiler, connection, as_path=False)
         value = process_rhs(self, compiler, connection, as_path=False)
@@ -271,6 +264,13 @@ class ArrayContains(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
                 {"$setIsSubset": [value, lhs_mql]},
             ]
         }
+
+    def as_mql_path(self, compiler, connection):
+        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        value = process_rhs(self, compiler, connection, as_path=True)
+        if value is None:
+            return False
+        return {lhs_mql: {"$all": value}}
 
 
 @ArrayField.register_lookup
@@ -333,11 +333,6 @@ class ArrayOverlap(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
             },
         ]
 
-    def as_mql_path(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-        value = process_rhs(self, compiler, connection, as_path=True)
-        return {lhs_mql: {"$in": value}}
-
     def as_mql_expr(self, compiler, connection):
         lhs_mql = process_lhs(self, compiler, connection, as_path=False)
         value = process_rhs(self, compiler, connection, as_path=False)
@@ -347,6 +342,11 @@ class ArrayOverlap(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
                 {"$size": {"$setIntersection": [value, lhs_mql]}},
             ]
         }
+
+    def as_mql_path(self, compiler, connection):
+        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        value = process_rhs(self, compiler, connection, as_path=True)
+        return {lhs_mql: {"$in": value}}
 
 
 @ArrayField.register_lookup
@@ -388,13 +388,13 @@ class IndexTransform(Transform):
     def is_simple_column(self):
         return self.lhs.is_simple_column
 
-    def as_mql_path(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-        return f"{lhs_mql}.{self.index}"
-
     def as_mql_expr(self, compiler, connection):
         lhs_mql = process_lhs(self, compiler, connection, as_path=False)
         return {"$arrayElemAt": [lhs_mql, self.index]}
+
+    def as_mql_path(self, compiler, connection):
+        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        return f"{lhs_mql}.{self.index}"
 
     @property
     def output_field(self):

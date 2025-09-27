@@ -137,7 +137,7 @@ class EmbeddedModelArrayFieldBuiltinLookup(Lookup):
         lhs_mql = process_lhs(self, compiler, connection)
         inner_lhs_mql = lhs_mql["$ifNull"][0]["$map"]["in"]
         values = process_rhs(self, compiler, connection)
-        lhs_mql["$ifNull"][0]["$map"]["in"] = connection.mongo_operators_expr[self.lookup_name](
+        lhs_mql["$ifNull"][0]["$map"]["in"] = connection.mongo_expr_operators[self.lookup_name](
             inner_lhs_mql, values
         )
         return {"$anyElementTrue": lhs_mql}
@@ -230,7 +230,6 @@ class EmbeddedModelArrayFieldLessThanOrEqual(
 
 class KeyTransform(Transform):
     field_class_name = "EmbeddedModelArrayField"
-    PREFIX_ITERABLE = "item"
 
     def __init__(self, key_name, array_field, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -239,7 +238,7 @@ class KeyTransform(Transform):
         # Lookups iterate over the array of embedded models. A virtual column
         # of the queried field's type represents each element.
         column_target = array_field.base_field.embedded_model._meta.get_field(key_name).clone()
-        column_name = f"${self.PREFIX_ITERABLE}.{key_name}"
+        column_name = f"$item.{key_name}"
         column_target.db_column = column_name
         column_target.set_attributes_from_name(column_name)
         self._lhs = Col(None, column_target)
@@ -293,13 +292,6 @@ class KeyTransform(Transform):
             f"{suggestion}"
         )
 
-    def as_mql_path(self, compiler, connection):
-        inner_lhs_mql = self._lhs.as_mql(compiler, connection, as_path=True).removeprefix(
-            f"${self.PREFIX_ITERABLE}."
-        )
-        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-        return f"{lhs_mql}.{inner_lhs_mql}"
-
     def as_mql_expr(self, compiler, connection):
         inner_lhs_mql = self._lhs.as_mql(compiler, connection)
         lhs_mql = process_lhs(self, compiler, connection)
@@ -308,13 +300,18 @@ class KeyTransform(Transform):
                 {
                     "$map": {
                         "input": lhs_mql,
-                        "as": self.PREFIX_ITERABLE,
+                        "as": "item",
                         "in": inner_lhs_mql,
                     }
                 },
                 [],
             ]
         }
+
+    def as_mql_path(self, compiler, connection):
+        inner_lhs_mql = self._lhs.as_mql(compiler, connection, as_path=True).removeprefix("$item.")
+        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        return f"{lhs_mql}.{inner_lhs_mql}"
 
     @property
     def output_field(self):

@@ -29,6 +29,18 @@ from django.db.models.sql import Query
 from ..query_utils import process_lhs
 
 
+def base_expression(self, compiler, connection, as_path=False, **extra):
+    if (
+        as_path
+        and hasattr(self, "as_mql_path")
+        and getattr(self, "is_simple_expression", lambda: False)()
+    ):
+        return self.as_mql_path(compiler, connection, **extra)
+
+    expr = self.as_mql_expr(compiler, connection, **extra)
+    return {"$expr": expr} if as_path else expr
+
+
 def case(self, compiler, connection):
     case_parts = []
     for case in self.cases:
@@ -190,7 +202,7 @@ def exists(self, compiler, connection, get_wrapping_pipeline=None):
         lhs_mql = subquery(self, compiler, connection, get_wrapping_pipeline=get_wrapping_pipeline)
     except EmptyResultSet:
         return Value(False).as_mql(compiler, connection)
-    return connection.mongo_operators_expr["isnull"](lhs_mql, False)
+    return connection.mongo_expr_operators["isnull"](lhs_mql, False)
 
 
 def when(self, compiler, connection, as_path=False):
@@ -219,18 +231,6 @@ def value(self, compiler, connection, as_path=False):  # noqa: ARG001
     if isinstance(value, UUID):
         return value.hex
     return value
-
-
-def base_expression(self, compiler, connection, as_path=False, **extra):
-    if (
-        as_path
-        and hasattr(self, "as_mql_path")
-        and getattr(self, "is_simple_expression", lambda: False)()
-    ):
-        return self.as_mql_path(compiler, connection, **extra)
-
-    expr = self.as_mql_expr(compiler, connection, **extra)
-    return {"$expr": expr} if as_path else expr
 
 
 def register_expressions():

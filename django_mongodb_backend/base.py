@@ -113,7 +113,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             return {"$or": [{a: {"$exists": False}}, {a: None}]}
         return {"$and": [{a: {"$exists": True}}, {a: {"$ne": None}}]}
 
-    mongo_operators_expr = {
+    mongo_expr_operators = {
         "exact": lambda a, b: {"$eq": [a, b]},
         "gt": lambda a, b: {"$gt": [a, b]},
         "gte": lambda a, b: {"$gte": [a, b]},
@@ -153,7 +153,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             return {"$literal": True}
         return {"$and": conditions}
 
-    mongo_operators_match = {
+    # match, path, find? don't know which name use.
+    mongo_match_operators = {
         "exact": lambda a, b: {a: b},
         "gt": lambda a, b: {a: {"$gt": b}},
         "gte": lambda a, b: {a: {"$gte": b}},

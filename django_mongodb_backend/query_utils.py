@@ -59,7 +59,6 @@ def regex_expr(field, regex_vals, insensitive=False):
 
 def regex_match(field, regex, insensitive=False):
     options = "i" if insensitive else ""
-    # return {"$regexMatch": {"input": field, "regex": regex, "options": options}}
     return {field: {"$regex": regex, "$options": options}}
 
 
