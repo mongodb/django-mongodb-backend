@@ -15,7 +15,7 @@ New features
 Bug fixes
 ---------
 
-- ...
+- Fixed ``transaction.atomic()`` crash if the connection isn't initialized.
 
 Deprecated features
 -------------------
