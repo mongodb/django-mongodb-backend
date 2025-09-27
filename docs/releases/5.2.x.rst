@@ -23,6 +23,8 @@ Bug fixes
   :attr:`~django.db.models.Field.db_column`.
 - Corrected the search index type of ``EmbeddedModelField`` and
   ``PolymorphicEmbeddedModelField`` from ``embeddedDocuments`` to ``document``.
+- Fixed ``transaction.atomic()`` crash if the database connection isn't
+  initialized.
 
 Deprecated features
 -------------------

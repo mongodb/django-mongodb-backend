@@ -272,6 +272,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     @async_unsafe
     def start_transaction_mongo(self):
         if self.session is None:
+            self.ensure_connection()
             self.session = self.connection.start_session()
             with debug_transaction(self, "session.start_transaction()"):
                 self.session.start_transaction()
