@@ -282,6 +282,11 @@ class QueryingTests(TestCase):
         with self.assertRaisesMessage(FieldDoesNotExist, msg):
             Exhibit.objects.filter(sections__section__in=[10]).first()
 
+    def test_invalid_nested_field(self):
+        msg = "Cannot perform multiple levels of array traversal in a query."
+        with self.assertRaisesMessage(ValueError, msg):
+            Exhibit.objects.filter(sections__artifacts__xx=10).first()
+
     def test_invalid_lookup(self):
         msg = "Unsupported lookup 'return' for EmbeddedModelArrayField of 'IntegerField'"
         with self.assertRaisesMessage(FieldDoesNotExist, msg):

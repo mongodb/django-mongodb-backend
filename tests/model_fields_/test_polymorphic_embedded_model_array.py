@@ -176,6 +176,11 @@ class QueryingTests(TestCase):
         with self.assertRaisesMessage(FieldDoesNotExist, msg):
             Owner.objects.filter(pets__xxx=10).first()
 
+    def test_invalid_nested_field(self):
+        msg = "Cannot perform multiple levels of array traversal in a query."
+        with self.assertRaisesMessage(ValueError, msg):
+            Owner.objects.filter(pets__toys__xxx=10).first()
+
     def test_invalid_lookup(self):
         msg = "Unsupported lookup 'return' for PolymorphicEmbeddedModelArrayField of 'CharField'"
         with self.assertRaisesMessage(FieldDoesNotExist, msg):
@@ -197,7 +202,7 @@ class QueryingTests(TestCase):
     def test_nested_lookup(self):
         msg = "Cannot perform multiple levels of array traversal in a query."
         with self.assertRaisesMessage(ValueError, msg):
-            Owner.objects.filter(pets__toys__name="")
+            Owner.objects.filter(pets__toys__brand="")
 
 
 @isolate_apps("model_fields_")
