@@ -185,7 +185,7 @@ the :djadmin:`showencryptedfieldsmap` command.
 To see the keys created by Django MongoDB Backend in the above scenario, you can
 run the following command::
 
-    python manage.py showencryptedfieldsmap --database encrypted
+    $ python manage.py showencryptedfieldsmap --database encrypted
 
 You can then use the output of the :djadmin:`showencryptedfieldsmap` command
 to set the ``encrypted_fields_map`` in
@@ -202,7 +202,7 @@ pre-defined encrypted fields map.
 If you do not want to use the data keys created by Django MongoDB Backend (when
 ``python manage.py migrate`` is run), you can generate new data keys with::
 
-    python manage.py showencryptedfieldsmap --database encrypted \
+    $ python manage.py showencryptedfieldsmap --database encrypted \
         --create-data-keys
 
 In this scenario, Django MongoDB Backend will use the newly created data keys

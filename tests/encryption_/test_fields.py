@@ -1,7 +1,7 @@
 import datetime
 from decimal import Decimal
 
-from django.test import TestCase, skipUnlessDBFeature
+from django.test import TestCase
 
 from .models import (
     Billing,
@@ -27,12 +27,10 @@ from .models import (
     Patient,
     PatientRecord,
 )
+from .test_base import EncryptionTestCase
 
 
-@skipUnlessDBFeature("supports_queryable_encryption")
-class PatientModelTests(TestCase):
-    databases = {"default", "encrypted"}
-
+class PatientModelTests(EncryptionTestCase):
     def setUp(self):
         self.billing = Billing(cc_type="Visa", cc_number="4111111111111111")
         self.patient_record = PatientRecord(ssn="123-45-6789", billing=self.billing)
@@ -47,94 +45,107 @@ class PatientModelTests(TestCase):
         self.assertEqual(patient.patient_record.billing.cc_number, "4111111111111111")
 
 
-@skipUnlessDBFeature("supports_queryable_encryption")
 class EncryptedFieldTests(TestCase):
     databases = {"default", "encrypted"}
 
-    def _assert_equality(self, model_cls, val):
+    def assertEquality(self, model_cls, val):
         model_cls.objects.create(value=val)
         fetched = model_cls.objects.get(value=val)
         self.assertEqual(fetched.value, val)
 
-    def _assert_range(self, model_cls, low, high, threshold):
+    def assertRange(self, model_cls, *, low, high, threshold):
         model_cls.objects.create(value=low)
         model_cls.objects.create(value=high)
         # equality check for both
         self.assertEqual(model_cls.objects.get(value=low).value, low)
         self.assertEqual(model_cls.objects.get(value=high).value, high)
-        # range check using Python-side length (avoid unsupported count aggregation)
+        # range check using `len()` because MongoDB does not support
+        # SQL-style COUNT aggregation and we can't rely on the queryset's
+        # count() method
         objs = list(model_cls.objects.filter(value__gt=threshold))
         self.assertEqual(len(objs), 1)
         self.assertEqual(objs[0].value, high)
 
     # Equality-only fields
     def test_binary(self):
-        self._assert_equality(EncryptedBinaryTest, b"\x00\x01\x02")
+        self.assertEquality(EncryptedBinaryTest, b"\x00\x01\x02")
 
     def test_boolean(self):
-        self._assert_equality(EncryptedBooleanTest, True)
+        self.assertEquality(EncryptedBooleanTest, True)
 
     def test_char(self):
-        self._assert_equality(EncryptedCharTest, "hello")
+        self.assertEquality(EncryptedCharTest, "hello")
 
     def test_email(self):
-        self._assert_equality(EncryptedEmailTest, "test@example.com")
+        self.assertEquality(EncryptedEmailTest, "test@example.com")
 
     def test_ip(self):
-        self._assert_equality(EncryptedGenericIPAddressTest, "192.168.0.1")
+        self.assertEquality(EncryptedGenericIPAddressTest, "192.168.0.1")
 
     def test_text(self):
-        self._assert_equality(EncryptedTextTest, "some text")
+        self.assertEquality(EncryptedTextTest, "some text")
 
     def test_url(self):
-        self._assert_equality(EncryptedURLTest, "https://example.com")
+        self.assertEquality(EncryptedURLTest, "https://example.com")
 
     # Range fields
     def test_big_integer(self):
-        self._assert_range(EncryptedBigIntegerTest, 100, 200, 150)
+        self.assertRange(EncryptedBigIntegerTest, low=100, high=200, threshold=150)
 
     def test_date(self):
-        d1 = datetime.date(2024, 6, 1)
-        d2 = datetime.date(2024, 6, 10)
-        self._assert_range(EncryptedDateTest, d1, d2, datetime.date(2024, 6, 5))
+        self.assertRange(
+            EncryptedDateTest,
+            low=datetime.date(2024, 6, 1),
+            high=datetime.date(2024, 6, 10),
+            threshold=datetime.date(2024, 6, 5),
+        )
 
     def test_datetime(self):
-        dt1 = datetime.datetime(2024, 6, 1, 12, 0)
-        dt2 = datetime.datetime(2024, 6, 2, 12, 0)
-        self._assert_range(EncryptedDateTimeTest, dt1, dt2, datetime.datetime(2024, 6, 2, 0, 0))
+        self.assertRange(
+            EncryptedDateTimeTest,
+            low=datetime.datetime(2024, 6, 1, 12, 0),
+            high=datetime.datetime(2024, 6, 2, 12, 0),
+            threshold=datetime.datetime(2024, 6, 2, 0, 0),
+        )
 
     def test_decimal(self):
-        self._assert_range(
-            EncryptedDecimalTest, Decimal("123.45"), Decimal("200.50"), Decimal("150")
+        self.assertRange(
+            EncryptedDecimalTest,
+            low=Decimal("123.45"),
+            high=Decimal("200.50"),
+            threshold=Decimal("150"),
         )
 
     def test_duration(self):
-        self._assert_range(
+        self.assertRange(
             EncryptedDurationTest,
-            datetime.timedelta(days=3),
-            datetime.timedelta(days=10),
-            datetime.timedelta(days=5),
+            low=datetime.timedelta(days=3),
+            high=datetime.timedelta(days=10),
+            threshold=datetime.timedelta(days=5),
         )
 
     def test_float(self):
-        self._assert_range(EncryptedFloatTest, 1.23, 4.56, 3.0)
+        self.assertRange(EncryptedFloatTest, low=1.23, high=4.56, threshold=3.0)
 
     def test_integer(self):
-        self._assert_range(EncryptedIntegerTest, 5, 10, 7)
+        self.assertRange(EncryptedIntegerTest, low=5, high=10, threshold=7)
 
     def test_positive_big_integer(self):
-        self._assert_range(EncryptedPositiveBigIntegerTest, 100, 500, 200)
+        self.assertRange(EncryptedPositiveBigIntegerTest, low=100, high=500, threshold=200)
 
     def test_positive_integer(self):
-        self._assert_range(EncryptedPositiveIntegerTest, 10, 20, 15)
+        self.assertRange(EncryptedPositiveIntegerTest, low=10, high=20, threshold=15)
 
     def test_positive_small_integer(self):
-        self._assert_range(EncryptedPositiveSmallIntegerTest, 5, 8, 6)
+        self.assertRange(EncryptedPositiveSmallIntegerTest, low=5, high=8, threshold=6)
 
     def test_small_integer(self):
-        self._assert_range(EncryptedSmallIntegerTest, -5, 2, 0)
+        self.assertRange(EncryptedSmallIntegerTest, low=-5, high=2, threshold=0)
 
     def test_time(self):
-        t1 = datetime.time(10, 0)
-        t2 = datetime.time(15, 0)
-        self._assert_range(EncryptedTimeTest, t1, t2, datetime.time(12, 0))
+        self.assertRange(
+            EncryptedTimeTest,
+            low=datetime.time(10, 0),
+            high=datetime.time(15, 0),
+            threshold=datetime.time(12, 0),
+        )

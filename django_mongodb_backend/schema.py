@@ -4,7 +4,6 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db import router
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
-from pymongo.encryption import ClientEncryption
 from pymongo.operations import SearchIndexModel
 
 from django_mongodb_backend.indexes import SearchIndex
@@ -457,14 +456,14 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
 
     def _create_collection(self, model):
         """
-        Create a collection for the model with the encrypted fields. If
-        provided, use the `_encrypted_fields_map` in the client's
-        `auto_encryption_opts`. Otherwise, create the encrypted fields map
-        with `_get_encrypted_fields`.
+        Create a collection for the model.
+        If the model has encrypted fields, build (or retrieve) the encrypted_fields schema.
         """
         db = self.get_database()
         db_table = model._meta.db_table
+
         if model_has_encrypted_fields(model):
+            # Encrypted path
             client = self.connection.connection
             auto_encryption_opts = getattr(client._options, "auto_encryption_opts", None)
             if not auto_encryption_opts:
@@ -472,64 +471,139 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                     f"Encrypted fields found but DATABASES['{self.connection.alias}']['OPTIONS'] "
                     "is missing auto_encryption_opts."
                 )
+
             encrypted_fields_map = getattr(auto_encryption_opts, "_encrypted_fields_map", None)
+
             if not encrypted_fields_map:
-                encrypted_fields = self._get_encrypted_fields(model, client, create_data_keys=True)
+                encrypted_fields = self._get_encrypted_fields(model, create_data_keys=True)
             else:
-                # If the encrypted fields map is provided, get the encrypted fields for the
-                # specific collection.
                 encrypted_fields = encrypted_fields_map.get(db_table)
-            db.create_collection(db_table, encryptedFields=encrypted_fields)
+
+            if encrypted_fields and encrypted_fields.get("fields"):
+                db.create_collection(db_table, encryptedFields=encrypted_fields)
+            else:
+                db.create_collection(db_table)
+
         else:
+            # Unencrypted path
             db.create_collection(db_table)
 
-    def _get_encrypted_fields(self, model, client, create_data_keys=False):
+    def _get_encrypted_fields(
+        self, model, create_data_keys=False, key_alt_name=None, parent_model=None
+    ):
+        """
+        Recursively collect encryption schema data for only encrypted fields in a model.
+        Returns None if no encrypted fields are found anywhere in the model hierarchy.
+
+        key_alt_name is the base path used for keyAltNames.
+        parent_model is the dot-notated path inside the document for schema mapping.
+        """
         connection = self.connection
+        client = connection.connection
         fields = model._meta.fields
+        key_alt_name = key_alt_name or model._meta.db_table
+        parent_model = parent_model or ""
+
         options = client._options
-        auto_encryption_opts = options.auto_encryption_opts
+        auto_encryption_opts = getattr(options, "auto_encryption_opts", None)
+
+        key_vault_collection = None
+        if auto_encryption_opts:
+            key_vault_db, key_vault_coll = auto_encryption_opts._key_vault_namespace.split(".", 1)
+            key_vault_collection = client[key_vault_db][key_vault_coll]
+
         kms_provider = router.kms_provider(model)
-        master_key = self.connection.settings_dict.get("KMS_CREDENTIALS", {}).get(kms_provider)
-        client_encryption = ClientEncryption(
-            auto_encryption_opts._kms_providers,
-            auto_encryption_opts._key_vault_namespace,
-            client,
-            client.codec_options,
-        )
-        key_vault_db, key_vault_coll = auto_encryption_opts._key_vault_namespace.split(".", 1)
-        key_vault_collection = client[key_vault_db][key_vault_coll]
-        db_table = model._meta.db_table
+        master_key = connection.settings_dict.get("KMS_CREDENTIALS", {}).get(kms_provider)
+        client_encryption = getattr(self.connection, "client_encryption", None)
+
         field_list = []
+
         for field in fields:
+            new_key_alt_name = f"{key_alt_name}.{field.column}"
+            new_parent_model = f"{parent_model}.{field.column}" if parent_model else field.column
+
+            # --- EmbeddedModelField ---
             if isinstance(field, EmbeddedModelField):
-                # Recursively get encrypted fields for the embedded model.
-                self._get_encrypted_fields(field.embedded_model, client, create_data_keys)
+                if getattr(field, "encrypted", False):
+                    # Entire sub-object encrypted
+                    if create_data_keys:
+                        if not client_encryption:
+                            raise ImproperlyConfigured("client_encryption is not configured.")
+                        data_key = client_encryption.create_data_key(
+                            kms_provider=kms_provider,
+                            master_key=master_key,
+                            key_alt_names=[new_key_alt_name],
+                        )
+                    else:
+                        if key_vault_collection is None:
+                            raise ImproperlyConfigured(
+                                f"Encrypted field {new_key_alt_name} detected "
+                                "but no key vault configured"
+                            )
+                        key_doc = key_vault_collection.find_one({"keyAltNames": new_key_alt_name})
+                        if not key_doc:
+                            raise ValueError(
+                                f"No key found in keyvault for keyAltName={new_key_alt_name}. "
+                                "Run with '--create-data-keys' to create missing keys."
+                            )
+                        data_key = key_doc["_id"]
+
+                    field_dict = {
+                        "bsonType": "object",
+                        "path": new_parent_model,
+                        "keyId": data_key,
+                    }
+                    if getattr(field, "queries", False):
+                        field_dict["queries"] = field.queries
+
+                    field_list.append(field_dict)
+                else:
+                    # Recurse into embedded model
+                    embedded_result = self._get_encrypted_fields(
+                        field.embedded_model,
+                        create_data_keys=create_data_keys,
+                        key_alt_name=new_key_alt_name,
+                        parent_model=new_parent_model,
+                    )
+                    if embedded_result and embedded_result.get("fields"):
+                        field_list.extend(embedded_result["fields"])
+                continue
+
+            # --- Leaf encrypted field ---
             if getattr(field, "encrypted", False):
-                key_alt_name = f"{db_table}.{field.column}"
                 if create_data_keys:
+                    if not client_encryption:
+                        raise ImproperlyConfigured("client_encryption is not configured.")
                     data_key = client_encryption.create_data_key(
                         kms_provider=kms_provider,
                         master_key=master_key,
-                        key_alt_names=[key_alt_name],
+                        key_alt_names=[new_key_alt_name],
                     )
                 else:
-                    key_doc = key_vault_collection.find_one({"keyAltNames": key_alt_name})
+                    if key_vault_collection is None:
+                        raise ImproperlyConfigured(
+                            f"Encrypted field {new_key_alt_name} detected "
+                            "but no key vault configured"
+                        )
+                    key_doc = key_vault_collection.find_one({"keyAltNames": new_key_alt_name})
                     if not key_doc:
                         raise ValueError(
-                            f"No key found in keyvault for keyAltName={key_alt_name}. "
-                            "You may need to run the management command with "
-                            "'--create-data-keys' to create missing keys."
+                            f"No key found in keyvault for keyAltName={new_key_alt_name}. "
+                            "Run with '--create-data-keys' to create missing keys."
                         )
                     data_key = key_doc["_id"]
+
                 field_dict = {
                     "bsonType": field.db_type(connection),
-                    "path": field.column,
+                    "path": new_parent_model,
                     "keyId": data_key,
                 }
                 if getattr(field, "queries", False):
                     field_dict["queries"] = field.queries
+
                 field_list.append(field_dict)
-        return {"fields": field_list}
+
+        return {"fields": field_list} if field_list else None
 
 
 # GISSchemaEditor extends some SchemaEditor methods.

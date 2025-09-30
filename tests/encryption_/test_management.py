@@ -2,16 +2,25 @@ from io import StringIO
 
 from bson import json_util
 from django.core.management import call_command
-from django.test import TestCase, modify_settings, skipUnlessDBFeature
+from django.test import modify_settings
+
+from .test_base import EncryptionTestCase
 
 
-@skipUnlessDBFeature("supports_queryable_encryption")
 @modify_settings(INSTALLED_APPS={"prepend": "django_mongodb_backend"})
-class CommandTests(TestCase):
-    maxDiff = None
-
+class CommandTests(EncryptionTestCase):
     # Expected encrypted field maps for all Encrypted* models
     expected_maps = {
+        "encryption__patient": {
+            "fields": [
+                {
+                    "bsonType": "string",
+                    "path": "patient_record.ssn",
+                    "queries": {"queryType": "equality"},
+                },
+                {"bsonType": "object", "path": "patient_record.billing"},
+            ]
+        },
         # Equality-queryable fields
         "encryption__encryptedbinarytest": {
             "fields": [

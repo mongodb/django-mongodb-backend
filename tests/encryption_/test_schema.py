@@ -1,14 +1,23 @@
+from bson.binary import Binary
 from django.db import connections
-from django.test import TestCase
 
-from . import models  # your encryption_ models file with Encrypted*Test classes
+from . import models
+from .test_base import EncryptionTestCase
 
 
-class SchemaTests(TestCase):
-    maxDiff = None
-
+class SchemaTests(EncryptionTestCase):
     # Expected encrypted fields map per model
     expected_map = {
+        "Patient": {
+            "fields": [
+                {
+                    "bsonType": "string",
+                    "path": "patient_record.ssn",
+                    "queries": {"queryType": "equality"},
+                },
+                {"bsonType": "object", "path": "patient_record.billing"},
+            ]
+        },
         "EncryptedBinaryTest": {
             "fields": [
                 {"bsonType": "binData", "path": "value", "queries": {"queryType": "equality"}}
@@ -97,3 +106,36 @@ class SchemaTests(TestCase):
                     for field in encrypted_fields["fields"]:
                         field.pop("keyId", None)  # Remove dynamic value
                     self.assertEqual(encrypted_fields, expected)
+
+    def test_key_creation_and_lookup(self):
+        """
+        Use _get_encrypted_fields(create_data_keys=True) to
+        generate and store a data key in the vault, then
+        query the vault with the keyAltName.
+        """
+        connection = connections["encrypted"]
+        client = connection.connection
+        auto_encryption_opts = client._options.auto_encryption_opts
+
+        key_vault_db, key_vault_coll = auto_encryption_opts._key_vault_namespace.split(".", 1)
+        vault_coll = client[key_vault_db][key_vault_coll]
+
+        model_class = models.EncryptedCharTest
+        test_key_alt_name = f"{model_class._meta.db_table}.value"
+        vault_coll.delete_many({"keyAltNames": test_key_alt_name})
+
+        # Call _get_encrypted_fields with create_data_keys=True
+        with connection.schema_editor() as editor:
+            encrypted_fields = editor._get_encrypted_fields(model_class, create_data_keys=True)
+
+        # Validate schema contains a keyId for our field
+        self.assertTrue(encrypted_fields["fields"])
+        field_info = encrypted_fields["fields"][0]
+        self.assertEqual(field_info["path"], "value")
+        self.assertIsInstance(field_info["keyId"], Binary)
+
+        # Lookup in key vault by the keyAltName created
+        key_doc = vault_coll.find_one({"keyAltNames": test_key_alt_name})
+        self.assertIsNotNone(key_doc, "Key should exist in vault")
+        self.assertEqual(key_doc["_id"], field_info["keyId"])
+        self.assertIn(test_key_alt_name, key_doc["keyAltNames"])
