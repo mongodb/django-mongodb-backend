@@ -28,7 +28,7 @@ jobs:
       - name: install django-mongodb-backend
         run: |
           pip3 install --upgrade pip
-          pip3 install -e .
+          pip3 install -e .[encryption]
       - name: Checkout Django
         uses: actions/checkout@v5
         with:
@@ -45,8 +45,8 @@ jobs:
           cd django_repo/tests/
           pip3 install -e ..
           pip3 install -r requirements/py3.txt
-      - name: Copy the test settings file
-        run: cp .github/workflows/mongodb_settings.py django_repo/tests/
+      - name: Copy the test settings files
+        run: cp .github/workflows/*_settings.py django_repo/tests/
       - name: Copy the test runner file
         run: cp .github/workflows/runtests.py django_repo/tests/runtests_.py
       - name: Start local Atlas
@@ -56,3 +56,5 @@ jobs:
         run: python3 django_repo/tests/runtests_.py
     permissions:
         contents: read
+    env:
+      DJANGO_SETTINGS_MODULE: "encrypted_settings"
