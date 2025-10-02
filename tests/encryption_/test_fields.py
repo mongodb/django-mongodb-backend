@@ -1,8 +1,6 @@
 import datetime
 from decimal import Decimal
 
-from django.test import TestCase
-
 from .models import (
     Billing,
     EncryptedBigIntegerTest,
@@ -45,7 +43,7 @@ class PatientModelTests(EncryptionTestCase):
         self.assertEqual(patient.patient_record.billing.cc_number, "4111111111111111")
 
 
-class EncryptedFieldTests(TestCase):
+class EncryptedFieldTests(EncryptionTestCase):
     databases = {"default", "encrypted"}
 
     def assertEquality(self, model_cls, val):
