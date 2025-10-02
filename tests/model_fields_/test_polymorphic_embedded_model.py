@@ -18,6 +18,9 @@ class MethodTests(SimpleTestCase):
         field = PolymorphicEmbeddedModelField(["Data"], null=True)
         self.assertIs(field.editable, False)
 
+    def test_db_type(self):
+        self.assertEqual(PolymorphicEmbeddedModelField(["Data"]).db_type(connection), "object")
+
     def test_deconstruct(self):
         field = PolymorphicEmbeddedModelField(["Data"], null=True)
         field.name = "field_name"

@@ -23,7 +23,7 @@ class EmbeddedModelField(models.Field):
         super().__init__(*args, **kwargs)
 
     def db_type(self, connection):
-        return "embeddedDocuments"
+        return "object"
 
     def check(self, **kwargs):
         from ..models import EmbeddedModel  # noqa: PLC0415

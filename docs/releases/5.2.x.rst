@@ -21,6 +21,8 @@ Bug fixes
   ``EmbeddedModel``).
 - Made ``EmbeddedModel`` fields respect
   :attr:`~django.db.models.Field.db_column`.
+- Corrected the search index type of ``EmbeddedModelField`` and
+  ``PolymorphicEmbeddedModelField`` from ``embeddedDocuments`` to ``document``.
 
 Deprecated features
 -------------------

@@ -30,6 +30,9 @@ from .utils import truncate_ms
 
 
 class MethodTests(SimpleTestCase):
+    def test_db_type(self):
+        self.assertEqual(EmbeddedModelField("Data").db_type(connection), "object")
+
     def test_deconstruct(self):
         field = EmbeddedModelField("Data", null=True)
         field.name = "field_name"

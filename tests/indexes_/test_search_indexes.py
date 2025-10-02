@@ -159,7 +159,7 @@ class SearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
                         "type": "string",
                     },
                     "datetime": {"type": "date"},
-                    "embedded_model": {"dynamic": False, "fields": {}, "type": "embeddedDocuments"},
+                    "embedded_model": {"dynamic": False, "fields": {}, "type": "document"},
                     "float": {
                         "indexDoubles": True,
                         "indexIntegers": True,
