@@ -215,10 +215,6 @@ The :ref:`manual:qe-reference-shared-library` is a preferred alternative to
 :ref:`manual:qe-mongocryptd` and does not require you to start another process
 to perform automatic encryption.
 
-In practice, if you use Atlas or Enterprise MongoDB, ``mongocryptd`` is already
-configured for you, however in such cases the shared library is still
-recommended for use with Queryable Encryption.
-
 You can :ref:`download the shared library
 <manual:qe-csfle-shared-library-download>` from the
 :ref:`manual:enterprise-official-packages` and configure it in your Django
