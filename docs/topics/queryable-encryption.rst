@@ -99,3 +99,33 @@ For example, to find a patient by their SSN, you can do the following::
     >>> patient = Patient.objects.get(ssn="123-45-6789")
     >>> patient.name
     'Bob'
+
+
+QuerySet Limitations
+~~~~~~~~~~~~~~~~~~~~
+
+When using Django QuerySets with MongoDB Queryable Encryption, it’s important to
+understand that many typical ORM features are restricted because the database
+only sees encrypted ciphertext, not plaintext. This means that only certain
+query types are supported, and a lot of filtering, sorting, and aggregating must
+be done client-side after decryption. Key limitations include:
+
+- **Equality only filtering** – You can filter encrypted fields using exact
+  matches, but operators like contains, startswith, regex, or unsupported range
+  lookups will not work.
+- **No server-side sorting** – .order_by() on encrypted fields won’t produce
+  meaningful results; sorting needs to happen after decryption in Python.
+- **No server-side aggregation** – Functions like annotate() or aggregate()
+  won’t operate on encrypted fields; you must aggregate locally after fetching
+  data.
+- **Index constraints** – Queries are only possible on encrypted fields that
+  have a configured queryable encryption index and keys available on the client.
+- **No joins on encrypted fields** – Filtering across relationships using
+  encrypted foreign keys is unsupported because matching must happen
+  client-side.
+- **Admin/debug limitations** – You’ll need to integrate client-side decryption
+  for Django admin or tools, otherwise you’ll see ciphertext.
+
+In short, when working with Queryable Encryption, design your queries to use
+exact matches only on encrypted fields, and plan to handle any sorting or
+aggregation after results are decrypted in your application code.

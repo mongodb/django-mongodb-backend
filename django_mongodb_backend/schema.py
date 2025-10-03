@@ -479,7 +479,9 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             else:
                 encrypted_fields = encrypted_fields_map.get(db_table)
 
-            if encrypted_fields and encrypted_fields.get("fields"):
+            # if encrypted_fields and encrypted_fields.get("fields"):
+
+            if encrypted_fields:
                 db.create_collection(db_table, encryptedFields=encrypted_fields)
             else:
                 db.create_collection(db_table)
@@ -489,20 +491,20 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             db.create_collection(db_table)
 
     def _get_encrypted_fields(
-        self, model, create_data_keys=False, key_alt_name=None, parent_model=None
+        self, model, create_data_keys=False, key_alt_name=None, path_prefix=None
     ):
         """
         Recursively collect encryption schema data for only encrypted fields in a model.
         Returns None if no encrypted fields are found anywhere in the model hierarchy.
 
         key_alt_name is the base path used for keyAltNames.
-        parent_model is the dot-notated path inside the document for schema mapping.
+        path_prefix is the dot-notated path inside the document for schema mapping.
         """
         connection = self.connection
         client = connection.connection
         fields = model._meta.fields
         key_alt_name = key_alt_name or model._meta.db_table
-        parent_model = parent_model or ""
+        path_prefix = path_prefix or ""
 
         options = client._options
         auto_encryption_opts = getattr(options, "auto_encryption_opts", None)
@@ -520,7 +522,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
 
         for field in fields:
             new_key_alt_name = f"{key_alt_name}.{field.column}"
-            new_parent_model = f"{parent_model}.{field.column}" if parent_model else field.column
+            path = f"{path_prefix}.{field.column}" if path_prefix else field.column
 
             # --- EmbeddedModelField ---
             if isinstance(field, EmbeddedModelField):
@@ -550,7 +552,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
 
                     field_dict = {
                         "bsonType": "object",
-                        "path": new_parent_model,
+                        "path": path,
                         "keyId": data_key,
                     }
                     if getattr(field, "queries", False):
@@ -563,7 +565,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                         field.embedded_model,
                         create_data_keys=create_data_keys,
                         key_alt_name=new_key_alt_name,
-                        parent_model=new_parent_model,
+                        path_prefix=path,
                     )
                     if embedded_result and embedded_result.get("fields"):
                         field_list.extend(embedded_result["fields"])
@@ -595,7 +597,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
 
                 field_dict = {
                     "bsonType": field.db_type(connection),
-                    "path": new_parent_model,
+                    "path": path,
                     "keyId": data_key,
                 }
                 if getattr(field, "queries", False):

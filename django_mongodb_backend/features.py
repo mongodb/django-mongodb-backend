@@ -633,7 +633,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     def supports_queryable_encryption(self):
         """
         Queryable Encryption requires a MongoDB 7.0 or later replica set or sharded
-        cluster, as well as MonogDB Atlas or Enterprise.
+        cluster, as well as MongoDB Atlas or Enterprise.
         """
         self.connection.ensure_connection()
         build_info = self.connection.connection.admin.command("buildInfo")
