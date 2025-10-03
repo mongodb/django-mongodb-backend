@@ -1,6 +1,8 @@
 import datetime
 from decimal import Decimal
 
+from django_mongodb_backend.fields import EncryptedCharField
+
 from .models import (
     Billing,
     EncryptedBigIntegerTest,
@@ -44,8 +46,6 @@ class PatientModelTests(EncryptionTestCase):
 
 
 class EncryptedFieldTests(EncryptionTestCase):
-    databases = {"default", "encrypted"}
-
     def assertEquality(self, model_cls, val):
         model_cls.objects.create(value=val)
         fetched = model_cls.objects.get(value=val)
@@ -147,3 +147,37 @@ class EncryptedFieldTests(EncryptionTestCase):
             high=datetime.time(15, 0),
             threshold=datetime.time(12, 0),
         )
+
+
+class EncryptedFieldMixinTests(EncryptionTestCase):
+    def test_null_true_raises_error(self):
+        with self.assertRaisesMessage(
+            ValueError, "'null=True' is not supported for encrypted fields."
+        ):
+            EncryptedCharField(max_length=50, null=True)
+
+    def test_deconstruct_preserves_queries_and_rewrites_path(self):
+        field = EncryptedCharField(max_length=50, queries={"field": "value"})
+        field.name = "ssn"
+        name, path, args, kwargs = field.deconstruct()
+
+        # Name is preserved
+        self.assertEqual(name, "ssn")
+
+        # Path is rewritten from 'encrypted_model' to regular fields path
+        self.assertEqual(path, "django_mongodb_backend.fields.EncryptedCharField")
+
+        # No positional args for CharField
+        self.assertEqual(args, [])
+
+        # Queries value is preserved in kwargs
+        self.assertIn("queries", kwargs)
+        self.assertEqual(kwargs["queries"], {"field": "value"})
+
+        # Reconstruct from deconstruct output
+        new_field = EncryptedCharField(*args, **kwargs)
+
+        # Reconstructed field is equivalent
+        self.assertEqual(new_field.queries, field.queries)
+        self.assertIsNot(new_field, field)
+        self.assertEqual(new_field.max_length, field.max_length)

@@ -25,9 +25,9 @@ class EncryptedFieldMixin:
         if self.queries is not None:
             kwargs["queries"] = self.queries
 
-        if path.startswith("django_mongodb_backend.fields.encrypted_model"):
+        if path.startswith("django_mongodb_backend.fields.encryption"):
             path = path.replace(
-                "django_mongodb_backend.fields.encrypted_model",
+                "django_mongodb_backend.fields.encryption",
                 "django_mongodb_backend.fields",
             )
 
