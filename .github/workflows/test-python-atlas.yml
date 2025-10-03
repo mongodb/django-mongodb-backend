@@ -49,6 +49,10 @@ jobs:
         run: cp .github/workflows/*_settings.py django_repo/tests/
       - name: Copy the test runner file
         run: cp .github/workflows/runtests.py django_repo/tests/runtests_.py
+      - name: Download crypt shared
+        run: |
+          wget https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2204-7.0.25.tgz
+          tar -xvzf mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2204-7.0.25.tgz lib/mongo_crypt_v1.so
       - name: Start local Atlas
         working-directory: .
         run: bash .github/workflows/start_local_atlas.sh mongodb/mongodb-atlas-local:7
