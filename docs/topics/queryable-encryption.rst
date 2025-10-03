@@ -2,7 +2,7 @@
 Queryable Encryption
 ====================
 
-.. versionadded:: 5.2.1
+.. versionadded:: 5.2.2
 
 Once you have configured your Django project and MongoDB deployment for
 Queryable Encryption, you’re ready to start developing applications that take

@@ -2,7 +2,7 @@
 Encrypted fields
 ================
 
-.. versionadded:: 5.2.1
+.. versionadded:: 5.2.2
 
 Django MongoDB Backend supports :doc:`manual:core/queryable-encryption`.
 
@@ -65,7 +65,7 @@ supported by Queryable Encryption.
 
 .. class:: EncryptedFieldMixin
 
-    .. versionadded:: 5.2.1
+    .. versionadded:: 5.2.2
 
     A mixin that can be used to create custom encrypted fields that support
     MongoDB's Queryable Encryption.
