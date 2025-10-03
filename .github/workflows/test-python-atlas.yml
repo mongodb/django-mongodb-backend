@@ -19,7 +19,7 @@ defaults:
 jobs:
   build:
     name: Django Test Suite
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout django-mongodb-backend
         uses: actions/checkout@v5
