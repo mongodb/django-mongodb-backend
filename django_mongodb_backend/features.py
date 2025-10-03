@@ -601,6 +601,10 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         return self.mongodb_version >= (7, 0)
 
     @cached_property
+    def is_mongodb_8_0(self):
+        return self.mongodb_version >= (8, 0)
+
+    @cached_property
     def supports_atlas_search(self):
         """Does the server support Atlas search queries and search indexes?"""
         try:
@@ -641,5 +645,5 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         return (
             (is_enterprise or self.supports_atlas_search)
             and self._supports_transactions
-            and self.is_mongodb_7_0
+            and self.is_mongodb_8_0
         )
