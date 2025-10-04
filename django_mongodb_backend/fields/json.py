@@ -13,8 +13,8 @@ from django.db.models.fields.json import (
     KeyTransformNumericLookupMixin,
 )
 
-from ..lookups import builtin_lookup
-from ..query_utils import process_lhs, process_rhs
+from django_mongodb_backend.lookups import builtin_lookup
+from django_mongodb_backend.query_utils import process_lhs, process_rhs
 
 
 def build_json_mql_path(lhs, key_transforms):

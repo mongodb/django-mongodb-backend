@@ -6,10 +6,10 @@ from django.db.models.fields.mixins import CheckFieldDefaultMixin
 from django.db.models.lookups import Exact, FieldGetDbPrepValueMixin, In, Lookup
 from django.utils.translation import gettext_lazy as _
 
-from ..forms import SimpleArrayField
-from ..query_utils import process_lhs, process_rhs
-from ..utils import prefix_validation_error
-from ..validators import ArrayMaxLengthValidator, LengthValidator
+from django_mongodb_backend.forms import SimpleArrayField
+from django_mongodb_backend.query_utils import process_lhs, process_rhs
+from django_mongodb_backend.utils import prefix_validation_error
+from django_mongodb_backend.validators import ArrayMaxLengthValidator, LengthValidator
 
 __all__ = ["ArrayField"]
 
