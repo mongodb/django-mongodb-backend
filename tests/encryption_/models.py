@@ -53,78 +53,78 @@ class Billing(EmbeddedModel):
 
 
 # Equality-queryable fields
-class EncryptedBinaryTest(EncryptedTestModel):
+class BinaryModel(EncryptedTestModel):
     value = EncryptedBinaryField(queries={"queryType": "equality"})
 
 
-class EncryptedBooleanTest(EncryptedTestModel):
+class BooleanModel(EncryptedTestModel):
     value = EncryptedBooleanField(queries={"queryType": "equality"})
 
 
-class EncryptedCharTest(EncryptedTestModel):
+class CharModel(EncryptedTestModel):
     value = EncryptedCharField(max_length=255, queries={"queryType": "equality"})
 
 
-class EncryptedEmailTest(EncryptedTestModel):
+class EmailModel(EncryptedTestModel):
     value = EncryptedEmailField(max_length=255, queries={"queryType": "equality"})
 
 
-class EncryptedGenericIPAddressTest(EncryptedTestModel):
+class GenericIPAddressModel(EncryptedTestModel):
     value = EncryptedGenericIPAddressField(queries={"queryType": "equality"})
 
 
-class EncryptedTextTest(EncryptedTestModel):
+class TextModel(EncryptedTestModel):
     value = EncryptedTextField(queries={"queryType": "equality"})
 
 
-class EncryptedURLTest(EncryptedTestModel):
+class URLModel(EncryptedTestModel):
     value = EncryptedURLField(max_length=500, queries={"queryType": "equality"})
 
 
 # Range-queryable fields (also support equality)
-class EncryptedBigIntegerTest(EncryptedTestModel):
+class BigIntegerModel(EncryptedTestModel):
     value = EncryptedBigIntegerField(queries={"queryType": "range"})
 
 
-class EncryptedDateTest(EncryptedTestModel):
+class DateModel(EncryptedTestModel):
     value = EncryptedDateField(queries={"queryType": "range"})
 
 
-class EncryptedDateTimeTest(EncryptedTestModel):
+class DateTimeModel(EncryptedTestModel):
     value = EncryptedDateTimeField(queries={"queryType": "range"})
 
 
-class EncryptedDecimalTest(EncryptedTestModel):
+class DecimalModel(EncryptedTestModel):
     value = EncryptedDecimalField(max_digits=10, decimal_places=2, queries={"queryType": "range"})
 
 
-class EncryptedDurationTest(EncryptedTestModel):
+class DurationModel(EncryptedTestModel):
     value = EncryptedDurationField(queries={"queryType": "range"})
 
 
-class EncryptedFloatTest(EncryptedTestModel):
+class FloatModel(EncryptedTestModel):
     value = EncryptedFloatField(queries={"queryType": "range"})
 
 
-class EncryptedIntegerTest(EncryptedTestModel):
+class IntegerModel(EncryptedTestModel):
     value = EncryptedIntegerField(queries={"queryType": "range"})
 
 
-class EncryptedPositiveBigIntegerTest(EncryptedTestModel):
+class PositiveBigIntegerModel(EncryptedTestModel):
     value = EncryptedPositiveBigIntegerField(queries={"queryType": "range"})
 
 
-class EncryptedPositiveIntegerTest(EncryptedTestModel):
+class PositiveIntegerModel(EncryptedTestModel):
     value = EncryptedPositiveIntegerField(queries={"queryType": "range"})
 
 
-class EncryptedPositiveSmallIntegerTest(EncryptedTestModel):
+class PositiveSmallIntegerModel(EncryptedTestModel):
     value = EncryptedPositiveSmallIntegerField(queries={"queryType": "range"})
 
 
-class EncryptedSmallIntegerTest(EncryptedTestModel):
+class SmallIntegerModel(EncryptedTestModel):
     value = EncryptedSmallIntegerField(queries={"queryType": "range"})
 
 
-class EncryptedTimeTest(EncryptedTestModel):
+class TimeModel(EncryptedTestModel):
     value = EncryptedTimeField(queries={"queryType": "range"})

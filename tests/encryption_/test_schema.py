@@ -18,80 +18,80 @@ class SchemaTests(EncryptionTestCase):
                 {"bsonType": "object", "path": "patient_record.billing"},
             ]
         },
-        "EncryptedBinaryTest": {
+        "BinaryModel": {
             "fields": [
                 {"bsonType": "binData", "path": "value", "queries": {"queryType": "equality"}}
             ]
         },
-        "EncryptedBooleanTest": {
+        "BooleanModel": {
             "fields": [{"bsonType": "bool", "path": "value", "queries": {"queryType": "equality"}}]
         },
-        "EncryptedCharTest": {
+        "CharModel": {
             "fields": [
                 {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
             ]
         },
-        "EncryptedEmailTest": {
+        "EmailModel": {
             "fields": [
                 {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
             ]
         },
-        "EncryptedGenericIPAddressTest": {
+        "GenericIPAddressModel": {
             "fields": [
                 {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
             ]
         },
-        "EncryptedTextTest": {
+        "TextModel": {
             "fields": [
                 {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
             ]
         },
-        "EncryptedURLTest": {
+        "URLModel": {
             "fields": [
                 {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
             ]
         },
-        "EncryptedBigIntegerTest": {
+        "BigIntegerModel": {
             "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "EncryptedDateTest": {
+        "DateModel": {
             "fields": [{"bsonType": "date", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "EncryptedDateTimeTest": {
+        "DateTimeModel": {
             "fields": [{"bsonType": "date", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "EncryptedDecimalTest": {
+        "DecimalModel": {
             "fields": [{"bsonType": "decimal", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "EncryptedDurationTest": {
+        "DurationModel": {
             "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "EncryptedFloatTest": {
+        "FloatModel": {
             "fields": [{"bsonType": "double", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "EncryptedIntegerTest": {
+        "IntegerModel": {
             "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "EncryptedPositiveBigIntegerTest": {
+        "PositiveBigIntegerModel": {
             "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "EncryptedPositiveIntegerTest": {
+        "PositiveIntegerModel": {
             "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "EncryptedPositiveSmallIntegerTest": {
+        "PositiveSmallIntegerModel": {
             "fields": [{"bsonType": "int", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "EncryptedSmallIntegerTest": {
+        "SmallIntegerModel": {
             "fields": [{"bsonType": "int", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "EncryptedTimeTest": {
+        "TimeModel": {
             "fields": [{"bsonType": "date", "path": "value", "queries": {"queryType": "range"}}]
         },
     }
 
     def test_get_encrypted_fields_all_models(self):
         """
-        Loops through all Encrypted*Test models,
+        Loops through all models,
         checks their encrypted fields map from the schema editor,
         and compares to expected BSON type & queries mapping.
         """
@@ -120,7 +120,7 @@ class SchemaTests(EncryptionTestCase):
         key_vault_db, key_vault_coll = auto_encryption_opts._key_vault_namespace.split(".", 1)
         vault_coll = client[key_vault_db][key_vault_coll]
 
-        model_class = models.EncryptedCharTest
+        model_class = models.CharModel
         test_key_alt_name = f"{model_class._meta.db_table}.value"
         vault_coll.delete_many({"keyAltNames": test_key_alt_name})
 

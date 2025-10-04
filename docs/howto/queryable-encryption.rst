@@ -14,7 +14,7 @@ Encryption in your Django project.
 .. admonition:: MongoDB requirements
 
     Queryable Encryption can be used with MongoDB replica sets or sharded
-    clusters running version 7.0 or later. Standalone instances are not
+    clusters running version 8.0 or later. Standalone instances are not
     supported. The following table summarizes which MongoDB server products
     support each Queryable Encryption mechanism.
 
@@ -51,21 +51,36 @@ encryption keys.
 
     import os
 
-    from django_mongodb_backend import parse_uri
     from pymongo.encryption_options import AutoEncryptionOpts
 
     DATABASES = {
-        # ...
-        "encrypted": parse_uri(
-            DATABASE_URL,
-            options={
+        "default": {
+            "ENGINE": "django_mongodb_backend",
+            "HOST": "mongodb+srv://cluster0.example.mongodb.net",
+            "NAME": "my_database",
+            "USER": "my_user",
+            "PASSWORD": "my_password",
+            "PORT": 27017,
+            "OPTIONS": {
+                "retryWrites": "true",
+                "w": "majority",
+                "tls": "false",
+            },
+        },
+        "encrypted": {
+            "ENGINE": "django_mongodb_backend",
+            "HOST": "mongodb+srv://cluster0.example.mongodb.net",
+            "NAME": "encrypted",
+            "USER": "my_user",
+            "PASSWORD": "my_password",
+            "PORT": 27017,
+            "OPTIONS": {
                 "auto_encryption_opts": AutoEncryptionOpts(
-                    key_vault_namespace="keyvault.keyvault",
+                    key_vault_namespace="encrypted.keyvault",
                     kms_providers={"local": {"key": os.urandom(96)}},
                 )
             },
-            db_name="encrypted",
-        ),
+        },
     }
 
 Configuring the ``DATABASE_ROUTERS`` setting
@@ -88,10 +103,15 @@ configure a custom router for Queryable Encryption:
         Encryption.
         """
 
+        def db_for_read(self, model, **hints):
+            if model._meta.app_label == "myapp":
+                return "encrypted"
+            return None
+
+        db_for_write = db_for_read
+
         def allow_migrate(self, db, app_label, model_name=None, **hints):
-            # The patientdata app's models are only created in the encrypted
-            # database.
-            if app_label == "patientdata":
+            if app_label == "myapp":
                 return db == "encrypted"
             # Don't create other app's models in the encrypted database.
             if db == "encrypted":
@@ -132,15 +152,19 @@ Example of KMS configuration with AWS KMS:
 
 .. code-block:: python
 
-    from django_mongodb_backend import parse_uri
     from pymongo.encryption_options import AutoEncryptionOpts
 
     DATABASES = {
-        "encrypted": parse_uri(
-            DATABASE_URL,
-            options={
+        "encrypted": {
+            "ENGINE": "django_mongodb_backend",
+            "HOST": "mongodb+srv://cluster0.example.mongodb.net",
+            "NAME": "encrypted",
+            "USER": "my_user",
+            "PASSWORD": "my_password",
+            "PORT": 27017,
+            "OPTIONS": {
                 "auto_encryption_opts": AutoEncryptionOpts(
-                    key_vault_namespace="keyvault.keyvault",
+                    key_vault_namespace="encrypted.keyvault",
                     kms_providers={
                         "aws": {
                             "accessKeyId": "your-access-key-id",
@@ -149,14 +173,12 @@ Example of KMS configuration with AWS KMS:
                     },
                 )
             },
-            db_name="encrypted",
-        ),
-    }
-
-    DATABASES["encrypted"]["KMS_CREDENTIALS"] = {
-        "aws": {
-            "key": os.getenv("AWS_KEY_ARN", ""),
-            "region": os.getenv("AWS_KEY_REGION", ""),
+            "KMS_CREDENTIALS": {
+                "aws": {
+                    "key": os.getenv("AWS_KEY_ARN", ""),
+                    "region": os.getenv("AWS_KEY_REGION", ""),
+                },
+            },
         },
     }
 
@@ -208,6 +230,57 @@ If you do not want to use the data keys created by Django MongoDB Backend (when
 In this scenario, Django MongoDB Backend will use the newly created data keys
 to create collections for models with encrypted fields.
 
+Here is an example of how to configure the
+``encrypted_fields_map`` in your Django settings:
+
+.. code-block:: python
+
+    from pymongo.encryption_options import AutoEncryptionOpts
+    from bson import json_util
+
+    DATABASES = {
+        "encrypted": {
+            "ENGINE": "django_mongodb_backend",
+            "HOST": "mongodb+srv://cluster0.example.mongodb.net",
+            "NAME": "encrypted",
+            "USER": "my_user",
+            "PASSWORD": "my_password",
+            "PORT": 27017,
+            "OPTIONS": {
+                "auto_encryption_opts": AutoEncryptionOpts(
+                    key_vault_namespace="encrypted.keyvault",
+                    kms_providers={
+                        "aws": {
+                            "accessKeyId": "your-access-key-id",
+                            "secretAccessKey": "your-secret-access-key",
+                        }
+                    },
+                    encrypted_fields_map=json_util.loads(
+                        """{
+                        "encrypt_patient": {
+                          "fields": [
+                            {
+                              "bsonType": "string",
+                              "path": "patient_record.ssn",
+                              "keyId": {
+                                "$binary": {
+                                  "base64": "2MA29LaARIOqymYHGmi2mQ==",
+                                  "subType": "04"
+                                }
+                              },
+                              "queries": {
+                                "queryType": "equality"
+                              }
+                            },
+                          ]
+                        }
+                    }"""
+                    ),
+                )
+            },
+        },
+    }
+
 Configuring the Automatic Encryption Shared Library
 ===================================================
 
@@ -218,25 +291,62 @@ to perform automatic encryption.
 You can :ref:`download the shared library
 <manual:qe-csfle-shared-library-download>` from the
 :ref:`manual:enterprise-official-packages` and configure it in your Django
-settings as follows:
+settings using the ``crypt_shared_lib_path`` option in
+:class:`pymongo.encryption_options.AutoEncryptionOpts`. The following example
+shows how to configure the shared library in your Django settings:
 
 .. code-block:: python
 
-    from django_mongodb_backend import parse_uri
     from pymongo.encryption_options import AutoEncryptionOpts
 
     DATABASES = {
-        "encrypted": parse_uri(
-            DATABASE_URL,
-            options={
+        "encrypted": {
+            "ENGINE": "django_mongodb_backend",
+            "HOST": "mongodb+srv://cluster0.example.mongodb.net",
+            "NAME": "encrypted",
+            "USER": "my_user",
+            "PASSWORD": "my_password",
+            "PORT": 27017,
+            "OPTIONS": {
                 "auto_encryption_opts": AutoEncryptionOpts(
-                    key_vault_namespace="keyvault.keyvault",
-                    kms_providers={"local": {"key": os.urandom(96)}},
+                    key_vault_namespace="encrypted.keyvault",
+                    kms_providers={
+                        "aws": {
+                            "accessKeyId": "your-access-key-id",
+                            "secretAccessKey": "your-secret-access-key",
+                        }
+                    },
+                    encrypted_fields_map=json_util.loads(
+                        """{
+                        "encrypt_patient": {
+                          "fields": [
+                            {
+                              "bsonType": "string",
+                              "path": "patient_record.ssn",
+                              "keyId": {
+                                "$binary": {
+                                  "base64": "2MA29LaARIOqymYHGmi2mQ==",
+                                  "subType": "04"
+                                }
+                              },
+                              "queries": {
+                                "queryType": "equality"
+                              }
+                            },
+                          ]
+                        }
+                    }"""
+                    ),
                     crypt_shared_lib_path="/path/to/mongo_crypt_shared_v1.dylib",
                 )
             },
-            db_name="encrypted",
-        ),
+            "KMS_CREDENTIALS": {
+                "aws": {
+                    "key": os.getenv("AWS_KEY_ARN", ""),
+                    "region": os.getenv("AWS_KEY_REGION", ""),
+                },
+            },
+        },
     }
 
 You are now ready to :doc:`start developing applications

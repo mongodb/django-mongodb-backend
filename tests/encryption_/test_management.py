@@ -22,74 +22,74 @@ class CommandTests(EncryptionTestCase):
             ]
         },
         # Equality-queryable fields
-        "encryption__encryptedbinarytest": {
+        "encryption__binarymodel": {
             "fields": [
                 {"bsonType": "binData", "path": "value", "queries": {"queryType": "equality"}}
             ]
         },
-        "encryption__encryptedbooleantest": {
+        "encryption__booleanmodel": {
             "fields": [{"bsonType": "bool", "path": "value", "queries": {"queryType": "equality"}}]
         },
-        "encryption__encryptedchartest": {
+        "encryption__charmodel": {
             "fields": [
                 {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
             ]
         },
-        "encryption__encryptedemailtest": {
+        "encryption__emailmodel": {
             "fields": [
                 {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
             ]
         },
-        "encryption__encryptedgenericipaddresstest": {
+        "encryption__genericipaddressmodel": {
             "fields": [
                 {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
             ]
         },
-        "encryption__encryptedtexttest": {
+        "encryption__textmodel": {
             "fields": [
                 {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
             ]
         },
-        "encryption__encryptedurltest": {
+        "encryption__urlmodel": {
             "fields": [
                 {"bsonType": "string", "path": "value", "queries": {"queryType": "equality"}}
             ]
         },
         # Range-queryable fields
-        "encryption__encryptedbigintegertest": {
+        "encryption__bigintegermodel": {
             "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "encryption__encrypteddatetest": {
+        "encryption__datemodel": {
             "fields": [{"bsonType": "date", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "encryption__encrypteddatetimetest": {
+        "encryption__datetimemodel": {
             "fields": [{"bsonType": "date", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "encryption__encrypteddecimaltest": {
+        "encryption__decimalmodel": {
             "fields": [{"bsonType": "decimal", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "encryption__encrypteddurationtest": {
+        "encryption__durationmodel": {
             "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "encryption__encryptedfloattest": {
+        "encryption__floatmodel": {
             "fields": [{"bsonType": "double", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "encryption__encryptedintegertest": {
+        "encryption__integermodel": {
             "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "encryption__encryptedpositivebigintegertest": {
+        "encryption__positivebigintegermodel": {
             "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "encryption__encryptedpositiveintegertest": {
+        "encryption__positiveintegermodel": {
             "fields": [{"bsonType": "long", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "encryption__encryptedpositivesmallintegertest": {
+        "encryption__positivesmallintegermodel": {
             "fields": [{"bsonType": "int", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "encryption__encryptedsmallintegertest": {
+        "encryption__smallintegermodel": {
             "fields": [{"bsonType": "int", "path": "value", "queries": {"queryType": "range"}}]
         },
-        "encryption__encryptedtimetest": {
+        "encryption__timemodel": {
             "fields": [{"bsonType": "date", "path": "value", "queries": {"queryType": "range"}}]
         },
     }

@@ -106,7 +106,7 @@ For example, to find a patient by their SSN, you can do the following::
     'Bob'
 
 
-QuerySet Limitations
+QuerySet limitations
 ~~~~~~~~~~~~~~~~~~~~
 
 When using Django QuerySets with MongoDB Queryable Encryption, it’s important to
@@ -128,8 +128,6 @@ be done client-side after decryption. Key limitations include:
 - **No joins on encrypted fields** – Filtering across relationships using
   encrypted foreign keys is unsupported because matching must happen
   client-side.
-- **Admin/debug limitations** – You’ll need to integrate client-side decryption
-  for Django admin or tools, otherwise you’ll see ciphertext.
 
 In short, when working with Queryable Encryption, design your queries to use
 exact matches only on encrypted fields, and plan to handle any sorting or

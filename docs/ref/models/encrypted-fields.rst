@@ -9,7 +9,7 @@ Django MongoDB Backend supports :doc:`manual:core/queryable-encryption`.
 See :doc:`/howto/queryable-encryption` for more information on how to use
 Queryable Encryption with Django MongoDB Backend.
 
-See the :doc:`Queryable Encryption topic </topics/queryable-encryption>` for
+See the :doc:`/topics/queryable-encryption` topic guide for
 more information on developing applications with Queryable Encryption.
 
 The following fields are supported by Django MongoDB Backend for use with
