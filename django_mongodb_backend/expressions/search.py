@@ -3,7 +3,7 @@ from django.db.models import CharField, Expression, FloatField, TextField
 from django.db.models.expressions import F, Value
 from django.db.models.lookups import Lookup
 
-from ..query_utils import process_lhs, process_rhs
+from django_mongodb_backend.query_utils import process_lhs, process_rhs
 
 
 def cast_as_field(path):

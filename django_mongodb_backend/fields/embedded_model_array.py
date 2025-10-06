@@ -6,8 +6,9 @@ from django.db.models.expressions import Col
 from django.db.models.fields.related import lazy_related_operation
 from django.db.models.lookups import Lookup, Transform
 
-from .. import forms
-from ..query_utils import process_lhs, process_rhs
+from django_mongodb_backend import forms
+from django_mongodb_backend.query_utils import process_lhs, process_rhs
+
 from . import EmbeddedModelField
 from .array import ArrayField, ArrayLenTransform
 

@@ -28,7 +28,7 @@ class PolymorphicEmbeddedModelField(models.Field):
         return "object"
 
     def check(self, **kwargs):
-        from ..models import EmbeddedModel  # noqa: PLC0415
+        from django_mongodb_backend.models import EmbeddedModel  # noqa: PLC0415
 
         errors = super().check(**kwargs)
         embedded_fields = {}

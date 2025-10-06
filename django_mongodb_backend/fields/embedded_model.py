@@ -6,7 +6,7 @@ from django.db import models
 from django.db.models.fields.related import lazy_related_operation
 from django.db.models.lookups import Transform
 
-from .. import forms
+from django_mongodb_backend import forms
 
 
 class EmbeddedModelField(models.Field):
@@ -26,7 +26,7 @@ class EmbeddedModelField(models.Field):
         return "object"
 
     def check(self, **kwargs):
-        from ..models import EmbeddedModel  # noqa: PLC0415
+        from django_mongodb_backend.models import EmbeddedModel  # noqa: PLC0415
 
         errors = super().check(**kwargs)
         if not issubclass(self.embedded_model, EmbeddedModel):
