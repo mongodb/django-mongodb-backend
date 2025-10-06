@@ -6,6 +6,184 @@ import sys
 from django.core.exceptions import ImproperlyConfigured
 
 test_apps = [
+    # "admin_changelist",
+    # "admin_checks",
+    # "admin_custom_urls",
+    # "admin_docs",
+    # "admin_filters",
+    # "admin_inlines",
+    # "admin_ordering",
+    # # "admin_scripts",
+    # # 100+ errors of the form:
+    # #
+    # # File "/tmp/django_x2bciiad/tmpogmynqqo/test_project/alternate_settings.py",
+    # # line 2
+    # # {}, 'ATOMIC_REQUESTS': False, 'AUTOCOMMIT': True, 'CONN_MAX_AGE': 0, \
+    # #        'CONN_HEALTH_CHECKS': False, 'TIME_ZONE': None, 'USER': '', \
+    # #        'PASSWORD': '', 'HOST': '', 'PORT': '', 'TEST': {'CHARSET': None, \
+    # #        'COLLATION': None, 'MIGRATE': True, 'MIRROR': None, 'NAME': None}}}
+    # #   ^
+    # # SyntaxError: invalid syntax
+    # "admin_utils",
+    # "admin_views",
+    # "admin_widgets",
+    # "aggregation",
+    # "aggregation_regress",
+    # "annotations",
+    # "apps",
+    # "async",
+    # "auth_tests",
+    # "backends",
+    # "basic",
+    # "bulk_create",
+    # "cache",
+    # # "check_framework",
+    # # FAIL: test_collision_across_apps
+    # # FAIL: test_collision_in_same_app
+    # # db_table 'test_table' is used by multiple models
+    # "constraints",
+    # "contenttypes_tests",
+    # "context_processors",
+    # "custom_columns",
+    # "custom_lookups",
+    # "custom_managers",
+    # "custom_pk",
+    # "datatypes",
+    # "dates",
+    # "datetimes",
+    # "db_functions",
+    # "defer",
+    # "defer_regress",
+    # "delete",
+    # "delete_regress",
+    # "empty",
+    # "empty_models",
+    # "expressions",
+    # "expressions_case",
+    # "field_defaults",
+    # "file_storage",
+    # "file_uploads",
+    # "fixtures",
+    # "fixtures_model_package",
+    # "fixtures_regress",
+    # "flatpages_tests",
+    # "force_insert_update",
+    # "foreign_object",
+    # "forms_tests",
+    # "from_db_value",
+    # "generic_inline_admin",
+    # "generic_relations",
+    # "generic_relations_regress",
+    # "generic_views",
+    # "get_earliest_or_latest",
+    # "get_object_or_404",
+    # "get_or_create",
+    # "i18n",
+    # "indexes",
+    # "inline_formsets",
+    # "introspection",
+    # "invalid_models_tests",
+    # "known_related_objects",
+    # "lookup",
+    # "m2m_and_m2o",
+    # "m2m_intermediary",
+    # "m2m_multiple",
+    # "m2m_recursive",
+    # "m2m_regress",
+    # "m2m_signals",
+    # "m2m_through",
+    # "m2m_through_regress",
+    # "m2o_recursive",
+    # "managers_regress",
+    # "many_to_many",
+    # "many_to_one",
+    # "many_to_one_null",
+    # "max_lengths",
+    # "messages_tests",
+    # "migrate_signals",
+    # "migration_test_data_persistence",
+    # # "migrations",
+    # # File "/Users/alex.clark/Developer/django-mongodb-cli/src/django/tests/\
+    # # migrations/test_commands.py", line 1630, in patched_has_table
+    # # raise Exception("Other connection")
+    # # Exception: Other connection
+    # "model_fields",
+    # "model_forms",
+    # "model_formsets",
+    # "model_formsets_regress",
+    # "model_indexes",
+    # "model_inheritance",
+    # "model_inheritance_regress",
+    # "model_options",
+    # "model_package",
+    # "model_regress",
+    # "model_utils",
+    # "modeladmin",
+    # "multiple_database",
+    # "mutually_referential",
+    # "nested_foreign_keys",
+    # "null_fk",
+    # "null_fk_ordering",
+    # "null_queries",
+    # "one_to_one",
+    # "or_lookups",
+    # "order_with_respect_to",
+    # "ordering",
+    # "pagination",
+    # "prefetch_related",
+    # "proxy_model_inheritance",
+    # "proxy_models",
+    # "queries",
+    # "queryset_pickle",
+    # "redirects_tests",
+    # "reserved_names",
+    # "reverse_lookup",
+    # "save_delete_hooks",
+    # "schema",
+    # "select_for_update",
+    # "select_related",
+    # "select_related_onetoone",
+    # "select_related_regress",
+    # "serializers",
+    # "servers",
+    # "sessions_tests",
+    # "shortcuts",
+    # "signals",
+    # "sitemaps_tests",
+    # "sites_framework",
+    # "sites_tests",
+    # "string_lookup",
+    # "swappable_models",
+    # "syndication_tests",
+    # "test_client",
+    # "test_client_regress",
+    # # "test_runner",
+    # # File "/Users/alex.clark/Developer/django-mongodb-cli/src/django/tests/\
+    # # test_runner/test_discover_runner.py", line 809, in test_mixed
+    # # self.assertEqual(databases, {"default": True, "other": False})
+    # # AssertionError: {'default': True, 'other': False, 'encrypted': False} !=
+    # # {'default': True, 'other': False}
+    # # - {'default': True, 'encrypted': False, 'other': False}
+    # # ?                  --------------------
+    # # + {'default': True, 'other': False}
+    # "test_utils",
+    # "timezones",
+    # "transactions",
+    # "unmanaged_models",
+    # "update",
+    # "update_only_fields",
+    # # "user_commands",
+    # #
+    # # File "/tmp/django_9gkm5p03/tmpph_i4p8y/test_project/settings.py", line 2
+    # # ATOMIC_REQUESTS': False, 'AUTOCOMMIT': True, 'CONN_MAX_AGE': 0,
+    # # 'CONN_HEALTH_CHECKS': False, 'TIME_ZONE': None, 'USER': '', 'PASSWORD':
+    # # '', 'HOST': '', 'PORT': '', 'TEST': {'CHARSET': None, 'COLLATION': None,
+    # # 'MIGRATE': True, 'MIRROR': None, 'NAME': None}}}
+    # # ^
+    # # SyntaxError: invalid syntax
+    # "validation",
+    # "view_tests",
+    # "xor_lookups",
     # Add directories in django_mongodb_backend/tests
     *sorted(
         [

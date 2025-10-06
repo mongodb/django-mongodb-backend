@@ -8,7 +8,7 @@ from pymongo.operations import SearchIndexModel
 
 from django_mongodb_backend.indexes import SearchIndex
 
-from .fields import EmbeddedModelField
+from .fields import EmbeddedModelArrayField, EmbeddedModelField
 from .gis.schema import GISSchemaEditor
 from .query import wrap_database_errors
 from .utils import OperationCollector, model_has_encrypted_fields
@@ -479,8 +479,6 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             else:
                 encrypted_fields = encrypted_fields_map.get(db_table)
 
-            # if encrypted_fields and encrypted_fields.get("fields"):
-
             if encrypted_fields:
                 db.create_collection(db_table, encryptedFields=encrypted_fields)
             else:
@@ -490,15 +488,42 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             # Unencrypted path
             db.create_collection(db_table)
 
+    def _get_data_key(
+        self,
+        client_encryption,
+        key_vault_collection,
+        create_data_keys,
+        kms_provider,
+        master_key,
+        key_alt_name,
+    ):
+        """Return an existing or newly-created data key ID for a field."""
+        if create_data_keys:
+            if not client_encryption:
+                raise ImproperlyConfigured("client_encryption is not configured.")
+            return client_encryption.create_data_key(
+                kms_provider=kms_provider,
+                master_key=master_key,
+                key_alt_names=[key_alt_name],
+            )
+        if key_vault_collection is None:
+            raise ImproperlyConfigured(
+                f"Encrypted field {key_alt_name} detected but no key vault configured"
+            )
+        key = key_vault_collection.find_one({"keyAltNames": key_alt_name})
+        if not key:
+            raise ValueError(
+                f"No key found in keyvault for keyAltName={key_alt_name}. "
+                "Run with '--create-data-keys' to create missing keys."
+            )
+        return key["_id"]
+
     def _get_encrypted_fields(
         self, model, create_data_keys=False, key_alt_name=None, path_prefix=None
     ):
         """
         Recursively collect encryption schema data for only encrypted fields in a model.
         Returns None if no encrypted fields are found anywhere in the model hierarchy.
-
-        key_alt_name is the base path used for keyAltNames.
-        path_prefix is the dot-notated path inside the document for schema mapping.
         """
         connection = self.connection
         client = connection.connection
@@ -518,92 +543,55 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         master_key = connection.settings_dict.get("KMS_CREDENTIALS", {}).get(kms_provider)
         client_encryption = getattr(self.connection, "client_encryption", None)
 
+        def _field_dict(bson_type, path, new_key_alt_name, queries=None):
+            """Helper to generate a dictionary for an encrypted field.
+            Included in parent function's scope to avoid passing parameters.
+            """
+            data_key = self._get_data_key(
+                client_encryption,
+                key_vault_collection,
+                create_data_keys,
+                kms_provider,
+                master_key,
+                new_key_alt_name,
+            )
+            field_dict = {
+                "bsonType": bson_type,
+                "path": path,
+                "keyId": data_key,
+            }
+            if queries:
+                field_dict["queries"] = queries
+            return field_dict
+
         field_list = []
 
         for field in fields:
             new_key_alt_name = f"{key_alt_name}.{field.column}"
             path = f"{path_prefix}.{field.column}" if path_prefix else field.column
 
-            # --- EmbeddedModelField ---
-            if isinstance(field, EmbeddedModelField):
+            if isinstance(field, (EmbeddedModelField, EmbeddedModelArrayField)):
                 if getattr(field, "encrypted", False):
-                    # Entire sub-object encrypted
-                    if create_data_keys:
-                        if not client_encryption:
-                            raise ImproperlyConfigured("client_encryption is not configured.")
-                        data_key = client_encryption.create_data_key(
-                            kms_provider=kms_provider,
-                            master_key=master_key,
-                            key_alt_names=[new_key_alt_name],
+                    bson_type = "object" if isinstance(field, EmbeddedModelField) else "array"
+                    field_list.append(
+                        _field_dict(
+                            bson_type, path, new_key_alt_name, getattr(field, "queries", None)
                         )
-                    else:
-                        if key_vault_collection is None:
-                            raise ImproperlyConfigured(
-                                f"Encrypted field {new_key_alt_name} detected "
-                                "but no key vault configured"
-                            )
-                        key_doc = key_vault_collection.find_one({"keyAltNames": new_key_alt_name})
-                        if not key_doc:
-                            raise ValueError(
-                                f"No key found in keyvault for keyAltName={new_key_alt_name}. "
-                                "Run with '--create-data-keys' to create missing keys."
-                            )
-                        data_key = key_doc["_id"]
-
-                    field_dict = {
-                        "bsonType": "object",
-                        "path": path,
-                        "keyId": data_key,
-                    }
-                    if getattr(field, "queries", False):
-                        field_dict["queries"] = field.queries
-
-                    field_list.append(field_dict)
+                    )
                 else:
-                    # Recurse into embedded model
                     embedded_result = self._get_encrypted_fields(
                         field.embedded_model,
                         create_data_keys=create_data_keys,
                         key_alt_name=new_key_alt_name,
                         path_prefix=path,
                     )
-                    if embedded_result and embedded_result.get("fields"):
+                    if embedded_result:
                         field_list.extend(embedded_result["fields"])
-                continue
-
-            # --- Leaf encrypted field ---
-            if getattr(field, "encrypted", False):
-                if create_data_keys:
-                    if not client_encryption:
-                        raise ImproperlyConfigured("client_encryption is not configured.")
-                    data_key = client_encryption.create_data_key(
-                        kms_provider=kms_provider,
-                        master_key=master_key,
-                        key_alt_names=[new_key_alt_name],
-                    )
-                else:
-                    if key_vault_collection is None:
-                        raise ImproperlyConfigured(
-                            f"Encrypted field {new_key_alt_name} detected "
-                            "but no key vault configured"
-                        )
-                    key_doc = key_vault_collection.find_one({"keyAltNames": new_key_alt_name})
-                    if not key_doc:
-                        raise ValueError(
-                            f"No key found in keyvault for keyAltName={new_key_alt_name}. "
-                            "Run with '--create-data-keys' to create missing keys."
-                        )
-                    data_key = key_doc["_id"]
-
-                field_dict = {
-                    "bsonType": field.db_type(connection),
-                    "path": path,
-                    "keyId": data_key,
-                }
-                if getattr(field, "queries", False):
-                    field_dict["queries"] = field.queries
-
-                field_list.append(field_dict)
+            elif getattr(field, "encrypted", False):
+                bson_type = field.db_type(connection)
+                field_list.append(
+                    _field_dict(bson_type, path, new_key_alt_name, getattr(field, "queries", None))
+                )
 
         return {"fields": field_list} if field_list else None
 

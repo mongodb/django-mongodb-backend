@@ -4,6 +4,7 @@ from decimal import Decimal
 from django_mongodb_backend.fields import EncryptedCharField
 
 from .models import (
+    Actor,
     BigIntegerModel,
     Billing,
     BinaryModel,
@@ -17,6 +18,7 @@ from .models import (
     FloatModel,
     GenericIPAddressModel,
     IntegerModel,
+    Movie,
     Patient,
     PatientRecord,
     PositiveBigIntegerModel,
@@ -30,7 +32,7 @@ from .models import (
 from .test_base import EncryptionTestCase
 
 
-class PatientModelTests(EncryptionTestCase):
+class EncryptedEmbeddedModelTests(EncryptionTestCase):
     def setUp(self):
         self.billing = Billing(cc_type="Visa", cc_number="4111111111111111")
         self.patient_record = PatientRecord(ssn="123-45-6789", billing=self.billing)
@@ -45,6 +47,21 @@ class PatientModelTests(EncryptionTestCase):
         self.assertEqual(patient.patient_record.billing.cc_number, "4111111111111111")
 
 
+class EncryptedEmbeddedModelArrayTests(EncryptionTestCase):
+    def setUp(self):
+        self.actor1 = Actor(name="Actor One")
+        self.actor2 = Actor(name="Actor Two")
+        self.movie = Movie.objects.create(
+            title="Sample Movie",
+            cast=[self.actor1, self.actor2],
+        )
+
+    def test_movie_actors(self):
+        self.assertEqual(len(self.movie.cast), 2)
+        self.assertEqual(self.movie.cast[0].name, "Actor One")
+        self.assertEqual(self.movie.cast[1].name, "Actor Two")
+
+
 class EncryptedFieldTests(EncryptionTestCase):
     def assertEquality(self, model_cls, val):
         model_cls.objects.create(value=val)
@@ -54,12 +71,8 @@ class EncryptedFieldTests(EncryptionTestCase):
     def assertRange(self, model_cls, *, low, high, threshold):
         model_cls.objects.create(value=low)
         model_cls.objects.create(value=high)
-        # equality check for both
         self.assertEqual(model_cls.objects.get(value=low).value, low)
         self.assertEqual(model_cls.objects.get(value=high).value, high)
-        # range check using `len()` because MongoDB does not support
-        # SQL-style COUNT aggregation and we can't rely on the queryset's
-        # count() method
         objs = list(model_cls.objects.filter(value__gt=threshold))
         self.assertEqual(len(objs), 1)
         self.assertEqual(objs[0].value, high)

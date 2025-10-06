@@ -1,6 +1,10 @@
 from django.db import models
 
-from django_mongodb_backend.fields import EmbeddedModelField
+from django_mongodb_backend.fields import EmbeddedModelArrayField, EmbeddedModelField
+
+
+class EncryptedEmbeddedModelArrayField(EmbeddedModelArrayField):
+    encrypted = True
 
 
 class EncryptedEmbeddedModelField(EmbeddedModelField):

@@ -11,6 +11,7 @@ from django_mongodb_backend.fields import (
     EncryptedDecimalField,
     EncryptedDurationField,
     EncryptedEmailField,
+    EncryptedEmbeddedModelArrayField,
     EncryptedEmbeddedModelField,
     EncryptedFloatField,
     EncryptedGenericIPAddressField,
@@ -32,6 +33,7 @@ class EncryptedTestModel(models.Model):
         required_db_features = {"supports_queryable_encryption"}
 
 
+# Embedded models
 class Patient(EncryptedTestModel):
     patient_name = models.CharField(max_length=255)
     patient_id = models.BigIntegerField()
@@ -52,7 +54,23 @@ class Billing(EmbeddedModel):
     cc_number = models.CharField(max_length=20)
 
 
-# Equality-queryable fields
+# Embedded array models
+class Actor(EmbeddedModel):
+    name = models.CharField(max_length=100)
+
+
+class Movie(EncryptedTestModel):
+    title = models.CharField(max_length=200)
+    plot = models.TextField(blank=True)
+    runtime = models.IntegerField(default=0)
+    released = models.DateTimeField("release date", null=True, blank=True)
+    cast = EncryptedEmbeddedModelArrayField(Actor, null=True, blank=True)
+
+    def __str__(self):
+        return self.title
+
+
+# Equality-queryable field models
 class BinaryModel(EncryptedTestModel):
     value = EncryptedBinaryField(queries={"queryType": "equality"})
 
@@ -81,7 +99,7 @@ class URLModel(EncryptedTestModel):
     value = EncryptedURLField(max_length=500, queries={"queryType": "equality"})
 
 
-# Range-queryable fields (also support equality)
+# Range-queryable field models
 class BigIntegerModel(EncryptedTestModel):
     value = EncryptedBigIntegerField(queries={"queryType": "range"})
 
