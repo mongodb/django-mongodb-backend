@@ -543,55 +543,44 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         master_key = connection.settings_dict.get("KMS_CREDENTIALS", {}).get(kms_provider)
         client_encryption = getattr(self.connection, "client_encryption", None)
 
-        def _field_dict(bson_type, path, new_key_alt_name, queries=None):
-            """Helper to generate a dictionary for an encrypted field.
-            Included in parent function's scope to avoid passing parameters.
-            """
-            data_key = self._get_data_key(
-                client_encryption,
-                key_vault_collection,
-                create_data_keys,
-                kms_provider,
-                master_key,
-                new_key_alt_name,
-            )
-            field_dict = {
-                "bsonType": bson_type,
-                "path": path,
-                "keyId": data_key,
-            }
-            if queries:
-                field_dict["queries"] = queries
-            return field_dict
-
         field_list = []
 
         for field in fields:
             new_key_alt_name = f"{key_alt_name}.{field.column}"
             path = f"{path_prefix}.{field.column}" if path_prefix else field.column
 
-            if isinstance(field, (EmbeddedModelField, EmbeddedModelArrayField)):
-                if getattr(field, "encrypted", False):
-                    bson_type = "object" if isinstance(field, EmbeddedModelField) else "array"
-                    field_list.append(
-                        _field_dict(
-                            bson_type, path, new_key_alt_name, getattr(field, "queries", None)
-                        )
-                    )
-                else:
-                    embedded_result = self._get_encrypted_fields(
-                        field.embedded_model,
-                        create_data_keys=create_data_keys,
-                        key_alt_name=new_key_alt_name,
-                        path_prefix=path,
-                    )
-                    if embedded_result:
-                        field_list.extend(embedded_result["fields"])
-            elif getattr(field, "encrypted", False):
-                bson_type = field.db_type(connection)
-                field_list.append(
-                    _field_dict(bson_type, path, new_key_alt_name, getattr(field, "queries", None))
+            if isinstance(field, (EmbeddedModelField, EmbeddedModelArrayField)) and not getattr(
+                field, "encrypted", False
+            ):
+                embedded_result = self._get_encrypted_fields(
+                    field.embedded_model,
+                    create_data_keys=create_data_keys,
+                    key_alt_name=new_key_alt_name,
+                    path_prefix=path,
                 )
+                if embedded_result:
+                    field_list.extend(embedded_result["fields"])
+                continue
+
+            if getattr(field, "encrypted", False):
+                bson_type = field.db_type(connection)
+                data_key = self._get_data_key(
+                    client_encryption,
+                    key_vault_collection,
+                    create_data_keys,
+                    kms_provider,
+                    master_key,
+                    new_key_alt_name,
+                )
+                field_dict = {
+                    "bsonType": bson_type,
+                    "path": path,
+                    "keyId": data_key,
+                }
+                queries = getattr(field, "queries", None)
+                if queries:
+                    field_dict["queries"] = queries
+                field_list.append(field_dict)
 
         return {"fields": field_list} if field_list else None
 
