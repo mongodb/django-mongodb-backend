@@ -8,7 +8,7 @@ from pymongo.operations import SearchIndexModel
 
 from django_mongodb_backend.indexes import SearchIndex
 
-from .fields import EmbeddedModelArrayField, EmbeddedModelField
+from .fields import EmbeddedModelField
 from .gis.schema import GISSchemaEditor
 from .query import wrap_database_errors
 from .utils import OperationCollector, model_has_encrypted_fields
@@ -488,36 +488,6 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             # Unencrypted path
             db.create_collection(db_table)
 
-    def _get_data_key(
-        self,
-        client_encryption,
-        key_vault_collection,
-        create_data_keys,
-        kms_provider,
-        master_key,
-        key_alt_name,
-    ):
-        """Return an existing or newly-created data key ID for a field."""
-        if create_data_keys:
-            if not client_encryption:
-                raise ImproperlyConfigured("client_encryption is not configured.")
-            return client_encryption.create_data_key(
-                kms_provider=kms_provider,
-                master_key=master_key,
-                key_alt_names=[key_alt_name],
-            )
-        if key_vault_collection is None:
-            raise ImproperlyConfigured(
-                f"Encrypted field {key_alt_name} detected but no key vault configured"
-            )
-        key = key_vault_collection.find_one({"keyAltNames": key_alt_name})
-        if not key:
-            raise ValueError(
-                f"No key found in keyvault for keyAltName={key_alt_name}. "
-                "Run with '--create-data-keys' to create missing keys."
-            )
-        return key["_id"]
-
     def _get_encrypted_fields(
         self, model, create_data_keys=False, key_alt_name=None, path_prefix=None
     ):
@@ -532,16 +502,14 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         path_prefix = path_prefix or ""
 
         options = client._options
-        auto_encryption_opts = getattr(options, "auto_encryption_opts", None)
+        auto_encryption_opts = options.auto_encryption_opts
 
-        key_vault_collection = None
-        if auto_encryption_opts:
-            key_vault_db, key_vault_coll = auto_encryption_opts._key_vault_namespace.split(".", 1)
-            key_vault_collection = client[key_vault_db][key_vault_coll]
+        key_vault_db, key_vault_coll = auto_encryption_opts._key_vault_namespace.split(".", 1)
+        key_vault_collection = client[key_vault_db][key_vault_coll]
 
         kms_provider = router.kms_provider(model)
         master_key = connection.settings_dict.get("KMS_CREDENTIALS", {}).get(kms_provider)
-        client_encryption = getattr(self.connection, "client_encryption", None)
+        client_encryption = self.connection.client_encryption
 
         field_list = []
 
@@ -549,9 +517,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             new_key_alt_name = f"{key_alt_name}.{field.column}"
             path = f"{path_prefix}.{field.column}" if path_prefix else field.column
 
-            if isinstance(field, (EmbeddedModelField, EmbeddedModelArrayField)) and not getattr(
-                field, "encrypted", False
-            ):
+            if isinstance(field, EmbeddedModelField) and not getattr(field, "encrypted", False):
                 embedded_result = self._get_encrypted_fields(
                     field.embedded_model,
                     create_data_keys=create_data_keys,
@@ -564,14 +530,15 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
 
             if getattr(field, "encrypted", False):
                 bson_type = field.db_type(connection)
-                data_key = self._get_data_key(
-                    client_encryption,
-                    key_vault_collection,
-                    create_data_keys,
-                    kms_provider,
-                    master_key,
-                    new_key_alt_name,
-                )
+                if create_data_keys:
+                    data_key = client_encryption.create_data_key(
+                        kms_provider=kms_provider,
+                        master_key=master_key,
+                        key_alt_names=[new_key_alt_name],
+                    )
+                else:
+                    key = key_vault_collection.find_one({"keyAltNames": new_key_alt_name})
+                    data_key = key["_id"]
                 field_dict = {
                     "bsonType": bson_type,
                     "path": path,

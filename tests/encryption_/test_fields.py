@@ -32,7 +32,7 @@ from .models import (
 from .test_base import EncryptionTestCase
 
 
-class EncryptedEmbeddedModelTests(EncryptionTestCase):
+class EmbeddedModelTests(EncryptionTestCase):
     def setUp(self):
         self.billing = Billing(cc_type="Visa", cc_number="4111111111111111")
         self.patient_record = PatientRecord(ssn="123-45-6789", billing=self.billing)
@@ -40,14 +40,14 @@ class EncryptedEmbeddedModelTests(EncryptionTestCase):
             patient_name="John Doe", patient_id=123456789, patient_record=self.patient_record
         )
 
-    def test_patient(self):
+    def test_object(self):
         patient = Patient.objects.get(id=self.patient.id)
         self.assertEqual(patient.patient_record.ssn, "123-45-6789")
         self.assertEqual(patient.patient_record.billing.cc_type, "Visa")
         self.assertEqual(patient.patient_record.billing.cc_number, "4111111111111111")
 
 
-class EncryptedEmbeddedModelArrayTests(EncryptionTestCase):
+class EmbeddedModelArrayTests(EncryptionTestCase):
     def setUp(self):
         self.actor1 = Actor(name="Actor One")
         self.actor2 = Actor(name="Actor Two")
@@ -56,13 +56,13 @@ class EncryptedEmbeddedModelArrayTests(EncryptionTestCase):
             cast=[self.actor1, self.actor2],
         )
 
-    def test_movie_actors(self):
+    def test_array(self):
         self.assertEqual(len(self.movie.cast), 2)
         self.assertEqual(self.movie.cast[0].name, "Actor One")
         self.assertEqual(self.movie.cast[1].name, "Actor Two")
 
 
-class EncryptedFieldTests(EncryptionTestCase):
+class FieldTests(EncryptionTestCase):
     def assertEquality(self, model_cls, val):
         model_cls.objects.create(value=val)
         fetched = model_cls.objects.get(value=val)
@@ -162,7 +162,7 @@ class EncryptedFieldTests(EncryptionTestCase):
         )
 
 
-class EncryptedFieldMixinTests(EncryptionTestCase):
+class FieldMixinTests(EncryptionTestCase):
     def test_null_true_raises_error(self):
         with self.assertRaisesMessage(
             ValueError, "'null=True' is not supported for encrypted fields."
