@@ -20,7 +20,6 @@ from .creation import DatabaseCreation
 from .features import DatabaseFeatures
 from .introspection import DatabaseIntrospection
 from .operations import DatabaseOperations
-from .query_utils import regex_match
 from .schema import DatabaseSchemaEditor
 from .utils import OperationDebugWrapper
 from .validation import DatabaseValidation
@@ -97,16 +96,21 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     }
     _connection_pools = {}
 
-    def _isnull_operator(a, b):
-        is_null = {
+    def _isnull_expr(field, is_null):
+        mql = {
             "$or": [
                 # The path does not exist (i.e. is "missing")
-                {"$eq": [{"$type": a}, "missing"]},
+                {"$eq": [{"$type": field}, "missing"]},
                 # or the value is None.
-                {"$eq": [a, None]},
+                {"$eq": [field, None]},
             ]
         }
-        return is_null if b else {"$not": is_null}
+        return mql if is_null else {"$not": mql}
+
+    def _regex_expr(field, regex_vals, insensitive=False):
+        regex = {"$concat": regex_vals} if isinstance(regex_vals, tuple) else regex_vals
+        options = "i" if insensitive else ""
+        return {"$regexMatch": {"input": field, "regex": regex, "options": options}}
 
     mongo_operators = {
         "exact": lambda a, b: {"$eq": [a, b]},
@@ -114,27 +118,29 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         "gte": lambda a, b: {"$gte": [a, b]},
         # MongoDB considers null less than zero. Exclude null values to match
         # SQL behavior.
-        "lt": lambda a, b: {"$and": [{"$lt": [a, b]}, DatabaseWrapper._isnull_operator(a, False)]},
-        "lte": lambda a, b: {
-            "$and": [{"$lte": [a, b]}, DatabaseWrapper._isnull_operator(a, False)]
-        },
+        "lt": lambda a, b: {"$and": [{"$lt": [a, b]}, DatabaseWrapper._isnull_expr(a, False)]},
+        "lte": lambda a, b: {"$and": [{"$lte": [a, b]}, DatabaseWrapper._isnull_expr(a, False)]},
         "in": lambda a, b: {"$in": [a, b]},
-        "isnull": _isnull_operator,
+        "isnull": _isnull_expr,
         "range": lambda a, b: {
             "$and": [
-                {"$or": [DatabaseWrapper._isnull_operator(b[0], True), {"$gte": [a, b[0]]}]},
-                {"$or": [DatabaseWrapper._isnull_operator(b[1], True), {"$lte": [a, b[1]]}]},
+                {"$or": [DatabaseWrapper._isnull_expr(b[0], True), {"$gte": [a, b[0]]}]},
+                {"$or": [DatabaseWrapper._isnull_expr(b[1], True), {"$lte": [a, b[1]]}]},
             ]
         },
-        "iexact": lambda a, b: regex_match(a, ("^", b, {"$literal": "$"}), insensitive=True),
-        "startswith": lambda a, b: regex_match(a, ("^", b)),
-        "istartswith": lambda a, b: regex_match(a, ("^", b), insensitive=True),
-        "endswith": lambda a, b: regex_match(a, (b, {"$literal": "$"})),
-        "iendswith": lambda a, b: regex_match(a, (b, {"$literal": "$"}), insensitive=True),
-        "contains": lambda a, b: regex_match(a, b),
-        "icontains": lambda a, b: regex_match(a, b, insensitive=True),
-        "regex": lambda a, b: regex_match(a, b),
-        "iregex": lambda a, b: regex_match(a, b, insensitive=True),
+        "iexact": lambda a, b: DatabaseWrapper._regex_expr(
+            a, ("^", b, {"$literal": "$"}), insensitive=True
+        ),
+        "startswith": lambda a, b: DatabaseWrapper._regex_expr(a, ("^", b)),
+        "istartswith": lambda a, b: DatabaseWrapper._regex_expr(a, ("^", b), insensitive=True),
+        "endswith": lambda a, b: DatabaseWrapper._regex_expr(a, (b, {"$literal": "$"})),
+        "iendswith": lambda a, b: DatabaseWrapper._regex_expr(
+            a, (b, {"$literal": "$"}), insensitive=True
+        ),
+        "contains": lambda a, b: DatabaseWrapper._regex_expr(a, b),
+        "icontains": lambda a, b: DatabaseWrapper._regex_expr(a, b, insensitive=True),
+        "regex": lambda a, b: DatabaseWrapper._regex_expr(a, b),
+        "iregex": lambda a, b: DatabaseWrapper._regex_expr(a, b, insensitive=True),
     }
 
     display_name = "MongoDB"
