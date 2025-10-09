@@ -45,9 +45,3 @@ def process_rhs(node, compiler, connection):
     if hasattr(node, "prep_lookup_value_mongo"):
         value = node.prep_lookup_value_mongo(value)
     return value
-
-
-def regex_match(field, regex_vals, insensitive=False):
-    regex = {"$concat": regex_vals} if isinstance(regex_vals, tuple) else regex_vals
-    options = "i" if insensitive else ""
-    return {"$regexMatch": {"input": field, "regex": regex, "options": options}}
