@@ -8,14 +8,7 @@ from .query_utils import process_lhs
 MONGO_AGGREGATIONS = {Count: "sum"}
 
 
-def aggregate(
-    self,
-    compiler,
-    connection,
-    operator=None,
-    resolve_inner_expression=False,
-    **extra_context,  # noqa: ARG001
-):
+def aggregate(self, compiler, connection, operator=None, resolve_inner_expression=False):
     if self.filter:
         node = self.copy()
         node.filter = None
@@ -31,7 +24,7 @@ def aggregate(
     return {f"${operator}": lhs_mql}
 
 
-def count(self, compiler, connection, resolve_inner_expression=False, **extra_context):  # noqa: ARG001
+def count(self, compiler, connection, resolve_inner_expression=False):
     """
     When resolve_inner_expression=True, return the MQL that resolves as a
     value. This is used to count different elements, so the inner values are
@@ -64,12 +57,12 @@ def count(self, compiler, connection, resolve_inner_expression=False, **extra_co
     return {"$add": [{"$size": lhs_mql}, exits_null]}
 
 
-def stddev_variance(self, compiler, connection, **extra_context):
+def stddev_variance(self, compiler, connection):
     if self.function.endswith("_SAMP"):
         operator = "stdDevSamp"
     elif self.function.endswith("_POP"):
         operator = "stdDevPop"
-    return aggregate(self, compiler, connection, operator=operator, **extra_context)
+    return aggregate(self, compiler, connection, operator=operator)
 
 
 def register_aggregates():
