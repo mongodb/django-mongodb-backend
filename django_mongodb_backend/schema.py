@@ -505,6 +505,11 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         key_vault_db, key_vault_coll = auto_encryption_opts._key_vault_namespace.split(".", 1)
         key_vault_collection = client[key_vault_db][key_vault_coll]
 
+        # Create partial unique index on keyAltNames
+        key_vault_collection.create_index(
+            "keyAltNames", unique=True, partialFilterExpression={"keyAltNames": {"$exists": True}}
+        )
+
         kms_provider = router.kms_provider(model)
         master_key = connection.settings_dict.get("KMS_CREDENTIALS", {}).get(kms_provider)
         client_encryption = self.connection.client_encryption
