@@ -636,7 +636,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     @cached_property
     def supports_queryable_encryption(self):
         """
-        Queryable Encryption requires a MongoDB 7.0 or later replica set or sharded
+        Queryable Encryption requires a MongoDB 8.0 or later replica set or sharded
         cluster, as well as MongoDB Atlas or Enterprise.
         """
         self.connection.ensure_connection()

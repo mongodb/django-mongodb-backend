@@ -1,10 +1,14 @@
 import datetime
+import uuid
 from decimal import Decimal
+
+from bson import ObjectId
 
 from django_mongodb_backend.fields import EncryptedCharField
 
 from .models import (
     Actor,
+    ArrayModel,
     BigIntegerModel,
     Billing,
     BinaryModel,
@@ -19,6 +23,7 @@ from .models import (
     GenericIPAddressModel,
     IntegerModel,
     Movie,
+    ObjectIdModel,
     Patient,
     PatientRecord,
     PositiveBigIntegerModel,
@@ -28,8 +33,19 @@ from .models import (
     TextModel,
     TimeModel,
     URLModel,
+    UUIDModel,
 )
 from .test_base import EncryptionTestCase
+
+
+class ArrayModelTests(EncryptionTestCase):
+    def setUp(self):
+        self.array_model = ArrayModel.objects.create(values=[1, 2, 3, 4, 5])
+
+    def test_array(self):
+        array_model = ArrayModel.objects.get(id=self.array_model.id)
+        self.assertEqual(array_model.values, [1, 2, 3, 4, 5])
+        # self.assertEncrypted(self.array_model, "values")
 
 
 class EmbeddedModelTests(EncryptionTestCase):
@@ -61,15 +77,6 @@ class EmbeddedModelArrayTests(EncryptionTestCase):
         self.assertEqual(len(movie.cast), 2)
         self.assertEqual(movie.cast[0].name, "Actor One")
         self.assertEqual(movie.cast[1].name, "Actor Two")
-
-        # ======================================================================
-        # ERROR: test_array (encryption_.test_fields.EmbeddedModelArrayTests.test_array)
-        # ----------------------------------------------------------------------
-        # Traceback (most recent call last):
-        # …
-        #     self.assertIsInstance(data[field], Binary)
-        #                           ~~~~^^^^^^^
-        # TypeError: 'NoneType' object is not subscriptable
         # self.assertEncrypted(self.movie, "cast")
 
 
@@ -103,6 +110,9 @@ class FieldTests(EncryptionTestCase):
 
     def test_ip(self):
         self.assertEquality(GenericIPAddressModel, "192.168.0.1")
+
+    def test_objectid(self):
+        self.assertEquality(ObjectIdModel, ObjectId())
 
     def test_text(self):
         self.assertEquality(TextModel, "some text")
@@ -205,3 +215,12 @@ class FieldMixinTests(EncryptionTestCase):
         self.assertEqual(new_field.queries, field.queries)
         self.assertIsNot(new_field, field)
         self.assertEqual(new_field.max_length, field.max_length)
+
+
+class UUIDFieldTests(EncryptionTestCase):
+    def test_uuid_field(self):
+        test_uuid = uuid.uuid4()
+        UUIDModel.objects.create(value=test_uuid)
+        fetched = UUIDModel.objects.get(value=test_uuid)
+        self.assertEqual(fetched.value, test_uuid)
+        # self.assertEncrypted(fetched, "value")

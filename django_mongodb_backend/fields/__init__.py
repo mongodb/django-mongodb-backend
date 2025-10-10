@@ -4,6 +4,7 @@ from .duration import register_duration_field
 from .embedded_model import EmbeddedModelField
 from .embedded_model_array import EmbeddedModelArrayField
 from .encryption import (
+    EncryptedArrayField,
     EncryptedBigIntegerField,
     EncryptedBinaryField,
     EncryptedBooleanField,
@@ -19,6 +20,7 @@ from .encryption import (
     EncryptedFloatField,
     EncryptedGenericIPAddressField,
     EncryptedIntegerField,
+    EncryptedObjectIdField,
     EncryptedPositiveBigIntegerField,
     EncryptedPositiveIntegerField,
     EncryptedPositiveSmallIntegerField,
@@ -26,6 +28,7 @@ from .encryption import (
     EncryptedTextField,
     EncryptedTimeField,
     EncryptedURLField,
+    EncryptedUUIDField,
 )
 from .json import register_json_field
 from .objectid import ObjectIdField
@@ -36,6 +39,7 @@ __all__ = [
     "ArrayField",
     "EmbeddedModelArrayField",
     "EmbeddedModelField",
+    "EncryptedArrayField",
     "EncryptedBigIntegerField",
     "EncryptedBinaryField",
     "EncryptedBooleanField",
@@ -51,6 +55,7 @@ __all__ = [
     "EncryptedFloatField",
     "EncryptedGenericIPAddressField",
     "EncryptedIntegerField",
+    "EncryptedObjectIdField",
     "EncryptedPositiveBigIntegerField",
     "EncryptedPositiveIntegerField",
     "EncryptedPositiveSmallIntegerField",
@@ -58,6 +63,7 @@ __all__ = [
     "EncryptedTextField",
     "EncryptedTimeField",
     "EncryptedURLField",
+    "EncryptedUUIDField",
     "ObjectIdAutoField",
     "ObjectIdField",
     "PolymorphicEmbeddedModelArrayField",

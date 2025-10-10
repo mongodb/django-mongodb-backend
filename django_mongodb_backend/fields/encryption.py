@@ -1,6 +1,11 @@
 from django.db import models
 
-from django_mongodb_backend.fields import EmbeddedModelArrayField, EmbeddedModelField
+from django_mongodb_backend.fields import ArrayField, EmbeddedModelArrayField, EmbeddedModelField
+from django_mongodb_backend.fields.objectid import ObjectIdField
+
+
+class EncryptedArrayField(ArrayField):
+    encrypted = True
 
 
 class EncryptedEmbeddedModelArrayField(EmbeddedModelArrayField):
@@ -83,6 +88,10 @@ class EncryptedIntegerField(EncryptedFieldMixin, models.IntegerField):
     pass
 
 
+class EncryptedObjectIdField(EncryptedFieldMixin, ObjectIdField):
+    pass
+
+
 class EncryptedPositiveBigIntegerField(EncryptedFieldMixin, models.PositiveBigIntegerField):
     pass
 
@@ -108,4 +117,8 @@ class EncryptedTimeField(EncryptedFieldMixin, models.TimeField):
 
 
 class EncryptedURLField(EncryptedFieldMixin, models.URLField):
+    pass
+
+
+class EncryptedUUIDField(EncryptedFieldMixin, models.UUIDField):
     pass

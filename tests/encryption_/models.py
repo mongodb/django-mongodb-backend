@@ -2,6 +2,7 @@ from django.db import models
 
 from django_mongodb_backend.fields import (
     EmbeddedModelField,
+    EncryptedArrayField,
     EncryptedBigIntegerField,
     EncryptedBinaryField,
     EncryptedBooleanField,
@@ -16,6 +17,7 @@ from django_mongodb_backend.fields import (
     EncryptedFloatField,
     EncryptedGenericIPAddressField,
     EncryptedIntegerField,
+    EncryptedObjectIdField,
     EncryptedPositiveBigIntegerField,
     EncryptedPositiveIntegerField,
     EncryptedPositiveSmallIntegerField,
@@ -23,6 +25,7 @@ from django_mongodb_backend.fields import (
     EncryptedTextField,
     EncryptedTimeField,
     EncryptedURLField,
+    EncryptedUUIDField,
 )
 from django_mongodb_backend.models import EmbeddedModel
 
@@ -31,6 +34,14 @@ class EncryptedTestModel(models.Model):
     class Meta:
         abstract = True
         required_db_features = {"supports_queryable_encryption"}
+
+
+# Array models
+class ArrayModel(EncryptedTestModel):
+    values = EncryptedArrayField(
+        models.IntegerField(),
+        size=5,
+    )
 
 
 # Embedded models
@@ -91,12 +102,20 @@ class GenericIPAddressModel(EncryptedTestModel):
     value = EncryptedGenericIPAddressField(queries={"queryType": "equality"})
 
 
+class ObjectIdModel(EncryptedTestModel):
+    value = EncryptedObjectIdField(queries={"queryType": "equality"})
+
+
 class TextModel(EncryptedTestModel):
     value = EncryptedTextField(queries={"queryType": "equality"})
 
 
 class URLModel(EncryptedTestModel):
     value = EncryptedURLField(max_length=500, queries={"queryType": "equality"})
+
+
+class UUIDModel(EncryptedTestModel):
+    value = EncryptedUUIDField(queries={"queryType": "equality"})
 
 
 # Range-queryable field models
