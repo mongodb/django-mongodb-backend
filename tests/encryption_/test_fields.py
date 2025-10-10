@@ -57,9 +57,10 @@ class EmbeddedModelArrayTests(EncryptionTestCase):
         )
 
     def test_array(self):
-        self.assertEqual(len(self.movie.cast), 2)
-        self.assertEqual(self.movie.cast[0].name, "Actor One")
-        self.assertEqual(self.movie.cast[1].name, "Actor Two")
+        movie = Movie.objects.get(id=self.movie.id)
+        self.assertEqual(len(movie.cast), 2)
+        self.assertEqual(movie.cast[0].name, "Actor One")
+        self.assertEqual(movie.cast[1].name, "Actor Two")
 
         # ======================================================================
         # ERROR: test_array (encryption_.test_fields.EmbeddedModelArrayTests.test_array)

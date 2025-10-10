@@ -99,11 +99,11 @@ class EncryptedSmallIntegerField(EncryptedFieldMixin, models.SmallIntegerField):
     pass
 
 
-class EncryptedTimeField(EncryptedFieldMixin, models.TimeField):
+class EncryptedTextField(EncryptedFieldMixin, models.TextField):
     pass
 
 
-class EncryptedTextField(EncryptedFieldMixin, models.TextField):
+class EncryptedTimeField(EncryptedFieldMixin, models.TimeField):
     pass
 
 

@@ -471,19 +471,8 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                     f"Encrypted fields found but DATABASES['{self.connection.alias}']['OPTIONS'] "
                     "is missing auto_encryption_opts."
                 )
-
-            encrypted_fields_map = getattr(auto_encryption_opts, "_encrypted_fields_map", None)
-
-            if not encrypted_fields_map:
-                encrypted_fields = self._get_encrypted_fields(model)
-            else:
-                encrypted_fields = encrypted_fields_map.get(db_table)
-
-            if encrypted_fields:
-                db.create_collection(db_table, encryptedFields=encrypted_fields)
-            else:
-                db.create_collection(db_table)
-
+            encrypted_fields = self._get_encrypted_fields(model)
+            db.create_collection(db_table, encryptedFields=encrypted_fields)
         else:
             # Unencrypted path
             db.create_collection(db_table)
