@@ -98,7 +98,7 @@ class PolymorphicArrayFieldTransform(EmbeddedModelArrayFieldTransform):
         # Lookups iterate over the array of embedded models. A virtual column
         # of the queried field's type represents each element.
         column_target = field.clone()
-        column_name = f"$item.{field.column}"
+        column_name = f"${self.VIRTUAL_COLUMN_ITERABLE}.{field.column}"
         column_target.name = f"{field.name}"
         column_target.db_column = column_name
         column_target.set_attributes_from_name(column_name)

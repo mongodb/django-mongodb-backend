@@ -227,13 +227,14 @@ class EmbeddedModelArrayFieldLessThanOrEqual(
 
 class EmbeddedModelArrayFieldTransform(Transform):
     field_class_name = "EmbeddedModelArrayField"
+    VIRTUAL_COLUMN_ITERABLE = "item"
 
     def __init__(self, field, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Lookups iterate over the array of embedded models. A virtual column
         # of the queried field's type represents each element.
         column_target = field.clone()
-        column_name = f"$item.{field.column}"
+        column_name = f"${self.VIRTUAL_COLUMN_ITERABLE}.{field.column}"
         column_target.db_column = column_name
         column_target.set_attributes_from_name(column_name)
         self._lhs = Col(None, column_target)
@@ -283,7 +284,7 @@ class EmbeddedModelArrayFieldTransform(Transform):
                 {
                     "$map": {
                         "input": lhs_mql,
-                        "as": "item",
+                        "as": self.VIRTUAL_COLUMN_ITERABLE,
                         "in": inner_lhs_mql,
                     }
                 },
