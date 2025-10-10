@@ -109,7 +109,7 @@ class SchemaTests(EncryptionTestCase):
 
     def test_key_creation_and_lookup(self):
         """
-        Use _get_encrypted_fields(create_data_keys=True) to
+        Use _get_encrypted_fields to
         generate and store a data key in the vault, then
         query the vault with the keyAltName.
         """
@@ -124,9 +124,8 @@ class SchemaTests(EncryptionTestCase):
         test_key_alt_name = f"{model_class._meta.db_table}.value"
         vault_coll.delete_many({"keyAltNames": test_key_alt_name})
 
-        # Call _get_encrypted_fields with create_data_keys=True
         with connection.schema_editor() as editor:
-            encrypted_fields = editor._get_encrypted_fields(model_class, create_data_keys=True)
+            encrypted_fields = editor._get_encrypted_fields(model_class)
 
         # Validate schema contains a keyId for our field
         self.assertTrue(encrypted_fields["fields"])

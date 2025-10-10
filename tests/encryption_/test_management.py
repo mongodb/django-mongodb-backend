@@ -109,20 +109,3 @@ class CommandTests(EncryptionTestCase):
             with self.subTest(model=model_key):
                 self.assertIn(model_key, command_output)
                 self._compare_output(expected, command_output[model_key])
-
-    def test_create_new_keys(self):
-        out = StringIO()
-        call_command(
-            "showencryptedfieldsmap",
-            "--database",
-            "encrypted",
-            "--create-data-keys",
-            verbosity=0,
-            stdout=out,
-        )
-        command_output = json_util.loads(out.getvalue())
-
-        for model_key, expected in self.expected_maps.items():
-            with self.subTest(model=model_key):
-                self.assertIn(model_key, command_output)
-                self._compare_output(expected, command_output[model_key])

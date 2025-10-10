@@ -211,24 +211,7 @@ run the following command::
 
 You can then use the output of the :djadmin:`showencryptedfieldsmap` command
 to set the ``encrypted_fields_map`` in
-:class:`pymongo.encryption_options.AutoEncryptionOpts` in your Django settings
-if you want to use a pre-defined encrypted fields map in the client instead of
-letting Django MongoDB Backend create them for you.
-
-.. try to explain the chicken/egg scenario here
-
-Of course, if you do this after Django MongoDB Backend has already created the
-collections, you will need to drop the collections first before using the
-pre-defined encrypted fields map.
-
-If you do not want to use the data keys created by Django MongoDB Backend (when
-``python manage.py migrate`` is run), you can generate new data keys with::
-
-    $ python manage.py showencryptedfieldsmap --database encrypted \
-        --create-data-keys
-
-In this scenario, Django MongoDB Backend will use the newly created data keys
-to create collections for models with encrypted fields.
+:class:`pymongo.encryption_options.AutoEncryptionOpts` in your Django settings.
 
 Here is an example of how to configure the
 ``encrypted_fields_map`` in your Django settings:

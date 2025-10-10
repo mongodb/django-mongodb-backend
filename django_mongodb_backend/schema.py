@@ -475,7 +475,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             encrypted_fields_map = getattr(auto_encryption_opts, "_encrypted_fields_map", None)
 
             if not encrypted_fields_map:
-                encrypted_fields = self._get_encrypted_fields(model, create_data_keys=True)
+                encrypted_fields = self._get_encrypted_fields(model)
             else:
                 encrypted_fields = encrypted_fields_map.get(db_table)
 
@@ -488,9 +488,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             # Unencrypted path
             db.create_collection(db_table)
 
-    def _get_encrypted_fields(
-        self, model, create_data_keys=False, key_alt_name=None, path_prefix=None
-    ):
+    def _get_encrypted_fields(self, model, key_alt_name=None, path_prefix=None):
         """
         Recursively collect encryption schema data for only encrypted fields in a model.
         Returns None if no encrypted fields are found anywhere in the model hierarchy.
@@ -520,7 +518,6 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             if isinstance(field, EmbeddedModelField) and not getattr(field, "encrypted", False):
                 embedded_result = self._get_encrypted_fields(
                     field.embedded_model,
-                    create_data_keys=create_data_keys,
                     key_alt_name=new_key_alt_name,
                     path_prefix=path,
                 )
@@ -530,15 +527,15 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
 
             if getattr(field, "encrypted", False):
                 bson_type = field.db_type(connection)
-                if create_data_keys:
+                data_key = key_vault_collection.find_one({"keyAltNames": new_key_alt_name})
+                if data_key:
+                    data_key = data_key["_id"]
+                else:
                     data_key = client_encryption.create_data_key(
                         kms_provider=kms_provider,
                         master_key=master_key,
                         key_alt_names=[new_key_alt_name],
                     )
-                else:
-                    key = key_vault_collection.find_one({"keyAltNames": new_key_alt_name})
-                    data_key = key["_id"]
                 field_dict = {
                     "bsonType": bson_type,
                     "path": path,

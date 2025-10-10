@@ -23,14 +23,8 @@ Available commands
 
     This command shows the mapping of encrypted fields to attributes including
     data type, data keys and query types. It can be used to set the
-    ``encrypted_fields_map`` in ``AutoEncryptionOpts``. Defaults to showing
-    existing keys from the configured key vault.
+    ``encrypted_fields_map`` in ``AutoEncryptionOpts``.
 
     .. django-admin-option:: --database DATABASE
 
         Specifies the database to use. Defaults to ``default``.
-
-    .. django-admin-option:: --create-data-keys
-
-        If specified, this option will create and show new encryption keys
-        instead of showing existing keys from the configured key vault.
