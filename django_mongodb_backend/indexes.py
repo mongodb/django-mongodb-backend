@@ -53,7 +53,6 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, unique=False
         query = Query(model=model, alias_cols=False)
         compiler = query.get_compiler(connection=schema_editor.connection)
         for expression in self.expressions:
-            query = Query(model=model, alias_cols=False)
             field_ = expression.resolve_expression(query)
             column = field_.as_mql(compiler, schema_editor.connection, as_path=True)
             db_type = (
