@@ -34,11 +34,12 @@ else:
 
 
 class EncryptedRouter:
-    # def db_for_read(self, model, **hints):
-    #     if model_has_encrypted_fields(model):
-    #         return "encrypted"
-    #     return "default"
-    # db_for_write = db_for_read
+    def db_for_read(self, model, **hints):
+        if model._meta.app_label == "encryption_":
+            return "encrypted"
+        return None
+
+    db_for_write = db_for_read
 
     def allow_migrate(self, db, app_label, model_name=None, **hints):
         # The encryption_ app's models are only created in the encrypted

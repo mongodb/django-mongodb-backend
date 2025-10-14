@@ -77,7 +77,7 @@ class EmbeddedModelArrayTests(EncryptionTestCase):
         self.assertEqual(len(movie.cast), 2)
         self.assertEqual(movie.cast[0].name, "Actor One")
         self.assertEqual(movie.cast[1].name, "Actor Two")
-        # self.assertEncrypted(self.movie, "cast")
+        self.assertEncrypted(self.movie, "cast")
 
 
 class FieldTests(EncryptionTestCase):
