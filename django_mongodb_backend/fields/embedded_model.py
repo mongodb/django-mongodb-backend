@@ -204,6 +204,9 @@ class EmbeddedModelTransform(Transform):
     def output_field(self):
         return self._field
 
+    def db_type(self, connection):
+        return self.output_field.db_type(connection)
+
 
 class EmbeddedModelTransformFactory:
     def __init__(self, field):

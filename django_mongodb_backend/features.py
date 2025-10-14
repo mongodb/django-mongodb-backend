@@ -102,6 +102,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "model_fields.test_jsonfield.TestSaveLoad.test_bulk_update_custom_get_prep_value",
         # To debug: https://github.com/mongodb/django-mongodb-backend/issues/362
         "constraints.tests.UniqueConstraintTests.test_validate_case_when",
+        # Simple expression index are supported
+        "schema.tests.SchemaTests.test_func_unique_constraint_unsupported",
+        "schema.tests.SchemaTests.test_func_index_unsupported",
     }
     # $bitAnd, #bitOr, and $bitXor are new in MongoDB 6.3.
     _django_test_expected_failures_bitwise = {
