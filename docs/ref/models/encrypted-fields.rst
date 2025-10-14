@@ -12,15 +12,17 @@ Queryable Encryption with Django MongoDB Backend.
 See the :doc:`/topics/queryable-encryption` topic guide for
 more information on developing applications with Queryable Encryption.
 
-The following fields are supported by Django MongoDB Backend for use with
+The following Django fields are supported by Django MongoDB Backend for use with
 Queryable Encryption.
 
 +----------------------------------------+------------------------------------------------------+
 | Encrypted Field                        | Django Field                                         |
 +========================================+======================================================+
-| ``EncryptedBooleanField``              | :class:`~django.db.models.BooleanField`              |
-+----------------------------------------+------------------------------------------------------+
 | ``EncryptedBigIntegerField``           | :class:`~django.db.models.BigIntegerField`           |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedBinaryField``               | :class:`~django.db.models.BinaryField`               |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedBooleanField``              | :class:`~django.db.models.BooleanField`              |
 +----------------------------------------+------------------------------------------------------+
 | ``EncryptedCharField``                 | :class:`~django.db.models.CharField`                 |
 +----------------------------------------+------------------------------------------------------+
@@ -52,13 +54,32 @@ Queryable Encryption.
 +----------------------------------------+------------------------------------------------------+
 | ``EncryptedURLField``                  | :class:`~django.db.models.URLField`                  |
 +----------------------------------------+------------------------------------------------------+
+| ``EncryptedUUIDField``                 | :class:`~django.db.models.UUIDField`                 |
++----------------------------------------+------------------------------------------------------+
 
-The following fields are supported by Django MongoDB Backend but are not
-supported by Queryable Encryption.
+The following MongoDB-specific fields are supported by Django MongoDB Backend
+for use with Queryable Encryption.
 
-+--------------------------------------+-----------------------------------------------+
-| :class:`~django.db.models.SlugField` | Indexes aren't supported on encrypted fields. |
-+--------------------------------------+-----------------------------------------------+
++----------------------------------------+------------------------------------------------------+
+| Encrypted Field                        | MongoDB Field                                        |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedArrayField``                | :ref:`arrayfield`                                    |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedEmbeddedModelArrayField``   | :ref:`embeddedmodelarrayfield`                       |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedEmbeddedModelField``        | :ref:`embeddedmodelfield`                            |
++----------------------------------------+------------------------------------------------------+
+| ``EncryptedObjectIdField``             | :ref:`objectidfield`                                 |
++----------------------------------------+------------------------------------------------------+
+
+The following fields are supported by Django MongoDB Backend but not by
+Queryable Encryption.
+
++--------------------------------------+--------------------------------------------------------------------------------------------------------------------+
+| Field                                | Limitation                                                                                                         |
++--------------------------------------+--------------------------------------------------------------------------------------------------------------------+
+| :class:`~django.db.models.SlugField` | :ref:`Queryable Encryption does not support TTL Indexes or Unique Indexes <manual:qe-reference-encryption-limits>` |
++--------------------------------------+--------------------------------------------------------------------------------------------------------------------+
 
 ``EncryptedFieldMixin``
 =======================

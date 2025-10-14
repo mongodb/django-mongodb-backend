@@ -194,27 +194,19 @@ Configuring the ``encrypted_fields_map``
 
 When you :ref:`configure an encrypted database connection
 <qe-configuring-databases-setting>` without specifying an
-``encrypted_fields_map`` in
-:class:`pymongo.encryption_options.AutoEncryptionOpts`, Django MongoDB Backend
-will create an encrypted fields map for you (when ``python manage.py migrate``
-is run), including new data keys, and use it to create collections for models
-with encrypted fields.
+``encrypted_fields_map``, Django MongoDB Backend will create encrypted
+collections for you when you run ``python manage.py migrate``.
 
-The data keys are stored in the key vault :ref:`specified in the Django
-settings <qe-configuring-kms>`. You can view the encrypted fields map by running
-the :djadmin:`showencryptedfieldsmap` command.
-
-To see the keys created by Django MongoDB Backend in the above scenario, you can
-run the following command::
+Encryption keys for encrypted fields are stored in the key vault
+:ref:`specified in the Django settings <qe-configuring-kms>`. To see the keys
+created by Django MongoDB Backend, along with the entire schema, you can run the
+:djadmin:`showencryptedfieldsmap` command::
 
     $ python manage.py showencryptedfieldsmap --database encrypted
 
-You can then use the output of the :djadmin:`showencryptedfieldsmap` command
-to set the ``encrypted_fields_map`` in
+Use the output of the :djadmin:`showencryptedfieldsmap` command to set the
+``encrypted_fields_map`` in
 :class:`pymongo.encryption_options.AutoEncryptionOpts` in your Django settings.
-
-Here is an example of how to configure the
-``encrypted_fields_map`` in your Django settings:
 
 .. code-block:: python
 

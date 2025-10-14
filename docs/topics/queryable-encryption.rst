@@ -4,25 +4,36 @@ Queryable Encryption
 
 .. versionadded:: 5.2.3
 
-Once you have configured your Django project and MongoDB deployment for
-Queryable Encryption, you’re ready to start developing applications that take
-advantage of these enhanced security features.
+Once you have successfully set up MongoDB Queryable Encryption as described in
+:doc:`the installation guide </howto/queryable-encryption>`, you can start
+using encrypted fields in your Django models.
 
 Encrypted fields
 ================
 
-You can use :doc:`encrypted fields </ref/models/encrypted-fields>` to structure
-your sensitive data.
-
-
 The basics
 ----------
 
-For example, you can define models with encrypted fields like this:
+:doc:`Encrypted fields </ref/models/encrypted-fields>` may be used to protect
+sensitive data like social security numbers, credit card information, or
+personal health information. With Queryable Encryption, you can also perform
+queries on certain encrypted fields. To use encrypted fields in your models,
+import the necessary field types from ``django_mongodb_backend.models`` and
+define your models as usual.
 
 .. code-block:: python
 
-    class Patient(EncryptedTestModel):
+    # myapp/models.py
+    from django.db import models
+    from django_mongodb_backend.models import EmbeddedModel
+    from django_mongodb_backend.fields import (
+        EmbeddedModelField,
+        EncryptedCharField,
+        EncryptedEmbeddedModelField,
+    )
+
+
+    class Patient(models.Model):
         patient_name = models.CharField(max_length=255)
         patient_id = models.BigIntegerField()
         patient_record = EmbeddedModelField("PatientRecord")
