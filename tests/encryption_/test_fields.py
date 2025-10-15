@@ -45,7 +45,7 @@ class ArrayModelTests(EncryptionTestCase):
     def test_array(self):
         array_model = ArrayModel.objects.get(id=self.array_model.id)
         self.assertEqual(array_model.values, [1, 2, 3, 4, 5])
-        # self.assertEncrypted(self.array_model, "values")
+        self.assertEncrypted(self.array_model, "values")
 
 
 class EmbeddedModelTests(EncryptionTestCase):
@@ -223,4 +223,4 @@ class UUIDFieldTests(EncryptionTestCase):
         UUIDModel.objects.create(value=test_uuid)
         fetched = UUIDModel.objects.get(value=test_uuid)
         self.assertEqual(fetched.value, test_uuid)
-        # self.assertEncrypted(fetched, "value")
+        self.assertEncrypted(fetched, "value")
