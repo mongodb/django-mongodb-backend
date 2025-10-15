@@ -21,6 +21,9 @@ queries on certain encrypted fields. To use encrypted fields in your models,
 import the necessary field types from ``django_mongodb_backend.models`` and
 define your models as usual.
 
+Here's the `Python Queryable Encryption Tutorial`_ example implemented in
+Django:
+
 .. code-block:: python
 
     # myapp/models.py
@@ -94,8 +97,10 @@ query type in the model field definition. For example, if you want to query the
         billing = EncryptedEmbeddedModelField("Billing")
         bill_amount = models.DecimalField(max_digits=10, decimal_places=2)
 
-Query types
-~~~~~~~~~~~
+.. _qe-available-query-types:
+
+Available query types
+~~~~~~~~~~~~~~~~~~~~~
 
 The ``queries`` option should be a dictionary that specifies the type of queries
 that can be performed on the field. The :ref:`available query types
@@ -116,30 +121,12 @@ For example, to find a patient by their SSN, you can do the following::
     >>> patient.name
     'Bob'
 
-
 QuerySet limitations
 ~~~~~~~~~~~~~~~~~~~~
 
-When using Django QuerySets with MongoDB Queryable Encryption, it’s important to
-understand that many typical ORM features are restricted because the database
-only sees encrypted ciphertext, not plaintext. This means that only certain
-query types are supported, and a lot of filtering, sorting, and aggregating must
-be done client-side after decryption. Key limitations include:
+In addition to :ref:`Django MongoDB Backend's QuerySet limitations
+<known-issues-limitations-querying>`,
 
-- **Equality only filtering** – You can filter encrypted fields using exact
-  matches, but operators like contains, startswith, regex, or unsupported range
-  lookups will not work.
-- **No server-side sorting** – .order_by() on encrypted fields won’t produce
-  meaningful results; sorting needs to happen after decryption in Python.
-- **No server-side aggregation** – Functions like annotate() or aggregate()
-  won’t operate on encrypted fields; you must aggregate locally after fetching
-  data.
-- **Index constraints** – Queries are only possible on encrypted fields that
-  have a configured queryable encryption index and keys available on the client.
-- **No joins on encrypted fields** – Filtering across relationships using
-  encrypted foreign keys is unsupported because matching must happen
-  client-side.
+.. TODO
 
-In short, when working with Queryable Encryption, design your queries to use
-exact matches only on encrypted fields, and plan to handle any sorting or
-aggregation after results are decrypted in your application code.
+.. _Python Queryable Encryption Tutorial: https://github.com/mongodb/docs/tree/main/content/manual/manual/source/includes/qe-tutorials/python

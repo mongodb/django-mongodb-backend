@@ -41,8 +41,8 @@ encrypted database in your :setting:`django:DATABASES` setting.
 
 This database will be used to store encrypted fields in your models. The
 following example shows how to configure an encrypted database using the
-:class:`pymongo.encryption_options.AutoEncryptionOpts` from the
-:mod:`pymongo.encryption_options` module.
+:class:`AutoEncryptionOpts <pymongo.encryption_options.AutoEncryptionOpts>` from the
+:mod:`encryption_options <pymongo.encryption_options>` module.
 
 This example uses a local KMS provider and a key vault namespace for storing
 encryption keys.
@@ -82,6 +82,8 @@ encryption keys.
             },
         },
     }
+
+.. _qe-configuring-database-routers-setting:
 
 Configuring the ``DATABASE_ROUTERS`` setting
 ============================================
@@ -188,6 +190,7 @@ Example of KMS configuration with AWS KMS:
         def kms_provider(self, model, **hints):
             return "aws"
 
+.. _qe-configuring-encrypted-fields-map:
 
 Configuring the ``encrypted_fields_map``
 ========================================

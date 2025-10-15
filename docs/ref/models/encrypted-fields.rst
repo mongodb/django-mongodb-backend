@@ -88,29 +88,32 @@ Queryable Encryption.
 
     .. versionadded:: 5.2.3
 
-    A mixin that can be used to create custom encrypted fields that support
-    MongoDB's Queryable Encryption.
+    A mixin that can be used to create custom encrypted fields with Queryable
+    Encryption.
 
-    To create a custom encrypted field, inherit from ``EncryptedFieldMixin`` and
-    the desired Django field class.
-
-
-    For example, to create a custom encrypted field that supports ``equality``
-    queries, you can define it as follows:
+    To create an encrypted field, inherit from ``EncryptedFieldMixin`` and
+    your custom field class:
 
     .. code-block:: python
 
         from django.db import models
         from django_mongodb_backend.fields import EncryptedFieldMixin
-        from .models import MyField
+        from myapp.fields import MyField
 
 
         class MyEncryptedField(EncryptedFieldMixin, MyField):
             pass
 
 
+    You can then use your custom encrypted field in a model, specifying the
+    desired query types:
+
+    .. code-block:: python
+
         class MyModel(models.Model):
             my_encrypted_field = MyEncryptedField(
                 queries={"queryType": "equality"},
-                # Other field options...
+            )
+            my_encrypted_field_too = MyEncryptedField(
+                queries={"queryType": "range"},
             )

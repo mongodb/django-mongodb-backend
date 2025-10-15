@@ -22,9 +22,35 @@ Available commands
 .. django-admin:: showencryptedfieldsmap
 
     This command shows the mapping of encrypted fields to attributes including
-    data type, data keys and query types. It can be used to set the
-    ``encrypted_fields_map`` in ``AutoEncryptionOpts``.
+    data type, data keys and query types. Its output can be used to set the
+    :ref:`encrypted_fields_map <qe-configuring-encrypted-fields-map>` argument
+    in :class:`AutoEncryptionOpts
+    <pymongo.encryption_options.AutoEncryptionOpts>`.
 
     .. django-admin-option:: --database DATABASE
 
         Specifies the database to use. Defaults to ``default``.
+
+    To show the encrypted fields map for a database named ``encrypted``, run:
+
+    .. code-block:: console
+
+        $ python manage.py showencryptedfieldsmap --database encrypted
+
+    The output will look like::
+
+        {
+            "myapp.mymodel": {
+                "encrypted_field_1": {
+                    "bsonType": "string",
+                    "keyId": "UUID('...')",
+                    "queries": ["equality", "range"]
+                },
+                "encrypted_field_2": {
+                    "bsonType": "int",
+                    "keyId": "UUID('...')",
+                    "queries": ["equality"]
+                }
+            },
+            ...
+        }
