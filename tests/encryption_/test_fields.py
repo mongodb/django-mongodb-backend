@@ -120,6 +120,9 @@ class FieldTests(EncryptionTestCase):
     def test_url(self):
         self.assertEquality(URLModel, "https://example.com")
 
+    def test_uuid(self):
+        self.assertEquality(UUIDModel, uuid.uuid4())
+
     # Range fields
     def test_big_integer(self):
         self.assertRange(BigIntegerModel, low=100, high=200, threshold=150)
@@ -215,12 +218,3 @@ class FieldMixinTests(EncryptionTestCase):
         self.assertEqual(new_field.queries, field.queries)
         self.assertIsNot(new_field, field)
         self.assertEqual(new_field.max_length, field.max_length)
-
-
-class UUIDFieldTests(EncryptionTestCase):
-    def test_uuid_field(self):
-        test_uuid = uuid.uuid4()
-        UUIDModel.objects.create(value=test_uuid)
-        fetched = UUIDModel.objects.get(value=test_uuid)
-        self.assertEqual(fetched.value, test_uuid)
-        self.assertEncrypted(fetched, "value")
