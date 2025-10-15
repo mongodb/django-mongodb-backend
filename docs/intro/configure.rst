@@ -53,6 +53,8 @@ Each app reference in the :setting:`INSTALLED_APPS` setting must point to the
 corresponding ``AppConfig``. For example, instead of ``'django.contrib.admin'``,
 the template uses ``'<project_name>.apps.MongoAdminConfig'``.
 
+.. _configuring-migrations:
+
 Configuring migrations
 ======================
 
