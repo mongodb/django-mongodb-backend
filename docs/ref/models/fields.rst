@@ -39,6 +39,18 @@ A few notes about some of the other fields:
 - Similarly, all :class:`~django.db.models.DurationField` values are stored as
   :class:`bson.int64.Int64`.
 
+Model field options
+===================
+
+Some notes about model field options:
+
+- Dollar signs and periods (``$`` and ``.``) are not supported in
+  :attr:`Field.db_column <django.db.models.Field.db_column>` because these field
+  names are :doc:`discouraged by MongoDB
+  <manual:core/dot-dollar-considerations>`. Querying fields with these
+  characters requires the ``$getField`` operator, which prevents queries from
+  using indexes.
+
 MongoDB-specific model fields
 =============================
 
