@@ -7,6 +7,8 @@ Django MongoDB Backend 5.2.x
 
 *Unreleased*
 
+This release confirms support for Python 3.14. No code changes were required.
+
 New features
 ------------
 
