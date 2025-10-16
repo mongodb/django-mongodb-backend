@@ -4,18 +4,6 @@ from django_mongodb_backend.fields import ArrayField, EmbeddedModelArrayField, E
 from django_mongodb_backend.fields.objectid import ObjectIdField
 
 
-class EncryptedArrayField(ArrayField):
-    encrypted = True
-
-
-class EncryptedEmbeddedModelArrayField(EmbeddedModelArrayField):
-    encrypted = True
-
-
-class EncryptedEmbeddedModelField(EmbeddedModelField):
-    encrypted = True
-
-
 class EncryptedFieldMixin:
     encrypted = True
 
@@ -40,6 +28,7 @@ class EncryptedFieldMixin:
         return name, path, args, kwargs
 
 
+# Django fields
 class EncryptedBinaryField(EncryptedFieldMixin, models.BinaryField):
     pass
 
@@ -88,10 +77,6 @@ class EncryptedIntegerField(EncryptedFieldMixin, models.IntegerField):
     pass
 
 
-class EncryptedObjectIdField(EncryptedFieldMixin, ObjectIdField):
-    pass
-
-
 class EncryptedPositiveBigIntegerField(EncryptedFieldMixin, models.PositiveBigIntegerField):
     pass
 
@@ -121,4 +106,21 @@ class EncryptedURLField(EncryptedFieldMixin, models.URLField):
 
 
 class EncryptedUUIDField(EncryptedFieldMixin, models.UUIDField):
+    pass
+
+
+# MongoDB fields
+class EncryptedArrayField(EncryptedFieldMixin, ArrayField):
+    pass
+
+
+class EncryptedEmbeddedModelArrayField(EncryptedFieldMixin, EmbeddedModelArrayField):
+    pass
+
+
+class EncryptedEmbeddedModelField(EncryptedFieldMixin, EmbeddedModelField):
+    pass
+
+
+class EncryptedObjectIdField(EncryptedFieldMixin, ObjectIdField):
     pass

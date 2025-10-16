@@ -58,8 +58,6 @@ MongoDB-specific model fields
 
 Some MongoDB-specific fields are available in ``django_mongodb_backend.fields``.
 
-.. _arrayfield:
-
 ``ArrayField``
 --------------
 
@@ -274,8 +272,6 @@ transform do not change. For example:
 
 These indexes use 0-based indexing.
 
-.. _embeddedmodelfield:
-
 ``EmbeddedModelField``
 ----------------------
 
@@ -326,8 +322,6 @@ These indexes use 0-based indexing.
     created these models and then added an indexed field to ``Address``,
     the index created in the nested ``Book`` embed is not created.
 
-.. _embeddedmodelarrayfield:
-
 ``EmbeddedModelArrayField``
 ---------------------------
 
@@ -363,8 +357,6 @@ These indexes use 0-based indexing.
 
     This field is typically the default primary key field for all models stored
     in MongoDB. See :ref:`specifying the-default-pk-field`.
-
-.. _objectidfield:
 
 ``ObjectIdField``
 -----------------

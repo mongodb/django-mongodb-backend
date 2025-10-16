@@ -11,8 +11,6 @@ class Command(BaseCommand):
     Shows the mapping of encrypted fields to field attributes, including data
     type, data keys and query types. The output can be used to set
     ``encrypted_fields_map`` in ``AutoEncryptionOpts``.
-
-    Defaults to showing keys from the ``key_vault_namespace`` collection.
     """
 
     def add_arguments(self, parser):

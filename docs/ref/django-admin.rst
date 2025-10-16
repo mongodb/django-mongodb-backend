@@ -36,21 +36,3 @@ Available commands
     .. code-block:: console
 
         $ python manage.py showencryptedfieldsmap --database encrypted
-
-    The output will look like::
-
-        {
-            "myapp.mymodel": {
-                "encrypted_field_1": {
-                    "bsonType": "string",
-                    "keyId": "UUID('...')",
-                    "queries": ["equality", "range"]
-                },
-                "encrypted_field_2": {
-                    "bsonType": "int",
-                    "keyId": "UUID('...')",
-                    "queries": ["equality"]
-                }
-            },
-            ...
-        }

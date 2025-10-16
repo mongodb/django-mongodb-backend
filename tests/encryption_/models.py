@@ -74,8 +74,8 @@ class Movie(EncryptedTestModel):
     title = models.CharField(max_length=200)
     plot = models.TextField(blank=True)
     runtime = models.IntegerField(default=0)
-    released = models.DateTimeField("release date", null=True, blank=True)
-    cast = EncryptedEmbeddedModelArrayField(Actor, null=True, blank=True)
+    released = models.DateTimeField("release date")
+    cast = EncryptedEmbeddedModelArrayField(Actor)
 
     def __str__(self):
         return self.title

@@ -12,8 +12,6 @@ Key Management Service (KMS) credentials for Queryable Encryption.
 
 .. setting:: DATABASE-KMS-CREDENTIALS
 
-.. _database-kms-credentials:
-
 ``KMS_CREDENTIALS``
 -------------------
 

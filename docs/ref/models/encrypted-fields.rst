@@ -63,13 +63,13 @@ for use with Queryable Encryption.
 +----------------------------------------+------------------------------------------------------+
 | Encrypted Field                        | MongoDB Field                                        |
 +----------------------------------------+------------------------------------------------------+
-| ``EncryptedArrayField``                | :ref:`arrayfield`                                    |
+| ``EncryptedArrayField``                | :class:`~.fields.ArrayField`                         |
 +----------------------------------------+------------------------------------------------------+
-| ``EncryptedEmbeddedModelArrayField``   | :ref:`embeddedmodelarrayfield`                       |
+| ``EncryptedEmbeddedModelArrayField``   | :class:`~.fields.EmbeddedModelArrayField`            |
 +----------------------------------------+------------------------------------------------------+
-| ``EncryptedEmbeddedModelField``        | :ref:`embeddedmodelfield`                            |
+| ``EncryptedEmbeddedModelField``        | :class:`~.fields.EmbeddedModelField`                 |
 +----------------------------------------+------------------------------------------------------+
-| ``EncryptedObjectIdField``             | :ref:`objectidfield`                                 |
+| ``EncryptedObjectIdField``             | :class:`~.fields.ObjectIdField`                      |
 +----------------------------------------+------------------------------------------------------+
 
 The following fields are supported by Django MongoDB Backend but not by

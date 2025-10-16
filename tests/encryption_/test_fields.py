@@ -70,6 +70,7 @@ class EmbeddedModelArrayTests(EncryptionTestCase):
         self.movie = Movie.objects.create(
             title="Sample Movie",
             cast=[self.actor1, self.actor2],
+            released=datetime.date(2024, 6, 1),
         )
 
     def test_array(self):
