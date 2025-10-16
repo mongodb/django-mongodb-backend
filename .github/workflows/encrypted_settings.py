@@ -8,7 +8,7 @@ DATABASES["encrypted"] = {  # noqa: F405
     "NAME": "djangotests_encrypted",
     "OPTIONS": {
         "auto_encryption_opts": AutoEncryptionOpts(
-            key_vault_namespace="test_djangotests_encrypted.__keyVault",
+            key_vault_namespace="djangotests_encrypted.__keyVault",
             kms_providers={"local": {"key": os.urandom(96)}},
         ),
         "directConnection": True,
