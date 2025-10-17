@@ -125,12 +125,4 @@ For example, to find a patient by their SSN, you can do the following::
     >>> patient.name
     'Bob'
 
-QuerySet limitations
-~~~~~~~~~~~~~~~~~~~~
-
-In addition to :ref:`Django MongoDB Backend's QuerySet limitations
-<known-issues-limitations-querying>`,
-
-.. TODO
-
 .. _Python Queryable Encryption Tutorial: https://github.com/mongodb/docs/tree/main/content/manual/manual/source/includes/qe-tutorials/python
