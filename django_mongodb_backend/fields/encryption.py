@@ -7,9 +7,13 @@ from django_mongodb_backend.fields.objectid import ObjectIdField
 class EncryptedFieldMixin:
     encrypted = True
 
-    def __init__(self, *args, queries=None, **kwargs):
-        if kwargs.get("null", False):
-            raise ValueError("'null=True' is not supported for encrypted fields.")
+    def __init__(self, *args, queries=None, db_index=False, null=False, unique=False, **kwargs):
+        if db_index:
+            raise ValueError("'db_index=True' is not supported on encrypted fields.")
+        if null:
+            raise ValueError("'null=True' is not supported on encrypted fields.")
+        if unique:
+            raise ValueError("'unique=True' is not supported on encrypted fields.")
         self.queries = queries
         super().__init__(*args, **kwargs)
 

@@ -81,6 +81,15 @@ Queryable Encryption.
 | :class:`~django.db.models.SlugField` | :ref:`Queryable Encryption does not support TTL Indexes or Unique Indexes <manual:qe-reference-encryption-limits>` |
 +--------------------------------------+--------------------------------------------------------------------------------------------------------------------+
 
+Limitations
+===========
+
+MongoDB imposes some restrictions on encrypted fields:
+
+* They cannot be indexed.
+* They cannot be part of a unique constraint.
+* They cannot be null.
+
 ``EncryptedFieldMixin``
 =======================
 

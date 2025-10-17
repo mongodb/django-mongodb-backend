@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from bson import ObjectId
 
-from django_mongodb_backend.fields import EncryptedCharField
+from django_mongodb_backend.fields import EncryptedCharField, EncryptedIntegerField
 
 from .models import (
     Actor,
@@ -188,11 +188,20 @@ class FieldTests(EncryptionTestCase):
 
 
 class FieldMixinTests(EncryptionTestCase):
-    def test_null_true_raises_error(self):
-        with self.assertRaisesMessage(
-            ValueError, "'null=True' is not supported for encrypted fields."
-        ):
-            EncryptedCharField(max_length=50, null=True)
+    def test_db_index(self):
+        msg = "'db_index=True' is not supported on encrypted fields."
+        with self.assertRaisesMessage(ValueError, msg):
+            EncryptedIntegerField(db_index=True)
+
+    def test_null(self):
+        msg = "'null=True' is not supported on encrypted fields."
+        with self.assertRaisesMessage(ValueError, msg):
+            EncryptedIntegerField(null=True)
+
+    def test_unique(self):
+        msg = "'unique=True' is not supported on encrypted fields."
+        with self.assertRaisesMessage(ValueError, msg):
+            EncryptedIntegerField(unique=True)
 
     def test_deconstruct_preserves_queries_and_rewrites_path(self):
         field = EncryptedCharField(max_length=50, queries={"field": "value"})
