@@ -62,25 +62,29 @@ create and manipulate instances of the data just like any other Django model
 data. The fields will automatically handle encryption and decryption, ensuring
 that sensitive data is stored securely in the database.
 
-From an encrypted client, enter the secure data::
+.. TODO
 
+.. code-block:: console
+
+    $ python manage.py shell
     >>> from myapp.models import Patient, PatientRecord, Billing
     >>> billing = Billing(cc_type="Visa", cc_number="4111111111111111")
-    >>> patient_record = PatientRecord(ssn="123-45-6789", billing=self.billing)
+    >>> patient_record = PatientRecord(ssn="123-45-6789", billing=billing)
     >>> patient = Patient.objects.create(
             patient_name="John Doe",
             patient_id=123456789,
-            patient_record=self.patient_record,
+            patient_record=patient_record,
         )
 
-From an unencrypted client, you can still access the data, but the sensitive
-fields will be encrypted. For example, if you try to access the ``ssn`` field
-from an unencrypted client, you will see the encrypted value::
+.. code-block:: console
 
-    from myapp.models import Patient
+    >>> john = Patient.objects.get(name="John Doe")
+    >>> john.patient_record.ssn
+    '123-45-6789'
 
-    >>> bob = Patient.objects.get(name="Bob")
-    >>> bob.patient_record.ssn
+.. code-block:: console
+
+    >>> john.patient_record.ssn
     Binary(b'\x0e\x97sv\xecY\x19Jp\x81\xf1\\\x9cz\t1\r\x02...', 6)
 
 Querying encrypted fields
