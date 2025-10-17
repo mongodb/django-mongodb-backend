@@ -99,34 +99,44 @@ class FieldTests(EncryptionTestCase):
     # Equality-only fields
     def test_binary(self):
         self.assertEquality(BinaryModel, b"\x00\x01\x02")
+        self.assertEncrypted(BinaryModel, "value")
 
     def test_boolean(self):
         self.assertEquality(BooleanModel, True)
+        self.assertEncrypted(BooleanModel, "value")
 
     def test_char(self):
         self.assertEquality(CharModel, "hello")
+        self.assertEncrypted(CharModel, "value")
 
     def test_email(self):
         self.assertEquality(EmailModel, "test@example.com")
+        self.assertEncrypted(EmailModel, "value")
 
     def test_ip(self):
         self.assertEquality(GenericIPAddressModel, "192.168.0.1")
+        self.assertEncrypted(GenericIPAddressModel, "value")
 
     def test_objectid(self):
         self.assertEquality(ObjectIdModel, ObjectId())
+        self.assertEncrypted(ObjectIdModel, "value")
 
     def test_text(self):
         self.assertEquality(TextModel, "some text")
+        self.assertEncrypted(TextModel, "value")
 
     def test_url(self):
         self.assertEquality(URLModel, "https://example.com")
+        self.assertEncrypted(URLModel, "value")
 
     def test_uuid(self):
         self.assertEquality(UUIDModel, uuid.uuid4())
+        self.assertEncrypted(UUIDModel, "value")
 
     # Range fields
     def test_big_integer(self):
         self.assertRange(BigIntegerModel, low=100, high=200, threshold=150)
+        self.assertEncrypted(BigIntegerModel, "value")
 
     def test_date(self):
         self.assertRange(
@@ -135,6 +145,7 @@ class FieldTests(EncryptionTestCase):
             high=datetime.date(2024, 6, 10),
             threshold=datetime.date(2024, 6, 5),
         )
+        self.assertEncrypted(DateModel, "value")
 
     def test_datetime(self):
         self.assertRange(
@@ -143,6 +154,7 @@ class FieldTests(EncryptionTestCase):
             high=datetime.datetime(2024, 6, 2, 12, 0),
             threshold=datetime.datetime(2024, 6, 2, 0, 0),
         )
+        self.assertEncrypted(DateTimeModel, "value")
 
     def test_decimal(self):
         self.assertRange(
@@ -151,6 +163,7 @@ class FieldTests(EncryptionTestCase):
             high=Decimal("200.50"),
             threshold=Decimal("150"),
         )
+        self.assertEncrypted(DecimalModel, "value")
 
     def test_duration(self):
         self.assertRange(
@@ -159,24 +172,31 @@ class FieldTests(EncryptionTestCase):
             high=datetime.timedelta(days=10),
             threshold=datetime.timedelta(days=5),
         )
+        self.assertEncrypted(DurationModel, "value")
 
     def test_float(self):
         self.assertRange(FloatModel, low=1.23, high=4.56, threshold=3.0)
+        self.assertEncrypted(FloatModel, "value")
 
     def test_integer(self):
         self.assertRange(IntegerModel, low=5, high=10, threshold=7)
+        self.assertEncrypted(IntegerModel, "value")
 
     def test_positive_big_integer(self):
         self.assertRange(PositiveBigIntegerModel, low=100, high=500, threshold=200)
+        self.assertEncrypted(PositiveBigIntegerModel, "value")
 
     def test_positive_integer(self):
         self.assertRange(PositiveIntegerModel, low=10, high=20, threshold=15)
+        self.assertEncrypted(PositiveIntegerModel, "value")
 
     def test_positive_small_integer(self):
         self.assertRange(PositiveSmallIntegerModel, low=5, high=8, threshold=6)
+        self.assertEncrypted(PositiveSmallIntegerModel, "value")
 
     def test_small_integer(self):
         self.assertRange(SmallIntegerModel, low=-5, high=2, threshold=0)
+        self.assertEncrypted(SmallIntegerModel, "value")
 
     def test_time(self):
         self.assertRange(
@@ -185,6 +205,7 @@ class FieldTests(EncryptionTestCase):
             high=datetime.time(15, 0),
             threshold=datetime.time(12, 0),
         )
+        self.assertEncrypted(TimeModel, "value")
 
 
 class FieldMixinTests(EncryptionTestCase):
