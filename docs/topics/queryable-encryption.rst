@@ -123,6 +123,24 @@ For example, to find a patient by their SSN, you can do the following::
 
     >>> patient = Patient.objects.get(patient_record__ssn="123-45-6789")
     >>> patient.name
-    'Bob'
+    'John Doe'
+
+.. admonition:: Range queries vs. lookups
+
+    Range queries in Queryable Encryption are different from Django's
+    :ref:`range lookups <django:field-lookups>`
+    Range queries allow you to perform comparisons on encrypted fields,
+    while Django's range lookups are used for filtering based on a range of
+    values.
+
+    For example, if you have an encrypted field that supports range queries, you
+    can perform a query like this::
+
+        from myapp.models import Patient
+
+        >>> patients = Patient.objects.filter(patient_record__ssn__gte="123-45-0000",
+        ...                                    patient_record__ssn__lte="123-45-9999")
+
+    This will return all patients whose SSN falls within the specified range.
 
 .. _Python Queryable Encryption Tutorial: https://github.com/mongodb/docs/tree/main/content/manual/manual/source/includes/qe-tutorials/python
