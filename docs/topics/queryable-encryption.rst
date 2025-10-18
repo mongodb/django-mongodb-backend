@@ -60,32 +60,8 @@ Once you have defined your models, create the migrations with ``python manage.py
 makemigrations`` and run the migrations with ``python manage.py migrate``. Then
 create and manipulate instances of the data just like any other Django model
 data. The fields will automatically handle encryption and decryption, ensuring
-that sensitive data is stored securely in the database.
-
-.. TODO
-
-.. code-block:: console
-
-    $ python manage.py shell
-    >>> from myapp.models import Patient, PatientRecord, Billing
-    >>> billing = Billing(cc_type="Visa", cc_number="4111111111111111")
-    >>> patient_record = PatientRecord(ssn="123-45-6789", billing=billing)
-    >>> patient = Patient.objects.create(
-            patient_name="John Doe",
-            patient_id=123456789,
-            patient_record=patient_record,
-        )
-
-.. code-block:: console
-
-    >>> john = Patient.objects.get(name="John Doe")
-    >>> john.patient_record.ssn
-    '123-45-6789'
-
-.. code-block:: console
-
-    >>> john.patient_record.ssn
-    Binary(b'\x0e\x97sv\xecY\x19Jp\x81\xf1\\\x9cz\t1\r\x02...', 6)
+that :ref:`sensitive data is stored securely in the database
+<manual:qe-features-encryption-at-rest>`.
 
 Querying encrypted fields
 -------------------------
@@ -100,6 +76,14 @@ query type in the model field definition. For example, if you want to query the
         ssn = EncryptedCharField(max_length=11, queries={"queryType": "equality"})
         billing = EncryptedEmbeddedModelField("Billing")
         bill_amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+Then you can perform a query like this:
+
+.. code-block:: console
+
+    >>> patient = Patient.objects.get(patient_record__ssn="123-45-6789")
+    >>> patient.name
+    'John Doe'
 
 .. _qe-available-query-types:
 
@@ -116,31 +100,29 @@ that can be performed on the field. The :ref:`available query types
 You can configure an encrypted field for either equality or range queries, but
 not both.
 
-Now you can perform queries on the ``ssn`` field using the defined query type.
-For example, to find a patient by their SSN, you can do the following::
-
-    from myapp.models import Patient
-
-    >>> patient = Patient.objects.get(patient_record__ssn="123-45-6789")
-    >>> patient.name
-    'John Doe'
-
-.. admonition:: Range queries vs. lookups
+.. admonition:: Query types vs. Django lookups
 
     Range queries in Queryable Encryption are different from Django's
-    :ref:`range lookups <django:field-lookups>`
-    Range queries allow you to perform comparisons on encrypted fields,
-    while Django's range lookups are used for filtering based on a range of
-    values.
+    :ref:`range lookups <django:field-lookups>`. Range queries allow you to
+    perform comparisons on encrypted fields, while Django's range lookups are
+    used for filtering based on a range of values.
 
-    For example, if you have an encrypted field that supports range queries, you
-    can perform a query like this::
+If you have an encrypted field that supports range queries like this:
 
-        from myapp.models import Patient
+.. code-block:: python
 
-        >>> patients = Patient.objects.filter(patient_record__ssn__gte="123-45-0000",
-        ...                                    patient_record__ssn__lte="123-45-9999")
+    class PatientRecord(EmbeddedModel):
+        ssn = EncryptedCharField(max_length=11, queries={"queryType": "range"})
+        billing = EncryptedEmbeddedModelField("Billing")
+        bill_amount = models.DecimalField(max_digits=10, decimal_places=2)
 
-    This will return all patients whose SSN falls within the specified range.
+You can perform a query like this:
+
+.. code-block:: console
+
+    >>> patients = Patient.objects.filter(patient_record__ssn__gte="123-45-0000",
+    ...                                    patient_record__ssn__lte="123-45-9999")
+
+This will return all patients whose SSN falls within the specified range.
 
 .. _Python Queryable Encryption Tutorial: https://github.com/mongodb/docs/tree/main/content/manual/manual/source/includes/qe-tutorials/python
