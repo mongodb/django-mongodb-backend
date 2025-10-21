@@ -15,7 +15,8 @@ New features
 Bug fixes
 ---------
 
-- ...
+- Prevented ``QuerySet.union()`` queries from duplicating the ``$project``
+  pipeline.
 
 5.2.2
 =====

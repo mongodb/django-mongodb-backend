@@ -625,7 +625,10 @@ class SQLCompiler(compiler.SQLCompiler):
                     fields[expr.alias] = 1
                 else:
                     fields[alias] = f"${ref}" if alias != ref else 1
-            inner_pipeline.append({"$project": fields})
+            # Avoid duplicating the same $project stage when reusing subquery
+            # projections.
+            if not inner_pipeline or inner_pipeline[-1] != {"$project": fields}:
+                inner_pipeline.append({"$project": fields})
             # Combine query with the current combinator pipeline.
             if combinator_pipeline:
                 combinator_pipeline.append(
