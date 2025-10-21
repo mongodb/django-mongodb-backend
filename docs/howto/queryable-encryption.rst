@@ -198,7 +198,8 @@ Configuring the ``encrypted_fields_map``
 When you :ref:`configure an encrypted database connection
 <qe-configuring-databases-setting>` without specifying an
 ``encrypted_fields_map``, Django MongoDB Backend will create encrypted
-collections for you when you run ``python manage.py migrate``.
+collections for you when you run ``python manage.py migrate --database
+encrypted``.
 
 Encryption keys for encrypted fields are stored in the key vault
 :ref:`specified in the Django settings <qe-configuring-kms>`. To see the keys

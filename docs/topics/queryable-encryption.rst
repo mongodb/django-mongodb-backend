@@ -57,11 +57,11 @@ Django:
 
 
 Once you have defined your models, create the migrations with ``python manage.py
-makemigrations`` and run the migrations with ``python manage.py migrate``. Then
-create and manipulate instances of the data just like any other Django model
-data. The fields will automatically handle encryption and decryption, ensuring
-that :ref:`sensitive data is stored securely in the database
-<manual:qe-features-encryption-at-rest>`.
+makemigrations`` and run the migrations with ``python manage.py migrate
+--database encrypted``. Then create and manipulate instances of the data just
+like any other Django model data. The fields will automatically handle
+encryption and decryption, ensuring that :ref:`sensitive data is stored securely
+in the database <manual:qe-features-encryption-at-rest>`.
 
 Querying encrypted fields
 -------------------------
