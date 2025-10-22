@@ -65,7 +65,7 @@ message and an image of a rocket.
 
 ## Getting Help
 
-You can ask usage questions on the [MongoDB Community Forums](https://www.mongodb.com/community/forums/tag/python).
+You can ask usage questions on our [support channels](https://www.mongodb.com/docs/manual/support/).
 
 ## Reporting Bugs and Requesting Features
 
