@@ -28,8 +28,8 @@ Having trouble? We’d like to help!
 
 - The :doc:`howto/index` section has step-by-step guides for common tasks.
 
-- Didn't find an answer? You're welcome to ask questions or give feedback on
-  the `MongoDB Community Forum <https://www.mongodb.com/community/forums/tag/python>`_.
+- Didn't find an answer? You're welcome to ask questions on our `support
+  channels <https://www.mongodb.com/docs/manual/support/>`_.
 
 - Report bugs and request features in our :ref:`issue tracker <issue-tracker>`.
 
