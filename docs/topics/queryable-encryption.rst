@@ -55,13 +55,27 @@ Django:
         cc_type = models.CharField(max_length=50)
         cc_number = models.CharField(max_length=20)
 
+.. _qe-migrations:
 
-Once you have defined your models, create the migrations with ``python manage.py
-makemigrations`` and run the migrations with ``python manage.py migrate
---database encrypted``. Then create and manipulate instances of the data just
-like any other Django model data. The fields will automatically handle
-encryption and decryption, ensuring that :ref:`sensitive data is stored securely
-in the database <manual:qe-features-encryption-at-rest>`.
+Migrations
+----------
+
+Once you have defined your models, create migrations with:
+
+.. code-block:: console
+
+    $ python manage.py makemigrations
+
+Then run the migrations with:
+
+.. code-block:: console
+
+    $ python manage.py migrate --database encrypted
+
+Now create and manipulate instances of the data just like any other Django
+model data. The fields will automatically handle encryption and decryption,
+ensuring that :ref:`sensitive data is stored securely in the database
+<manual:qe-features-encryption-at-rest>`.
 
 Querying encrypted fields
 -------------------------
@@ -91,14 +105,12 @@ Available query types
 ~~~~~~~~~~~~~~~~~~~~~
 
 The ``queries`` option should be a dictionary that specifies the type of queries
-that can be performed on the field. The :ref:`available query types
-<manual:qe-fundamentals-encrypt-query>` are as follows:
+that can be performed on the field. Of the :ref:`available query types
+<manual:qe-fundamentals-encrypt-query>` Django MongoDB Backend currently
+supports:
 
-- ``equality``: Supports equality queries.
-- ``range``: Supports range queries.
-
-You can configure an encrypted field for either equality or range queries, but
-not both.
+- ``equality``
+- ``range``
 
 .. admonition:: Query types vs. Django lookups
 
