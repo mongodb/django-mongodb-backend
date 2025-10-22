@@ -72,8 +72,8 @@ for use with Queryable Encryption.
 | ``EncryptedObjectIdField``             | :class:`~.fields.ObjectIdField`                      |
 +----------------------------------------+------------------------------------------------------+
 
-The following fields are supported by Django MongoDB Backend but not by
-Queryable Encryption.
+The following fields are supported by Django MongoDB Backend but not supported
+by Queryable Encryption.
 
 +--------------------------------------+--------------------------------------------------------------------------------------------------------------------+
 | Field                                | Limitation                                                                                                         |

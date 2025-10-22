@@ -24,28 +24,36 @@ Installation
 ============
 
 In addition to the :doc:`installation </intro/install>` and :doc:`configuration
-</intro/configure>` steps for Django MongoDB Backend, Queryable
-Encryption requires encryption support and a Key Management Service (KMS).
+</intro/configure>` steps required to use Django MongoDB Backend, Queryable
+Encryption has additional dependencies. You can install these dependencies
+by using the ``encryption`` extra when installing ``django-mongodb-backend``:
 
-You can install encryption support with the following command::
+.. code-block:: console
 
-    pip install django-mongodb-backend[encryption]
+    $ pip install django-mongodb-backend[encryption]
 
 .. _qe-configuring-databases-setting:
 
 Configuring the ``DATABASES`` setting
 =====================================
 
-In addition to :ref:`configuring-databases-setting`, you must also configure an
-encrypted database in your :setting:`django:DATABASES` setting.
+In addition to the :ref:`database settings <configuring-databases-setting>`
+required to use Django MongoDB Backend, Queryable Encryption requires you to
+configure a separate encrypted database connection in your
+:setting:`django:DATABASES` setting.
 
-This database will be used to store encrypted fields in your models. The
-following example shows how to configure an encrypted database using the
-:class:`AutoEncryptionOpts <pymongo.encryption_options.AutoEncryptionOpts>` from the
-:mod:`encryption_options <pymongo.encryption_options>` module.
+.. admonition:: Encrypted database
 
-This example uses a local KMS provider and a key vault namespace for storing
-encryption keys.
+    An encrypted database is a separate database connection in your
+    :setting:`django:DATABASES` setting that is configured to use PyMongo's
+    :class:`automatic encryption
+    <pymongo.encryption_options.AutoEncryptionOpts>`.
+
+The following example shows how to
+configure an encrypted database using the :class:`AutoEncryptionOpts
+<pymongo.encryption_options.AutoEncryptionOpts>` from the
+:mod:`encryption_options <pymongo.encryption_options>` module with a local KMS
+provider and encryption keys stored in the ``encryption.__keyVault`` collection.
 
 .. code-block:: python
 
@@ -58,19 +66,12 @@ encryption keys.
             "ENGINE": "django_mongodb_backend",
             "HOST": "mongodb+srv://cluster0.example.mongodb.net",
             "NAME": "my_database",
-            "USER": "my_user",
-            "PASSWORD": "my_password",
-            "PORT": 27017,
-            "OPTIONS": {
-                "retryWrites": "true",
-                "w": "majority",
-                "tls": "false",
-            },
+            # ...
         },
         "encrypted": {
             "ENGINE": "django_mongodb_backend",
             "HOST": "mongodb+srv://cluster0.example.mongodb.net",
-            "NAME": "encrypted",
+            "NAME": "my_database_encrypted",
             "USER": "my_user",
             "PASSWORD": "my_password",
             "PORT": 27017,
@@ -83,55 +84,69 @@ encryption keys.
         },
     }
 
+.. admonition:: Local KMS provider key
+
+    In the example above, a random key is generated for the local KMS provider
+    using ``os.urandom(96)``. In a production environment, you should securely
+    :ref:`store and manage your encryption keys
+    <manual:qe-fundamentals-kms-providers>`.
+
 .. _qe-configuring-database-routers-setting:
 
 Configuring the ``DATABASE_ROUTERS`` setting
 ============================================
 
-Similar to :ref:`configuring-database-routers-setting` for using :doc:`embedded
-models </topics/embedded-models>`, to use Queryable Encryption you must also
-configure the :setting:`django:DATABASE_ROUTERS` setting to route queries to the
-encrypted database.
+Similar to configuring the :ref:`DATABASE_ROUTERS
+<configuring-database-routers-setting>` setting for
+:doc:`embedded models </topics/embedded-models>`, Queryable Encryption
+requires a :setting:`DATABASE_ROUTERS <django:DATABASE_ROUTERS>` setting to
+route database operations to the encrypted database.
 
-This is done by adding a custom router that routes queries to the encrypted
-database based on the model's metadata. The following example shows how to
-configure a custom router for Queryable Encryption:
+The following example shows how to configure a router for the "myapp"
+application that routes database operations to the encrypted database for all
+models in that application. The router also specifies the :ref:`KMS provider
+<qe-configuring-kms>` to use.
 
 .. code-block:: python
 
+    # myapp/routers.py
     class EncryptedRouter:
-        """
-        A router for routing queries to the encrypted database for Queryable
-        Encryption.
-        """
+        def allow_migrate(self, db, app_label, model_name=None, **hints):
+            if app_label == "myapp":
+                return db == "encrypted"
+            # Prevent migrations on the encrypted database for other apps
+            if db == "encrypted":
+                return False
+            return None
 
         def db_for_read(self, model, **hints):
             if model._meta.app_label == "myapp":
                 return "encrypted"
             return None
 
-        db_for_write = db_for_read
-
-        def allow_migrate(self, db, app_label, model_name=None, **hints):
-            if app_label == "myapp":
-                return db == "encrypted"
-            # Don't create other app's models in the encrypted database.
-            if db == "encrypted":
-                return False
-            return None
-
         def kms_provider(self, model, **hints):
             return "local"
 
+        db_for_write = db_for_read
 
-    DATABASE_ROUTERS = [EncryptedRouter]
+Then in your Django settings, add the custom database router to the
+:setting:`django:DATABASE_ROUTERS` setting:
+
+.. code-block:: python
+
+    # settings.py
+    DATABASE_ROUTERS = ["myapp.routers.EncryptedRouter"]
 
 .. _qe-configuring-kms:
 
 Configuring the Key Management Service (KMS)
 ============================================
 
-To use Queryable Encryption, you must configure a Key Management Service (KMS).
+To use Queryable Encryption, you must configure a Key Management Service (KMS)
+to store and manage your encryption keys. Django MongoDB Backend allows you to
+configure multiple KMS providers and select the appropriate provider for each
+model using a custom database router.
+
 The KMS is responsible for managing the encryption keys used to encrypt and
 decrypt data. The following table summarizes the available KMS configuration
 options followed by an example of how to use them.
@@ -142,15 +157,15 @@ options followed by an example of how to use them.
 |                                                                         | :setting:`django:DATABASES` setting.                   |
 +-------------------------------------------------------------------------+--------------------------------------------------------+
 | :class:`kms_providers <pymongo.encryption_options.AutoEncryptionOpts>`  | A dictionary of KMS provider credentials used to       |
-|                                                                         | access the KMS with                                    |
-|                                                                         | :setting:`KMS_CREDENTIALS <DATABASE-KMS-CREDENTIALS>`. |
+|                                                                         | access the KMS with ``kms_provider``.                  |
 +-------------------------------------------------------------------------+--------------------------------------------------------+
-| ``kms_provider``                                                        | A single KMS provider name                             |
+| :ref:`kms_provider <qe-configuring-database-routers-setting>`           | A single KMS provider name                             |
 |                                                                         | configured in your custom database                     |
 |                                                                         | router.                                                |
 +-------------------------------------------------------------------------+--------------------------------------------------------+
 
-Example of KMS configuration with AWS KMS:
+Example of KMS configuration with ``aws`` in your :class:`kms_providers
+<pymongo.encryption_options.AutoEncryptionOpts>` setting:
 
 .. code-block:: python
 
@@ -158,22 +173,17 @@ Example of KMS configuration with AWS KMS:
 
     DATABASES = {
         "encrypted": {
-            "ENGINE": "django_mongodb_backend",
-            "HOST": "mongodb+srv://cluster0.example.mongodb.net",
-            "NAME": "encrypted",
-            "USER": "my_user",
-            "PASSWORD": "my_password",
-            "PORT": 27017,
+            # ...
             "OPTIONS": {
                 "auto_encryption_opts": AutoEncryptionOpts(
-                    key_vault_namespace="encryption.__keyVault",
+                    # ...
                     kms_providers={
                         "aws": {
                             "accessKeyId": "your-access-key-id",
                             "secretAccessKey": "your-secret-access-key",
-                        }
+                        },
                     },
-                )
+                ),
             },
             "KMS_CREDENTIALS": {
                 "aws": {
@@ -184,6 +194,10 @@ Example of KMS configuration with AWS KMS:
         },
     }
 
+In your :ref:`custom database router <qe-configuring-database-routers-setting>`,
+specify the KMS provider to use for the models in your application:
+
+.. code-block:: python
 
     class EncryptedRouter:
         # ...
@@ -192,25 +206,25 @@ Example of KMS configuration with AWS KMS:
 
 .. _qe-configuring-encrypted-fields-map:
 
-Configuring the ``encrypted_fields_map``
-========================================
+Configuring the ``encrypted_fields_map`` option
+===============================================
 
-When you :ref:`configure an encrypted database connection
-<qe-configuring-databases-setting>` without specifying an
+When you configure the :ref:`DATABASES <qe-configuring-databases-setting>`
+setting for Queryable Encryption *without* specifying an
 ``encrypted_fields_map``, Django MongoDB Backend will create encrypted
-collections for you when you run ``python manage.py migrate --database
-encrypted``.
+collections, including encryption keys, when you :ref:`run migrations for models
+that have encrypted fields <qe-migrations>`.
 
-Encryption keys for encrypted fields are stored in the key vault
-:ref:`specified in the Django settings <qe-configuring-kms>`. To see the keys
-created by Django MongoDB Backend, along with the entire schema, you can run the
+Encryption keys for encrypted fields are stored in the key vault specified in
+the :ref:`DATABASES <qe-configuring-kms>` setting. To see the keys created by
+Django MongoDB Backend, along with the entire schema, you can run the
 :djadmin:`showencryptedfieldsmap` command::
 
     $ python manage.py showencryptedfieldsmap --database encrypted
 
-Use the output of the :djadmin:`showencryptedfieldsmap` command to set the
-``encrypted_fields_map`` in
-:class:`pymongo.encryption_options.AutoEncryptionOpts` in your Django settings.
+Use the output of :djadmin:`showencryptedfieldsmap` to set the
+``encrypted_fields_map`` in :class:`AutoEncryptionOpts
+<pymongo.encryption_options.AutoEncryptionOpts>` in your Django settings.
 
 .. code-block:: python
 
@@ -219,21 +233,10 @@ Use the output of the :djadmin:`showencryptedfieldsmap` command to set the
 
     DATABASES = {
         "encrypted": {
-            "ENGINE": "django_mongodb_backend",
-            "HOST": "mongodb+srv://cluster0.example.mongodb.net",
-            "NAME": "encrypted",
-            "USER": "my_user",
-            "PASSWORD": "my_password",
-            "PORT": 27017,
+            # ...
             "OPTIONS": {
                 "auto_encryption_opts": AutoEncryptionOpts(
-                    key_vault_namespace="encryption.__keyVault",
-                    kms_providers={
-                        "aws": {
-                            "accessKeyId": "your-access-key-id",
-                            "secretAccessKey": "your-secret-access-key",
-                        }
-                    },
+                    # ...
                     encrypted_fields_map=json_util.loads(
                         """{
                         "encrypt_patient": {
@@ -259,6 +262,13 @@ Use the output of the :djadmin:`showencryptedfieldsmap` command to set the
             },
         },
     }
+
+
+.. admonition:: Security consideration
+
+   Supplying an encrypted fields map provides more security than relying on an
+   encrypted fields map obtained from the server. It protects against a
+   malicious server advertising a false encrypted fields map.
 
 Configuring the Automatic Encryption Shared Library
 ===================================================
@@ -275,8 +285,10 @@ You can :ref:`download the shared library
 <manual:qe-csfle-shared-library-download>` from the
 :ref:`manual:enterprise-official-packages` and configure it in your Django
 settings using the ``crypt_shared_lib_path`` option in
-:class:`pymongo.encryption_options.AutoEncryptionOpts`. The following example
-shows how to configure the shared library in your Django settings:
+:class:`AutoEncryptionOpts <pymongo.encryption_options.AutoEncryptionOpts>`.
+
+The following example shows how to configure the shared library in your Django
+settings:
 
 .. code-block:: python
 
@@ -284,51 +296,14 @@ shows how to configure the shared library in your Django settings:
 
     DATABASES = {
         "encrypted": {
-            "ENGINE": "django_mongodb_backend",
-            "HOST": "mongodb+srv://cluster0.example.mongodb.net",
-            "NAME": "encrypted",
-            "USER": "my_user",
-            "PASSWORD": "my_password",
-            "PORT": 27017,
+            # ...
             "OPTIONS": {
                 "auto_encryption_opts": AutoEncryptionOpts(
-                    key_vault_namespace="encryption.__keyVault",
-                    kms_providers={
-                        "aws": {
-                            "accessKeyId": "your-access-key-id",
-                            "secretAccessKey": "your-secret-access-key",
-                        }
-                    },
-                    encrypted_fields_map=json_util.loads(
-                        """{
-                        "encrypt_patient": {
-                          "fields": [
-                            {
-                              "bsonType": "string",
-                              "path": "patient_record.ssn",
-                              "keyId": {
-                                "$binary": {
-                                  "base64": "2MA29LaARIOqymYHGmi2mQ==",
-                                  "subType": "04"
-                                }
-                              },
-                              "queries": {
-                                "queryType": "equality"
-                              }
-                            },
-                          ]
-                        }
-                    }"""
-                    ),
+                    # ...
                     crypt_shared_lib_path="/path/to/mongo_crypt_shared_v1.dylib",
                 )
             },
-            "KMS_CREDENTIALS": {
-                "aws": {
-                    "key": os.getenv("AWS_KEY_ARN", ""),
-                    "region": os.getenv("AWS_KEY_REGION", ""),
-                },
-            },
+            # ...
         },
     }
 
