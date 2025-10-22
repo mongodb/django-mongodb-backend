@@ -76,7 +76,7 @@ encryption keys.
             "PORT": 27017,
             "OPTIONS": {
                 "auto_encryption_opts": AutoEncryptionOpts(
-                    key_vault_namespace="encrypted.keyvault",
+                    key_vault_namespace="encryption.__keyVault",
                     kms_providers={"local": {"key": os.urandom(96)}},
                 )
             },
@@ -166,7 +166,7 @@ Example of KMS configuration with AWS KMS:
             "PORT": 27017,
             "OPTIONS": {
                 "auto_encryption_opts": AutoEncryptionOpts(
-                    key_vault_namespace="encrypted.keyvault",
+                    key_vault_namespace="encryption.__keyVault",
                     kms_providers={
                         "aws": {
                             "accessKeyId": "your-access-key-id",
@@ -227,7 +227,7 @@ Use the output of the :djadmin:`showencryptedfieldsmap` command to set the
             "PORT": 27017,
             "OPTIONS": {
                 "auto_encryption_opts": AutoEncryptionOpts(
-                    key_vault_namespace="encrypted.keyvault",
+                    key_vault_namespace="encryption.__keyVault",
                     kms_providers={
                         "aws": {
                             "accessKeyId": "your-access-key-id",
@@ -292,7 +292,7 @@ shows how to configure the shared library in your Django settings:
             "PORT": 27017,
             "OPTIONS": {
                 "auto_encryption_opts": AutoEncryptionOpts(
-                    key_vault_namespace="encrypted.keyvault",
+                    key_vault_namespace="encryption.__keyVault",
                     kms_providers={
                         "aws": {
                             "accessKeyId": "your-access-key-id",
