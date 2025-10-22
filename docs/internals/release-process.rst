@@ -58,9 +58,9 @@ publish a new release to PyPI:
   release after ``5.2.2``. (The workflow defaults to incrementing the
   version automatically.)
 
-    - First run with ``Dry Run?`` selected and check test PyPI to ensure that
-      ``pip install`` works as expected.
+  - First run with ``Dry Run?`` selected and check test PyPI to ensure that
+    ``pip install`` works as expected.
 
-    - Then run without ``Dry Run?`` to publish the release to PyPI.
+  - Then run without ``Dry Run?`` to publish the release to PyPI.
 
 - Announce the new release on the relevant communication channels.
