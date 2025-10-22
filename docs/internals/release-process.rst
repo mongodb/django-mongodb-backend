@@ -40,3 +40,25 @@ merge of a "Add support for Django X.Y" pull request. Before merging that pull
 request, a branch is created off of main to track the previous feature release.
 For example, the 5.1.x branch is created shortly after the release of Django
 5.2, and main starts tracking the Django 5.2.x series.
+
+Release
+=======
+
+Django MongoDB Backend uses GitHub Actions to publish new releases to PyPI. To
+publish a new release to PyPI:
+
+- Bump the version number in ``django_mongodb_backend/__init__.py``
+  according to :ref:`the supported versions policy
+  <supported-versions-policy>`.
+
+- Update the release notes in ``docs/releases/#.#.x.rst`` for the new version.
+
+- Run the ``Release`` workflow on GitHub Actions, providing the new (dev)
+  version number as input.
+
+    - First run with ``Dry Run?`` selected and check test PyPI to ensure that
+      ``pip install`` works as expected.
+
+    - Then run without ``Dry Run?`` to publish the release to PyPI.
+
+- Announce the new release on the relevant communication channels.
