@@ -54,8 +54,8 @@ publish a new release to PyPI:
 - Update the release notes in ``docs/releases/#.#.x.rst`` for the new version.
 
 - Run the ``Release`` workflow on GitHub Actions, optionally providing the new
-  (dev) version number as input. E.g. ``5.3.x.dev0`` for a new development
-  release after ``5.2.x``. (The workflow defaults to incrementing the
+  (dev) version number as input. E.g. ``5.2.3.dev0`` for a new development
+  release after ``5.2.2``. (The workflow defaults to incrementing the
   version automatically.)
 
     - First run with ``Dry Run?`` selected and check test PyPI to ensure that
