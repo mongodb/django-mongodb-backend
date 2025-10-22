@@ -500,7 +500,8 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         )
 
         kms_provider = router.kms_provider(model)
-        master_key = connection.settings_dict.get("KMS_CREDENTIALS", {}).get(kms_provider)
+        kms_providers = auto_encryption_opts._kms_providers
+        master_key = kms_providers.get(kms_provider, {})
         client_encryption = self.connection.client_encryption
 
         field_list = []
@@ -525,11 +526,10 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                 if data_key:
                     data_key = data_key["_id"]
                 else:
-                    data_key = client_encryption.create_data_key(
-                        kms_provider=kms_provider,
-                        master_key=master_key,
-                        key_alt_names=[new_key_alt_name],
-                    )
+                    kwargs = {"kms_provider": kms_provider, "key_alt_names": [new_key_alt_name]}
+                    if kms_provider != "local":
+                        kwargs["master_key"] = master_key
+                    data_key = client_encryption.create_data_key(**kwargs)
                 field_dict = {
                     "bsonType": bson_type,
                     "path": path,
