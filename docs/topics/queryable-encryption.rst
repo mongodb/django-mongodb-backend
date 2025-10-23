@@ -77,6 +77,24 @@ model data. The fields will automatically handle encryption and decryption,
 ensuring that :ref:`sensitive data is stored securely in the database
 <manual:qe-features-encryption-at-rest>`.
 
+Routers
+-------
+
+The example above requires a :ref:`database router
+<qe-configuring-database-routers-setting>` to direct operations on models with
+encrypted fields to the appropriate database. It also requires the use of a
+:ref:`router for embedded models <configuring-database-routers-setting>`. Here
+is an example that includes both:
+
+.. code-block:: python
+
+    # myproject/settings.py
+    DATABASE_ROUTERS = [
+        "django_mongodb_backend.routers.MongoRouter",
+        "myproject.routers.EncryptedRouter",
+    ]
+
+
 Querying encrypted fields
 -------------------------
 
