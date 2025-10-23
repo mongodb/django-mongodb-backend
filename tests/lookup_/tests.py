@@ -73,3 +73,138 @@ class LookupMQLTests(MongoTestCaseMixin, TestCase):
             "lookup__book",
             [{"$match": {"$and": [{"isbn": {"$in": ("12345", "56789")}}, {"title": "Moby Dick"}]}}],
         )
+
+    def test_gt(self):
+        with self.assertNumQueries(1) as ctx:
+            list(Number.objects.filter(num__gt=2))
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "lookup__number",
+            [
+                {"$match": {"num": {"$gt": 2}}},
+                {"$addFields": {"num": "$num"}},
+                {"$sort": SON([("num", 1)])},
+            ],
+        )
+
+    def test_gte(self):
+        with self.assertNumQueries(1) as ctx:
+            list(Number.objects.filter(num__gte=2))
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "lookup__number",
+            [
+                {"$match": {"num": {"$gte": 2}}},
+                {"$addFields": {"num": "$num"}},
+                {"$sort": SON([("num", 1)])},
+            ],
+        )
+
+    def test_union_simple_conditions(self):
+        with self.assertNumQueries(1) as ctx:
+            list(Book.objects.filter(title="star wars").union(Book.objects.filter(isbn__in="1234")))
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "lookup__book",
+            [
+                {"$match": {"title": "star wars"}},
+                {"$project": {"_id": 1, "title": 1, "isbn": 1}},
+                {
+                    "$unionWith": {
+                        "coll": "lookup__book",
+                        "pipeline": [
+                            {"$match": {"isbn": {"$in": ("1", "2", "3", "4")}}},
+                            {"$project": {"_id": 1, "title": 1, "isbn": 1}},
+                        ],
+                    }
+                },
+                {"$group": {"_id": {"_id": "$_id", "title": "$title", "isbn": "$isbn"}}},
+                {"$addFields": {"_id": "$_id._id", "title": "$_id.title", "isbn": "$_id.isbn"}},
+            ],
+        )
+
+    def test_union_all_simple_conditions(self):
+        with self.assertNumQueries(1) as ctx:
+            list(
+                Book.objects.filter(title="star wars").union(
+                    Book.objects.filter(isbn="1234"), all=True
+                )
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "lookup__book",
+            [
+                {"$match": {"title": "star wars"}},
+                {"$project": {"_id": 1, "title": 1, "isbn": 1}},
+                {
+                    "$unionWith": {
+                        "coll": "lookup__book",
+                        "pipeline": [
+                            {"$match": {"isbn": "1234"}},
+                            {"$project": {"_id": 1, "title": 1, "isbn": 1}},
+                        ],
+                    }
+                },
+            ],
+        )
+
+    def test_subquery_filter_constant(self):
+        with self.assertNumQueries(1) as ctx:
+            list(Number.objects.filter(num__in=Number.objects.filter(num__gt=2).values("num")))
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "lookup__number",
+            [
+                {
+                    "$lookup": {
+                        "as": "__subquery0",
+                        "from": "lookup__number",
+                        "let": {},
+                        "pipeline": [
+                            {"$match": {"num": {"$gt": 2}}},
+                            {
+                                "$facet": {
+                                    "group": [
+                                        {"$group": {"_id": None, "tmp_name": {"$addToSet": "$num"}}}
+                                    ]
+                                }
+                            },
+                            {
+                                "$project": {
+                                    "num": {
+                                        "$ifNull": [
+                                            {
+                                                "$getField": {
+                                                    "input": {"$arrayElemAt": ["$group", 0]},
+                                                    "field": "tmp_name",
+                                                }
+                                            },
+                                            [],
+                                        ]
+                                    }
+                                }
+                            },
+                        ],
+                    }
+                },
+                {
+                    "$set": {
+                        "__subquery0": {
+                            "$cond": {
+                                "if": {
+                                    "$or": [
+                                        {"$eq": [{"$type": "$__subquery0"}, "missing"]},
+                                        {"$eq": [{"$size": "$__subquery0"}, 0]},
+                                    ]
+                                },
+                                "then": {},
+                                "else": {"$arrayElemAt": ["$__subquery0", 0]},
+                            }
+                        }
+                    }
+                },
+                {"$match": {"$expr": {"$in": ["$num", "$__subquery0.num"]}}},
+                {"$addFields": {"num": "$num"}},
+                {"$sort": SON([("num", 1)])},
+            ],
+        )
