@@ -307,5 +307,26 @@ settings:
         },
     }
 
+Configuring the ``EncryptedModelAdmin``
+=======================================
+
+When using the :doc:`the Django admin site <django:ref/contrib/admin/index>`
+with models that have encrypted fields, use the :class:`EncryptedModelAdmin`
+class to ensure that encrypted fields are handled correctly. To do this, inherit
+from :class:`EncryptedModelAdmin` in your admin classes instead of the standard
+:class:`~django.contrib.admin.ModelAdmin`.
+
+.. code-block:: python
+
+    # myapp/admin.py
+    from django.contrib import admin
+    from .models import Patient
+    from django_mongodb_backend.admin import EncryptedModelAdmin
+
+
+    @admin.register(Patient)
+    class PatientAdmin(EncryptedModelAdmin):
+        pass
+
 You are now ready to :doc:`start developing applications
 </topics/queryable-encryption>` with Queryable Encryption!
