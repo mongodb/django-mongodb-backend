@@ -500,7 +500,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         )
 
         kms_provider = router.kms_provider(model)
-        master_key = connection.settings_dict.get("KMS_CREDENTIALS", {}).get(kms_provider)
+        master_key = connection.settings_dict.get("KMS_CREDENTIALS").get(kms_provider)
         client_encryption = self.connection.client_encryption
 
         field_list = []
@@ -527,8 +527,8 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                 else:
                     data_key = client_encryption.create_data_key(
                         kms_provider=kms_provider,
-                        master_key=master_key,
                         key_alt_names=[new_key_alt_name],
+                        master_key=master_key,
                     )
                 field_dict = {
                     "bsonType": bson_type,
