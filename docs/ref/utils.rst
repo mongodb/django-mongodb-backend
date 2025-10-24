@@ -83,8 +83,3 @@ following parts can be considered stable.
                     else:
                         return db == "default"
                 return None
-
-            def kms_provider(self, model):
-                if model_has_encrypted_fields(model):
-                    return "local"
-            return None

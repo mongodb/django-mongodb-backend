@@ -498,8 +498,15 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         key_vault_collection.create_index(
             "keyAltNames", unique=True, partialFilterExpression={"keyAltNames": {"$exists": True}}
         )
-
-        kms_provider = router.kms_provider(model)
+        # Select the KMS provider.
+        kms_providers = auto_encryption_opts._kms_providers
+        if len(kms_providers) == 1:
+            # If one provider is configured, no need to consult the router.
+            kms_provider = next(iter(kms_providers.keys()))
+        else:
+            # Otherwise, call the user-defined router.kms_provider().
+            kms_provider = router.kms_provider(model)
+        # Providing master_key raises an error for the local provider.
         master_key = connection.settings_dict.get("KMS_CREDENTIALS").get(kms_provider)
         client_encryption = self.connection.client_encryption
 

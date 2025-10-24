@@ -124,9 +124,6 @@ models in that application. The router also specifies the :ref:`KMS provider
                 return "encrypted"
             return None
 
-        def kms_provider(self, model, **hints):
-            return "local"
-
         db_for_write = db_for_read
 
 Then in your Django settings, add the custom database router to the
@@ -194,10 +191,12 @@ Example of KMS configuration with ``aws`` in your :class:`kms_providers
         },
     }
 
-In your :ref:`custom database router <qe-configuring-database-routers-setting>`,
-specify the KMS provider to use for the models in your application:
+(TODO: If there's a use case for multiple providers, motivate with a use case
+and add a test.)
 
-.. code-block:: python
+If you've configured multiple KMS providers, you must define logic to determine
+the provider for each model in your :ref:`database router
+<qe-configuring-database-routers-setting>`::
 
     class EncryptedRouter:
         # ...
