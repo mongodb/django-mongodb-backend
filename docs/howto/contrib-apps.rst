@@ -2,7 +2,7 @@
 Configuring Django's contrib apps
 =================================
 
-Generally, Django's contribs app work out of the box, but here are some
+Generally, Django's contrib apps work out of the box, but here are some
 required adjustments.
 
 Apps with models
