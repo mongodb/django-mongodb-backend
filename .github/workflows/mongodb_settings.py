@@ -51,9 +51,6 @@ class EncryptedRouter:
             return False
         return None
 
-    def kms_provider(self, model, **hints):
-        return "local"
-
 
 DATABASE_ROUTERS = [EncryptedRouter()]
 DEFAULT_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
