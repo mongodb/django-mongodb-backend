@@ -477,24 +477,22 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             # Unencrypted path
             db.create_collection(db_table)
 
-    def _get_encrypted_fields(self, model, key_alt_name=None, path_prefix=None):
+    def _get_encrypted_fields(self, model, key_alt_name_prefix=None, path_prefix=None):
         """
-        Recursively collect encryption schema data for only encrypted fields in a model.
-        Returns None if no encrypted fields are found anywhere in the model hierarchy.
+        Return the encrypted fields map for the given model. The "prefix"
+        arguments are used when this method is called recursively on embedded
+        models.
         """
         connection = self.connection
         client = connection.connection
-        fields = model._meta.fields
-        key_alt_name = key_alt_name or model._meta.db_table
+        key_alt_name_prefix = key_alt_name_prefix or model._meta.db_table
         path_prefix = path_prefix or ""
-
-        options = client._options
-        auto_encryption_opts = options.auto_encryption_opts
-
-        key_vault_db, key_vault_coll = auto_encryption_opts._key_vault_namespace.split(".", 1)
-        key_vault_collection = client[key_vault_db][key_vault_coll]
-
-        # Create partial unique index on keyAltNames
+        auto_encryption_opts = client._options.auto_encryption_opts
+        key_vault_db, key_vault_collection = auto_encryption_opts._key_vault_namespace.split(".", 1)
+        key_vault_collection = client[key_vault_db][key_vault_collection]
+        # Create partial unique index on keyAltNames.
+        # TODO: find a better place for this. It only needs to run once for an
+        # application's lifetime.
         key_vault_collection.create_index(
             "keyAltNames", unique=True, partialFilterExpression={"keyAltNames": {"$exists": True}}
         )
@@ -506,48 +504,43 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         else:
             # Otherwise, call the user-defined router.kms_provider().
             kms_provider = router.kms_provider(model)
-        # Providing master_key raises an error for the local provider.
         master_key = connection.settings_dict.get("KMS_CREDENTIALS").get(kms_provider)
-        client_encryption = self.connection.client_encryption
-
+        # Generate the encrypted fields map.
         field_list = []
-
-        for field in fields:
-            new_key_alt_name = f"{key_alt_name}.{field.column}"
+        for field in model._meta.fields:
+            key_alt_name = f"{key_alt_name_prefix}.{field.column}"
             path = f"{path_prefix}.{field.column}" if path_prefix else field.column
-
+            # Check non-encrypted EmbeddedModelFields for encrypted fields.
             if isinstance(field, EmbeddedModelField) and not getattr(field, "encrypted", False):
                 embedded_result = self._get_encrypted_fields(
                     field.embedded_model,
-                    key_alt_name=new_key_alt_name,
+                    key_alt_name_prefix=key_alt_name,
                     path_prefix=path,
                 )
+                # An EmbeddedModelField may not have any encrypted fields.
                 if embedded_result:
                     field_list.extend(embedded_result["fields"])
                 continue
-
+            # Populate data for encrypted field.
             if getattr(field, "encrypted", False):
-                bson_type = field.db_type(connection)
-                data_key = key_vault_collection.find_one({"keyAltNames": new_key_alt_name})
+                data_key = key_vault_collection.find_one({"keyAltNames": key_alt_name})
                 if data_key:
                     data_key = data_key["_id"]
                 else:
-                    data_key = client_encryption.create_data_key(
+                    data_key = connection.client_encryption.create_data_key(
                         kms_provider=kms_provider,
-                        key_alt_names=[new_key_alt_name],
+                        key_alt_names=[key_alt_name],
                         master_key=master_key,
                     )
                 field_dict = {
-                    "bsonType": bson_type,
+                    "bsonType": field.db_type(connection),
                     "path": path,
                     "keyId": data_key,
                 }
-                queries = getattr(field, "queries", None)
-                if queries:
+                if queries := getattr(field, "queries", None):
                     field_dict["queries"] = queries
                 field_list.append(field_dict)
-
-        return {"fields": field_list} if field_list else None
+        return {"fields": field_list}
 
 
 # GISSchemaEditor extends some SchemaEditor methods.
