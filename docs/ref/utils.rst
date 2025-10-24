@@ -49,12 +49,13 @@ following parts can be considered stable.
     But for maximum flexibility, construct :setting:`DATABASES` manually as
     described in :ref:`configuring-databases-setting`.
 
-.. versionadded:: 5.2.3
 
 ``model_has_encrypted_fields()``
 =================================
 
 .. function:: model_has_encrypted_fields(model)
+
+    .. versionadded:: 5.2.3
 
     Returns ``True`` if the given Django model has any fields that use
     encrypted models.
