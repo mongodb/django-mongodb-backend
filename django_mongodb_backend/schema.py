@@ -477,7 +477,9 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             # Unencrypted path
             db.create_collection(db_table)
 
-    def _get_encrypted_fields(self, model, key_alt_name_prefix=None, path_prefix=None):
+    def _get_encrypted_fields(
+        self, model, *, key_alt_name_prefix=None, path_prefix=None, create_data_keys=True
+    ):
         """
         Return the encrypted fields map for the given model. The "prefix"
         arguments are used when this method is called recursively on embedded
@@ -488,12 +490,12 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         key_alt_name_prefix = key_alt_name_prefix or model._meta.db_table
         path_prefix = path_prefix or ""
         auto_encryption_opts = client._options.auto_encryption_opts
-        key_vault_db, key_vault_collection = auto_encryption_opts._key_vault_namespace.split(".", 1)
-        key_vault_collection = client[key_vault_db][key_vault_collection]
+        _, key_vault_collection = auto_encryption_opts._key_vault_namespace.split(".", 1)
+        key_vault = self.get_collection(key_vault_collection)
         # Create partial unique index on keyAltNames.
         # TODO: find a better place for this. It only needs to run once for an
         # application's lifetime.
-        key_vault_collection.create_index(
+        key_vault.create_index(
             "keyAltNames", unique=True, partialFilterExpression={"keyAltNames": {"$exists": True}}
         )
         # Select the KMS provider.
@@ -516,6 +518,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                     field.embedded_model,
                     key_alt_name_prefix=key_alt_name,
                     path_prefix=path,
+                    create_data_keys=create_data_keys,
                 )
                 # An EmbeddedModelField may not have any encrypted fields.
                 if embedded_result:
@@ -523,15 +526,21 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                 continue
             # Populate data for encrypted field.
             if getattr(field, "encrypted", False):
-                data_key = key_vault_collection.find_one({"keyAltNames": key_alt_name})
-                if data_key:
-                    data_key = data_key["_id"]
-                else:
+                if create_data_keys:
                     data_key = connection.client_encryption.create_data_key(
                         kms_provider=kms_provider,
                         key_alt_names=[key_alt_name],
                         master_key=master_key,
                     )
+                else:
+                    data_key = key_vault.find_one({"keyAltNames": key_alt_name})
+                    if data_key:
+                        data_key = data_key["_id"]
+                    else:
+                        raise ImproperlyConfigured(
+                            f"Encryption key {key_alt_name} not found. Have "
+                            f"migrated the {model} model?"
+                        )
                 field_dict = {
                     "bsonType": field.db_type(connection),
                     "path": path,

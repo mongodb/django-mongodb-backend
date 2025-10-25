@@ -30,6 +30,6 @@ class Command(BaseCommand):
             for app_config in apps.get_app_configs():
                 for model in router.get_migratable_models(app_config, db):
                     if model_has_encrypted_fields(model):
-                        fields = editor._get_encrypted_fields(model)
+                        fields = editor._get_encrypted_fields(model, create_data_keys=False)
                         encrypted_fields_map[model._meta.db_table] = fields
         self.stdout.write(json_util.dumps(encrypted_fields_map, indent=2))

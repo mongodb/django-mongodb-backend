@@ -1,9 +1,12 @@
 from io import StringIO
 
 from bson import json_util
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
+from django.db import connections
 from django.test import modify_settings
 
+from .models import EncryptionKey
 from .test_base import EncryptionTestCase
 
 
@@ -96,7 +99,7 @@ class CommandTests(EncryptionTestCase):
 
     def _compare_output(self, expected, actual):
         for field in actual["fields"]:
-            field.pop("keyId", None)  # remove dynamic keyId
+            field.pop("keyId")  # remove dynamic keyId
         self.assertEqual(expected, actual)
 
     def test_show_encrypted_fields_map(self):
@@ -109,3 +112,20 @@ class CommandTests(EncryptionTestCase):
             with self.subTest(model=model_key):
                 self.assertIn(model_key, command_output)
                 self._compare_output(expected, command_output[model_key])
+
+    def test_missing_key(self):
+        test_key = "encryption__patient.patient_record.ssn"
+        msg = (
+            f"Encryption key {test_key} not found. Have migrated the "
+            "<class 'encryption_.models.PatientRecord'> model?"
+        )
+        EncryptionKey.objects.filter(key_alt_name=test_key).delete()
+        try:
+            with self.assertRaisesMessage(ImproperlyConfigured, msg):
+                call_command("showencryptedfieldsmap", "--database", "encrypted", verbosity=0)
+        finally:
+            # Replace the deleted key.
+            connections["encrypted"].client_encryption.create_data_key(
+                kms_provider="local",
+                key_alt_names=[test_key],
+            )

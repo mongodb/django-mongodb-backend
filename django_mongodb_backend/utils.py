@@ -118,6 +118,7 @@ class OperationDebugWrapper:
         "create_indexes",
         "create_search_index",
         "drop",
+        "find_one",
         "index_information",
         "insert_many",
         "delete_many",

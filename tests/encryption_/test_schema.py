@@ -96,16 +96,19 @@ class SchemaTests(EncryptionTestCase):
         checks their encrypted fields map from the schema editor,
         and compares to expected BSON type & queries mapping.
         """
+        # Deleting all keys is only correct only if this test includes all
+        # test models. This test may not be needed since it's tested when the
+        # test runner migrates all models. If any subTest fails, the key vault
+        # will be left in an inconsistent state.
+        EncryptionKey.objects.all().delete()
         connection = connections["encrypted"]
-
         for model_name, expected in self.expected_map.items():
             with self.subTest(model=model_name):
                 model_class = getattr(models, model_name)
                 with connection.schema_editor() as editor:
-                    client = connection.connection
-                    encrypted_fields = editor._get_encrypted_fields(model_class, client)
+                    encrypted_fields = editor._get_encrypted_fields(model_class)
                     for field in encrypted_fields["fields"]:
-                        field.pop("keyId", None)  # Remove dynamic value
+                        field.pop("keyId")  # Remove dynamic value
                     self.assertEqual(encrypted_fields, expected)
 
     def test_key_creation_and_lookup(self):
