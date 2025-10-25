@@ -2,6 +2,7 @@ from bson.binary import Binary
 from django.db import connections
 
 from . import models
+from .models import EncryptionKey
 from .test_base import EncryptionTestCase
 
 
@@ -113,28 +114,20 @@ class SchemaTests(EncryptionTestCase):
         generate and store a data key in the vault, then
         query the vault with the keyAltName.
         """
-        connection = connections["encrypted"]
-        client = connection.connection
-        auto_encryption_opts = client._options.auto_encryption_opts
-
-        key_vault_db, key_vault_coll = auto_encryption_opts._key_vault_namespace.split(".", 1)
-        vault_coll = client[key_vault_db][key_vault_coll]
-
         model_class = models.CharModel
         test_key_alt_name = f"{model_class._meta.db_table}.value"
-        vault_coll.delete_many({"keyAltNames": test_key_alt_name})
-
-        with connection.schema_editor() as editor:
+        # Delete the test key and verify it's gone.
+        EncryptionKey.objects.filter(key_alt_name=test_key_alt_name).delete()
+        with self.assertRaises(EncryptionKey.DoesNotExist):
+            EncryptionKey.objects.get(key_alt_name=test_key_alt_name)
+        # Regenerate the keyId.
+        with connections["encrypted"].schema_editor() as editor:
             encrypted_fields = editor._get_encrypted_fields(model_class)
-
-        # Validate schema contains a keyId for our field
-        self.assertTrue(encrypted_fields["fields"])
+        # Validate schema contains a keyId for the field.
         field_info = encrypted_fields["fields"][0]
         self.assertEqual(field_info["path"], "value")
         self.assertIsInstance(field_info["keyId"], Binary)
-
-        # Lookup in key vault by the keyAltName created
-        key_doc = vault_coll.find_one({"keyAltNames": test_key_alt_name})
-        self.assertIsNotNone(key_doc, "Key should exist in vault")
-        self.assertEqual(key_doc["_id"], field_info["keyId"])
-        self.assertIn(test_key_alt_name, key_doc["keyAltNames"])
+        # Lookup in key vault by the keyAltName.
+        key = EncryptionKey.objects.get(key_alt_name=test_key_alt_name)
+        self.assertEqual(key.id, field_info["keyId"])
+        self.assertEqual(key.key_alt_name, [test_key_alt_name])

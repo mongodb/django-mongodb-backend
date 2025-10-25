@@ -165,3 +165,11 @@ class SmallIntegerModel(EncryptedTestModel):
 
 class TimeModel(EncryptedTestModel):
     value = EncryptedTimeField(queries={"queryType": "range"})
+
+
+class EncryptionKey(models.Model):
+    key_alt_name = models.CharField(max_length=500, db_column="keyAltNames")
+
+    class Meta:
+        db_table = "__keyVault"
+        managed = False
