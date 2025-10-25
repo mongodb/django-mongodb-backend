@@ -45,8 +45,8 @@ jobs:
           cd django_repo/tests/
           pip3 install -e ..
           pip3 install -r requirements/py3.txt
-      - name: Copy the test settings file
-        run: cp .github/workflows/mongodb_settings.py django_repo/tests/
+      - name: Copy the test settings files
+        run: cp .github/workflows/*_settings.py django_repo/tests/
       - name: Copy the test runner file
         run: cp .github/workflows/runtests.py django_repo/tests/runtests_.py
       - name: Start MongoDB
