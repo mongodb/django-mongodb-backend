@@ -281,7 +281,14 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                         "pipeline": [
                             {
                                 "$match": {
-                                    "$expr": {"$and": [{"$eq": ["$$parent__field__0", "$_id"]}]}
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
+                                            }
+                                        },
+                                        {"$nor": [{"name": "John"}]},
+                                    ]
                                 }
                             }
                         ],
