@@ -9,17 +9,17 @@ from django.db.models.aggregates import Aggregate, Variance
 from django.db.models.expressions import Case, Col, OrderBy, Ref, Value, When
 from django.db.models.functions.comparison import Coalesce
 from django.db.models.functions.math import Power
-from django.db.models.lookups import IsNull, Lookup
+from django.db.models.lookups import IsNull
 from django.db.models.sql import compiler
 from django.db.models.sql.constants import GET_ITERATOR_CHUNK_SIZE, MULTI, SINGLE
 from django.db.models.sql.datastructures import BaseTable
-from django.db.models.sql.where import AND, WhereNode
+from django.db.models.sql.where import AND, OR, XOR, NothingNode, WhereNode
 from django.utils.functional import cached_property
 from pymongo import ASCENDING, DESCENDING
 
 from .expressions.search import SearchExpression, SearchVector
 from .query import MongoQuery, wrap_database_errors
-from .query_utils import is_direct_value
+from .query_utils import is_constant_value, is_direct_value
 
 
 class SQLCompiler(compiler.SQLCompiler):
@@ -661,27 +661,72 @@ class SQLCompiler(compiler.SQLCompiler):
                 combinator_pipeline.append({"$unset": "_id"})
         return combinator_pipeline
 
+    def _get_pushable_conditions(self):
+        """
+        Return a dict mapping each alias to a WhereNode holding its pushable
+        condition.
+        """
+
+        def collect_pushable(expr, negated=False):
+            if expr is None or isinstance(expr, NothingNode):
+                return {}
+            if isinstance(expr, WhereNode):
+                # Apply De Morgan: track negation so connectors are flipped
+                # when needed.
+                negated ^= expr.negated
+                pushable_expressions = [
+                    collect_pushable(sub_expr, negated=negated)
+                    for sub_expr in expr.children
+                    if sub_expr is not None
+                ]
+                operator = expr.connector
+                if operator == XOR:
+                    return {}
+                if negated:
+                    operator = OR if operator == AND else AND
+                alias_children = defaultdict(list)
+                for pe in pushable_expressions:
+                    for alias, expressions in pe.items():
+                        alias_children[alias].append(expressions)
+                # Build per-alias pushable condition nodes.
+                if operator == AND:
+                    return {
+                        alias: WhereNode(children=children, negated=False, connector=operator)
+                        for alias, children in alias_children.items()
+                    }
+                # Only aliases shared across all branches are pushable for OR.
+                shared_alias = (
+                    set.intersection(*(set(pe) for pe in pushable_expressions))
+                    if pushable_expressions
+                    else set()
+                )
+                return {
+                    alias: WhereNode(children=children, negated=False, connector=operator)
+                    for alias, children in alias_children.items()
+                    if alias in shared_alias
+                }
+            # A leaf is pushable only when comparing a field to a constant or
+            # simple value.
+            if isinstance(expr.lhs, Col) and (
+                is_constant_value(expr.rhs) or getattr(expr.rhs, "is_simple_column", False)
+            ):
+                alias = expr.lhs.alias
+                expr = WhereNode(children=[expr], negated=negated)
+                return {alias: expr}
+            return {}
+
+        return collect_pushable(self.get_where())
+
     def get_lookup_pipeline(self):
         result = []
         # To improve join performance, push conditions (filters) from the
         # WHERE ($match) clause to the JOIN ($lookup) clause.
-        where = self.get_where()
-        pushed_filters = defaultdict(list)
-        for expr in where.children if where and where.connector == AND else ():
-            # Push only basic lookups; no subqueries or complex conditions.
-            # To avoid duplication across subqueries, only use the LHS target
-            # table.
-            if (
-                isinstance(expr, Lookup)
-                and isinstance(expr.lhs, Col)
-                and (is_direct_value(expr.rhs) or isinstance(expr.rhs, (Value, Col)))
-            ):
-                pushed_filters[expr.lhs.alias].append(expr)
+        pushed_filters = self._get_pushable_conditions()
         for alias in tuple(self.query.alias_map):
             if not self.query.alias_refcount[alias] or self.collection_name == alias:
                 continue
             result += self.query.alias_map[alias].as_mql(
-                self, self.connection, WhereNode(pushed_filters[alias], connector=AND)
+                self, self.connection, pushed_filters.get(alias)
             )
         return result
 

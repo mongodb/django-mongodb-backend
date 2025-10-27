@@ -1,4 +1,5 @@
 from django.core.exceptions import FullResultSet
+from django.db.models import F
 from django.db.models.aggregates import Aggregate
 from django.db.models.expressions import CombinedExpression, Func, Value
 from django.db.models.sql.query import Query
@@ -67,7 +68,7 @@ def is_constant_value(value):
     else:
         constants_sub_expressions = True
     constants_sub_expressions = constants_sub_expressions and not (
-        isinstance(value, Query)
+        isinstance(value, Query | F)
         or value.contains_aggregate
         or value.contains_over_clause
         or value.contains_column_references

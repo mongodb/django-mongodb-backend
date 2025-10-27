@@ -17,6 +17,12 @@ Bug fixes
 
 - ...
 
+Performance improvements
+------------------------
+
+- Improved ``QuerySet`` join (``$lookup``) performance by pushing complex
+  conditions from the ``WHERE`` (``$match``) clause to the ``$lookup`` stage.
+
 5.2.3
 =====
 

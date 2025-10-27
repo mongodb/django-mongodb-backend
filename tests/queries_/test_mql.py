@@ -1,5 +1,6 @@
 from bson import SON, ObjectId
 from django.db import models
+from django.db.models import Case, F, IntegerField, Value, When
 from django.test import TestCase
 
 from django_mongodb_backend.test import MongoTestCaseMixin
@@ -189,7 +190,7 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
             ],
         )
 
-    def test_negated_related_filter_is_not_pushable(self):
+    def test_negated_related_filter_is_pushable(self):
         with self.assertNumQueries(1) as ctx:
             list(Book.objects.filter(~models.Q(author__name="John")))
         self.assertAggregateQuery(
@@ -199,10 +200,16 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {
                     "$lookup": {
                         "from": "queries__author",
-                        "pipeline": [],
                         "as": "queries__author",
                         "localField": "author_id",
                         "foreignField": "_id",
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$nor": [{"name": "John"}],
+                                }
+                            }
+                        ],
                     }
                 },
                 {"$unwind": "$queries__author"},
@@ -267,6 +274,505 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {"$match": {"$expr": {"$eq": ["$queries__orderitem.status", "$_id"]}}},
                 {"$addFields": {"_id": "$_id"}},
                 {"$sort": SON([("_id", 1)])},
+            ],
+        )
+
+    def test_double_negation_pushdown(self):
+        a1 = Author.objects.create(name="Alice")
+        a2 = Author.objects.create(name="Bob")
+        b1 = Book.objects.create(title="Book1", author=a1, isbn="111")
+        Book.objects.create(title="Book2", author=a2, isbn="222")
+        b3 = Book.objects.create(title="Book3", author=a1, isbn="333")
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                Book.objects.filter(~(~models.Q(author__name="Alice") | models.Q(title="Book4"))),
+                [b1, b3],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__book",
+            [
+                {
+                    "$lookup": {
+                        "from": "queries__author",
+                        "pipeline": [{"$match": {"name": "Alice"}}],
+                        "as": "queries__author",
+                        "localField": "author_id",
+                        "foreignField": "_id",
+                    }
+                },
+                {"$unwind": "$queries__author"},
+                {
+                    "$match": {
+                        "$nor": [
+                            {
+                                "$or": [
+                                    {"$nor": [{"queries__author.name": "Alice"}]},
+                                    {"title": "Book4"},
+                                ]
+                            }
+                        ]
+                    }
+                },
+            ],
+        )
+
+    def test_partial_or_pushdown(self):
+        a1 = Author.objects.create(name="Alice")
+        a2 = Author.objects.create(name="Bob")
+        a3 = Author.objects.create(name="Charlie")
+        b1 = Book.objects.create(title="B1", author=a1, isbn="111")
+        b2 = Book.objects.create(title="B2", author=a2, isbn="111")
+        Book.objects.create(title="B3", author=a3, isbn="222")
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                Book.objects.filter(
+                    models.Q(author__name="Alice")
+                    | (models.Q(author__name="Bob") & models.Q(isbn="111"))
+                ),
+                [b1, b2],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__book",
+            [
+                {
+                    "$lookup": {
+                        "from": "queries__author",
+                        "pipeline": [{"$match": {"$or": [{"name": "Alice"}, {"name": "Bob"}]}}],
+                        "as": "queries__author",
+                        "localField": "author_id",
+                        "foreignField": "_id",
+                    }
+                },
+                {"$unwind": "$queries__author"},
+                {
+                    "$match": {
+                        "$or": [
+                            {"queries__author.name": "Alice"},
+                            {"$and": [{"queries__author.name": "Bob"}, {"isbn": "111"}]},
+                        ]
+                    }
+                },
+            ],
+        )
+
+    def test_multiple_ors_with_partial_pushdown(self):
+        a1 = Author.objects.create(name="Alice")
+        a2 = Author.objects.create(name="Bob")
+        a3 = Author.objects.create(name="Charlie")
+        a4 = Author.objects.create(name="David")
+        b1 = Book.objects.create(title="B1", author=a1, isbn="111")
+        b2 = Book.objects.create(title="B2", author=a1, isbn="222")
+        b3 = Book.objects.create(title="B3", author=a2, isbn="333")
+        b4 = Book.objects.create(title="B4", author=a3, isbn="333")
+        Book.objects.create(title="B5", author=a4, isbn="444")
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                Book.objects.filter(
+                    models.Q(author__name="Alice") & (models.Q(isbn="111") | models.Q(isbn="222"))
+                    | (models.Q(author__name="Bob") | models.Q(author__name="Charlie"))
+                    & models.Q(isbn="333")
+                ),
+                [b1, b2, b3, b4],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__book",
+            [
+                {
+                    "$lookup": {
+                        "from": "queries__author",
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$or": [
+                                        {"name": "Alice"},
+                                        {"$or": [{"name": "Bob"}, {"name": "Charlie"}]},
+                                    ]
+                                }
+                            }
+                        ],
+                        "as": "queries__author",
+                        "localField": "author_id",
+                        "foreignField": "_id",
+                    }
+                },
+                {"$unwind": "$queries__author"},
+                {
+                    "$match": {
+                        "$or": [
+                            {
+                                "$and": [
+                                    {"queries__author.name": "Alice"},
+                                    {"$or": [{"isbn": "111"}, {"isbn": "222"}]},
+                                ]
+                            },
+                            {
+                                "$and": [
+                                    {
+                                        "$or": [
+                                            {"queries__author.name": "Bob"},
+                                            {"queries__author.name": "Charlie"},
+                                        ]
+                                    },
+                                    {"isbn": "333"},
+                                ]
+                            },
+                        ]
+                    }
+                },
+            ],
+        )
+
+    def test_self_join_tag_three_levels_none_pushable(self):
+        t1 = Tag.objects.create(name="T1")
+        t2 = Tag.objects.create(name="T2", parent=t1)
+        t3 = Tag.objects.create(name="T3", parent=t2)
+        Tag.objects.create(name="T4", parent=t3)
+        Tag.objects.create(name="T5", parent=t1)
+        t6 = Tag.objects.create(name="T6", parent=t2)
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                Tag.objects.filter(
+                    models.Q(name="T1")
+                    | models.Q(parent__name="T2")
+                    | models.Q(parent__parent__name="T3")
+                ),
+                [t1, t3, t6],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__tag",
+            # Django translates this kind of query into left outer join.
+            [
+                {
+                    "$lookup": {
+                        "from": "queries__tag",
+                        "pipeline": [],
+                        "as": "T2",
+                        "localField": "parent_id",
+                        "foreignField": "_id",
+                    }
+                },
+                {
+                    "$set": {
+                        "T2": {
+                            "$cond": {
+                                "if": {
+                                    "$or": [
+                                        {"$eq": [{"$type": "$T2"}, "missing"]},
+                                        {"$eq": [{"$size": "$T2"}, 0]},
+                                    ]
+                                },
+                                "then": [{}],
+                                "else": "$T2",
+                            }
+                        }
+                    }
+                },
+                {"$unwind": "$T2"},
+                {
+                    "$lookup": {
+                        "from": "queries__tag",
+                        "pipeline": [],
+                        "as": "T3",
+                        "localField": "T2.parent_id",
+                        "foreignField": "_id",
+                    }
+                },
+                {
+                    "$set": {
+                        "T3": {
+                            "$cond": {
+                                "if": {
+                                    "$or": [
+                                        {"$eq": [{"$type": "$T3"}, "missing"]},
+                                        {"$eq": [{"$size": "$T3"}, 0]},
+                                    ]
+                                },
+                                "then": [{}],
+                                "else": "$T3",
+                            }
+                        }
+                    }
+                },
+                {"$unwind": "$T3"},
+                {"$match": {"$or": [{"name": "T1"}, {"T2.name": "T2"}, {"T3.name": "T3"}]}},
+            ],
+        )
+
+    def test_self_join_tag_three_levels_pushable(self):
+        t1 = Tag.objects.create(name="T1")
+        t2 = Tag.objects.create(name="T2", parent=t1)
+        t3 = Tag.objects.create(name="T3", parent=t2)
+        Tag.objects.create(name="T4", parent=t3)
+        Tag.objects.create(name="T5", parent=t1)
+        Tag.objects.create(name="T6", parent=t2)
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                Tag.objects.filter(name="T1", parent__name="T2", parent__parent__name="T3"),
+                [],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__tag",
+            [
+                {
+                    "$lookup": {
+                        "from": "queries__tag",
+                        "pipeline": [{"$match": {"name": "T2"}}],
+                        "as": "T2",
+                        "localField": "parent_id",
+                        "foreignField": "_id",
+                    }
+                },
+                {"$unwind": "$T2"},
+                {
+                    "$lookup": {
+                        "from": "queries__tag",
+                        "pipeline": [{"$match": {"name": "T3"}}],
+                        "as": "T3",
+                        "localField": "T2.parent_id",
+                        "foreignField": "_id",
+                    }
+                },
+                {"$unwind": "$T3"},
+                {"$match": {"$and": [{"name": "T1"}, {"T2.name": "T2"}, {"T3.name": "T3"}]}},
+            ],
+        )
+
+    def test_partial_and_pushdown(self):
+        a1 = Author.objects.create(name="Alice")
+        a2 = Author.objects.create(name="Bob")
+        b1 = Book.objects.create(title="B1", author=a1, isbn="111")
+        Book.objects.create(title="B2", author=a2, isbn="222")
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                Book.objects.filter(models.Q(author__name="Alice") & models.Q(title__contains="B")),
+                [b1],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__book",
+            [
+                {
+                    "$lookup": {
+                        "from": "queries__author",
+                        "pipeline": [{"$match": {"name": "Alice"}}],
+                        "as": "queries__author",
+                        "localField": "author_id",
+                        "foreignField": "_id",
+                    }
+                },
+                {"$unwind": "$queries__author"},
+                {
+                    "$match": {
+                        "$and": [
+                            {"queries__author.name": "Alice"},
+                            {"title": {"$regex": "B", "$options": ""}},
+                        ]
+                    }
+                },
+            ],
+        )
+
+    def test_not_or_demorgan_pushdown(self):
+        a1 = Author.objects.create(name="Alice")
+        a2 = Author.objects.create(name="Bob")
+        b1 = Book.objects.create(title="B1", author=a1, isbn="111")
+        Book.objects.create(title="B2", author=a2, isbn="222")
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                Book.objects.filter(~(models.Q(author__name="Bob") | models.Q(isbn="222"))),
+                [b1],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__book",
+            [
+                {
+                    "$lookup": {
+                        "from": "queries__author",
+                        "pipeline": [{"$match": {"$nor": [{"name": "Bob"}]}}],
+                        "as": "queries__author",
+                        "localField": "author_id",
+                        "foreignField": "_id",
+                    }
+                },
+                {"$unwind": "$queries__author"},
+                {"$match": {"$nor": [{"$or": [{"queries__author.name": "Bob"}, {"isbn": "222"}]}]}},
+            ],
+        )
+
+    def test_or_mixed_local_remote_pushdown(self):
+        a1 = Author.objects.create(name="Alice")
+        a2 = Author.objects.create(name="Bob")
+        b1 = Book.objects.create(title="B1", author=a1, isbn="111")
+        b2 = Book.objects.create(title="B2", author=a2, isbn="222")
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                Book.objects.filter(models.Q(title="B1") | models.Q(author__name="Bob")), [b1, b2]
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__book",
+            [
+                {
+                    "$lookup": {
+                        "from": "queries__author",
+                        "pipeline": [],
+                        "as": "queries__author",
+                        "localField": "author_id",
+                        "foreignField": "_id",
+                    }
+                },
+                {"$unwind": "$queries__author"},
+                {"$match": {"$or": [{"title": "B1"}, {"queries__author.name": "Bob"}]}},
+            ],
+        )
+
+    def test_conditional_expression_not_pushed(self):
+        a1 = Author.objects.create(name="Vicente")
+        a2 = Author.objects.create(name="Carlos")
+        a3 = Author.objects.create(name="Maria")
+        Book.objects.create(title="B1", author=a1, isbn="111")
+        b2 = Book.objects.create(title="B2", author=a2, isbn="222")
+        Book.objects.create(title="B3", author=a3, isbn="333")
+        qs = Book.objects.annotate(
+            score=Case(
+                When(author__name="Vicente", then=Value(2)),
+                When(author__name="Carlos", then=Value(4)),
+                default=Value(1),
+                output_field=IntegerField(),
+            )
+            + Value(1)
+        ).filter(score__gt=3)
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(qs, [b2])
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__book",
+            [
+                {
+                    "$lookup": {
+                        "from": "queries__author",
+                        "pipeline": [],
+                        "as": "queries__author",
+                        "localField": "author_id",
+                        "foreignField": "_id",
+                    }
+                },
+                {"$unwind": "$queries__author"},
+                {
+                    "$match": {
+                        "$expr": {
+                            "$gt": [
+                                {
+                                    "$add": [
+                                        {
+                                            "$switch": {
+                                                "branches": [
+                                                    {
+                                                        "case": {
+                                                            "$eq": [
+                                                                "$queries__author.name",
+                                                                "Vicente",
+                                                            ]
+                                                        },
+                                                        "then": {"$literal": 2},
+                                                    },
+                                                    {
+                                                        "case": {
+                                                            "$eq": [
+                                                                "$queries__author.name",
+                                                                "Carlos",
+                                                            ]
+                                                        },
+                                                        "then": {"$literal": 4},
+                                                    },
+                                                ],
+                                                "default": {"$literal": 1},
+                                            }
+                                        },
+                                        {"$literal": 1},
+                                    ]
+                                },
+                                3,
+                            ]
+                        }
+                    }
+                },
+                {
+                    "$project": {
+                        "score": {
+                            "$add": [
+                                {
+                                    "$switch": {
+                                        "branches": [
+                                            {
+                                                "case": {
+                                                    "$eq": ["$queries__author.name", "Vicente"]
+                                                },
+                                                "then": {"$literal": 2},
+                                            },
+                                            {
+                                                "case": {
+                                                    "$eq": ["$queries__author.name", "Carlos"]
+                                                },
+                                                "then": {"$literal": 4},
+                                            },
+                                        ],
+                                        "default": {"$literal": 1},
+                                    }
+                                },
+                                {"$literal": 1},
+                            ]
+                        },
+                        "_id": 1,
+                        "title": 1,
+                        "author_id": 1,
+                        "isbn": 1,
+                    }
+                },
+            ],
+        )
+
+    def test_simple_annotation_pushdown(self):
+        a1 = Author.objects.create(name="Alice")
+        a2 = Author.objects.create(name="Bob")
+        b1 = Book.objects.create(title="B1", author=a1, isbn="111")
+        Book.objects.create(title="B2", author=a2, isbn="222")
+        b3 = Book.objects.create(title="B3", author=a1, isbn="333")
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                Book.objects.annotate(name_length=F("author__name")).filter(name_length="Alice"),
+                [b1, b3],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__book",
+            [
+                {
+                    "$lookup": {
+                        "from": "queries__author",
+                        "pipeline": [{"$match": {"name": "Alice"}}],
+                        "as": "queries__author",
+                        "localField": "author_id",
+                        "foreignField": "_id",
+                    }
+                },
+                {"$unwind": "$queries__author"},
+                {"$match": {"queries__author.name": "Alice"}},
+                {
+                    "$project": {
+                        "queries__author": {"name_length": "$queries__author.name"},
+                        "_id": 1,
+                        "title": 1,
+                        "author_id": 1,
+                        "isbn": 1,
+                    }
+                },
             ],
         )
 
