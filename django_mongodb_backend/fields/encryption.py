@@ -32,6 +32,13 @@ class EncryptedFieldMixin:
         return name, path, args, kwargs
 
 
+class NoQueriesMixin:
+    def __init__(self, *args, **kwargs):
+        if "queries" in kwargs:
+            raise ValueError(f"{self.__class__.__name__} does not support the queries argument.")
+        super().__init__(*args, **kwargs)
+
+
 # Django fields
 class EncryptedBinaryField(EncryptedFieldMixin, models.BinaryField):
     pass
@@ -114,15 +121,17 @@ class EncryptedUUIDField(EncryptedFieldMixin, models.UUIDField):
 
 
 # MongoDB fields
-class EncryptedArrayField(EncryptedFieldMixin, ArrayField):
+class EncryptedArrayField(NoQueriesMixin, EncryptedFieldMixin, ArrayField):
     pass
 
 
-class EncryptedEmbeddedModelArrayField(EncryptedFieldMixin, EmbeddedModelArrayField):
+class EncryptedEmbeddedModelArrayField(
+    NoQueriesMixin, EncryptedFieldMixin, EmbeddedModelArrayField
+):
     pass
 
 
-class EncryptedEmbeddedModelField(EncryptedFieldMixin, EmbeddedModelField):
+class EncryptedEmbeddedModelField(NoQueriesMixin, EncryptedFieldMixin, EmbeddedModelField):
     pass
 
 

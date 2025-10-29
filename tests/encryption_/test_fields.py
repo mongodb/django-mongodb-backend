@@ -4,7 +4,13 @@ from decimal import Decimal
 
 from bson import ObjectId
 
-from django_mongodb_backend.fields import EncryptedCharField, EncryptedIntegerField
+from django_mongodb_backend.fields import (
+    EncryptedArrayField,
+    EncryptedCharField,
+    EncryptedEmbeddedModelArrayField,
+    EncryptedEmbeddedModelField,
+    EncryptedIntegerField,
+)
 
 from .models import (
     Actor,
@@ -249,3 +255,15 @@ class FieldMixinTests(EncryptionTestCase):
         self.assertEqual(new_field.queries, field.queries)
         self.assertIsNot(new_field, field)
         self.assertEqual(new_field.max_length, field.max_length)
+
+    def test_fields_without_queries(self):
+        """Some field types (array, object) can't be queried."""
+        for field in (
+            EncryptedArrayField,
+            EncryptedEmbeddedModelField,
+            EncryptedEmbeddedModelArrayField,
+        ):
+            with self.subTest(field=field):
+                msg = f"{field.__name__} does not support the queries argument."
+                with self.assertRaisesMessage(ValueError, msg):
+                    field(Actor, queries={})
