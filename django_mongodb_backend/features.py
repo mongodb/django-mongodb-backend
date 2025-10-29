@@ -597,10 +597,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         return self.mongodb_version >= (6, 3)
 
     @cached_property
-    def is_mongodb_7_0(self):
-        return self.mongodb_version >= (7, 0)
-
-    @cached_property
     def is_mongodb_8_0(self):
         return self.mongodb_version >= (8, 0)
 

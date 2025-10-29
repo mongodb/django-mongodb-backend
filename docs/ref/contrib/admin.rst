@@ -20,27 +20,8 @@ that you have :ref:`specified the default pk field
     class to ensure that encrypted fields are handled correctly in the admin
     interface.
 
-    Define a model with encrypted fields:
-
-    .. code-block:: python
-
-        # myapp/models.py
-        from django.db import models
-        from django_mongodb_backend.fields import EmbeddedModelField
-
-
-        class Patient(models.Model):
-            patient_name = models.CharField(max_length=255)
-            patient_id = models.BigIntegerField()
-            patient_record = EmbeddedModelField("PatientRecord")
-
-            def __str__(self):
-                return f"{self.patient_name} ({self.patient_id})"
-
-    Register it with the Django admin using the ``EncryptedModelAdmin`` as shown
-    below:
-
-    .. code-block:: python
+    Register encrypted models with the Django admin using the
+    ``EncryptedModelAdmin`` as shown below::
 
         # myapp/admin.py
         from django.contrib import admin
