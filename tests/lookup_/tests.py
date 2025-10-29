@@ -1,4 +1,5 @@
 from bson import SON
+from django.db.models import Sum
 from django.test import TestCase
 
 from django_mongodb_backend.test import MongoTestCaseMixin
@@ -96,6 +97,28 @@ class LookupMQLTests(MongoTestCaseMixin, TestCase):
             [
                 {"$match": {"num": {"$gte": 2}}},
                 {"$addFields": {"num": "$num"}},
+                {"$sort": SON([("num", 1)])},
+            ],
+        )
+
+    def test_group_by_with_having(self):
+        with self.assertNumQueries(1) as ctx:
+            list(Number.objects.values("num").annotate(total=Sum("num")).filter(total=1))
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "lookup__number",
+            [
+                {
+                    "$group": {
+                        "__aggregation1": {"$sum": "$num"},
+                        "_id": {"num": "$num"},
+                        "total": {"$sum": "$num"},
+                    }
+                },
+                {"$addFields": {"num": "$_id.num"}},
+                {"$unset": "_id"},
+                {"$match": {"__aggregation1": 1}},
+                {"$project": {"num": 1, "total": "$__aggregation1"}},
                 {"$sort": SON([("num", 1)])},
             ],
         )
