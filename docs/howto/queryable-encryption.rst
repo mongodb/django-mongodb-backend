@@ -15,18 +15,15 @@ Encryption in your Django project.
 
     Queryable Encryption can be used with MongoDB replica sets or sharded
     clusters running version 8.0 or later. Standalone instances are not
-    supported. The following table summarizes which MongoDB server products
-    support each Queryable Encryption mechanism.
-
-    - :ref:`manual:qe-compatibility-reference`
+    supported. The :ref:`manual:qe-compatibility-reference` table summarizes
+    which MongoDB server products support Queryable Encryption.
 
 Installation
 ============
 
-In addition to the :doc:`installation </intro/install>` and :doc:`configuration
-</intro/configure>` steps required to use Django MongoDB Backend, Queryable
-Encryption has additional dependencies. You can install these dependencies
-by using the ``encryption`` extra when installing ``django-mongodb-backend``:
+In addition to Django MongoDB Backend's regular :doc:`installation
+</intro/install>` and :doc:`configuration </intro/configure>` steps, Queryable
+Encryption has additional Python dependencies:
 
 .. code-block:: console
 
@@ -49,13 +46,8 @@ configure a separate encrypted database connection in your
     :class:`automatic encryption
     <pymongo.encryption_options.AutoEncryptionOpts>`.
 
-The following example shows how to
-configure an encrypted database using the :class:`AutoEncryptionOpts
-<pymongo.encryption_options.AutoEncryptionOpts>` from the
-:mod:`encryption_options <pymongo.encryption_options>` module with a local KMS
-provider and encryption keys stored in the ``encryption.__keyVault`` collection.
-
-.. code-block:: python
+Here's how to configure an encrypted database using a local KMS provider and
+encryption keys stored in the ``encryption.__keyVault`` collection::
 
     import os
 
@@ -104,10 +96,7 @@ route database operations to the encrypted database.
 
 The following example shows how to configure a router for the "myapp"
 application that routes database operations to the encrypted database for all
-models in that application. The router also specifies the :ref:`KMS provider
-<qe-configuring-kms>` to use.
-
-.. code-block:: python
+models in that application::
 
     # myapp/routers.py
     class EncryptedRouter:
@@ -127,9 +116,7 @@ models in that application. The router also specifies the :ref:`KMS provider
         db_for_write = db_for_read
 
 Then in your Django settings, add the custom database router to the
-:setting:`django:DATABASE_ROUTERS` setting:
-
-.. code-block:: python
+:setting:`django:DATABASE_ROUTERS` setting::
 
     # settings.py
     DATABASE_ROUTERS = ["myapp.routers.EncryptedRouter"]
@@ -162,9 +149,7 @@ options followed by an example of how to use them.
 +-------------------------------------------------------------------------+--------------------------------------------------------+
 
 Example of KMS configuration with ``aws`` in your :class:`kms_providers
-<pymongo.encryption_options.AutoEncryptionOpts>` setting:
-
-.. code-block:: python
+<pymongo.encryption_options.AutoEncryptionOpts>` setting::
 
     from pymongo.encryption_options import AutoEncryptionOpts
 
@@ -223,12 +208,10 @@ Django MongoDB Backend, along with the entire schema, you can run the
 
 Use the output of :djadmin:`showencryptedfieldsmap` to set the
 ``encrypted_fields_map`` in :class:`AutoEncryptionOpts
-<pymongo.encryption_options.AutoEncryptionOpts>` in your Django settings.
+<pymongo.encryption_options.AutoEncryptionOpts>` in your Django settings::
 
-.. code-block:: python
-
-    from pymongo.encryption_options import AutoEncryptionOpts
     from bson import json_util
+    from pymongo.encryption_options import AutoEncryptionOpts
 
     DATABASES = {
         "encrypted": {
@@ -239,29 +222,27 @@ Use the output of :djadmin:`showencryptedfieldsmap` to set the
                     encrypted_fields_map=json_util.loads(
                         """{
                         "encrypt_patient": {
-                          "fields": [
-                            {
-                              "bsonType": "string",
-                              "path": "patient_record.ssn",
-                              "keyId": {
-                                "$binary": {
-                                  "base64": "2MA29LaARIOqymYHGmi2mQ==",
-                                  "subType": "04"
-                                }
-                              },
-                              "queries": {
-                                "queryType": "equality"
-                              }
-                            },
-                          ]
-                        }
-                    }"""
+                            "fields": [
+                                 {
+                                     "bsonType": "string",
+                                     "path": "patient_record.ssn",
+                                     "keyId": {
+                                          "$binary": {
+                                              "base64": "2MA29LaARIOqymYHGmi2mQ==",
+                                              "subType": "04"
+                                          }
+                                     },
+                                     "queries": {
+                                         "queryType": "equality"
+                                     }
+                                 },
+                            ]
+                        }}"""
                     ),
-                )
+                ),
             },
         },
     }
-
 
 .. admonition:: Security consideration
 
@@ -287,9 +268,7 @@ settings using the ``crypt_shared_lib_path`` option in
 :class:`AutoEncryptionOpts <pymongo.encryption_options.AutoEncryptionOpts>`.
 
 The following example shows how to configure the shared library in your Django
-settings:
-
-.. code-block:: python
+settings::
 
     from pymongo.encryption_options import AutoEncryptionOpts
 

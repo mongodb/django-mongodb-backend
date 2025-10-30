@@ -21,10 +21,7 @@ queries on certain encrypted fields. To use encrypted fields in your models,
 import the necessary field types from ``django_mongodb_backend.models`` and
 define your models as usual.
 
-Here's the `Python Queryable Encryption Tutorial`_ example implemented in
-Django:
-
-.. code-block:: python
+Here are models based on the `Python Queryable Encryption Tutorial`_::
 
     # myapp/models.py
     from django.db import models
@@ -55,6 +52,8 @@ Django:
         cc_type = models.CharField(max_length=50)
         cc_number = models.CharField(max_length=20)
 
+.. _Python Queryable Encryption Tutorial: https://github.com/mongodb/docs/tree/main/content/manual/manual/source/includes/qe-tutorials/python
+
 .. _qe-migrations:
 
 Migrations
@@ -84,9 +83,7 @@ The example above requires a :ref:`database router
 <qe-configuring-database-routers-setting>` to direct operations on models with
 encrypted fields to the appropriate database. It also requires the use of a
 :ref:`router for embedded models <configuring-database-routers-setting>`. Here
-is an example that includes both:
-
-.. code-block:: python
+is an example that includes both::
 
     # myproject/settings.py
     DATABASE_ROUTERS = [
@@ -94,15 +91,12 @@ is an example that includes both:
         "myproject.routers.EncryptedRouter",
     ]
 
-
 Querying encrypted fields
 -------------------------
 
 In order to query encrypted fields, you must define the queryable encryption
 query type in the model field definition. For example, if you want to query the
-``ssn`` field for equality, you can define it as follows:
-
-.. code-block:: python
+``ssn`` field for equality, you can define it as follows::
 
     class PatientRecord(EmbeddedModel):
         ssn = EncryptedCharField(max_length=11, queries={"queryType": "equality"})
@@ -137,24 +131,6 @@ supports:
     perform comparisons on encrypted fields, while Django's range lookups are
     used for filtering based on a range of values.
 
-If you have an encrypted field that supports range queries like this:
-
-.. code-block:: python
-
-    class PatientRecord(EmbeddedModel):
-        ssn = EncryptedCharField(max_length=11, queries={"queryType": "range"})
-        billing = EncryptedEmbeddedModelField("Billing")
-        bill_amount = models.DecimalField(max_digits=10, decimal_places=2)
-
-You can perform a query like this:
-
-.. code-block:: console
-
-    >>> patients = Patient.objects.filter(patient_record__ssn__gte="123-45-0000",
-    ...                                    patient_record__ssn__lte="123-45-9999")
-
-This will return all patients whose SSN falls within the specified range.
-
 QuerySet limitations
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -162,5 +138,3 @@ In addition to :ref:`Django MongoDB Backend's QuerySet limitations
 <known-issues-limitations-querying>`,
 
 .. TODO
-
-.. _Python Queryable Encryption Tutorial: https://github.com/mongodb/docs/tree/main/content/manual/manual/source/includes/qe-tutorials/python
