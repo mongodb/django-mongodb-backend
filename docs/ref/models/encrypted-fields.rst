@@ -12,79 +12,54 @@ Queryable Encryption with Django MongoDB Backend.
 See the :doc:`/topics/queryable-encryption` topic guide for
 more information on developing applications with Queryable Encryption.
 
-The following Django fields are supported by Django MongoDB Backend for use with
-Queryable Encryption.
+The following tables detailed which fields have encrypted counterparts. In all
+cases, the encrypted field names are simply prefixed with ``Encrypted``, e.g.
+``EncryptedCharField``. They are importable from
+``django_mongodb_backend.fields``.
 
-+----------------------------------------+------------------------------------------------------+
-| Encrypted Field                        | Django Field                                         |
-+========================================+======================================================+
-| ``EncryptedBigIntegerField``           | :class:`~django.db.models.BigIntegerField`           |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedBinaryField``               | :class:`~django.db.models.BinaryField`               |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedBooleanField``              | :class:`~django.db.models.BooleanField`              |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedCharField``                 | :class:`~django.db.models.CharField`                 |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedDateField``                 | :class:`~django.db.models.DateField`                 |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedDateTimeField``             | :class:`~django.db.models.DateTimeField`             |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedDecimalField``              | :class:`~django.db.models.DecimalField`              |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedDurationField``             | :class:`~django.db.models.DurationField`             |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedFloatField``                | :class:`~django.db.models.FloatField`                |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedGenericIPAddressField``     | :class:`~django.db.models.GenericIPAddressField`     |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedIntegerField``              | :class:`~django.db.models.IntegerField`              |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedPositiveIntegerField``      | :class:`~django.db.models.PositiveIntegerField`      |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedPositiveBigIntegerField``   | :class:`~django.db.models.PositiveBigIntegerField`   |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedPositiveSmallIntegerField`` | :class:`~django.db.models.PositiveSmallIntegerField` |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedSmallIntegerField``         | :class:`~django.db.models.SmallIntegerField`         |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedTextField``                 | :class:`~django.db.models.TextField`                 |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedTimeField``                 | :class:`~django.db.models.TimeField`                 |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedURLField``                  | :class:`~django.db.models.URLField`                  |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedUUIDField``                 | :class:`~django.db.models.UUIDField`                 |
-+----------------------------------------+------------------------------------------------------+
+.. csv-table:: ``django.db.models``
+   :header: "Model Field", "Encrypted version available?"
 
-The following MongoDB-specific fields are supported by Django MongoDB Backend
-for use with Queryable Encryption.
+    :class:`~django.db.models.BigIntegerField`, Yes
+    :class:`~django.db.models.BinaryField`, Yes
+    :class:`~django.db.models.BooleanField`, Yes
+    :class:`~django.db.models.CharField`, Yes
+    :class:`~django.db.models.DateField`, Yes
+    :class:`~django.db.models.DateTimeField`, Yes
+    :class:`~django.db.models.DecimalField`, Yes
+    :class:`~django.db.models.DurationField`, Yes
+    :class:`~django.db.models.EmailField`, Yes
+    :class:`~django.db.models.FileField`, No: the use case for encrypting this field is unclear.
+    :class:`~django.db.models.FilePathField`, No: the use case for encrypting this field is unclear.
+    :class:`~django.db.models.GenericIPAddressField`, Yes
+    :class:`~django.db.models.ImageField`, No: the use case for encrypting this field is unclear.
+    :class:`~django.db.models.IntegerField`, Yes
+    :class:`~django.db.models.JSONField`, No: ``JSONField`` isn't recommended.
+    :class:`~django.db.models.PositiveIntegerField`, Yes
+    :class:`~django.db.models.PositiveBigIntegerField`, Yes
+    :class:`~django.db.models.PositiveSmallIntegerField`, Yes
+    :class:`~django.db.models.SlugField`, No: it requires a unique index which Queryable Encryption doesn't support.
+    :class:`~django.db.models.SmallIntegerField`, Yes
+    :class:`~django.db.models.TimeField`, Yes
+    :class:`~django.db.models.TextField`, Yes
+    :class:`~django.db.models.URLField`, Yes
+    :class:`~django.db.models.UUIDField`, Yes
 
-+----------------------------------------+------------------------------------------------------+
-| Encrypted Field                        | MongoDB Field                                        |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedArrayField``                | :class:`~.fields.ArrayField`                         |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedEmbeddedModelArrayField``   | :class:`~.fields.EmbeddedModelArrayField`            |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedEmbeddedModelField``        | :class:`~.fields.EmbeddedModelField`                 |
-+----------------------------------------+------------------------------------------------------+
-| ``EncryptedObjectIdField``             | :class:`~.fields.ObjectIdField`                      |
-+----------------------------------------+------------------------------------------------------+
+.. csv-table:: ``django_mongodb_backend.fields``
+   :header: "Model Field", "Encrypted version available?"
 
-These fields don't support the ``queries`` argument::
+    :class:`~.fields.ArrayField`, Yes
+    :class:`~.fields.EmbeddedModelArrayField`, Yes
+    :class:`~.fields.EmbeddedModelField`, Yes
+    :class:`~.fields.ObjectIdField`, Yes
+    :class:`~.fields.PolymorphicEmbeddedModelField`, No: may be implemented in the future.
+    :class:`~.fields.PolymorphicEmbeddedModelArrayField`, No: may be implemented in the future.
+
+These fields don't support the ``queries`` argument:
+
 - ``EncryptedArrayField``
 - ``EncryptedEmbeddedModelArrayField``
 - ``EncryptedEmbeddedModelField``
-
-The following fields are supported by Django MongoDB Backend but not supported
-by Queryable Encryption.
-
-+--------------------------------------+--------------------------------------------------------------------------------------------------------------------+
-| Field                                | Limitation                                                                                                         |
-+--------------------------------------+--------------------------------------------------------------------------------------------------------------------+
-| :class:`~django.db.models.SlugField` | :ref:`Queryable Encryption does not support TTL Indexes or Unique Indexes <manual:qe-reference-encryption-limits>` |
-+--------------------------------------+--------------------------------------------------------------------------------------------------------------------+
 
 Limitations
 ===========
