@@ -30,6 +30,15 @@ from django_mongodb_backend.fields import (
 from django_mongodb_backend.models import EmbeddedModel
 
 
+class Author(models.Model):
+    name = models.CharField(max_length=255)
+
+
+class Book(models.Model):
+    title = models.CharField(max_length=255)
+    author = models.ForeignKey(Author, models.CASCADE)
+
+
 class EncryptedTestModel(models.Model):
     class Meta:
         abstract = True
