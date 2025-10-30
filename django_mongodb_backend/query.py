@@ -24,7 +24,7 @@ def wrap_database_errors(func):
         except DuplicateKeyError as e:
             raise IntegrityError from e
         except PyMongoError as e:
-            raise DatabaseError from e
+            raise DatabaseError(str(e)) from e
 
     return wrapper
 

@@ -3,6 +3,8 @@ import uuid
 from decimal import Decimal
 
 from bson import ObjectId
+from django.db import DatabaseError
+from django.db.models import Avg
 
 from django_mongodb_backend.fields import (
     EncryptedArrayField,
@@ -212,6 +214,65 @@ class FieldTests(EncryptionTestCase):
             threshold=datetime.time(12, 0),
         )
         self.assertEncrypted(TimeModel, "value")
+
+
+class QueryTests(EncryptionTestCase):
+    def test_annotate(self):
+        msg = (
+            "Cannot group on field '_id.value' which is encrypted with the "
+            "random algorithm or whose encryption properties are not known "
+            "until runtime"
+        )
+        with self.assertRaisesMessage(DatabaseError, msg):
+            list(IntegerModel.objects.annotate(avg=Avg("value")))
+
+    def test_count(self):
+        msg = (
+            "Aggregation stage $internalFacetTeeConsumer is not allowed or "
+            "supported with automatic encryption."
+        )
+        with self.assertRaisesMessage(DatabaseError, msg):
+            list(CharModel.objects.count())
+
+    def test_dates(self):
+        msg = (
+            "If the value type is a date, the type of the index must also be date (and vice versa)."
+        )
+        with self.assertRaisesMessage(DatabaseError, msg):
+            list(DateModel.objects.dates("value", "year"))
+
+    def test_datetimes(self):
+        msg = (
+            "If the value type is a date, the type of the index must also be date (and vice versa)."
+        )
+        with self.assertRaisesMessage(DatabaseError, msg):
+            list(DateTimeModel.objects.datetimes("value", "year"))
+
+    def test_exists(self):
+        self.assertIs(CharModel.objects.exists(), False)
+
+    def test_order_by(self):
+        msg = "Cannot add an encrypted field as a prefix of another encrypted field"
+        with self.assertRaisesMessage(DatabaseError, msg):
+            list(CharModel.objects.order_by("value"))
+
+    def test_values(self):
+        list(CharModel.objects.values("value"))
+
+    def test_values_list(self):
+        list(CharModel.objects.values_list("value"))
+
+    def test_distinct(self):
+        msg = (
+            "Cannot group on field '_id.value' which is encrypted with the "
+            "random algorithm or whose encryption properties are not known "
+            "until runtime"
+        )
+        with self.assertRaisesMessage(DatabaseError, msg):
+            list(CharModel.objects.distinct("value"))
+
+    def test_only(self):
+        list(CharModel.objects.only("value"))
 
 
 class FieldMixinTests(EncryptionTestCase):
