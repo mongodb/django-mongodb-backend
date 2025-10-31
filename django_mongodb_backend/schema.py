@@ -353,10 +353,13 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         collection.drop_index(index_names[0])
 
     def _check_supported_expressions(self, expressions):
-        for expression in expressions:
-            expression = expression.expression if isinstance(expression, OrderBy) else expression
-            if not isinstance(expression, F):
-                return False
+        if self.connection.vendor == "mongodb":
+            for expression in expressions:
+                expression = (
+                    expression.expression if isinstance(expression, OrderBy) else expression
+                )
+                if not isinstance(expression, F):
+                    return False
         return True
 
     def _unique_supported(

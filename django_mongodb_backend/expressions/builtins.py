@@ -107,14 +107,14 @@ def expression_wrapper(self, compiler, connection):
     return self.expression.as_mql(compiler, connection, as_expr=True)
 
 
-def index_expression(self, compiler, connection, as_expr=False):
+def index_expression(self, compiler, connection, as_expr=False):  # noqa: ARG001
     result = []
     for expr in self.get_source_expressions():
         if expr is None:
             continue
         for sub_expr in expr.get_source_expressions():
             try:
-                result.append(sub_expr.as_mql(compiler, connection, as_expr=False))
+                result.append(sub_expr.as_mql(compiler, connection))
             except FullResultSet:
                 result.append(Value(True).as_mql(compiler, connection))
     return result
