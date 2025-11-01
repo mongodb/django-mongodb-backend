@@ -25,6 +25,7 @@ from django.db.models.expressions import (
     Value,
     When,
 )
+from django.db.models.indexes import IndexExpression
 from django.db.models.sql import Query
 
 from django_mongodb_backend.query_utils import process_lhs
@@ -106,12 +107,25 @@ def expression_wrapper(self, compiler, connection):
     return self.expression.as_mql(compiler, connection, as_expr=True)
 
 
+def index_expression(self, compiler, connection, as_expr=False):  # noqa: ARG001
+    result = []
+    for expr in self.get_source_expressions():
+        if expr is None:
+            continue
+        for sub_expr in expr.get_source_expressions():
+            try:
+                result.append(sub_expr.as_mql(compiler, connection))
+            except FullResultSet:
+                result.append(Value(True).as_mql(compiler, connection))
+    return result
+
+
 def negated_expression(self, compiler, connection):
     return {"$not": expression_wrapper(self, compiler, connection)}
 
 
-def order_by(self, compiler, connection):
-    return self.expression.as_mql(compiler, connection, as_expr=True)
+def order_by(self, compiler, connection, as_expr=False):
+    return self.expression.as_mql(compiler, connection, as_expr=as_expr)
 
 
 def query(self, compiler, connection, get_wrapping_pipeline=None, as_expr=False):
@@ -244,8 +258,11 @@ def register_expressions():
     Exists.as_mql_expr = exists
     ExpressionList.as_mql = process_lhs
     ExpressionWrapper.as_mql_expr = expression_wrapper
+    IndexExpression.as_mql = index_expression
     NegatedExpression.as_mql_expr = negated_expression
-    OrderBy.as_mql_expr = order_by
+    OrderBy.as_mql_expr = partialmethod(order_by, as_expr=True)
+    OrderBy.as_mql_path = partialmethod(order_by, as_expr=False)
+    OrderBy.can_use_path = True
     Query.as_mql = query
     RawSQL.as_mql = raw_sql
     Ref.as_mql = ref
