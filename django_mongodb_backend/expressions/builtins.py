@@ -110,8 +110,13 @@ def negated_expression(self, compiler, connection):
     return {"$not": expression_wrapper(self, compiler, connection)}
 
 
-def order_by(self, compiler, connection):
-    return self.expression.as_mql(compiler, connection, as_expr=True)
+def order_by(self, compiler, connection, as_expr=False):
+    return self.expression.as_mql(compiler, connection, as_expr=as_expr)
+
+
+@property
+def order_by_can_use_path(self):
+    return self.expression.is_simple_column
 
 
 def query(self, compiler, connection, get_wrapping_pipeline=None, as_expr=False):
@@ -180,11 +185,6 @@ def ref(self, compiler, connection, as_expr=False):  # noqa: ARG001
     return f"{prefix}{refs}"
 
 
-@property
-def ref_is_simple_column(self):
-    return self.source.is_simple_column
-
-
 def star(self, compiler, connection):  # noqa: ARG001
     return {"$literal": True}
 
@@ -245,11 +245,13 @@ def register_expressions():
     ExpressionList.as_mql = process_lhs
     ExpressionWrapper.as_mql_expr = expression_wrapper
     NegatedExpression.as_mql_expr = negated_expression
-    OrderBy.as_mql_expr = order_by
+    OrderBy.as_mql_expr = partialmethod(order_by, as_expr=True)
+    OrderBy.as_mql_path = partialmethod(order_by, as_expr=False)
+    OrderBy.can_use_path = order_by_can_use_path
     Query.as_mql = query
     RawSQL.as_mql = raw_sql
     Ref.as_mql = ref
-    Ref.is_simple_column = ref_is_simple_column
+    Ref.is_simple_column = True
     ResolvedOuterRef.as_mql = ResolvedOuterRef.as_sql
     Star.as_mql_expr = star
     Subquery.as_mql_expr = partialmethod(subquery, as_expr=True)
