@@ -1,6 +1,6 @@
 # Django MongoDB Backend
 
-Django MongoDB Backend is a [Django]((https://docs.djangoproject.com/)
+Django MongoDB Backend is a [Django](https://docs.djangoproject.com/)
 database backend that uses [PyMongo](https://www.mongodb.com/docs/languages/python/pymongo-driver/)
 to connect to MongoDB.
 
