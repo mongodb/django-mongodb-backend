@@ -110,8 +110,8 @@ def negated_expression(self, compiler, connection):
     return {"$not": expression_wrapper(self, compiler, connection)}
 
 
-def order_by(self, compiler, connection):
-    return self.expression.as_mql(compiler, connection, as_expr=True)
+def order_by(self, compiler, connection, as_expr=False):
+    return self.expression.as_mql(compiler, connection, as_expr=as_expr)
 
 
 def query(self, compiler, connection, get_wrapping_pipeline=None, as_expr=False):
@@ -245,7 +245,8 @@ def register_expressions():
     ExpressionList.as_mql = process_lhs
     ExpressionWrapper.as_mql_expr = expression_wrapper
     NegatedExpression.as_mql_expr = negated_expression
-    OrderBy.as_mql_expr = order_by
+    OrderBy.as_mql_expr = partialmethod(order_by, as_expr=True)
+    OrderBy.as_mql_path = partialmethod(order_by, as_expr=False)
     Query.as_mql = query
     RawSQL.as_mql = raw_sql
     Ref.as_mql = ref
