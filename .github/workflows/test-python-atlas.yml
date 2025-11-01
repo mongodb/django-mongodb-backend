@@ -28,7 +28,7 @@ jobs:
       - name: install django-mongodb-backend
         run: |
           pip3 install --upgrade pip
-          pip3 install -e .
+          pip3 install -e .[encryption]
       - name: Checkout Django
         uses: actions/checkout@v5
         with:
@@ -51,8 +51,30 @@ jobs:
         run: cp .github/workflows/runtests.py django_repo/tests/runtests_.py
       - name: Start local Atlas
         working-directory: .
-        run: bash .github/workflows/start_local_atlas.sh mongodb/mongodb-atlas-local:7
+        run: bash .github/workflows/start_local_atlas.sh mongodb/mongodb-atlas-local:8.0.15
+      - name: Install mongosh
+        run: |
+          wget -q https://downloads.mongodb.com/compass/mongosh-2.2.10-linux-x64.tgz
+          tar -xzf mongosh-*-linux-x64.tgz
+          sudo cp mongosh-*-linux-x64/bin/mongosh /usr/local/bin/
+          mongosh --version
+      - name: Install mongocryptd from Enterprise tarball
+        run: |
+          curl -sSL -o mongodb-enterprise.tgz "https://downloads.mongodb.com/linux/mongodb-linux-x86_64-enterprise-ubuntu2204-8.0.15.tgz"
+          tar -xzf mongodb-enterprise.tgz
+          sudo cp mongodb-linux-x86_64-enterprise-ubuntu2204-8.0.15/bin/mongocryptd /usr/local/bin/
+      - name: Start mongocryptd
+        run: |
+          nohup mongocryptd --logpath=/tmp/mongocryptd.log &
+      - name: Verify MongoDB installation
+        run: |
+          mongosh --eval 'db.runCommand({ connectionStatus: 1 })'
+      - name: Verify mongocryptd is running
+        run: |
+          pgrep mongocryptd
       - name: Run tests
         run: python3 django_repo/tests/runtests_.py
     permissions:
         contents: read
+    env:
+      DJANGO_SETTINGS_MODULE: "encrypted_settings"

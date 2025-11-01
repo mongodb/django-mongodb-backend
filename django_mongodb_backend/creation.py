@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.db.backends.base.creation import BaseDatabaseCreation
+from django.db.backends.base.creation import TEST_DATABASE_PREFIX, BaseDatabaseCreation
 
 
 class DatabaseCreation(BaseDatabaseCreation):
@@ -7,6 +7,14 @@ class DatabaseCreation(BaseDatabaseCreation):
         # Close the connection (which may point to the non-test database) so
         # that a new connection to the test database can be established later.
         self.connection.close_pool()
+        # Use a test _key_vault_namespace. This assumes the key vault database
+        # is the same as the encrypted database so that _destroy_test_db() can
+        # reset the collection by dropping it.
+        opts = self.connection.settings_dict["OPTIONS"].get("auto_encryption_opts")
+        if opts:
+            self.connection.settings_dict["OPTIONS"][
+                "auto_encryption_opts"
+            ]._key_vault_namespace = TEST_DATABASE_PREFIX + opts._key_vault_namespace
         if not keepdb:
             self._destroy_test_db(parameters["dbname"], verbosity=0)
 
@@ -24,3 +32,9 @@ class DatabaseCreation(BaseDatabaseCreation):
         super().destroy_test_db(old_database_name, verbosity, keepdb, suffix)
         # Close the connection to the test database.
         self.connection.close_pool()
+        # Restore the original _key_vault_namespace.
+        opts = self.connection.settings_dict["OPTIONS"].get("auto_encryption_opts")
+        if opts:
+            self.connection.settings_dict["OPTIONS"][
+                "auto_encryption_opts"
+            ]._key_vault_namespace = opts._key_vault_namespace[len(TEST_DATABASE_PREFIX) :]
