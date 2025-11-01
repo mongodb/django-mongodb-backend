@@ -247,6 +247,7 @@ def register_expressions():
     NegatedExpression.as_mql_expr = negated_expression
     OrderBy.as_mql_expr = partialmethod(order_by, as_expr=True)
     OrderBy.as_mql_path = partialmethod(order_by, as_expr=False)
+    OrderBy.can_use_path = True
     Query.as_mql = query
     RawSQL.as_mql = raw_sql
     Ref.as_mql = ref
