@@ -31,12 +31,12 @@ Querying
 
 - The following ``QuerySet`` methods aren't supported:
 
-  - :meth:`extra() <django.db.models.query.QuerySet.extra>`
-  - :meth:`prefetch_related() <django.db.models.query.QuerySet.prefetch_related>`
+  - :meth:`~django.db.models.query.QuerySet.extra`
+  - :meth:`~django.db.models.query.QuerySet.prefetch_related`
 
 - :meth:`QuerySet.delete() <django.db.models.query.QuerySet.delete>` and
-  :meth:`update() <django.db.models.query.QuerySet.update>` do not support queries
-  that span multiple collections.
+  :meth:`~django.db.models.query.QuerySet.update` do not support queries that
+  span multiple collections.
 
 - When querying :class:`~django.db.models.JSONField`:
 
