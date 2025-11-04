@@ -749,3 +749,333 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {"$match": {"$or": [{"queries__reader.name": "Alice"}, {"name": "Central"}]}},
             ],
         )
+
+    def test_double_negation_pushdown(self):
+        a1 = Author.objects.create(name="Alice")
+        a2 = Author.objects.create(name="Bob")
+        b1 = Book.objects.create(title="Book1", author=a1, isbn="111")
+        Book.objects.create(title="Book2", author=a2, isbn="222")
+        b3 = Book.objects.create(title="Book3", author=a1, isbn="333")
+        expected = [b1, b3]
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                Book.objects.filter(~(~models.Q(author__name="Alice") | models.Q(title="Book4"))),
+                expected,
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__book",
+            [
+                {
+                    "$lookup": {
+                        "from": "queries__author",
+                        "let": {"parent__field__0": "$author_id"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
+                                            }
+                                        },
+                                        {"name": "Alice"},
+                                    ]
+                                }
+                            }
+                        ],
+                        "as": "queries__author",
+                    }
+                },
+                {"$unwind": "$queries__author"},
+                {
+                    "$match": {
+                        "$nor": [
+                            {
+                                "$or": [
+                                    {"$nor": [{"queries__author.name": "Alice"}]},
+                                    {"title": "Book4"},
+                                ]
+                            }
+                        ]
+                    }
+                },
+            ],
+        )
+
+    def test_partial_or_pushdown(self):
+        a1 = Author.objects.create(name="Alice")
+        a2 = Author.objects.create(name="Bob")
+        a3 = Author.objects.create(name="Charlie")
+        b1 = Book.objects.create(title="B1", author=a1, isbn="111")
+        b2 = Book.objects.create(title="B2", author=a2, isbn="111")
+        Book.objects.create(title="B3", author=a3, isbn="222")
+        condition = models.Q(author__name="Alice") | (
+            models.Q(author__name="Bob") & models.Q(isbn="111")
+        )
+        expected = [b1, b2]
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(list(Book.objects.filter(condition)), expected)
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__book",
+            [
+                {
+                    "$lookup": {
+                        "as": "queries__author",
+                        "from": "queries__author",
+                        "let": {"parent__field__0": "$author_id"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
+                                            }
+                                        },
+                                        {"$or": [{"name": "Alice"}, {"name": "Bob"}]},
+                                    ]
+                                }
+                            }
+                        ],
+                    }
+                },
+                {"$unwind": "$queries__author"},
+                {
+                    "$match": {
+                        "$or": [
+                            {"queries__author.name": "Alice"},
+                            {"$and": [{"queries__author.name": "Bob"}, {"isbn": "111"}]},
+                        ]
+                    }
+                },
+            ],
+        )
+
+    def test_multiple_ors_with_partial_pushdown(self):
+        a1 = Author.objects.create(name="Alice")
+        a2 = Author.objects.create(name="Bob")
+        a3 = Author.objects.create(name="Charlie")
+        a4 = Author.objects.create(name="David")
+        b1 = Book.objects.create(title="B1", author=a1, isbn="111")
+        b2 = Book.objects.create(title="B2", author=a1, isbn="222")
+        b3 = Book.objects.create(title="B3", author=a2, isbn="333")
+        b4 = Book.objects.create(title="B4", author=a3, isbn="333")
+        Book.objects.create(title="B5", author=a4, isbn="444")
+
+        left = models.Q(author__name="Alice") & (models.Q(isbn="111") | models.Q(isbn="222"))
+        right = (models.Q(author__name="Bob") | models.Q(author__name="Charlie")) & models.Q(
+            isbn="333"
+        )
+        condition = left | right
+
+        expected = [b1, b2, b3, b4]
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(list(Book.objects.filter(condition)), expected)
+
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__book",
+            [
+                {
+                    "$lookup": {
+                        "as": "queries__author",
+                        "from": "queries__author",
+                        "let": {"parent__field__0": "$author_id"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
+                                            }
+                                        },
+                                        {
+                                            "$or": [
+                                                {"name": "Alice"},
+                                                {"$or": [{"name": "Bob"}, {"name": "Charlie"}]},
+                                            ]
+                                        },
+                                    ]
+                                }
+                            }
+                        ],
+                    }
+                },
+                {"$unwind": "$queries__author"},
+                {
+                    "$match": {
+                        "$or": [
+                            {
+                                "$and": [
+                                    {"queries__author.name": "Alice"},
+                                    {"$or": [{"isbn": "111"}, {"isbn": "222"}]},
+                                ]
+                            },
+                            {
+                                "$and": [
+                                    {
+                                        "$or": [
+                                            {"queries__author.name": "Bob"},
+                                            {"queries__author.name": "Charlie"},
+                                        ]
+                                    },
+                                    {"isbn": "333"},
+                                ]
+                            },
+                        ]
+                    }
+                },
+            ],
+        )
+
+    def test_self_join_tag_three_levels_none_pushable(self):
+        t1 = Tag.objects.create(name="T1")
+        t2 = Tag.objects.create(name="T2", parent=t1)
+        t3 = Tag.objects.create(name="T3", parent=t2)
+        Tag.objects.create(name="T4", parent=t3)
+        Tag.objects.create(name="T5", parent=t1)
+        t6 = Tag.objects.create(name="T6", parent=t2)
+        cond = (
+            models.Q(name="T1") | models.Q(parent__name="T2") | models.Q(parent__parent__name="T3")
+        )
+        expected = [t1, t3, t6]
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(list(Tag.objects.filter(cond)), expected)
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__tag",
+            # Django translate this kind of queries into left outer join
+            [
+                {
+                    "$lookup": {
+                        "as": "T2",
+                        "from": "queries__tag",
+                        "let": {"parent__field__0": "$parent_id"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$expr": {"$and": [{"$eq": ["$$parent__field__0", "$_id"]}]}
+                                }
+                            }
+                        ],
+                    }
+                },
+                {
+                    "$set": {
+                        "T2": {
+                            "$cond": {
+                                "else": "$T2",
+                                "if": {
+                                    "$or": [
+                                        {"$eq": [{"$type": "$T2"}, "missing"]},
+                                        {"$eq": [{"$size": "$T2"}, 0]},
+                                    ]
+                                },
+                                "then": [{}],
+                            }
+                        }
+                    }
+                },
+                {"$unwind": "$T2"},
+                {
+                    "$lookup": {
+                        "as": "T3",
+                        "from": "queries__tag",
+                        "let": {"parent__field__0": "$T2.parent_id"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$expr": {"$and": [{"$eq": ["$$parent__field__0", "$_id"]}]}
+                                }
+                            }
+                        ],
+                    }
+                },
+                {
+                    "$set": {
+                        "T3": {
+                            "$cond": {
+                                "else": "$T3",
+                                "if": {
+                                    "$or": [
+                                        {"$eq": [{"$type": "$T3"}, "missing"]},
+                                        {"$eq": [{"$size": "$T3"}, 0]},
+                                    ]
+                                },
+                                "then": [{}],
+                            }
+                        }
+                    }
+                },
+                {"$unwind": "$T3"},
+                {"$match": {"$or": [{"name": "T1"}, {"T2.name": "T2"}, {"T3.name": "T3"}]}},
+            ],
+        )
+
+    def test_self_join_tag_three_levels_pushable(self):
+        t1 = Tag.objects.create(name="T1")
+        t2 = Tag.objects.create(name="T2", parent=t1)
+        t3 = Tag.objects.create(name="T3", parent=t2)
+        Tag.objects.create(name="T4", parent=t3)
+        Tag.objects.create(name="T5", parent=t1)
+        Tag.objects.create(name="T6", parent=t2)
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                list(Tag.objects.filter(name="T1", parent__name="T2", parent__parent__name="T3")),
+                [],
+            )
+
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__tag",
+            [
+                {
+                    "$lookup": {
+                        "as": "T2",
+                        "from": "queries__tag",
+                        "let": {"parent__field__0": "$parent_id"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
+                                            }
+                                        },
+                                        {"name": "T2"},
+                                    ]
+                                }
+                            }
+                        ],
+                    }
+                },
+                {"$unwind": "$T2"},
+                {
+                    "$lookup": {
+                        "as": "T3",
+                        "from": "queries__tag",
+                        "let": {"parent__field__0": "$T2.parent_id"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
+                                            }
+                                        },
+                                        {"name": "T3"},
+                                    ]
+                                }
+                            }
+                        ],
+                    }
+                },
+                {"$unwind": "$T3"},
+                {"$match": {"$and": [{"name": "T1"}, {"T2.name": "T2"}, {"T3.name": "T3"}]}},
+            ],
+        )
