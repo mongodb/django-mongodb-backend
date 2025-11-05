@@ -285,5 +285,29 @@ settings::
         },
     }
 
+
+.. admonition:: Dynamic library path configuration
+
+    The Automatic Encryption Shared Library is platform‑specific. Make sure to
+    download the correct version for your operating system and architecture,
+    and configure your environment so the system can locate it.
+
+    Use the following variables depending on your platform:
+
+    +---------------+---------------------------------+
+    | **Platform**  | **Environment Variable**        |
+    +---------------+---------------------------------+
+    | Windows       | ``PATH``                        |
+    +---------------+---------------------------------+
+    | macOS         | ``DYLD_FALLBACK_LIBRARY_PATH``  |
+    +---------------+---------------------------------+
+    | Linux         | ``LD_LIBRARY_PATH``             |
+    +---------------+---------------------------------+
+
+    For example on macOS, you can set the ``DYLD_FALLBACK_LIBRARY_PATH``
+    environment variable in your shell before starting your Django application::
+
+        $ export DYLD_FALLBACK_LIBRARY_PATH="/path/to/mongo_crypt_shared_v1.dylib:$DYLD_FALLBACK_LIBRARY_PATH"
+
 You are now ready to :doc:`start developing applications
 </topics/queryable-encryption>` with Queryable Encryption!
