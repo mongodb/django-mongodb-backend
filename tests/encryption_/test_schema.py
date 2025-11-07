@@ -1,4 +1,5 @@
 from bson.binary import Binary
+from django.core.exceptions import ImproperlyConfigured
 from django.db import connections
 
 from . import models
@@ -134,3 +135,18 @@ class SchemaTests(EncryptionTestCase):
         key = EncryptionKey.objects.get(key_alt_name=test_key_alt_name)
         self.assertEqual(key.id, field_info["keyId"])
         self.assertEqual(key.key_alt_name, [test_key_alt_name])
+
+    def test_missing_auto_encryption_opts(self):
+        connection = connections["default"]
+        msg = (
+            "Tried to create model encryption_.Patient in 'default' database. "
+            "The model has encrypted fields but DATABASES['default']['OPTIONS'] "
+            'is missing the "auto_encryption_opts" parameter. If the model '
+            "should not be created in this database, adjust your database "
+            "routers."
+        )
+        with (
+            self.assertRaisesMessage(ImproperlyConfigured, msg),
+            connection.schema_editor() as editor,
+        ):
+            editor.create_model(models.Patient)
