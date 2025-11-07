@@ -18,6 +18,11 @@ Bug fixes
 - Prevented ``QuerySet.union()`` queries from duplicating the ``$project``
   pipeline.
 
+Performance improvements
+------------------------
+
+- Simplified ``$lookup`` queries using ``localField`` and ``foreignField``.
+
 5.2.2
 =====
 
