@@ -468,8 +468,13 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             auto_encryption_opts = getattr(client._options, "auto_encryption_opts", None)
             if not auto_encryption_opts:
                 raise ImproperlyConfigured(
-                    f"Encrypted fields found but DATABASES['{self.connection.alias}']['OPTIONS'] "
-                    "is missing auto_encryption_opts."
+                    f"Tried to create model {model._meta.label} in "
+                    f"'{self.connection.alias}' database. The model has "
+                    "encrypted fields but "
+                    f"DATABASES['{self.connection.alias}']['OPTIONS'] is "
+                    'missing the "auto_encryption_opts" parameter. If the '
+                    "model should not be created in this database, adjust "
+                    "your database routers."
                 )
             encrypted_fields = self._get_encrypted_fields(model)
             db.create_collection(db_table, encryptedFields=encrypted_fields)
