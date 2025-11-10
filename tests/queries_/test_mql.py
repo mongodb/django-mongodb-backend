@@ -1079,3 +1079,122 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {"$match": {"$and": [{"name": "T1"}, {"T2.name": "T2"}, {"T3.name": "T3"}]}},
             ],
         )
+
+    def test_partial_and_pushdown(self):
+        a1 = Author.objects.create(name="Alice")
+        a2 = Author.objects.create(name="Bob")
+        b1 = Book.objects.create(title="B1", author=a1, isbn="111")
+        Book.objects.create(title="B2", author=a2, isbn="222")
+        cond = models.Q(author__name="Alice") & models.Q(title__contains="B")
+        expected = [b1]
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(Book.objects.filter(cond), expected)
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__book",
+            [
+                {
+                    "$lookup": {
+                        "from": "queries__author",
+                        "let": {"parent__field__0": "$author_id"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
+                                            }
+                                        },
+                                        {"name": "Alice"},
+                                    ]
+                                }
+                            }
+                        ],
+                        "as": "queries__author",
+                    }
+                },
+                {"$unwind": "$queries__author"},
+                {
+                    "$match": {
+                        "$and": [
+                            {"queries__author.name": "Alice"},
+                            {"title": {"$regex": "B", "$options": ""}},
+                        ]
+                    }
+                },
+            ],
+        )
+
+    def test_not_or_demorgan_pushdown(self):
+        a1 = Author.objects.create(name="Alice")
+        a2 = Author.objects.create(name="Bob")
+        b1 = Book.objects.create(title="B1", author=a1, isbn="111")
+        Book.objects.create(title="B2", author=a2, isbn="222")
+        expected = [b1]
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(
+                Book.objects.filter(~(models.Q(author__name="Bob") | models.Q(isbn="222"))),
+                expected,
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__book",
+            [
+                {
+                    "$lookup": {
+                        "from": "queries__author",
+                        "let": {"parent__field__0": "$author_id"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
+                                            }
+                                        },
+                                        {"$nor": [{"name": "Bob"}]},
+                                    ]
+                                }
+                            }
+                        ],
+                        "as": "queries__author",
+                    }
+                },
+                {"$unwind": "$queries__author"},
+                {"$match": {"$nor": [{"$or": [{"queries__author.name": "Bob"}, {"isbn": "222"}]}]}},
+            ],
+        )
+
+    def test_or_mixed_local_remote_pushdown(self):
+        a1 = Author.objects.create(name="Alice")
+        a2 = Author.objects.create(name="Bob")
+        b1 = Book.objects.create(title="B1", author=a1, isbn="111")
+        b2 = Book.objects.create(title="B2", author=a2, isbn="222")
+        cond = models.Q(title="B1") | models.Q(author__name="Bob")
+        expected = [b1, b2]
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(Book.objects.filter(cond), expected)
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__book",
+            [
+                {
+                    "$lookup": {
+                        "from": "queries__author",
+                        "let": {"parent__field__0": "$author_id"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$expr": {"$and": [{"$eq": ["$$parent__field__0", "$_id"]}]}
+                                }
+                            }
+                        ],
+                        "as": "queries__author",
+                    }
+                },
+                {"$unwind": "$queries__author"},
+                {"$match": {"$or": [{"title": "B1"}, {"queries__author.name": "Bob"}]}},
+            ],
+        )
