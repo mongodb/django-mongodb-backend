@@ -1,5 +1,6 @@
 from bson import SON, ObjectId
 from django.db import models
+from django.db.models import Case, F, IntegerField, Value, When
 from django.test import TestCase
 
 from django_mongodb_backend.test import MongoTestCaseMixin
@@ -1196,5 +1197,168 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 },
                 {"$unwind": "$queries__author"},
                 {"$match": {"$or": [{"title": "B1"}, {"queries__author.name": "Bob"}]}},
+            ],
+        )
+
+    def test_conditional_expression_not_pushed(self):
+        a1 = Author.objects.create(name="Vicente")
+        a2 = Author.objects.create(name="Carlos")
+        a3 = Author.objects.create(name="Maria")
+
+        Book.objects.create(title="B1", author=a1, isbn="111")
+        b2 = Book.objects.create(title="B2", author=a2, isbn="222")
+        Book.objects.create(title="B3", author=a3, isbn="333")
+
+        annotated = Book.objects.annotate(
+            score=Case(
+                When(author__name="Vicente", then=Value(2)),
+                When(author__name="Carlos", then=Value(4)),
+                default=Value(1),
+                output_field=IntegerField(),
+            )
+            + Value(1)
+        ).filter(score__gt=3)
+
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(annotated, [b2])
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__book",
+            [
+                {
+                    "$lookup": {
+                        "from": "queries__author",
+                        "let": {"parent__field__0": "$author_id"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$expr": {"$and": [{"$eq": ["$$parent__field__0", "$_id"]}]}
+                                }
+                            }
+                        ],
+                        "as": "queries__author",
+                    }
+                },
+                {"$unwind": "$queries__author"},
+                {
+                    "$match": {
+                        "$expr": {
+                            "$gt": [
+                                {
+                                    "$add": [
+                                        {
+                                            "$switch": {
+                                                "branches": [
+                                                    {
+                                                        "case": {
+                                                            "$eq": [
+                                                                "$queries__author.name",
+                                                                "Vicente",
+                                                            ]
+                                                        },
+                                                        "then": {"$literal": 2},
+                                                    },
+                                                    {
+                                                        "case": {
+                                                            "$eq": [
+                                                                "$queries__author.name",
+                                                                "Carlos",
+                                                            ]
+                                                        },
+                                                        "then": {"$literal": 4},
+                                                    },
+                                                ],
+                                                "default": {"$literal": 1},
+                                            }
+                                        },
+                                        {"$literal": 1},
+                                    ]
+                                },
+                                3,
+                            ]
+                        }
+                    }
+                },
+                {
+                    "$project": {
+                        "score": {
+                            "$add": [
+                                {
+                                    "$switch": {
+                                        "branches": [
+                                            {
+                                                "case": {
+                                                    "$eq": ["$queries__author.name", "Vicente"]
+                                                },
+                                                "then": {"$literal": 2},
+                                            },
+                                            {
+                                                "case": {
+                                                    "$eq": ["$queries__author.name", "Carlos"]
+                                                },
+                                                "then": {"$literal": 4},
+                                            },
+                                        ],
+                                        "default": {"$literal": 1},
+                                    }
+                                },
+                                {"$literal": 1},
+                            ]
+                        },
+                        "_id": 1,
+                        "title": 1,
+                        "author_id": 1,
+                        "isbn": 1,
+                    }
+                },
+            ],
+        )
+
+    def test_simple_annotation_pushdown(self):
+        a1 = Author.objects.create(name="Alice")
+        a2 = Author.objects.create(name="Bob")
+        b1 = Book.objects.create(title="B1", author=a1, isbn="111")
+        Book.objects.create(title="B2", author=a2, isbn="222")
+        b3 = Book.objects.create(title="B3", author=a1, isbn="333")
+        qs = Book.objects.annotate(name_length=F("author__name")).filter(name_length="Alice")
+        expected = [b1, b3]
+        with self.assertNumQueries(1) as ctx:
+            self.assertSequenceEqual(qs, expected)
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "queries__book",
+            [
+                {
+                    "$lookup": {
+                        "from": "queries__author",
+                        "let": {"parent__field__0": "$author_id"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$and": [
+                                        {
+                                            "$expr": {
+                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
+                                            }
+                                        },
+                                        {"name": "Alice"},
+                                    ]
+                                }
+                            }
+                        ],
+                        "as": "queries__author",
+                    }
+                },
+                {"$unwind": "$queries__author"},
+                {"$match": {"queries__author.name": "Alice"}},
+                {
+                    "$project": {
+                        "queries__author": {"name_length": "$queries__author.name"},
+                        "_id": 1,
+                        "title": 1,
+                        "author_id": 1,
+                        "isbn": 1,
+                    }
+                },
             ],
         )
