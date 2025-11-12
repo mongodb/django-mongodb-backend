@@ -274,8 +274,11 @@ To configure it in your Django settings, use
 
 .. admonition:: Dynamic library path configuration
 
-    You may also need to configure an environment variable so that your system
-    can locate the library:
+    If you encounter ``Pymongocrypt.errors.MongoCryptError: An existing
+    crypt_shared library is loaded by the application at
+    [/path/to/mongo_crypt_v1.so], but the current call to mongocrypt_init()
+    failed to find that same library.``, you probably need to configure an
+    environment variable so that your system can locate the library:
 
     +---------------+---------------------------------+
     | **Platform**  | **Environment Variable**        |
@@ -290,7 +293,7 @@ To configure it in your Django settings, use
     For example, on macOS you can set the ``DYLD_FALLBACK_LIBRARY_PATH``
     environment variable in your shell before starting your Django application::
 
-        $ export DYLD_FALLBACK_LIBRARY_PATH="/path/to/mongo_crypt_shared_v1.dylib:$DYLD_FALLBACK_LIBRARY_PATH"
+        $ export DYLD_FALLBACK_LIBRARY_PATH="/path/to/mongo_crypt_shared/:$DYLD_FALLBACK_LIBRARY_PATH"
 
 You are now ready to :doc:`start developing applications
 </topics/queryable-encryption>` with Queryable Encryption!
