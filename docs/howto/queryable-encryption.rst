@@ -14,7 +14,7 @@ Encryption in your Django project.
 .. admonition:: MongoDB requirements
 
     Queryable Encryption can be used with MongoDB replica sets or sharded
-    clusters running version 8.0 or later. Standalone instances are not
+    clusters running version 7.0 or later. Standalone instances are not
     supported. The :ref:`manual:qe-compatibility-reference` table summarizes
     which MongoDB server products support Queryable Encryption.
 
