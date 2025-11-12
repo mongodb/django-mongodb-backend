@@ -636,8 +636,12 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     @cached_property
     def supports_queryable_encryption(self):
         """
-        Queryable Encryption requires a MongoDB 8.0 or later replica set or sharded
-        cluster, as well as MongoDB Atlas or Enterprise.
+        For testing purposes, Queryable Encryption requires a MongoDB 8.0 or
+        later replica set or sharded cluster, as well as MongoDB Atlas or
+        Enterprise. This flag must not guard any non-test functionality since
+        it would prevent MongoDB 7.0 from being used, which also supports
+        Queryable Encryption. The models in tests/encryption_ aren't compatible
+        with MongoDB 7.0 because {"queryType": "range"} being "rangePreview".
         """
         self.connection.ensure_connection()
         build_info = self.connection.connection.admin.command("buildInfo")

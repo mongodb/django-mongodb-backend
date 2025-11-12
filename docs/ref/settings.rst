@@ -2,8 +2,6 @@
 Settings
 ========
 
-.. _queryable-encryption-settings:
-
 Queryable Encryption
 ====================
 
