@@ -2,15 +2,12 @@
 Encrypted fields
 ================
 
+.. currentmodule:: django_mongodb_backend.fields
+
 .. versionadded:: 5.2.3
 
-Django MongoDB Backend supports :doc:`manual:core/queryable-encryption`.
-
-See :doc:`/howto/queryable-encryption` for more information on how to use
-Queryable Encryption with Django MongoDB Backend.
-
-See the :doc:`/topics/queryable-encryption` topic guide for
-more information on developing applications with Queryable Encryption.
+To use encrypted fields, you must :doc:`configure Queryable Encryption
+</howto/queryable-encryption>`.
 
 The following tables detailed which fields have encrypted counterparts. In all
 cases, the encrypted field names are simply prefixed with ``Encrypted``, e.g.
@@ -48,18 +45,61 @@ cases, the encrypted field names are simply prefixed with ``Encrypted``, e.g.
 .. csv-table:: ``django_mongodb_backend.fields``
    :header: "Model Field", "Encrypted version available?"
 
-    :class:`~.fields.ArrayField`, Yes
-    :class:`~.fields.EmbeddedModelArrayField`, Yes
-    :class:`~.fields.EmbeddedModelField`, Yes
-    :class:`~.fields.ObjectIdField`, Yes
-    :class:`~.fields.PolymorphicEmbeddedModelField`, No: may be implemented in the future.
-    :class:`~.fields.PolymorphicEmbeddedModelArrayField`, No: may be implemented in the future.
+    :class:`ArrayField`, Yes
+    :class:`EmbeddedModelArrayField`, Yes
+    :class:`EmbeddedModelField`, Yes
+    :class:`ObjectIdField`, Yes
+    :class:`PolymorphicEmbeddedModelField`, No: may be implemented in the future.
+    :class:`PolymorphicEmbeddedModelArrayField`, No: may be implemented in the future.
 
-These fields don't support the ``queries`` argument:
+.. _encrypted-fields-queries:
+
+``EncryptedField.queries``
+--------------------------
+
+Most encrypted fields* take an optional ``queries`` argument. It's a dictionary
+that specifies the type of queries that can be performed on the field, as well
+as any query options.
+
+The :ref:`available query types <manual:qe-fundamentals-encrypt-query>` depend
+on your version of MongoDB. For example, in MongoDB 8.0, the supported types
+are ``equality`` and ``range``.
+
+.. admonition:: Query types vs. Django lookups
+
+    Range queries in Queryable Encryption are different from Django's
+    :ref:`range lookups <django:field-lookups>`. Range queries allow you to
+    perform comparisons on encrypted fields, while Django's range lookups are
+    used for filtering based on a range of values.
+
+\* These fields don't support the ``queries`` argument:
 
 - ``EncryptedArrayField``
 - ``EncryptedEmbeddedModelArrayField``
 - ``EncryptedEmbeddedModelField``
+
+Embedded model encryption
+=========================
+
+There are two ways to encrypt embedded models. You can either encrypt the
+entire subdocument, in which case you can't query any the subdocuments fields,
+or you can encrypt only selected fields of the subdocument.
+
+Encrypting the entire subdocument
+---------------------------------
+
+To encrypt a subdocument, use ``EncryptedEmbeddedModelField`` or
+``EncryptedEmbeddedModelArrayField``. In this case, the field's embedded model
+cannot have any encrypted fields.
+
+Encrypting selected fields of a subdocument
+-------------------------------------------
+
+To encrypt only select fields of a subdocument, use :class:`EmbeddedModelField`
+and any of the other encrypted fields on the embedded model.
+
+MongoDB doesn't support encrypting selected fields of
+``EmbeddedModelArrayField``.
 
 Limitations
 ===========
@@ -70,6 +110,45 @@ MongoDB imposes some restrictions on encrypted fields:
 * They cannot be part of a unique constraint.
 * They cannot be null.
 
+``QuerySet`` limitations
+------------------------
+
+In addition to :ref:`Django MongoDB Backend's QuerySet limitations
+<known-issues-limitations-querying>`, some ``QuerySet`` methods aren't
+supported on encrypted fields. Each unsupported method is followed by a sample
+error message from the database. Depending on the exact query, error messages
+may vary.
+
+- :meth:`~django.db.models.query.QuerySet.order_by`: Cannot add an encrypted
+  field as a prefix of another encrypted field.
+- :meth:`~django.db.models.query.QuerySet.alias`,
+  :meth:`~django.db.models.query.QuerySet.annotate`,
+  :meth:`~django.db.models.query.QuerySet.distinct`: Cannot group on field
+  '_id.value' which is encrypted with the random algorithm or whose encryption
+  properties are not known until runtime.
+- :meth:`~django.db.models.query.QuerySet.dates`,
+  :meth:`~django.db.models.query.QuerySet.datetimes`: If the value type is a
+  date, the type of the index must also be date (and vice versa).
+- :meth:`~django.db.models.query.QuerySet.in_bulk`: Encrypted fields can't have
+  unique constraints.
+
+# TODO: add details about joined queries after
+https://github.com/mongodb/django-mongodb-backend/pull/443 is finalized.
+
+There are also several ``QuerySet`` methods that aren't permitted on any models
+(regardless of whether or not they have encrypted fields) that use a database
+connection with Automatic Encryption. Each unsupported method is followed by a
+sample error message from the database.
+
+- :meth:`~django.db.models.query.QuerySet.update`: Multi-document updates are
+  not allowed with Queryable Encryption.
+- :meth:`~django.db.models.query.QuerySet.aggregate`,
+  :meth:`~django.db.models.query.QuerySet.count`: Aggregation stage
+  $internalFacetTeeConsumer is not allowed or supported with automatic
+  encryption.
+- :meth:`~django.db.models.query.QuerySet.union`: Aggregation stage $unionWith
+  is not allowed or supported with automatic encryption.
+
 ``EncryptedFieldMixin``
 =======================
 
@@ -77,13 +156,8 @@ MongoDB imposes some restrictions on encrypted fields:
 
     .. versionadded:: 5.2.3
 
-    A mixin that can be used to create custom encrypted fields with Queryable
-    Encryption.
-
-    To create an encrypted field, inherit from ``EncryptedFieldMixin`` and
-    your custom field class:
-
-    .. code-block:: python
+    Use this mixin to create encrypted versions of your own custom fields. For
+    example, to create an encrypted version of ``MyField``::
 
         from django.db import models
         from django_mongodb_backend.fields import EncryptedFieldMixin
@@ -93,16 +167,5 @@ MongoDB imposes some restrictions on encrypted fields:
         class MyEncryptedField(EncryptedFieldMixin, MyField):
             pass
 
-
-    You can then use your custom encrypted field in a model, specifying the
-    desired query types:
-
-    .. code-block:: python
-
-        class MyModel(models.Model):
-            my_encrypted_field = MyEncryptedField(
-                queries={"queryType": "equality"},
-            )
-            my_encrypted_field_too = MyEncryptedField(
-                queries={"queryType": "range"},
-            )
+    This adds the :ref:`queries <encrypted-fields-queries>` argument to the
+    field.
