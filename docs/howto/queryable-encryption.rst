@@ -122,14 +122,103 @@ Then in your Django settings, add the custom database router to the
         "myapp.routers.EncryptedRouter",
     ]
 
+Encrypted fields
+================
+
+Now you can start using encrypted fields in your Django models.
+
+:doc:`Encrypted fields </ref/models/encrypted-fields>` may be used to protect
+sensitive data like social security numbers, credit card information, or
+personal health information. With Queryable Encryption, you can also perform
+queries on encrypted fields. To use encrypted fields in your models,
+import the necessary field types from ``django_mongodb_backend.models`` and
+define your models as usual.
+
+Here are models based on the `Python Queryable Encryption Tutorial`_::
+
+    # myapp/models.py
+    from django.db import models
+    from django_mongodb_backend.models import EmbeddedModel
+    from django_mongodb_backend.fields import (
+        EmbeddedModelField,
+        EncryptedCharField,
+        EncryptedEmbeddedModelField,
+    )
+
+
+    class PatientRecord(EmbeddedModel):
+        ssn = EncryptedCharField(max_length=11, queries={"queryType": "equality"})
+        billing = EncryptedEmbeddedModelField("Billing")
+        bill_amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Patient(models.Model):
+        patient_name = models.CharField(max_length=255)
+        patient_id = models.BigIntegerField()
+        patient_record = EmbeddedModelField("PatientRecord")
+
+        def __str__(self):
+            return f"{self.patient_name} ({self.patient_id})"
+
+    class Billing(EmbeddedModel):
+        cc_type = models.CharField(max_length=50)
+        cc_number = models.CharField(max_length=20)
+
+.. _Python Queryable Encryption Tutorial: https://github.com/mongodb/docs/tree/main/content/manual/manual/source/includes/qe-tutorials/python
+
+.. _qe-migrations:
+
+Migrations
+==========
+
+Once you have defined your models, create a migration as usual:
+
+.. code-block:: console
+
+    $ python manage.py makemigrations
+
+Then run the migrations with:
+
+.. code-block:: console
+
+    $ python manage.py migrate --database encrypted
+
+.. warning::
+
+    Be aware that you cannot add encrypted fields to existing models, nor can
+    you change the definition of an encrypted field, for example, to make it
+    queryable.
+
+Now create and manipulate instances of the data just like any other Django
+model data. The fields will automatically handle encryption and decryption,
+ensuring that :ref:`sensitive data is stored securely in the database
+<manual:qe-features-encryption-at-rest>`.
+
+Querying encrypted fields
+=========================
+
+In order to query encrypted fields, you must include the :ref:`queries
+<encrypted-fields-queries>` argument. For example, notice ``PatientRecord``\'s
+``ssn`` field::
+
+    class PatientRecord(EmbeddedModel):
+        ssn = EncryptedCharField(max_length=11, queries={"queryType": "equality"})
+
+You can perform a equality query just like you would on a non-encrypted field:
+
+.. code-block:: pycon
+
+    >>> patient = Patient.objects.get(patient_record__ssn="123-45-6789")
+    >>> patient.name
+    'John Doe'
+
 .. _qe-configuring-kms:
 
 Configuring the Key Management Service (KMS)
 ============================================
 
 A local KMS provider with a hardcoded key is suitable for local development and
-testing, but production environment, you should securely :ref:`store and manage your
-encryption keys <manual:qe-fundamentals-kms-providers>`.
+testing, but production environment, you should securely :ref:`store and manage
+your encryption keys <manual:qe-fundamentals-kms-providers>`.
 
 To use Queryable Encryption, you must configure a Key Management Service (KMS)
 to store and manage the encryption keys used to encrypt and decrypt data.
@@ -294,6 +383,3 @@ To configure it in your Django settings, use
     environment variable in your shell before starting your Django application::
 
         $ export DYLD_FALLBACK_LIBRARY_PATH="/path/to/mongo_crypt_shared/:$DYLD_FALLBACK_LIBRARY_PATH"
-
-You are now ready to :doc:`start developing applications
-</topics/queryable-encryption>` with Queryable Encryption!
