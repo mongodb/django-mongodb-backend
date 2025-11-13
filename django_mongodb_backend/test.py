@@ -28,3 +28,16 @@ class MongoTestCaseMixin:
         self.assertEqual(operator, "insert_many")
         self.assertEqual(collection, expected_collection)
         self.assertEqual(eval(pipeline[:-1], self.query_types), expected_documents)  # noqa: S307
+
+    def assertUpdateQuery(self, query, expected_collection, expected_condition, expected_set):
+        """
+        Assert that the logged query is equal to:
+            db.{expected_collection}.update_many({expected_condition}, {expected_set})
+        """
+        prefix, pipeline = query.split("(", 1)
+        _, collection, operator = prefix.split(".")
+        self.assertEqual(operator, "update_many")
+        self.assertEqual(collection, expected_collection)
+        condition, set_expression = eval(pipeline[:-1], self.query_types, {})  # noqa: S307
+        self.assertEqual(condition, expected_condition)
+        self.assertEqual(set_expression, expected_set)

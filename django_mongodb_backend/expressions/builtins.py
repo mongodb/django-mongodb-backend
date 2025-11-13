@@ -211,9 +211,9 @@ def when(self, compiler, connection):
 
 def value(self, compiler, connection, as_expr=False):  # noqa: ARG001
     value = self.value
-    if isinstance(value, (list, int, str)) and as_expr:
-        # Wrap lists, numbers, and strings in $literal to avoid ambiguity when
-        # Value is used in aggregate() or update_many()'s $set.
+    if isinstance(value, (list, int, str, dict, tuple)) and as_expr:
+        # Wrap lists, numbers, strings, dicts, and tuples in $literal to avoid
+        # ambiguity when Value is used in aggregate() or update_many()'s $set.
         return {"$literal": value}
     if isinstance(value, Decimal):
         return Decimal128(value)

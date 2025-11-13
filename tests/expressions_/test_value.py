@@ -23,6 +23,11 @@ class ValueTests(SimpleTestCase):
     def test_decimal(self):
         self.assertEqual(Value(Decimal("1.0")).as_mql(None, None), Decimal128("1.0"))
 
+    def test_dict_expr(self):
+        self.assertEqual(
+            Value({"$foo": "$bar"}).as_mql(None, None, as_expr=True), {"$literal": {"$foo": "$bar"}}
+        )
+
     def test_list(self):
         self.assertEqual(Value([1, 2]).as_mql(None, None, as_expr=True), {"$literal": [1, 2]})
 
@@ -43,6 +48,11 @@ class ValueTests(SimpleTestCase):
 
     def test_str_expr(self):
         self.assertEqual(Value("$foo").as_mql(None, None, as_expr=True), {"$literal": "$foo"})
+
+    def test_tuple_expr(self):
+        self.assertEqual(
+            Value(("$foo", "$bar")).as_mql(None, None, as_expr=True), {"$literal": ("$foo", "$bar")}
+        )
 
     def test_uuid(self):
         value = uuid.UUID(int=1)

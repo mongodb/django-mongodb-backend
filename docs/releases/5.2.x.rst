@@ -19,6 +19,9 @@ Bug fixes
   pipeline.
 - Made :class:`~django.db.models.Value` wrap strings in ``$literal`` to
   prevent dollar-prefixed strings from being interpreted as expressions.
+  Also wrapped dictionaries and tuples to prevent the same for them.
+- Made model update queries wrap values in ``$literal`` to prevent values from
+  being interpreted as expressions.
 
 Performance improvements
 ------------------------
