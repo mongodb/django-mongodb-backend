@@ -9,6 +9,5 @@ know:
    :maxdepth: 2
 
    embedded-models
-   queryable-encryption
    transactions
    known-issues
