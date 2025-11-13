@@ -17,6 +17,8 @@ Bug fixes
 
 - Prevented ``QuerySet.union()`` queries from duplicating the ``$project``
   pipeline.
+- Made :class:`~django.db.models.Value` wrap strings in ``$literal`` to
+  prevent dollar-prefixed strings from being interpreted as expressions.
 
 Performance improvements
 ------------------------

@@ -41,6 +41,9 @@ class ValueTests(SimpleTestCase):
     def test_str(self):
         self.assertEqual(Value("foo").as_mql(None, None), "foo")
 
+    def test_str_expr(self):
+        self.assertEqual(Value("$foo").as_mql(None, None, as_expr=True), {"$literal": "$foo"})
+
     def test_uuid(self):
         value = uuid.UUID(int=1)
         self.assertEqual(Value(value).as_mql(None, None), "00000000000000000000000000000001")
