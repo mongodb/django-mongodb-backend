@@ -1,7 +1,7 @@
 from time import monotonic, sleep
 
 from django.core.exceptions import ImproperlyConfigured
-from django.db import router
+from django.db import NotSupportedError
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
 from pymongo.operations import SearchIndexModel
@@ -508,9 +508,12 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         if len(kms_providers) == 1:
             # If one provider is configured, no need to consult the router.
             kms_provider = next(iter(kms_providers.keys()))
-        else:
-            # Otherwise, call the user-defined router.kms_provider().
-            kms_provider = router.kms_provider(model)
+        else:  # (Since PyMongo requires at least one KMS provider.)
+            raise NotSupportedError(
+                "Multiple KMS providers per database aren't supported. "
+                "Please create a feature request with details about your "
+                "use case."
+            )
         if kms_provider == "local":
             master_key = None
         else:
