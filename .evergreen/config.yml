@@ -12,6 +12,17 @@ post_error_fails_task: true
 post_timeout_secs: 1800 # 5 minutes
 
 functions:
+  "start csfle servers":
+    - command: ec2.assume_role
+      params:
+        role_arn: ${aws_test_secrets_role}
+    - command: subprocess.exec
+      params:
+        binary: bash
+        include_expansions_in_env: ["AWS_SECRET_ACCESS_KEY", "AWS_ACCESS_KEY_ID", "AWS_SESSION_TOKEN"]
+        args:
+          - ${DRIVERS_TOOLS}/.evergreen/csfle/setup.sh
+
   "setup":
     - command: git.get_project
       params:
@@ -54,6 +65,7 @@ functions:
         binary: bash
         args:
           - ${DRIVERS_TOOLS}/.evergreen/teardown.sh
+          - ${DRIVERS_TOOLS}/.evergreen/csfle/teardown.sh
 
 pre:
   - func: setup
@@ -65,6 +77,7 @@ post:
 tasks:
   - name: run-tests
     commands:
+      - func: "start csfle servers"
       - func: "run unit tests"
 
 buildvariants:
