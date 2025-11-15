@@ -13,7 +13,6 @@ from .functions import register_functions  # noqa: E402
 from .indexes import register_indexes  # noqa: E402
 from .lookups import register_lookups  # noqa: E402
 from .query import register_nodes  # noqa: E402
-from .routers import register_routers  # noqa: E402
 
 register_aggregates()
 register_expressions()
@@ -22,4 +21,3 @@ register_functions()
 register_indexes()
 register_lookups()
 register_nodes()
-register_routers()
