@@ -61,4 +61,5 @@ jobs:
     permissions:
         contents: read
     env:
+      CRYPT_SHARED_LIB_PATH: "${{ github.workspace }}/lib/mongo_crypt_v1.so"
       DJANGO_SETTINGS_MODULE: "encrypted_settings"

@@ -11,7 +11,7 @@ DATABASES["encrypted"] = {  # noqa: F405
         "auto_encryption_opts": AutoEncryptionOpts(
             key_vault_namespace="djangotests_encrypted.__keyVault",
             kms_providers={"local": {"key": os.urandom(96)}},
-            crypt_shared_lib_path=os.environ["GITHUB_WORKSPACE"] + "/lib/mongo_crypt_v1.so",
+            crypt_shared_lib_path=os.environ["CRYPT_SHARED_LIB_PATH"],
             crypt_shared_lib_required=True,
         ),
         "directConnection": True,
