@@ -263,18 +263,6 @@ Here's an example of KMS configuration with ``aws``::
         },
     }
 
-(TODO: If there's a use case for multiple providers, motivate with a use case
-and add a test.)
-
-If you've configured multiple KMS providers, you must define logic to determine
-the provider for each model in your :ref:`database router
-<qe-configuring-database-routers-setting>`::
-
-    class EncryptedRouter:
-        # ...
-        def kms_provider(self, model, **hints):
-            return "aws"
-
 .. _qe-configuring-encrypted-fields-map:
 
 Configuring the ``encrypted_fields_map`` option
