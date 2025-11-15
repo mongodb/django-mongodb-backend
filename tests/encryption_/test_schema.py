@@ -1,6 +1,6 @@
 from bson.binary import Binary
 from django.core.exceptions import ImproperlyConfigured
-from django.db import connections
+from django.db import NotSupportedError, connections
 
 from . import models
 from .models import EncryptionKey
@@ -150,3 +150,23 @@ class SchemaTests(EncryptionTestCase):
             connection.schema_editor() as editor,
         ):
             editor.create_model(models.Patient)
+
+    def test_multiple_kms_providers(self):
+        connection = connections["encrypted"]
+        auto_encryption_opts = connection.connection._options.auto_encryption_opts
+        kms_providers = auto_encryption_opts._kms_providers
+        # Mock multiple kms_providers by using a list of length > 1.
+        auto_encryption_opts._kms_providers = [{}, {}]
+        msg = (
+            "Multiple KMS providers per database aren't supported. Please "
+            "create a feature request with details about your use case."
+        )
+        try:
+            with (
+                self.assertRaisesMessage(NotSupportedError, msg),
+                connection.schema_editor() as editor,
+            ):
+                editor.create_model(models.Patient)
+        finally:
+            # Restore the original value.
+            auto_encryption_opts._kms_providers = kms_providers
