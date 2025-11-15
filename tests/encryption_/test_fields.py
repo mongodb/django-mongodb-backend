@@ -5,7 +5,7 @@ from operator import attrgetter
 
 from bson import ObjectId
 from django.db import DatabaseError
-from django.db.models import Avg
+from django.db.models import Avg, F
 
 from django_mongodb_backend.fields import (
     EncryptedArrayField,
@@ -18,6 +18,7 @@ from django_mongodb_backend.fields import (
 from .models import (
     Actor,
     ArrayModel,
+    Author,
     BigIntegerModel,
     Billing,
     BinaryModel,
@@ -313,12 +314,16 @@ class QueryTests(EncryptionTestCase):
         self.assertEqual(obj1, obj2)
 
     def test_join(self):
+        book = Book.objects.create(title="Book", author=Author.objects.create(name="Bob"))
+        self.assertSequenceEqual(Book.objects.filter(author__name="Bob"), [book])
+
+    def test_join_with_let(self):
         msg = (
             "Non-empty 'let' field is not allowed in the $lookup aggregation "
             "stage over an encrypted collection."
         )
         with self.assertRaisesMessage(DatabaseError, msg):
-            list(Book.objects.filter(author__name="xxx"))
+            list(Book.objects.filter(author__name=F("title")))
 
     def test_order_by(self):
         msg = "Cannot add an encrypted field as a prefix of another encrypted field"
@@ -326,12 +331,10 @@ class QueryTests(EncryptionTestCase):
             list(CharModel.objects.order_by("value"))
 
     def test_select_related(self):
-        msg = (
-            "Non-empty 'let' field is not allowed in the $lookup aggregation "
-            "stage over an encrypted collection."
-        )
-        with self.assertRaisesMessage(DatabaseError, msg):
-            list(Book.objects.select_related("author"))
+        Book.objects.create(title="Book", author=Author.objects.create(name="Bob"))
+        with self.assertNumQueries(1, using="encrypted"):
+            books = Book.objects.select_related("author")
+            self.assertEqual(books[0].author.name, "Bob")
 
     def test_update(self):
         msg = "Multi-document updates are not allowed with Queryable Encryption"
