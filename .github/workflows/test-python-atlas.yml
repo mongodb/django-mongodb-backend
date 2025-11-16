@@ -28,7 +28,7 @@ jobs:
       - name: install django-mongodb-backend
         run: |
           pip3 install --upgrade pip
-          pip3 install -e .
+          pip3 install -e .[encryption]
       - name: Checkout Django
         uses: actions/checkout@v5
         with:
@@ -51,8 +51,14 @@ jobs:
         run: cp .github/workflows/runtests.py django_repo/tests/runtests_.py
       - name: Start local Atlas
         working-directory: .
-        run: bash .github/workflows/start_local_atlas.sh mongodb/mongodb-atlas-local:7
+        run: bash .github/workflows/start_local_atlas.sh mongodb/mongodb-atlas-local:8.0.15
+      - name: Download crypt shared
+        run: |
+          wget https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2404-8.2.1.tgz
+          tar -xvzf mongo_crypt_shared_v1-linux-x86_64-enterprise-ubuntu2404-8.2.1.tgz lib/mongo_crypt_v1.so
       - name: Run tests
         run: python3 django_repo/tests/runtests_.py
     permissions:
         contents: read
+    env:
+      DJANGO_SETTINGS_MODULE: "encrypted_settings"
