@@ -327,8 +327,18 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                                                     },
                                                     {
                                                         "$concat": [
-                                                            {"$ifNull": ["Z", ""]},
-                                                            {"$ifNull": ["acarias", ""]},
+                                                            {
+                                                                "$ifNull": [
+                                                                    {"$literal": "Z"},
+                                                                    {"$literal": ""},
+                                                                ]
+                                                            },
+                                                            {
+                                                                "$ifNull": [
+                                                                    {"$literal": "acarias"},
+                                                                    {"$literal": ""},
+                                                                ]
+                                                            },
                                                         ]
                                                     },
                                                 ]

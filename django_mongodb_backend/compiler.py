@@ -883,7 +883,9 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
                         f"{field.__class__.__name__}."
                     )
             prepared = field.get_db_prep_save(value, connection=self.connection)
-            if hasattr(value, "as_mql"):
+            if is_direct_value(value):
+                prepared = {"$literal": prepared}
+            else:
                 prepared = prepared.as_mql(self, self.connection, as_expr=True)
             values[field.column] = prepared
         try:
