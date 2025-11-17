@@ -6,7 +6,7 @@ set -eux
 /opt/python/3.10/bin/python3 -m venv venv
 . venv/bin/activate
 python -m pip install -U pip
-pip install -e .
+pip install -e '.[encryption]'
 
 # Install django and test dependencies
 git clone --branch mongodb-5.2.x https://github.com/mongodb-forks/django django_repo

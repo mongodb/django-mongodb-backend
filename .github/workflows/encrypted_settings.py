@@ -1,10 +1,11 @@
 # Settings for django_mongodb_backend/tests when encryption is supported.
 import os
+from pathlib import Path
 
 from mongodb_settings import *  # noqa: F403
 from pymongo.encryption import AutoEncryptionOpts
 
-os.environ["LD_LIBRARY_PATH"] = os.environ["GITHUB_WORKSPACE"] + "/lib/"
+os.environ["LD_LIBRARY_PATH"] = str(Path(os.environ["CRYPT_SHARED_LIB_PATH"]).parent)
 
 DATABASES["encrypted"] = {  # noqa: F405
     "ENGINE": "django_mongodb_backend",
@@ -13,7 +14,7 @@ DATABASES["encrypted"] = {  # noqa: F405
         "auto_encryption_opts": AutoEncryptionOpts(
             key_vault_namespace="djangotests_encrypted.__keyVault",
             kms_providers={"local": {"key": os.urandom(96)}},
-            crypt_shared_lib_path=os.environ["GITHUB_WORKSPACE"] + "/lib/mongo_crypt_v1.so",
+            crypt_shared_lib_path=os.environ["CRYPT_SHARED_LIB_PATH"],
         ),
         "directConnection": True,
     },
