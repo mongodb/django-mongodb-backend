@@ -62,3 +62,4 @@ jobs:
         contents: read
     env:
       DJANGO_SETTINGS_MODULE: "encrypted_settings"
+      CRYPT_SHARED_LIB_PATH: "${{ github.workspace }}/lib/mongo_crypt_v1.so"
