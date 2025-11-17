@@ -5,12 +5,7 @@ Django MongoDB Backend 5.2.x
 5.2.3
 =====
 
-*Unreleased*
-
-New features
-------------
-
-- ...
+*November 18, 2025*
 
 Bug fixes
 ---------
