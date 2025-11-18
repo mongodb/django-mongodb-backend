@@ -5,7 +5,7 @@ from operator import attrgetter
 
 from bson import ObjectId
 from django.db import DatabaseError
-from django.db.models import Avg, F
+from django.db.models import Avg, F, Q
 
 from django_mongodb_backend.fields import (
     EncryptedArrayField,
@@ -94,18 +94,41 @@ class EmbeddedModelArrayTests(EncryptionTestCase):
 
 class FieldTests(EncryptionTestCase):
     def assertEquality(self, model_cls, val):
-        model_cls.objects.create(value=val)
-        fetched = model_cls.objects.get(value=val)
-        self.assertEqual(fetched.value, val)
+        obj = model_cls.objects.create(value=val)
+        self.assertEqual(model_cls.objects.get(value=val), obj)
+        self.assertEqual(model_cls.objects.get(value__in=[val]), obj)
+        self.assertQuerySetEqual(model_cls.objects.exclude(value=val), [])
 
     def assertRange(self, model_cls, *, low, high, threshold):
-        model_cls.objects.create(value=low)
-        model_cls.objects.create(value=high)
+        obj1 = model_cls.objects.create(value=low)
+        obj2 = model_cls.objects.create(value=high)
         self.assertEqual(model_cls.objects.get(value=low).value, low)
         self.assertEqual(model_cls.objects.get(value=high).value, high)
-        objs = list(model_cls.objects.filter(value__gt=threshold))
-        self.assertEqual(len(objs), 1)
-        self.assertEqual(objs[0].value, high)
+        self.assertEqual(model_cls.objects.exclude(value=high).get().value, low)
+        self.assertCountEqual(model_cls.objects.filter(Q(value=high) | Q(value=low)), [obj1, obj2])
+        self.assertQuerySetEqual(
+            model_cls.objects.filter(value__gt=threshold), [high], attrgetter("value")
+        )
+        self.assertQuerySetEqual(
+            model_cls.objects.filter(value__gte=threshold), [high], attrgetter("value")
+        )
+        self.assertQuerySetEqual(
+            model_cls.objects.filter(value__lt=threshold), [low], attrgetter("value")
+        )
+        self.assertQuerySetEqual(
+            model_cls.objects.filter(value__lte=threshold), [low], attrgetter("value")
+        )
+        self.assertQuerySetEqual(
+            model_cls.objects.filter(value__in=[low]), [low], attrgetter("value")
+        )
+        msg = (
+            "Comparison disallowed between Queryable Encryption encrypted "
+            "fields and non-constant expressions; field 'value' is encrypted."
+        )
+        with self.assertRaisesMessage(DatabaseError, msg):
+            self.assertQuerySetEqual(
+                model_cls.objects.filter(value__lte=F("value")), [low], attrgetter("value")
+            )
 
     # Equality-only fields
     def test_binary(self):
