@@ -663,8 +663,7 @@ class SQLCompiler(compiler.SQLCompiler):
 
     def _get_pushable_conditions(self):
         """
-        Return a dict mapping each collection alias to the set of
-        conditions that can be safely pushed down into its pipeline.
+        Return a dict mapping each alias to a WhereNode holding its pushable condition.
         """
 
         def collect_pushable(expr, negated=False):
