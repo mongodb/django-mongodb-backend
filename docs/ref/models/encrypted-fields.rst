@@ -65,12 +65,12 @@ The :ref:`available query types <manual:qe-fundamentals-encrypt-query>` depend
 on your version of MongoDB. For example, in MongoDB 8.0, the supported types
 are ``equality`` and ``range``.
 
-.. admonition:: Query types vs. Django lookups
+The supported lookups for ``equality`` queries are: :lookup:`exact` and
+lookup:`in`. The supported operators are AND (``&``) and OR (``|``).
 
-    Range queries in Queryable Encryption are different from Django's
-    :ref:`range lookups <django:field-lookups>`. Range queries allow you to
-    perform comparisons on encrypted fields, while Django's range lookups are
-    used for filtering based on a range of values.
+The supported lookups for ``range`` queries include those of ``equality``
+queries as well as :lookup:`lt`, :lookup:`lte`, :lookup:`gt`, and
+:lookup:`gte`.
 
 \* These fields don't support the ``queries`` argument:
 
