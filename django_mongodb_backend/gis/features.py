@@ -4,6 +4,8 @@ from django.utils.functional import cached_property
 
 class GISFeatures(BaseSpatialFeatures):
     has_spatialrefsys_table = False
+    supports_distance_geodetic = False
+    supports_dwithin_distance_expr = False
     supports_transform = False
 
     @cached_property
@@ -45,9 +47,9 @@ class GISFeatures(BaseSpatialFeatures):
                     # migrations don't need to call it, so the check doesn't happen.
                     "gis_tests.gis_migrations.test_operations.NoRasterSupportTests",
                 },
-                "GIS lookups not supported.": {
-                    "gis_tests.geoapp.tests.GeoModelTest.test_gis_query_as_string",
-                    "gis_tests.geoapp.tests.GeoLookupTest.test_gis_lookups_with_complex_expressions",
+                "MongoDB does not support expressions for spatial lookup values.": {
+                    "gis_tests.geoapp.tests.GeoLookupTest.test_subquery_annotation",
+                    "gis_tests.geoapp.tests.GeoQuerySetTest.test_within_subquery",
                 },
                 "GeoJSONSerializer doesn't support ObjectId.": {
                     "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_fields_option",

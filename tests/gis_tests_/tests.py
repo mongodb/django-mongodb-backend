@@ -1,13 +1,142 @@
-from django.contrib.gis.geos import Point
+from django.contrib.gis.geos import LineString, Point, Polygon
+from django.contrib.gis.measure import Distance
 from django.db import NotSupportedError
+from django.db.models import Case, CharField, F, OuterRef, Subquery, Value, When
 from django.test import TestCase, skipUnlessDBFeature
 
-from .models import City
+from .models import City, MultiFields, Zipcode
 
 
 @skipUnlessDBFeature("gis_enabled")
 class LookupTests(TestCase):
-    def test_unsupported_lookups(self):
-        msg = "MongoDB does not support the same_as lookup."
+    fixtures = ["initial"]
+
+    def test_contains(self):
+        qs = City.objects.filter(point__contains=Point(-95.363151, 29.763374)).values_list(
+            "name", flat=True
+        )
+        self.assertCountEqual(qs, ["Houston"])
+
+    def test_contains_errors_on_non_point(self):
+        message = "MongoDB does not support contains on non-Point lookup geometries."
+        with self.assertRaisesMessage(NotSupportedError, message):
+            City.objects.filter(point__contains=LineString((0, 0), (1, 1))).first()
+
+    def test_disjoint(self):
+        qs = City.objects.filter(point__disjoint=Point(100, 50)).values_list("name", flat=True)
+        self.assertCountEqual(
+            qs,
+            [
+                "Houston",
+                "Dallas",
+                "Oklahoma City",
+                "Wellington",
+                "Pueblo",
+                "Lawrence",
+                "Chicago",
+                "Victoria",
+            ],
+        )
+
+    def test_distance_gt(self):
+        houston = City.objects.get(name="Houston")
+        qs = City.objects.filter(point__distance_gt=(houston.point, 362825)).values_list(
+            "name", flat=True
+        )
+        self.assertCountEqual(
+            qs,
+            [
+                "Dallas",
+                "Oklahoma City",
+                "Wellington",
+                "Pueblo",
+                "Lawrence",
+                "Chicago",
+                "Victoria",
+            ],
+        )
+
+    def test_distance_lte(self):
+        houston = City.objects.get(name="Houston")
+        qs = City.objects.filter(point__distance_lte=(houston.point, 362826)).values_list(
+            "name", flat=True
+        )
+        self.assertCountEqual(qs, ["Houston", "Dallas"])  # Dallas is roughly ~363 km from Houston
+
+    def test_distance_units(self):
+        chicago = City.objects.get(name="Chicago")
+        qs = City.objects.filter(point__distance_lte=(chicago.point, Distance(km=720))).values_list(
+            "name", flat=True
+        )
+        self.assertCountEqual(qs, ["Lawrence", "Chicago"])
+        qs = City.objects.filter(point__distance_lte=(chicago.point, Distance(mi=447))).values_list(
+            "name", flat=True
+        )
+        self.assertCountEqual(qs, ["Lawrence", "Chicago"])
+
+    def test_dwithin(self):
+        houston = City.objects.get(name="Houston")
+        qs = City.objects.filter(point__dwithin=(houston.point, 11.46)).values_list(
+            "name", flat=True
+        )
+        self.assertCountEqual(qs, ["Houston", "Dallas", "Pueblo", "Oklahoma City", "Lawrence"])
+
+    def test_dwithin_unsupported_units(self):
+        message = "Only numeric values of degree units are allowed on dwithin queries."
+        with self.assertRaisesMessage(ValueError, message):
+            City.objects.filter(point__dwithin=(Point(40.7670, -73.9820), Distance(km=1))).first()
+
+    def test_intersects(self):
+        city = City.objects.create(point=Point(95, 30))
+        qs = City.objects.filter(point__intersects=Point(95, 30).buffer(10))
+        self.assertCountEqual(qs, [city])
+
+    def test_within(self):
+        zipcode = Zipcode.objects.get(code="77002")
+        qs = City.objects.filter(point__within=zipcode.poly).values_list("name", flat=True)
+        self.assertCountEqual(qs, ["Houston"])
+
+    def test_unsupported(self):
+        msg = "MongoDB does not support the 'same_as' lookup."
         with self.assertRaisesMessage(NotSupportedError, msg):
             City.objects.get(point__same_as=Point(95, 30))
+
+    def test_lookup_expression(self):
+        downtown_area = Polygon(
+            (
+                (-122.4194, 37.7749),
+                (-122.4194, 37.8049),
+                (-122.3894, 37.8049),
+                (-122.3894, 37.7749),
+                (-122.4194, 37.7749),
+            )
+        )
+        msg = "MongoDB does not support expressions for spatial lookup values."
+        with self.assertRaisesMessage(NotSupportedError, msg):
+            City.objects.annotate(
+                area_type=Case(
+                    When(point__within=downtown_area, then=Value("Downtown")),
+                    default=Value("Other"),
+                    output_field=CharField(),
+                )
+            ).first()
+
+    def test_subquery_on_lhs(self):
+        msg = "MongoDB does not support expressions for spatial lookup values."
+        with self.assertRaisesMessage(NotSupportedError, msg):
+            MultiFields.objects.annotate(
+                city_point=Subquery(
+                    City.objects.filter(
+                        id=OuterRef("city"),
+                    ).values("point")
+                ),
+            ).filter(
+                city_point__within=F("poly"),
+            ).get()
+
+    def test_subquery_on_rhs(self):
+        msg = "MongoDB does not support expressions for spatial lookup values."
+        with self.assertRaisesMessage(NotSupportedError, msg):
+            City.objects.filter(
+                point__within=Zipcode.objects.filter(code="73301").values("poly")
+            ).get()

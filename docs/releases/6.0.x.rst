@@ -10,7 +10,7 @@ Django MongoDB Backend 6.0.x
 New features
 ------------
 
-- ...
+- Added support for :ref:`spatial lookups <spatial-lookups>`.
 
 Bug fixes
 ---------
