@@ -317,34 +317,26 @@ fields map::
 Configuring the Automatic Encryption Shared Library
 ===================================================
 
-The :ref:`manual:qe-reference-shared-library` is a preferred alternative to
-:ref:`manual:qe-mongocryptd` and does not require you to start another process
-to perform automatic encryption.
+Next, you'll need to configure the :ref:`manual:qe-reference-shared-library`.
 
-In practice, if you use Atlas or Enterprise MongoDB, ``mongocryptd`` is already
-configured for you, however in such cases the shared library is still
-recommended for use with Queryable Encryption.
+First, :ref:`download the shared library
+<manual:qe-csfle-shared-library-download>`. You can choose the latest version,
+even if it doesn't match your MongoDB server version.
 
-You can :ref:`download the shared library
-<manual:qe-csfle-shared-library-download>` from the
-:ref:`manual:enterprise-official-packages`. The shared library is
-platform‑specific. Make sure to download the correct version for your operating
-system and architecture.
-
-To configure it in your Django settings, use
-:class:`~pymongo.encryption_options.AutoEncryptionOpts`\'s
-``crypt_shared_lib_path`` parameter::
-
-    from pymongo.encryption_options import AutoEncryptionOpts
+After extracting the shared library archive, configure your Django settings to
+point to the shared library. For example, on macOS, the name of the shared
+library is ``mongo_crypt_shared_v1.dylib``::
 
     DATABASES = {
+        # ...
         "encrypted": {
             # ...
             "OPTIONS": {
                 "auto_encryption_opts": AutoEncryptionOpts(
                     # ...
                     crypt_shared_lib_path="/path/to/mongo_crypt_shared_v1.dylib",
-                )
+                    crypt_shared_lib_required=True,
+                ),
             },
         },
     }
@@ -367,7 +359,13 @@ To configure it in your Django settings, use
     | Linux         | ``LD_LIBRARY_PATH``             |
     +---------------+---------------------------------+
 
-    For example, on macOS you can set the ``DYLD_FALLBACK_LIBRARY_PATH``
-    environment variable in your shell before starting your Django application::
+    For example, on macOS you can set ``DYLD_FALLBACK_LIBRARY_PATH`` in your
+    shell before starting your Django application:
+
+    .. code-block:: console
 
         $ export DYLD_FALLBACK_LIBRARY_PATH="/path/to/mongo_crypt_shared/:$DYLD_FALLBACK_LIBRARY_PATH"
+
+    Unlike ``crypt_shared_lib_path`` earlier, the environment variable points
+    to the directory that contains the shared library, not the shared library
+    itself.
