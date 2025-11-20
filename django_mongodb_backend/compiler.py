@@ -235,20 +235,10 @@ class SQLCompiler(compiler.SQLCompiler):
         pipeline = []
         if not ids:
             group["_id"] = None
-            pipeline.append({"$facet": {"group": [{"$group": group}]}})
-            pipeline.append(
-                {
-                    "$addFields": {
-                        key: {
-                            "$getField": {
-                                "input": {"$arrayElemAt": ["$group", 0]},
-                                "field": key,
-                            }
-                        }
-                        for key in group
-                    }
-                }
-            )
+            pipeline.append({"$group": group})
+            # It may be a bug, $$NOW has to be called to be reachable in the rest of the pipeline.
+            pipeline.append({"$set": {"__now": "$$NOW"}})
+            pipeline.append({"$unionWith": {"pipeline": [{"$documents": [{}]}]}})
         else:
             group["_id"] = ids
             pipeline.append({"$group": group})
