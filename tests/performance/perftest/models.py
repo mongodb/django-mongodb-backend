@@ -297,6 +297,7 @@ class LargeFlatModel(models.Model):
     field248 = models.IntegerField()
     field249 = models.IntegerField()
     field250 = models.IntegerField()
+    image_field = models.BinaryField()
 
 
 class StringEmbeddedModel(EmbeddedModel):

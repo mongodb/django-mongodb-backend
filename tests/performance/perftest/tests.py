@@ -28,7 +28,7 @@ import unittest
 import warnings
 from pathlib import Path
 
-from bson import ObjectId, encode
+from bson import ObjectId, encode, json_util
 from django.test import (
     TestCase,
 )
@@ -169,7 +169,7 @@ class SmallFlatDocTest(PerformanceTest):
     def setUp(self):
         super().setUp()
         with open(Path(TEST_PATH) / Path("flat_models") / self.dataset) as data:  # noqa: PTH123
-            self.document = json.load(data)
+            self.document = json_util.loads(data.read())
 
         self.data_size = len(encode(self.document)) * NUM_DOCS
         self.documents = [self.document.copy() for _ in range(NUM_DOCS)]
@@ -252,7 +252,7 @@ class LargeFlatDocTest(PerformanceTest):
     def setUp(self):
         super().setUp()
         with open(Path(TEST_PATH) / Path("flat_models") / self.dataset) as data:  # noqa: PTH123
-            self.document = json.load(data)
+            self.document = json_util.loads(data.read())
 
         self.data_size = len(encode(self.document)) * NUM_DOCS
         self.documents = [self.document.copy() for _ in range(NUM_DOCS)]
@@ -293,7 +293,7 @@ class LargeNestedDocTest(PerformanceTest):
     def setUp(self):
         super().setUp()
         with open(Path(TEST_PATH) / Path("nested_models") / self.dataset) as data:  # noqa: PTH123
-            self.document = json.load(data)
+            self.document = json_util.loads(data.read())
 
         self.data_size = len(encode(self.document)) * NUM_DOCS
         self.documents = [self.document.copy() for _ in range(NUM_DOCS)]
