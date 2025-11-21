@@ -35,7 +35,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     supports_json_field_contains = False
     # BSON Date type doesn't support microsecond precision.
     supports_microsecond_precision = False
+    supports_on_delete_db_cascade = False
     supports_on_delete_db_default = False
+    supports_on_delete_db_null = False
     supports_paramstyle_pyformat = False
     supports_select_difference = False
     supports_select_intersection = False
