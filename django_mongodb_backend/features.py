@@ -35,6 +35,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     supports_json_field_contains = False
     # BSON Date type doesn't support microsecond precision.
     supports_microsecond_precision = False
+    supports_on_delete_db_cascade = False
+    supports_on_delete_db_default = False
+    supports_on_delete_db_null = False
     supports_paramstyle_pyformat = False
     supports_select_difference = False
     supports_select_intersection = False
@@ -99,6 +102,18 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "model_fields.test_jsonfield.TestSaveLoad.test_bulk_update_custom_get_prep_value",
         # To debug: https://github.com/mongodb/django-mongodb-backend/issues/362
         "constraints.tests.UniqueConstraintTests.test_validate_case_when",
+        # StringAgg is not supported.
+        "aggregation.tests.AggregateTestCase.test_distinct_on_stringagg",
+        "aggregation.tests.AggregateTestCase.test_string_agg_escapes_delimiter",
+        "aggregation.tests.AggregateTestCase.test_string_agg_filter",
+        "aggregation.tests.AggregateTestCase.test_string_agg_filter_in_subquery",
+        "aggregation.tests.AggregateTestCase.test_stringagg_default_value",
+        # bulk_create() population of _order not implemented.
+        # https://github.com/django/django/commit/953095d1e603fe0f8f01175b1409ca23818dcff9
+        "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_allows_duplicate_order_values",
+        "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_mixed_scenario",
+        "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_respects_mixed_manual_order",
+        "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_with_existing_children",
     }
     # $bitAnd, #bitOr, and $bitXor are new in MongoDB 6.3.
     _django_test_expected_failures_bitwise = {
@@ -139,6 +154,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "validation.test_unique.PerformUniqueChecksTest.test_unique_db_default",
         },
         "Insert expressions aren't supported.": {
+            "basic.tests.ModelTest.test_save_expressions",
             "bulk_create.tests.BulkCreateTests.test_bulk_insert_now",
             "bulk_create.tests.BulkCreateTests.test_bulk_insert_expressions",
             "expressions.tests.BasicExpressionsTests.test_new_object_create",
@@ -201,6 +217,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "prefetch_related.tests.LookupOrderingTest.test_order",
             "prefetch_related.tests.MultiDbTests.test_using_is_honored_m2m",
             "prefetch_related.tests.MultiTableInheritanceTest",
+            "prefetch_related.tests.PrefetchRelatedMTICacheTests",
             "prefetch_related.tests.PrefetchRelatedTests",
             "prefetch_related.tests.ReadPrefetchedObjectsCacheTests",
             "prefetch_related.tests.Ticket21410Tests",
@@ -467,6 +484,8 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             # There is no way to distinguish between a JSON "null" (represented
             # by Value(None, JSONField())) and a SQL null (queried using the
             # isnull lookup). Both of these queries return both nulls.
+            "model_fields.test_jsonfield.JSONExactNoneDeprecationTests",
+            "model_fields.test_jsonfield.JSONNullTests",
             "model_fields.test_jsonfield.TestSaveLoad.test_json_null_different_from_sql_null",
             # Some queries with Q objects, e.g. Q(value__foo="bar"), don't work
             # properly, particularly with QuerySet.exclude().
@@ -563,6 +582,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "Custom lookups are not supported.": {
             "custom_lookups.tests.BilateralTransformTests",
             "custom_lookups.tests.LookupTests.test_basic_lookup",
+            "custom_lookups.tests.LookupTests.test_custom_lookup_with_subquery",
             "custom_lookups.tests.LookupTests.test_custom_name_lookup",
             "custom_lookups.tests.LookupTests.test_div3_extract",
             "custom_lookups.tests.SubqueryTransformTests.test_subquery_usage",
@@ -579,6 +599,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "test_utils.tests.DisallowedDatabaseQueriesTests.test_disallowed_database_chunked_cursor_queries",
             "test_utils.tests.DisallowedDatabaseQueriesTests.test_disallowed_database_queries",
             "test_utils.tests.DisallowedDatabaseQueriesTests.test_disallowed_thread_database_connection",
+        },
+        "search lookup not supported on non-Atlas.": {
+            "expressions.tests.BasicExpressionsTests.test_lookups_subquery",
         },
     }
 
