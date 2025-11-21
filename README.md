@@ -1,5 +1,9 @@
 # Django MongoDB Backend
 
+Django MongoDB Backend is a [Django](https://docs.djangoproject.com/)
+database backend that uses [PyMongo](https://www.mongodb.com/docs/languages/python/pymongo-driver/)
+to connect to MongoDB.
+
 ## Documentation
 
 Documentation written in the style of MongoDB's documentation is available at
@@ -39,7 +43,7 @@ django-admin --version
 ### Connect to the database
 
 Navigate to your `example/settings.py` file and replace the `DATABASES`
-setting like so:
+setting using your [connection string](https://www.mongodb.com/docs/manual/reference/connection-string/):
 
 ```python
 DATABASES = {
@@ -50,6 +54,10 @@ DATABASES = {
     },
 }
 ```
+
+> [!TIP]
+> You can quickly and easily [deploy a free cluster](https://www.mongodb.com/docs/atlas/tutorial/deploy-free-tier-cluster/)
+> with MongoDB Atlas.
 
 ### Run the server
 
@@ -65,7 +73,7 @@ message and an image of a rocket.
 
 ## Getting Help
 
-You can ask usage questions on the [MongoDB Community Forums](https://www.mongodb.com/community/forums/tag/python).
+You can ask usage questions on our [support channels](https://www.mongodb.com/docs/manual/support/).
 
 ## Reporting Bugs and Requesting Features
 

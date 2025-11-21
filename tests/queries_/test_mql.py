@@ -22,23 +22,11 @@ class MQLTests(MongoTestCaseMixin, TestCase):
             [
                 {
                     "$lookup": {
-                        "from": "queries__author",
-                        "let": {"parent__field__0": "$author_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$and": [
-                                        {
-                                            "$expr": {
-                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
-                                            }
-                                        },
-                                        {"name": "Bob"},
-                                    ]
-                                }
-                            }
-                        ],
                         "as": "queries__author",
+                        "foreignField": "_id",
+                        "from": "queries__author",
+                        "localField": "author_id",
+                        "pipeline": [{"$match": {"name": "Bob"}}],
                     }
                 },
                 {"$unwind": "$queries__author"},
@@ -58,22 +46,10 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {
                     "$lookup": {
                         "from": "queries__author",
-                        "let": {"parent__field__0": "$author_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$and": [
-                                        {
-                                            "$expr": {
-                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
-                                            }
-                                        },
-                                        {"name": "John"},
-                                    ]
-                                }
-                            }
-                        ],
+                        "pipeline": [{"$match": {"name": "John"}}],
                         "as": "queries__author",
+                        "localField": "author_id",
+                        "foreignField": "_id",
                     }
                 },
                 {"$unwind": "$queries__author"},
@@ -91,15 +67,10 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {
                     "$lookup": {
                         "from": "queries__author",
-                        "let": {"parent__field__0": "$author_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$expr": {"$and": [{"$eq": ["$$parent__field__0", "$_id"]}]}
-                                }
-                            }
-                        ],
+                        "pipeline": [],
                         "as": "queries__author",
+                        "localField": "author_id",
+                        "foreignField": "_id",
                     }
                 },
                 {"$unwind": "$queries__author"},
@@ -121,27 +92,19 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {
                     "$lookup": {
                         "from": "queries__tag",
-                        "let": {"parent__field__0": "$parent_id"},
                         "pipeline": [
                             {
                                 "$match": {
                                     "$and": [
-                                        {
-                                            "$expr": {
-                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
-                                            }
-                                        },
-                                        {
-                                            "$and": [
-                                                {"group_id": ObjectId("6891ff7822e475eddc20f159")},
-                                                {"name": "parent"},
-                                            ]
-                                        },
+                                        {"group_id": ObjectId("6891ff7822e475eddc20f159")},
+                                        {"name": "parent"},
                                     ]
                                 }
                             }
                         ],
                         "as": "T2",
+                        "localField": "parent_id",
+                        "foreignField": "_id",
                     }
                 },
                 {"$unwind": "$T2"},
@@ -166,24 +129,10 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {
                     "$lookup": {
                         "from": "queries__orderitem",
-                        "let": {"parent__field__0": "$_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$and": [
-                                        {
-                                            "$expr": {
-                                                "$and": [
-                                                    {"$eq": ["$$parent__field__0", "$order_id"]}
-                                                ]
-                                            }
-                                        },
-                                        {"status": ObjectId("6891ff7822e475eddc20f159")},
-                                    ]
-                                }
-                            }
-                        ],
+                        "localField": "_id",
+                        "foreignField": "order_id",
                         "as": "queries__orderitem",
+                        "pipeline": [{"$match": {"status": ObjectId("6891ff7822e475eddc20f159")}}],
                     }
                 },
                 {"$unwind": "$queries__orderitem"},
@@ -209,23 +158,9 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {
                     "$lookup": {
                         "from": "queries__orderitem",
-                        "let": {"parent__field__0": "$_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$and": [
-                                        {
-                                            "$expr": {
-                                                "$and": [
-                                                    {"$eq": ["$$parent__field__0", "$order_id"]}
-                                                ]
-                                            }
-                                        },
-                                        {"status": ObjectId("6891ff7822e475eddc20f159")},
-                                    ]
-                                }
-                            }
-                        ],
+                        "localField": "_id",
+                        "foreignField": "order_id",
+                        "pipeline": [{"$match": {"status": ObjectId("6891ff7822e475eddc20f159")}}],
                         "as": "queries__orderitem",
                     }
                 },
@@ -233,22 +168,10 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {
                     "$lookup": {
                         "from": "queries__order",
-                        "let": {"parent__field__0": "$queries__orderitem.order_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$and": [
-                                        {
-                                            "$expr": {
-                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
-                                            }
-                                        },
-                                        {"name": "My Order"},
-                                    ]
-                                }
-                            }
-                        ],
+                        "pipeline": [{"$match": {"name": "My Order"}}],
                         "as": "T3",
+                        "localField": "queries__orderitem.order_id",
+                        "foreignField": "_id",
                     }
                 },
                 {"$unwind": "$T3"},
@@ -275,16 +198,11 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
             [
                 {
                     "$lookup": {
-                        "as": "queries__author",
                         "from": "queries__author",
-                        "let": {"parent__field__0": "$author_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$expr": {"$and": [{"$eq": ["$$parent__field__0", "$_id"]}]}
-                                }
-                            }
-                        ],
+                        "pipeline": [],
+                        "as": "queries__author",
+                        "localField": "author_id",
+                        "foreignField": "_id",
                     }
                 },
                 {"$unwind": "$queries__author"},
@@ -315,15 +233,10 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {
                     "$lookup": {
                         "from": "queries__author",
-                        "let": {"parent__field__0": "$author_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$expr": {"$and": [{"$eq": ["$$parent__field__0", "$_id"]}]}
-                                }
-                            }
-                        ],
+                        "pipeline": [],
                         "as": "queries__author",
+                        "localField": "author_id",
+                        "foreignField": "_id",
                     }
                 },
                 {"$unwind": "$queries__author"},
@@ -340,25 +253,14 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
             [
                 {
                     "$lookup": {
-                        "as": "queries__orderitem",
                         "from": "queries__orderitem",
-                        "let": {"parent__field__0": "$_id", "parent__field__1": "$_id"},
+                        "let": {"parent__field__0": "$_id"},
                         "pipeline": [
-                            {
-                                "$match": {
-                                    "$and": [
-                                        {
-                                            "$expr": {
-                                                "$and": [
-                                                    {"$eq": ["$$parent__field__0", "$order_id"]}
-                                                ]
-                                            }
-                                        },
-                                        {"$expr": {"$eq": ["$status", "$$parent__field__1"]}},
-                                    ]
-                                }
-                            }
+                            {"$match": {"$expr": {"$eq": ["$status", "$$parent__field__0"]}}}
                         ],
+                        "as": "queries__orderitem",
+                        "localField": "_id",
+                        "foreignField": "order_id",
                     }
                 },
                 {"$unwind": "$queries__orderitem"},
@@ -380,39 +282,20 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {
                     "$lookup": {
                         "from": "queries__library_readers",
-                        "let": {"parent__field__0": "$_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$expr": {
-                                        "$and": [{"$eq": ["$$parent__field__0", "$library_id"]}]
-                                    }
-                                }
-                            }
-                        ],
+                        "pipeline": [],
                         "as": "queries__library_readers",
+                        "localField": "_id",
+                        "foreignField": "library_id",
                     }
                 },
                 {"$unwind": "$queries__library_readers"},
                 {
                     "$lookup": {
                         "from": "queries__reader",
-                        "let": {"parent__field__0": "$queries__library_readers.reader_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$and": [
-                                        {
-                                            "$expr": {
-                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
-                                            }
-                                        },
-                                        {"name": "Alice"},
-                                    ]
-                                }
-                            }
-                        ],
+                        "pipeline": [{"$match": {"name": "Alice"}}],
                         "as": "queries__reader",
+                        "localField": "queries__library_readers.reader_id",
+                        "foreignField": "_id",
                     }
                 },
                 {"$unwind": "$queries__reader"},
@@ -421,10 +304,8 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
         )
 
     def test_subquery_join_is_pushed(self):
-        # TODO; isn't fully OPTIMIZED
         with self.assertNumQueries(1) as ctx:
             list(Library.objects.filter(~models.Q(readers__name="Alice")))
-
         self.assertAggregateQuery(
             ctx.captured_queries[0]["sql"],
             "queries__library",
@@ -437,30 +318,11 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                         "pipeline": [
                             {
                                 "$lookup": {
-                                    "from": "queries__reader",
-                                    "let": {"parent__field__0": "$reader_id"},
-                                    "pipeline": [
-                                        {
-                                            "$match": {
-                                                "$and": [
-                                                    {
-                                                        "$expr": {
-                                                            "$and": [
-                                                                {
-                                                                    "$eq": [
-                                                                        "$$parent__field__0",
-                                                                        "$_id",
-                                                                    ]
-                                                                }
-                                                            ]
-                                                        }
-                                                    },
-                                                    {"name": "Alice"},
-                                                ]
-                                            }
-                                        }
-                                    ],
                                     "as": "U2",
+                                    "foreignField": "_id",
+                                    "from": "queries__reader",
+                                    "localField": "reader_id",
+                                    "pipeline": [{"$match": {"name": "Alice"}}],
                                 }
                             },
                             {"$unwind": "$U2"},
@@ -532,16 +394,9 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {
                     "$lookup": {
                         "from": "queries__library_readers",
-                        "let": {"parent__field__0": "$_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$expr": {
-                                        "$and": [{"$eq": ["$$parent__field__0", "$library_id"]}]
-                                    }
-                                }
-                            }
-                        ],
+                        "localField": "_id",
+                        "foreignField": "library_id",
+                        "pipeline": [],
                         "as": "queries__library_readers",
                     }
                 },
@@ -549,22 +404,10 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {
                     "$lookup": {
                         "from": "queries__reader",
-                        "let": {"parent__field__0": "$queries__library_readers.reader_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$and": [
-                                        {
-                                            "$expr": {
-                                                "$and": [{"$eq": ["$$parent__field__0", "$_id"]}]
-                                            }
-                                        },
-                                        {"name": "Alice"},
-                                    ]
-                                }
-                            }
-                        ],
+                        "pipeline": [{"$match": {"name": "Alice"}}],
                         "as": "queries__reader",
+                        "localField": "queries__library_readers.reader_id",
+                        "foreignField": "_id",
                     }
                 },
                 {"$unwind": "$queries__reader"},
@@ -572,7 +415,7 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
             ],
         )
 
-    def test_or_on_local_fields_only(self):
+    def test_annotate_foreign_field(self):
         with self.assertNumQueries(1) as ctx:
             list(
                 Library.objects.annotate(foreing_field=models.F("readers__name")).filter(
@@ -586,16 +429,9 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {
                     "$lookup": {
                         "from": "queries__library_readers",
-                        "let": {"parent__field__0": "$_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$expr": {
-                                        "$and": [{"$eq": ["$$parent__field__0", "$library_id"]}]
-                                    }
-                                }
-                            }
-                        ],
+                        "localField": "_id",
+                        "foreignField": "library_id",
+                        "pipeline": [],
                         "as": "queries__library_readers",
                     }
                 },
@@ -624,15 +460,10 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {
                     "$lookup": {
                         "from": "queries__reader",
-                        "let": {"parent__field__0": "$queries__library_readers.reader_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$expr": {"$and": [{"$eq": ["$$parent__field__0", "$_id"]}]}
-                                }
-                            }
-                        ],
+                        "pipeline": [],
                         "as": "queries__reader",
+                        "localField": "queries__library_readers.reader_id",
+                        "foreignField": "_id",
                     }
                 },
                 {
@@ -673,16 +504,9 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {
                     "$lookup": {
                         "from": "queries__library_readers",
-                        "let": {"parent__field__0": "$_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$expr": {
-                                        "$and": [{"$eq": ["$$parent__field__0", "$library_id"]}]
-                                    }
-                                }
-                            }
-                        ],
+                        "localField": "_id",
+                        "foreignField": "library_id",
+                        "pipeline": [],
                         "as": "queries__library_readers",
                     }
                 },
@@ -711,15 +535,10 @@ class M2MLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
                 {
                     "$lookup": {
                         "from": "queries__reader",
-                        "let": {"parent__field__0": "$queries__library_readers.reader_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$expr": {"$and": [{"$eq": ["$$parent__field__0", "$_id"]}]}
-                                }
-                            }
-                        ],
+                        "pipeline": [],
                         "as": "queries__reader",
+                        "localField": "queries__library_readers.reader_id",
+                        "foreignField": "_id",
                     }
                 },
                 {

@@ -2,6 +2,42 @@
 Django MongoDB Backend 5.2.x
 ============================
 
+5.2.4
+=====
+
+*Unreleased*
+
+New features
+------------
+
+- ...
+
+Bug fixes
+---------
+
+- ...
+
+5.2.3
+=====
+
+*November 19, 2025*
+
+Bug fixes
+---------
+
+- Prevented ``QuerySet.union()`` queries from duplicating the ``$project``
+  pipeline.
+- Made :class:`~django.db.models.Value` wrap strings in ``$literal`` to
+  prevent dollar-prefixed strings from being interpreted as expressions.
+  Also wrapped dictionaries and tuples to prevent the same for them.
+- Made model update queries wrap values in ``$literal`` to prevent values from
+  being interpreted as expressions.
+
+Performance improvements
+------------------------
+
+- Simplified ``$lookup`` queries using ``localField`` and ``foreignField``.
+
 5.2.2
 =====
 

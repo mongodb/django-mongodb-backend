@@ -4,6 +4,7 @@ from operator import add as add_operator
 from django.core.exceptions import EmptyResultSet, FullResultSet
 from django.db import DatabaseError, IntegrityError, NotSupportedError
 from django.db.models.expressions import Case, Col, When
+from django.db.models.fields.related import ForeignKey
 from django.db.models.functions import Mod
 from django.db.models.lookups import Exact
 from django.db.models.sql.constants import INNER
@@ -180,15 +181,26 @@ def join(self, compiler, connection, pushed_filter_expression=None):
     lookup_pipeline = []
     lhs_fields = []
     rhs_fields = []
+    local_field = None
+    foreign_field = None
     # Add a join condition for each pair of joining fields.
     for lhs, rhs in self.join_fields:
-        lhs, rhs = connection.ops.prepare_join_on_clause(
+        lhs_prepared, rhs_prepared = connection.ops.prepare_join_on_clause(
             self.parent_alias, lhs, compiler.collection_name, rhs
         )
-        lhs_fields.append(lhs.as_mql(compiler, connection, as_expr=True))
-        # In the lookup stage, the reference to this column doesn't include the
-        # collection name.
-        rhs_fields.append(rhs.as_mql(compiler, connection, as_expr=True))
+        if (
+            (isinstance(lhs, ForeignKey) or isinstance(rhs, ForeignKey))
+            and lhs_prepared.is_simple_column
+            and rhs_prepared.is_simple_column
+        ):
+            # The join can be made using localField and foreignField.
+            local_field = lhs_prepared.as_mql(compiler, connection)
+            foreign_field = rhs_prepared.as_mql(compiler, connection)
+        else:
+            lhs_fields.append(lhs_prepared.as_mql(compiler, connection, as_expr=True))
+            # In the lookup stage, the reference to this column doesn't include
+            # the collection name.
+            rhs_fields.append(rhs_prepared.as_mql(compiler, connection, as_expr=True))
     # Handle any join conditions besides matching field pairs.
     extra = self.join_field.get_extra_restriction(self.table_alias, self.parent_alias)
     extra_conditions = []
@@ -218,32 +230,47 @@ def join(self, compiler, connection, pushed_filter_expression=None):
     #   self.table_name.field2 = parent_table.field2
     # AND
     #   ...
-    condition = {
-        "$expr": {
-            "$and": [
-                {"$eq": [f"$${parent_template}{i}", field]} for i, field in enumerate(rhs_fields)
-            ]
-        }
-    }
-    if extra_conditions:
-        condition = {"$and": [condition, *extra_conditions]}
-    lookup_pipeline = [
-        {
-            "$lookup": {
-                # The right-hand table to join.
-                "from": self.table_name,
-                # The pipeline variables to be matched in the pipeline's
-                # expression.
-                "let": {
-                    f"{parent_template}{i}": parent_field
-                    for i, parent_field in enumerate(lhs_fields)
-                },
-                "pipeline": [{"$match": condition}],
-                # Rename the output as table_alias.
-                "as": self.table_alias,
+    all_conditions = []
+    if rhs_fields:
+        all_conditions.append(
+            {
+                "$expr": {
+                    "$and": [
+                        {"$eq": [f"$${parent_template}{i}", field]}
+                        for i, field in enumerate(rhs_fields)
+                    ]
+                }
             }
-        },
-    ]
+        )
+    if extra_conditions:
+        all_conditions.extend(extra_conditions)
+    # Build matching pipeline
+    num_conditions = len(all_conditions)
+    if num_conditions == 0:
+        pipeline = []
+    elif num_conditions == 1:
+        pipeline = [{"$match": all_conditions[0]}]
+    else:
+        pipeline = [{"$match": {"$and": all_conditions}}]
+    lookup = {
+        # The right-hand table to join.
+        "from": self.table_name,
+        "pipeline": pipeline,
+        # Rename the output as table_alias.
+        "as": self.table_alias,
+    }
+    if local_field and foreign_field:
+        lookup.update(
+            {
+                "localField": local_field,
+                "foreignField": foreign_field,
+            }
+        )
+    if lhs_fields:
+        lookup["let"] = {
+            f"{parent_template}{i}": parent_field for i, parent_field in enumerate(lhs_fields)
+        }
+    lookup_pipeline = [{"$lookup": lookup}]
     # To avoid missing data when using $unwind, an empty collection is added if
     # the join isn't an inner join. For inner joins, rows with empty arrays are
     # removed, as $unwind unrolls or unnests the array and removes the row if

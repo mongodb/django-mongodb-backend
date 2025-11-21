@@ -625,7 +625,10 @@ class SQLCompiler(compiler.SQLCompiler):
                     fields[expr.alias] = 1
                 else:
                     fields[alias] = f"${ref}" if alias != ref else 1
-            inner_pipeline.append({"$project": fields})
+            # Avoid duplicating the same $project stage when reusing subquery
+            # projections.
+            if not inner_pipeline or inner_pipeline[-1] != {"$project": fields}:
+                inner_pipeline.append({"$project": fields})
             # Combine query with the current combinator pipeline.
             if combinator_pipeline:
                 combinator_pipeline.append(
@@ -741,10 +744,10 @@ class SQLCompiler(compiler.SQLCompiler):
         idx = itertools.count(start=1)
         for order in self.order_by_objs or []:
             if isinstance(order.expression, Col):
-                field_name = order.as_mql(self, self.connection, as_expr=True).removeprefix("$")
+                field_name = order.as_mql(self, self.connection)
                 fields.append((order.expression.target.column, order.expression))
             elif isinstance(order.expression, Ref):
-                field_name = order.as_mql(self, self.connection, as_expr=True).removeprefix("$")
+                field_name = order.as_mql(self, self.connection)
             else:
                 field_name = f"__order{next(idx)}"
                 fields.append((field_name, order.expression))
@@ -880,7 +883,9 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
                         f"{field.__class__.__name__}."
                     )
             prepared = field.get_db_prep_save(value, connection=self.connection)
-            if hasattr(value, "as_mql"):
+            if is_direct_value(value):
+                prepared = {"$literal": prepared}
+            else:
                 prepared = prepared.as_mql(self, self.connection, as_expr=True)
             values[field.column] = prepared
         try:

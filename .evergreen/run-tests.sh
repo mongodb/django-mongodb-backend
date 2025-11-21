@@ -15,8 +15,8 @@ pip install -e ..
 pip install -r requirements/py3.txt
 popd
 
-# Copy the test settings file
-cp ./.github/workflows/mongodb_settings.py django_repo/tests/
+# Copy the test settings files
+cp ./.github/workflows/*_settings.py django_repo/tests/
 
 # Copy the test runner file
 cp ./.github/workflows/runtests.py django_repo/tests/runtests_.py

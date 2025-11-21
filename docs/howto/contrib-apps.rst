@@ -2,8 +2,22 @@
 Configuring Django's contrib apps
 =================================
 
-Generally, Django's contribs app work out of the box, but here are some
+Generally, Django's contrib apps work out of the box, but here are some
 required adjustments.
+
+Apps with models
+================
+
+Each contrib app that has models that use :class:`~django.db.models.AutoField`
+(:mod:`~django.contrib.admin`, :mod:`~django.contrib.auth`,
+:mod:`~django.contrib.contenttypes`, :mod:`~django.contrib.flatpages`,
+:mod:`~django.contrib.redirects`, and :mod:`~django.contrib.sites`) must:
+
+#. Be configured with an ``AppConfig`` that specifies
+   ``default_auto_field = "django_mongodb_backend.fields.ObjectIdAutoField"``.
+   See :ref:`specifying the-default-pk-field`.
+#. Have migrations that use :class:`.ObjectIdAutoField`. See
+   :ref:`configuring-migrations`.
 
 ``contrib.sites``
 =================

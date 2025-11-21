@@ -1,4 +1,4 @@
-__version__ = "5.2.3.dev0"
+__version__ = "5.2.4.dev0"
 
 # Check Django compatibility before other imports which may fail if the
 # wrong version of Django is installed.

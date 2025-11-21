@@ -66,6 +66,7 @@ Then, create a test settings file, ``django-repo/tests/test_mongo.py``::
         },
     }
 
+    DATABASE_ROUTERS = ["django_mongodb_backend.routers.MongoRouter"]
     DEFAULT_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
 
 Finally, you can run the test script in the Django repository:
