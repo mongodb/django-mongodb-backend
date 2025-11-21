@@ -12,10 +12,6 @@
 
 <!-- How did you test the code? If you added unit tests, you can say that. If you didn’t introduce unit tests, explain why. All code should be tested in some way – so please list what your validation strategy was. -->
 
-### Screenshots (optional)
-
-<!-- Usually a great supplement to a test plan, especially if this requires local testing. -->
-
 ## Checklist
 
 <!-- Do not delete the items provided on this checklist -->
@@ -32,7 +28,3 @@
 - [ ] Do you fully understand the implementation? (Would you be comfortable explaining how this code works to someone else?)
 - [ ] Have you checked for spelling & grammar errors?
 - [ ] Is all relevant documentation (README or docstring) updated?
-
-## Focus Areas for Reviewer (Optional)
-
-<!-- List any complex portion of code you believe needs additional scrutiny and explain why.  -->
