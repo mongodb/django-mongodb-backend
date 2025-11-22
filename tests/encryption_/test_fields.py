@@ -5,7 +5,7 @@ from operator import attrgetter
 
 from bson import ObjectId
 from django.db import DatabaseError
-from django.db.models import Avg, F, Q
+from django.db.models import Avg, Count, F, Q
 
 from django_mongodb_backend.fields import (
     EncryptedArrayField,
@@ -243,13 +243,17 @@ class FieldTests(EncryptionTestCase):
 
 
 class QueryTests(EncryptionTestCase):
-    def test_aggregate(self):
+    def test_aggregate_avg(self):
         msg = (
-            "Aggregation stage $internalFacetTeeConsumer is not allowed or "
-            "supported with automatic encryption."
+            "csfle \"analyze_query\" failed: Accumulator '$avg' cannot aggregate encrypted fields."
         )
         with self.assertRaisesMessage(DatabaseError, msg):
             list(IntegerModel.objects.aggregate(Avg("value")))
+
+    def test_aggregate_count(self):
+        msg = "Invalid reference to an encrypted field within aggregate expression: value"
+        with self.assertRaisesMessage(DatabaseError, msg):
+            list(IntegerModel.objects.aggregate(Count("value")))
 
     def test_alias(self):
         msg = (
@@ -291,12 +295,9 @@ class QueryTests(EncryptionTestCase):
         self.assertIs(CharModel.objects.contains(obj), True)
 
     def test_count(self):
-        msg = (
-            "Aggregation stage $internalFacetTeeConsumer is not allowed or "
-            "supported with automatic encryption."
-        )
-        with self.assertRaisesMessage(DatabaseError, msg):
-            list(CharModel.objects.count())
+        CharModel.objects.create(value="a")
+        CharModel.objects.create(value="b")
+        self.assertEqual(CharModel.objects.count(), 2)
 
     def test_dates(self):
         msg = (
