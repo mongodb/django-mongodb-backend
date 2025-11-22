@@ -48,3 +48,37 @@ following parts can be considered stable.
 
     But for maximum flexibility, construct :setting:`DATABASES` manually as
     described in :ref:`configuring-databases-setting`.
+
+``model_has_encrypted_fields()``
+=================================
+
+.. function:: model_has_encrypted_fields(model)
+
+    .. versionadded:: 5.2.3
+
+    Returns ``True`` if the given Django model has any fields that use
+    encrypted models.
+
+    Example usage in a :ref:`database router
+    <qe-configuring-database-routers-setting>`::
+
+        from django_mongodb_backend.utils import model_has_encrypted_fields
+
+        class EncryptedRouter:
+            def db_for_read(self, model, **hints):
+                if model_has_encrypted_fields(model):
+                    return "encrypted"
+                return "default"
+
+            def db_for_write(self, model, **hints):
+                if model_has_encrypted_fields(model):
+                    return "encrypted"
+                return "default"
+
+            def allow_migrate(self, db, app_label, model_name=None, **hints):
+                if hints.get("model"):
+                    if model_has_encrypted_fields(hints["model"]):
+                        return db == "encrypted"
+                    else:
+                        return db == "default"
+                return None

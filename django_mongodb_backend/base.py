@@ -11,6 +11,7 @@ from django.utils.asyncio import async_unsafe
 from django.utils.functional import cached_property
 from pymongo.collection import Collection
 from pymongo.driver_info import DriverInfo
+from pymongo.encryption import ClientEncryption
 from pymongo.mongo_client import MongoClient
 from pymongo.uri_parser import parse_uri
 
@@ -240,6 +241,16 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         if self.queries_logged:
             return OperationDebugWrapper(self)
         return self.database
+
+    @cached_property
+    def client_encryption(self):
+        auto_encryption_opts = self.connection._options.auto_encryption_opts
+        return ClientEncryption(
+            auto_encryption_opts._kms_providers,
+            auto_encryption_opts._key_vault_namespace,
+            self.connection,
+            self.connection.codec_options,
+        )
 
     @cached_property
     def database(self):

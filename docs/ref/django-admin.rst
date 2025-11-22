@@ -13,3 +13,20 @@ in the :setting:`INSTALLED_APPS` setting.
 
 Available commands
 ==================
+
+``showencryptedfieldsmap``
+--------------------------
+
+.. versionadded:: 5.2.3
+
+.. django-admin:: showencryptedfieldsmap
+
+    This command generates output for includision in
+    :class:`~pymongo.encryption_options.AutoEncryptionOpts`\'s
+    ``encrypted_fields_map`` argument.
+
+    See :ref:`qe-configuring-encrypted-fields-map`.
+
+    .. django-admin-option:: --database DATABASE
+
+        Specifies the database to use. Defaults to ``default``.
