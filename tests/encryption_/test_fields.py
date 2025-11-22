@@ -245,9 +245,11 @@ class FieldTests(EncryptionTestCase):
 class QueryTests(EncryptionTestCase):
     def test_aggregate(self):
         msg = (
-            "Aggregation stage $internalFacetTeeConsumer is not allowed or "
-            "supported with automatic encryption."
+            'csfle "analyze_query" failed: Missing encryption schema for '
+            "namespace: test_django_encrypted.$cmd.aggregate"
         )
+        IntegerModel.objects.create(value=1)
+        IntegerModel.objects.create(value=3)
         with self.assertRaisesMessage(DatabaseError, msg):
             list(IntegerModel.objects.aggregate(Avg("value")))
 
@@ -291,12 +293,14 @@ class QueryTests(EncryptionTestCase):
         self.assertIs(CharModel.objects.contains(obj), True)
 
     def test_count(self):
+        CharModel.objects.create(value="a")
+        CharModel.objects.create(value="b")
         msg = (
-            "Aggregation stage $internalFacetTeeConsumer is not allowed or "
-            "supported with automatic encryption."
+            'csfle "analyze_query" failed: Missing encryption schema for '
+            "namespace: test_django_encrypted.$cmd.aggregate"
         )
         with self.assertRaisesMessage(DatabaseError, msg):
-            list(CharModel.objects.count())
+            self.assertEqual(CharModel.objects.count(), 2)
 
     def test_dates(self):
         msg = (
