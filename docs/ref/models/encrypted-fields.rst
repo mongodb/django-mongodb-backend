@@ -124,16 +124,16 @@ may vary.
 - :meth:`~django.db.models.query.QuerySet.alias`,
   :meth:`~django.db.models.query.QuerySet.annotate`,
   :meth:`~django.db.models.query.QuerySet.distinct`: Cannot group on field
-  '_id.value' which is encrypted with the random algorithm or whose encryption
-  properties are not known until runtime.
+  '<encrypted_field>' which is encrypted with the random algorithm or whose
+  encryption properties are not known until runtime.
 - :meth:`~django.db.models.query.QuerySet.dates`,
   :meth:`~django.db.models.query.QuerySet.datetimes`: If the value type is a
   date, the type of the index must also be date (and vice versa).
 - :meth:`~django.db.models.query.QuerySet.in_bulk`: Encrypted fields can't have
   unique constraints.
-
-# TODO: add details about joined queries after
-https://github.com/mongodb/django-mongodb-backend/pull/443 is finalized.
+- Queries that join multiple collections and require the ``let`` operator. Such
+  queries usually involve expressions or subqueries: Non-empty 'let' field is
+  not allowed in the $lookup aggregation stage over an encrypted collection.
 
 There are also several ``QuerySet`` methods that aren't permitted on any models
 (regardless of whether or not they have encrypted fields) that use a database
@@ -142,10 +142,8 @@ sample error message from the database.
 
 - :meth:`~django.db.models.query.QuerySet.update`: Multi-document updates are
   not allowed with Queryable Encryption.
-- :meth:`~django.db.models.query.QuerySet.aggregate`,
-  :meth:`~django.db.models.query.QuerySet.count`: Aggregation stage
-  $internalFacetTeeConsumer is not allowed or supported with automatic
-  encryption.
+- :meth:`~django.db.models.query.QuerySet.aggregate`: Invalid reference to an
+  encrypted field within aggregate expression.
 - :meth:`~django.db.models.query.QuerySet.union`: Aggregation stage $unionWith
   is not allowed or supported with automatic encryption.
 
