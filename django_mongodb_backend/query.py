@@ -98,13 +98,13 @@ class MongoQuery:
                 {
                     "$lookup": {
                         "from": self.compiler.collection_name,
-                        "as": "wrapped",
+                        "as": "__wrapped",
                         "pipeline": pipeline,
                     }
                 },
                 {
                     "$replaceWith": {
-                        "$cond": [{"$eq": ["$wrapped", []]}, {}, {"$first": "$wrapped"}]
+                        "$cond": [{"$eq": ["$__wrapped", []]}, {}, {"$first": "$__wrapped"}]
                     }
                 },
             ]
