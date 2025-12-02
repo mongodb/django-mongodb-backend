@@ -1,4 +1,4 @@
-[JIRA TICKET](https://jira.mongodb.org/browse/{JIRA_TICKET})
+JIRA TICKET
 
 ## Changes in this PR
 
