@@ -38,6 +38,7 @@ class SQLCompiler(compiler.SQLCompiler):
         self.subqueries = []
         # Atlas search stage.
         self.search_pipeline = []
+        # The aggregation has no group-by fields and needs wrapping.
         self.wrap_for_global_aggregation = False
 
     def _get_group_alias_column(self, expr, annotation_group_idx):
@@ -236,6 +237,7 @@ class SQLCompiler(compiler.SQLCompiler):
         pipeline = []
         if not ids:
             pipeline.append({"$group": {"_id": None, **group}})
+            # If ids is empty, a global group-by is applied
             self.wrap_for_global_aggregation = True
         else:
             group["_id"] = ids

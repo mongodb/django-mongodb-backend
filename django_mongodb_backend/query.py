@@ -93,8 +93,11 @@ class MongoQuery:
         if self.aggregation_pipeline:
             pipeline.extend(self.aggregation_pipeline)
         if self.wrap_for_global_aggregation:
+            # Use $collStats as a pivot to guarantee a single input document
             pipeline = [
                 {"$collStats": {}},
+                # Wrap the actual aggregation inside a lookup so its result
+                # always appears as a one document array
                 {
                     "$lookup": {
                         "from": self.compiler.collection_name,
@@ -102,6 +105,7 @@ class MongoQuery:
                         "pipeline": pipeline,
                     }
                 },
+                # Use {} If the inner aggregation returns nothing, otherwise unwrap
                 {
                     "$replaceWith": {
                         "$cond": [{"$eq": ["$__wrapped", []]}, {}, {"$first": "$__wrapped"}]
