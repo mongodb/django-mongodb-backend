@@ -2,7 +2,7 @@
 Configuring Queryable Encryption
 ================================
 
-.. versionadded:: 5.2.3
+.. versionadded:: 6.0.0
 
 :doc:`manual:core/queryable-encryption` is a powerful MongoDB feature that
 allows you to encrypt sensitive fields in your database while still supporting

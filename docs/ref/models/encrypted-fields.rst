@@ -4,7 +4,7 @@ Encrypted fields
 
 .. currentmodule:: django_mongodb_backend.fields
 
-.. versionadded:: 5.2.3
+.. versionadded:: 6.0.0
 
 To use encrypted fields, you must :doc:`configure Queryable Encryption
 </howto/queryable-encryption>`.
@@ -152,7 +152,7 @@ sample error message from the database.
 
 .. class:: EncryptedFieldMixin
 
-    .. versionadded:: 5.2.3
+    .. versionadded:: 6.0.0
 
     Use this mixin to create encrypted versions of your own custom fields. For
     example, to create an encrypted version of ``MyField``::

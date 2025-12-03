@@ -54,7 +54,7 @@ following parts can be considered stable.
 
 .. function:: model_has_encrypted_fields(model)
 
-    .. versionadded:: 5.2.3
+    .. versionadded:: 6.0.0
 
     Returns ``True`` if the given Django model has any fields that use
     encrypted models.
