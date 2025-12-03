@@ -17,7 +17,7 @@ Available commands
 ``showencryptedfieldsmap``
 --------------------------
 
-.. versionadded:: 5.2.3
+.. versionadded:: 6.0.0
 
 .. django-admin:: showencryptedfieldsmap
 
