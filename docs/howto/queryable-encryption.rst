@@ -23,11 +23,20 @@ Installation
 
 In addition to Django MongoDB Backend's regular :doc:`installation
 </intro/install>` and :doc:`configuration </intro/configure>` steps, Queryable
-Encryption has additional Python dependencies:
+Encryption requires installing optional Python dependencies and the
+:ref:`manual:csfle-reference-install-shared-lib`.
+
+To install the optional dependencies, use pip with the ``encryption`` extra:
 
 .. code-block:: console
 
     $ pip install django-mongodb-backend[encryption]
+
+Next, :ref:`download the shared library
+<manual:qe-csfle-shared-library-download>`. You can choose the latest version,
+even if it doesn't match your MongoDB server version. After extracting the
+shared library archive, :ref:`configure your Django settings
+<qe-configuring-databases-setting>` with the path to the shared library.
 
 .. _qe-configuring-databases-setting:
 
@@ -69,8 +78,11 @@ Here's a sample configuration using a local KMS provider::
                                 b'\x97\xea\xf8\x1e\xc3\xd49K\x18\x81\xc3\x1a"'
                                 b'\xdc\x00U\xc4u"X\xe7xy\xa5\xb2\x0e\xbc\xd6+-'
                                 b'\x80\x03\xef\xc2\xc4\x9bU'
+                            )
                         },
                     },
+                    crypt_shared_lib_path="/path/to/mongo_crypt_shared_v1.dylib",
+                    crypt_shared_lib_required=True,
                 )
             },
         },
@@ -81,39 +93,13 @@ The database name of the key vault must be the same as in ``"NAME"``. The
 vault's collection name can be whatever you wish, but by convention, it's often
 ``__keyVault``.
 
-Configuring the Automatic Encryption Shared Library
-===================================================
-
-Next, you'll need to configure the :ref:`manual:qe-reference-shared-library`.
-
-First, :ref:`download the shared library
-<manual:qe-csfle-shared-library-download>`. You can choose the latest version,
-even if it doesn't match your MongoDB server version.
-
-After extracting the shared library archive, configure your Django settings to
-point to the shared library. For example, on macOS, the name of the shared
-library is ``mongo_crypt_shared_v1.dylib``::
-
-    DATABASES = {
-        # ...
-        "encrypted": {
-            # ...
-            "OPTIONS": {
-                "auto_encryption_opts": AutoEncryptionOpts(
-                    # ...
-                    crypt_shared_lib_path="/path/to/mongo_crypt_shared_v1.dylib",
-                    crypt_shared_lib_required=True,
-                ),
-            },
-        },
-    }
 
 .. admonition:: Dynamic library path configuration
 
     If you encounter ``Pymongocrypt.errors.MongoCryptError: An existing
     crypt_shared library is loaded by the application at
     [/path/to/mongo_crypt_v1.so], but the current call to mongocrypt_init()
-    failed to find that same library.``, you probably need to configure an
+    failed to find that same library.``, you may need to configure an
     environment variable so that your system can locate the library:
 
     +---------------+---------------------------------+
