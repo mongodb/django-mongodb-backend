@@ -55,7 +55,7 @@ functions:
       params:
         binary: bash
         working_dir: "src"
-        include_expansions_in_env: ["DRIVERS_TOOLS", "MONGODB_URI", "DJANGO_SETTINGS_MODULE", "CRYPT_SHARED_LIB_PATH"]
+        include_expansions_in_env: ["DRIVERS_TOOLS", "PYMONGO_DIR", "MONGODB_URI", "DJANGO_SETTINGS_MODULE", "CRYPT_SHARED_LIB_PATH"]
         args:
           - ./.evergreen/run-tests.sh
 
@@ -126,8 +126,8 @@ buildvariants:
       - name: run-tests
 
   - name: tests-8-qe
-    display_name: Run Tests 8.0 QE
-    run_on: rhel94-perf-atlas
+    display_name: Run Tests 8.2 QE
+    run_on: rhel87-small
     expansions:
       MONGODB_VERSION: "8.2"
       TOPOLOGY: replica_set
