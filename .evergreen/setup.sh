@@ -16,8 +16,8 @@ DRIVERS_TOOLS="$(dirname "$(pwd)")/drivers-tools"
 PROJECT_DIRECTORY="$(pwd)"
 
 if [ "Windows_NT" = "${OS:-}" ]; then
-    DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
-    PROJECT_DIRECTORY=$(cygpath -m $PROJECT_DIRECTORY)
+    DRIVERS_TOOLS=$(cygpath -m "$DRIVERS_TOOLS")
+    PROJECT_DIRECTORY=$(cygpath -m "$PROJECT_DIRECTORY")
 fi
 export PROJECT_DIRECTORY
 export DRIVERS_TOOLS
@@ -37,8 +37,8 @@ PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"
 EOT
 
 # Set up drivers-tools with a .env file.
-git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git ${DRIVERS_TOOLS}
-cat <<EOT > ${DRIVERS_TOOLS}/.env
+git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git "${DRIVERS_TOOLS}"
+cat <<EOT > "${DRIVERS_TOOLS}/.env"
 CURRENT_VERSION="$CURRENT_VERSION"
 DRIVERS_TOOLS="$DRIVERS_TOOLS"
 MONGO_ORCHESTRATION_HOME="$MONGO_ORCHESTRATION_HOME"

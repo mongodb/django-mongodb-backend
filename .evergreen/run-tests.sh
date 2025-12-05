@@ -2,6 +2,9 @@
 
 set -eux
 
+# Export secrets as environment variables
+. ../secrets-export.sh
+
 # Install django-mongodb-backend
 /opt/python/3.12/bin/python3 -m venv venv
 . venv/bin/activate

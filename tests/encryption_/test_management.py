@@ -125,7 +125,11 @@ class CommandTests(EncryptionTestCase):
                 call_command("showencryptedfieldsmap", "--database", "encrypted", verbosity=0)
         finally:
             # Replace the deleted key.
+            master_key = connections["encrypted"].settings_dict["KMS_CREDENTIALS"][
+                self.DEFAULT_KMS_PROVIDER
+            ]
             connections["encrypted"].client_encryption.create_data_key(
-                kms_provider="local",
+                kms_provider=self.DEFAULT_KMS_PROVIDER,
+                master_key=master_key,
                 key_alt_names=[test_key],
             )
