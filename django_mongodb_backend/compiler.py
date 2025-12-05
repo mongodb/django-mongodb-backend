@@ -239,7 +239,7 @@ class SQLCompiler(compiler.SQLCompiler):
         pipeline = []
         if not ids:
             pipeline.append({"$group": {"_id": None, **group}})
-            # If ids is empty, a global group-by is applied
+            # If there are no ids and no having clause, apply a global aggregation
             self.wrap_for_global_aggregation = not bool(self.having)
         else:
             group["_id"] = ids
