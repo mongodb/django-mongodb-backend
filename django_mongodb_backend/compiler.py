@@ -240,7 +240,7 @@ class SQLCompiler(compiler.SQLCompiler):
         if not ids:
             pipeline.append({"$group": {"_id": None, **group}})
             # If ids is empty, a global group-by is applied
-            self.wrap_for_global_aggregation = True
+            self.wrap_for_global_aggregation = not bool(self.having)
         else:
             group["_id"] = ids
             pipeline.append({"$group": group})
@@ -326,7 +326,7 @@ class SQLCompiler(compiler.SQLCompiler):
                     pipeline.extend(query.get_pipeline())
                 # Remove the added subqueries.
                 self.subqueries = []
-                self.having_match_mql = having
+                pipeline.append({"$match": having})
             self.aggregation_pipeline = pipeline
         self.annotations = {
             target: expr.replace_expressions(all_replacements)
