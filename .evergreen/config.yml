@@ -69,6 +69,7 @@ functions:
 
 pre:
   - func: setup
+  - func: start csfle servers
   - func: bootstrap mongo-orchestration
 
 post:
@@ -77,7 +78,6 @@ post:
 tasks:
   - name: run-tests
     commands:
-      - func: "start csfle servers"
       - func: "run unit tests"
 
 buildvariants:
@@ -126,8 +126,8 @@ buildvariants:
       - name: run-tests
 
   - name: tests-8-qe
-    display_name: Run Tests 8.0 QE
-    run_on: rhel94-perf-atlas
+    display_name: Run Tests 8.2 QE
+    run_on: rhel87-small
     expansions:
       MONGODB_VERSION: "8.2"
       TOPOLOGY: replica_set

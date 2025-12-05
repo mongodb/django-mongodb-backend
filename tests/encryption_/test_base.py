@@ -1,3 +1,5 @@
+import os
+
 import pymongo
 from bson.binary import Binary
 from django.conf import settings
@@ -19,3 +21,18 @@ class EncryptionTestCase(TestCase):
             collection = db[model._meta.db_table]
             data = collection.find_one({}, {field: 1, "_id": 0})
             self.assertIsInstance(data[field], Binary)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        AWS_CREDS = {
+            "accessKeyId": os.environ.get("FLE_AWS_KEY", ""),
+            "secretAccessKey": os.environ.get("FLE_AWS_SECRET", ""),
+        }
+        _USE_AWS_KMS = any(AWS_CREDS.values())
+
+        if _USE_AWS_KMS:
+            self.DEFAULT_KMS_PROVIDER = "aws"
+        else:
+            # Local-only fallback
+            self.DEFAULT_KMS_PROVIDER = "local"
