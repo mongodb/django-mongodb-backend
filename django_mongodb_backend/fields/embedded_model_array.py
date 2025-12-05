@@ -150,44 +150,27 @@ class EmbeddedModelArrayFieldIn(EmbeddedModelArrayFieldBuiltinLookup, lookups.In
         # structure of EmbeddedModelArrayField on the RHS behaves similar to
         # ArrayField.
         return [
+            {"$project": {"tmp_name": expr.as_mql(compiler, connection, as_expr=True)}},
+            # To concatenate all the values from the RHS subquery,
+            # use an $unwind followed by a $group.
             {
-                "$facet": {
-                    "gathered_data": [
-                        {"$project": {"tmp_name": expr.as_mql(compiler, connection, as_expr=True)}},
-                        # To concatenate all the values from the RHS subquery,
-                        # use an $unwind followed by a $group.
-                        {
-                            "$unwind": "$tmp_name",
-                        },
-                        # The $group stage collects values into an array using
-                        # $addToSet. The use of {_id: null} results in a
-                        # single grouped array. However, because arrays from
-                        # multiple documents are aggregated, the result is a
-                        # list of lists.
-                        {
-                            "$group": {
-                                "_id": None,
-                                "tmp_name": {"$addToSet": "$tmp_name"},
-                            }
-                        },
-                    ]
+                "$unwind": "$tmp_name",
+            },
+            # The $group stage collects values into an array using
+            # $addToSet. The use of {_id: null} results in a
+            # single grouped array. However, because arrays from
+            # multiple documents are aggregated, the result is a
+            # list of lists.
+            {
+                "$group": {
+                    "_id": None,
+                    "tmp_name": {"$addToSet": "$tmp_name"},
                 }
             },
-            {
-                "$project": {
-                    field_name: {
-                        "$ifNull": [
-                            {
-                                "$getField": {
-                                    "input": {"$arrayElemAt": ["$gathered_data", 0]},
-                                    "field": "tmp_name",
-                                }
-                            },
-                            [],
-                        ]
-                    }
-                }
-            },
+            # Add a dummy document in case of empty result.
+            {"$unionWith": {"pipeline": [{"$documents": [{"tmp_name": []}]}]}},
+            {"$limit": 1},
+            {"$project": {field_name: "$tmp_name"}},
         ]
 
 
