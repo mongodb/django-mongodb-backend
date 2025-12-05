@@ -50,6 +50,7 @@ class MongoQuery:
         self.lookup_pipeline = None
         self.project_fields = None
         self.aggregation_pipeline = compiler.aggregation_pipeline
+        self.having = compiler.having_match_mql
         self.search_pipeline = compiler.search_pipeline
         self.extra_fields = None
         self.combinator_pipeline = None
@@ -95,6 +96,8 @@ class MongoQuery:
         if self.wrap_for_global_aggregation:
             # Add an empty extra document to handle default values on empty results
             pipeline.append({"$unionWith": {"pipeline": [{"$documents": [{}]}]}})
+        if self.having:
+            pipeline.append({"$match": self.having})
         if self.project_fields:
             pipeline.append({"$project": self.project_fields})
         if self.combinator_pipeline:

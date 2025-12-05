@@ -40,6 +40,8 @@ class SQLCompiler(compiler.SQLCompiler):
         self.search_pipeline = []
         # The aggregation has no group-by fields and needs wrapping.
         self.wrap_for_global_aggregation = False
+        # HAVING stage match (MongoDB equivalent)
+        self.having_match_mql = None
 
     def _get_group_alias_column(self, expr, annotation_group_idx):
         """Generate a dummy field for use in the ids fields in $group."""
@@ -324,7 +326,7 @@ class SQLCompiler(compiler.SQLCompiler):
                     pipeline.extend(query.get_pipeline())
                 # Remove the added subqueries.
                 self.subqueries = []
-                pipeline.append({"$match": having})
+                self.having_match_mql = having
             self.aggregation_pipeline = pipeline
         self.annotations = {
             target: expr.replace_expressions(all_replacements)
