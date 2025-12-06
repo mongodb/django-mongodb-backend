@@ -520,6 +520,11 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
         result = Exhibit.objects.filter(sections__number__in=subquery)
         self.assertCountEqual(result, [self.wonders, self.new_discoveries, self.egypt])
 
+    def test_subquery_empty_in_lookup(self):
+        subquery = Audit.objects.filter(section_number=10).values_list("section_number", flat=True)
+        result = Exhibit.objects.filter(sections__number__in=subquery)
+        self.assertCountEqual(result, [])
+
     def test_array_as_rhs(self):
         result = Exhibit.objects.filter(main_section__number__in=models.F("sections__number"))
         self.assertCountEqual(result, [self.new_discoveries])

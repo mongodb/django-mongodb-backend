@@ -310,37 +310,19 @@ class ArrayOverlap(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
 
     def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr):
         return [
+            {"$project": {"tmp_name": expr.as_mql(compiler, connection, as_expr=True)}},
             {
-                "$facet": {
-                    "group": [
-                        {"$project": {"tmp_name": expr.as_mql(compiler, connection, as_expr=True)}},
-                        {
-                            "$unwind": "$tmp_name",
-                        },
-                        {
-                            "$group": {
-                                "_id": None,
-                                "tmp_name": {"$addToSet": "$tmp_name"},
-                            }
-                        },
-                    ]
-                }
+                "$unwind": "$tmp_name",
             },
             {
-                "$project": {
-                    field_name: {
-                        "$ifNull": [
-                            {
-                                "$getField": {
-                                    "input": {"$arrayElemAt": ["$group", 0]},
-                                    "field": "tmp_name",
-                                }
-                            },
-                            [],
-                        ]
-                    }
+                "$group": {
+                    "_id": None,
+                    "tmp_name": {"$addToSet": "$tmp_name"},
                 }
             },
+            {"$unionWith": {"pipeline": [{"$documents": [{"tmp_name": []}]}]}},
+            {"$limit": 1},
+            {"$project": {field_name: "$tmp_name"}},
         ]
 
     def as_mql_expr(self, compiler, connection):

@@ -38,6 +38,10 @@ class SQLCompiler(compiler.SQLCompiler):
         self.subqueries = []
         # Atlas search stage.
         self.search_pipeline = []
+        # The aggregation has no group-by fields and needs wrapping.
+        self.wrap_for_global_aggregation = False
+        # HAVING stage match (MongoDB equivalent)
+        self.having_match_mql = None
 
     def _get_group_alias_column(self, expr, annotation_group_idx):
         """Generate a dummy field for use in the ids fields in $group."""
@@ -234,21 +238,9 @@ class SQLCompiler(compiler.SQLCompiler):
         """Build the aggregation pipeline for grouping."""
         pipeline = []
         if not ids:
-            group["_id"] = None
-            pipeline.append({"$facet": {"group": [{"$group": group}]}})
-            pipeline.append(
-                {
-                    "$addFields": {
-                        key: {
-                            "$getField": {
-                                "input": {"$arrayElemAt": ["$group", 0]},
-                                "field": key,
-                            }
-                        }
-                        for key in group
-                    }
-                }
-            )
+            pipeline.append({"$group": {"_id": None, **group}})
+            # If there are no ids and no having clause, apply a global aggregation
+            self.wrap_for_global_aggregation = not bool(self.having)
         else:
             group["_id"] = ids
             pipeline.append({"$group": group})

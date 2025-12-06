@@ -56,6 +56,7 @@ class MongoQuery:
         # $lookup stage that encapsulates the pipeline for performing a nested
         # subquery.
         self.subquery_lookup = None
+        self.wrap_for_global_aggregation = compiler.wrap_for_global_aggregation
 
     def __repr__(self):
         return f"<MongoQuery: {self.match_mql!r} ORDER {self.ordering!r}>"
@@ -91,6 +92,9 @@ class MongoQuery:
             pipeline.append({"$match": self.match_mql})
         if self.aggregation_pipeline:
             pipeline.extend(self.aggregation_pipeline)
+        if self.wrap_for_global_aggregation:
+            # Add an empty extra document to handle default values on empty results
+            pipeline.append({"$unionWith": {"pipeline": [{"$documents": [{}]}]}})
         if self.project_fields:
             pipeline.append({"$project": self.project_fields})
         if self.combinator_pipeline:

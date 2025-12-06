@@ -56,34 +56,15 @@ def wrap_in(function):
 def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr):  # noqa: ARG001
     return [
         {
-            "$facet": {
-                "group": [
-                    {
-                        "$group": {
-                            "_id": None,
-                            "tmp_name": {
-                                "$addToSet": expr.as_mql(compiler, connection, as_expr=True)
-                            },
-                        }
-                    }
-                ]
+            "$group": {
+                "_id": None,
+                # use a temporal name in order to support field_name="_id"
+                "tmp_name": {"$addToSet": expr.as_mql(compiler, connection, as_expr=True)},
             }
         },
-        {
-            "$project": {
-                field_name: {
-                    "$ifNull": [
-                        {
-                            "$getField": {
-                                "input": {"$arrayElemAt": ["$group", 0]},
-                                "field": "tmp_name",
-                            }
-                        },
-                        [],
-                    ]
-                }
-            }
-        },
+        {"$unionWith": {"pipeline": [{"$documents": [{"tmp_name": []}]}]}},
+        {"$limit": 1},
+        {"$project": {field_name: "$tmp_name"}},
     ]
 
 
