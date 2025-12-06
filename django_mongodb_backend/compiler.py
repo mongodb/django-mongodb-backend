@@ -38,6 +38,7 @@ class SQLCompiler(compiler.SQLCompiler):
         self.subqueries = []
         # Atlas search stage.
         self.search_pipeline = []
+        self.wrap_for_global_aggregation = False
 
     def _get_group_alias_column(self, expr, annotation_group_idx):
         """Generate a dummy field for use in the ids fields in $group."""
@@ -234,21 +235,8 @@ class SQLCompiler(compiler.SQLCompiler):
         """Build the aggregation pipeline for grouping."""
         pipeline = []
         if not ids:
-            group["_id"] = None
-            pipeline.append({"$facet": {"group": [{"$group": group}]}})
-            pipeline.append(
-                {
-                    "$addFields": {
-                        key: {
-                            "$getField": {
-                                "input": {"$arrayElemAt": ["$group", 0]},
-                                "field": key,
-                            }
-                        }
-                        for key in group
-                    }
-                }
-            )
+            pipeline.append({"$group": {"_id": None, **group}})
+            self.wrap_for_global_aggregation = True
         else:
             group["_id"] = ids
             pipeline.append({"$group": group})

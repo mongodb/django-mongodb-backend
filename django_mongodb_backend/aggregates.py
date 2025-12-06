@@ -52,6 +52,7 @@ def count(self, compiler, connection, resolve_inner_expression=False):
     # If distinct=True or resolve_inner_expression=False, sum the size of the
     # set.
     lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+    lhs_mql = {"$ifNull": [lhs_mql, []]}
     # None shouldn't be counted, so subtract 1 if it's present.
     exits_null = {"$cond": {"if": {"$in": [{"$literal": None}, lhs_mql]}, "then": -1, "else": 0}}
     return {"$add": [{"$size": lhs_mql}, exits_null]}
