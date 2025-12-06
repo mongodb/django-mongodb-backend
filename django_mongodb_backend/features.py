@@ -12,7 +12,7 @@ except ImproperlyConfigured:
 
 
 class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
-    minimum_database_version = (6, 0)
+    minimum_database_version = (7, 0)
     allow_sliced_subqueries_with_in = False
     allows_multiple_constraints_on_same_fields = False
     can_create_inline_fk = False
@@ -100,22 +100,11 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         # To debug: https://github.com/mongodb/django-mongodb-backend/issues/362
         "constraints.tests.UniqueConstraintTests.test_validate_case_when",
     }
-    # $bitAnd, #bitOr, and $bitXor are new in MongoDB 6.3.
-    _django_test_expected_failures_bitwise = {
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_and",
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_or",
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_xor",
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_xor_null",
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_xor_right_null",
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_transformed_field_bitwise_or",
-    }
 
     @cached_property
     def django_test_expected_failures(self):
         expected_failures = super().django_test_expected_failures
         expected_failures.update(self._django_test_expected_failures)
-        if not self.is_mongodb_6_3:
-            expected_failures.update(self._django_test_expected_failures_bitwise)
         return expected_failures
 
     _django_test_skips = {
