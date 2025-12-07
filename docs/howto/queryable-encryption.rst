@@ -32,11 +32,11 @@ To install the optional dependencies, use pip with the ``encryption`` extra:
 
     $ pip install django-mongodb-backend[encryption]
 
-Next, :ref:`download the shared library
+Next, download the :ref:`Automatic Encryption Shared Library
 <manual:qe-csfle-shared-library-download>`. You can choose the latest version,
 even if it doesn't match your MongoDB server version. After extracting the
-shared library archive, :ref:`configure your Django settings
-<qe-configuring-databases-setting>` with the path to the shared library.
+archive, configure the :ref:`crypt_shared_lib_path
+<qe-configuring-databases-setting>`.
 
 .. _qe-configuring-databases-setting:
 
@@ -81,7 +81,7 @@ Here's a sample configuration using a local KMS provider::
                             )
                         },
                     },
-                    crypt_shared_lib_path="/path/to/mongo_crypt_shared_v1.dylib",
+                    crypt_shared_lib_path="/path/to/mongo_crypt_shared_v1",
                     crypt_shared_lib_required=True,
                 )
             },
@@ -93,35 +93,65 @@ The database name of the key vault must be the same as in ``"NAME"``. The
 vault's collection name can be whatever you wish, but by convention, it's often
 ``__keyVault``.
 
-
 .. admonition:: Dynamic library path configuration
 
-    If you encounter ``Pymongocrypt.errors.MongoCryptError: An existing
-    crypt_shared library is loaded by the application at
-    [/path/to/mongo_crypt_v1.so], but the current call to mongocrypt_init()
-    failed to find that same library.``, you may need to configure an
-    environment variable so that your system can locate the library:
+   If you encounter the following error:
 
-    +---------------+---------------------------------+
-    | **Platform**  | **Environment Variable**        |
-    +---------------+---------------------------------+
-    | Windows       | ``PATH``                        |
-    +---------------+---------------------------------+
-    | macOS         | ``DYLD_FALLBACK_LIBRARY_PATH``  |
-    +---------------+---------------------------------+
-    | Linux         | ``LD_LIBRARY_PATH``             |
-    +---------------+---------------------------------+
+   .. code-block:: text
 
-    For example, on macOS you can set ``DYLD_FALLBACK_LIBRARY_PATH`` in your
-    shell before starting your Django application:
+      Pymongocrypt.errors.MongoCryptError: An existing crypt_shared library is
+      loaded by the application at [/path/to/mongo_crypt_v1.so], but the current
+      call to mongocrypt_init() failed to find that same library.
 
-    .. code-block:: console
+   add the directory that contains the shared library to your platform’s dynamic
+   library search path:
 
-        $ export DYLD_FALLBACK_LIBRARY_PATH="/path/to/mongo_crypt_shared/:$DYLD_FALLBACK_LIBRARY_PATH"
+   +---------------+------------------------------+
+   | **Platform**  | **Environment variable**     |
+   +---------------+------------------------------+
+   | Windows       | PATH                         |
+   +---------------+------------------------------+
+   | macOS         | DYLD_FALLBACK_LIBRARY_PATH   |
+   +---------------+------------------------------+
+   | Linux         | LD_LIBRARY_PATH              |
+   +---------------+------------------------------+
 
-    Unlike ``crypt_shared_lib_path`` earlier, the environment variable points
-    to the directory that contains the shared library, not the shared library
-    itself.
+   Examples:
+
+   macOS (bash):
+
+   .. code-block:: console
+
+      $ export DYLD_FALLBACK_LIBRARY_PATH="/path/to/mongo_crypt_shared:${DYLD_FALLBACK_LIBRARY_PATH}"
+
+   Linux (bash):
+
+   .. code-block:: console
+
+      $ export LD_LIBRARY_PATH="/path/to/mongo_crypt_shared:${LD_LIBRARY_PATH}"
+
+   Windows (PowerShell):
+
+   .. code-block:: powershell
+
+      $env:Path = "C:\path\to\mongo_crypt_shared" + ";" + $env:Path
+
+   Windows (Command Prompt):
+
+   .. code-block:: bat
+
+      set PATH=C:\path\to\mongo_crypt_shared;%PATH%
+
+   Notes:
+
+   * Set the variable to the directory that contains the shared library file
+     (for example, ``mongo_crypt_shared_v1.dylib`` on macOS,
+     ``mongo_crypt_v1.so`` on Linux, or ``mongo_crypt_v1.dll`` on Windows), not
+     the file itself.
+
+   * This environment variable is separate from the ``crypt_shared_lib_path``
+     option: the environment variable points to a directory, while
+     ``crypt_shared_lib_path`` is the explicit path to the library file.
 
 .. _qe-configuring-database-routers-setting:
 
