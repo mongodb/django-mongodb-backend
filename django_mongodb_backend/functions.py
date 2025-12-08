@@ -109,7 +109,7 @@ def extract(self, compiler, connection):
 def func(self, compiler, connection):
     lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
     if self.function is None:
-        raise NotSupportedError(f"{self} may need an as_mql() method.")
+        raise NotSupportedError(f"{self.__class__.__name__} may need an as_mql() method.")
     operator = MONGO_OPERATORS.get(self.__class__, self.function.lower())
     return {f"${operator}": lhs_mql}
 
