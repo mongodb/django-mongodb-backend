@@ -1,6 +1,5 @@
 from django.core.exceptions import FullResultSet
 from django.db.models import F
-from django.db.models.aggregates import Aggregate
 from django.db.models.expressions import CombinedExpression, Func, Value
 from django.db.models.sql.query import Query
 
@@ -20,8 +19,6 @@ def process_lhs(node, compiler, connection, as_expr=False):
                 result.append(expr.as_mql(compiler, connection, as_expr=as_expr))
             except FullResultSet:
                 result.append(Value(True).as_mql(compiler, connection, as_expr=as_expr))
-        if isinstance(node, Aggregate):
-            return result[0]
         return result
     # node is a Transform with just one source expression, aliased as "lhs".
     if is_direct_value(node.lhs):
