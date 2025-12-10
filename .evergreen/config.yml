@@ -59,6 +59,17 @@ functions:
         args:
           - ./.evergreen/run-tests.sh
 
+  "run encryption tests":
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        working_dir: "src"
+        include_expansions_in_env: ["DRIVERS_TOOLS", "MONGODB_URI", "DJANGO_SETTINGS_MODULE", "CRYPT_SHARED_LIB_PATH"]
+        args:
+          - ./.evergreen/run-tests.sh
+          - encryption
+
   "teardown":
     - command: subprocess.exec
       params:
@@ -79,6 +90,10 @@ tasks:
   - name: run-tests
     commands:
       - func: "run unit tests"
+
+  - name: run-encryption-tests
+    commands:
+      - func: "run encryption tests"
 
 buildvariants:
   - name: tests-7-noauth-nossl
@@ -125,12 +140,22 @@ buildvariants:
     tasks:
       - name: run-tests
 
-  - name: tests-8-qe
-    display_name: Run Tests 8.2 QE
+  - name: tests-8-qe-local
+    display_name: Run Tests 8.2 QE local KMS
     run_on: rhel87-small
     expansions:
       MONGODB_VERSION: "8.2"
       TOPOLOGY: replica_set
-      DJANGO_SETTINGS_MODULE: "encrypted_settings"
+      DJANGO_SETTINGS_MODULE: "local_kms_encrypted_settings"
     tasks:
-      - name: run-tests
+      - name: run-encryption-tests
+
+  - name: tests-8-qe-aws
+    display_name: Run Tests 8.2 QE aws KMS
+    run_on: rhel87-small
+    expansions:
+      MONGODB_VERSION: "8.2"
+      TOPOLOGY: replica_set
+      DJANGO_SETTINGS_MODULE: "aws_kms_encrypted_settings"
+    tasks:
+      - name: run-encryption-tests
