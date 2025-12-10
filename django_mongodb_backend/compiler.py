@@ -666,56 +666,56 @@ class SQLCompiler(compiler.SQLCompiler):
         Return a dict mapping each alias to a WhereNode holding its pushable
         condition.
         """
+        return self._collect_pushable(self.get_where())
 
-        def collect_pushable(expr, negated=False):
-            if expr is None or isinstance(expr, NothingNode):
+    @classmethod
+    def _collect_pushable(cls, expr, negated=False):
+        if expr is None or isinstance(expr, NothingNode):
+            return {}
+        if isinstance(expr, WhereNode):
+            # Apply De Morgan: track negation so connectors are flipped
+            # when needed.
+            negated ^= expr.negated
+            pushable_expressions = [
+                cls._collect_pushable(sub_expr, negated=negated)
+                for sub_expr in expr.children
+                if sub_expr is not None
+            ]
+            operator = expr.connector
+            if operator == XOR:
                 return {}
-            if isinstance(expr, WhereNode):
-                # Apply De Morgan: track negation so connectors are flipped
-                # when needed.
-                negated ^= expr.negated
-                pushable_expressions = [
-                    collect_pushable(sub_expr, negated=negated)
-                    for sub_expr in expr.children
-                    if sub_expr is not None
-                ]
-                operator = expr.connector
-                if operator == XOR:
-                    return {}
-                if negated:
-                    operator = OR if operator == AND else AND
-                alias_children = defaultdict(list)
-                for pe in pushable_expressions:
-                    for alias, expressions in pe.items():
-                        alias_children[alias].append(expressions)
-                # Build per-alias pushable condition nodes.
-                if operator == AND:
-                    return {
-                        alias: WhereNode(children=children, negated=False, connector=operator)
-                        for alias, children in alias_children.items()
-                    }
-                # Only aliases shared across all branches are pushable for OR.
-                shared_alias = (
-                    set.intersection(*(set(pe) for pe in pushable_expressions))
-                    if pushable_expressions
-                    else set()
-                )
+            if negated:
+                operator = OR if operator == AND else AND
+            alias_children = defaultdict(list)
+            for pe in pushable_expressions:
+                for alias, expressions in pe.items():
+                    alias_children[alias].append(expressions)
+            # Build per-alias pushable condition nodes.
+            if operator == AND:
                 return {
                     alias: WhereNode(children=children, negated=False, connector=operator)
                     for alias, children in alias_children.items()
-                    if alias in shared_alias
                 }
-            # A leaf is pushable only when comparing a field to a constant or
-            # simple value.
-            if isinstance(expr.lhs, Col) and (
-                is_constant_value(expr.rhs) or getattr(expr.rhs, "is_simple_column", False)
-            ):
-                alias = expr.lhs.alias
-                expr = WhereNode(children=[expr], negated=negated)
-                return {alias: expr}
-            return {}
-
-        return collect_pushable(self.get_where())
+            # Only aliases shared across all branches are pushable for OR.
+            shared_alias = (
+                set.intersection(*(set(pe) for pe in pushable_expressions))
+                if pushable_expressions
+                else set()
+            )
+            return {
+                alias: WhereNode(children=children, negated=False, connector=operator)
+                for alias, children in alias_children.items()
+                if alias in shared_alias
+            }
+        # A leaf is pushable only when comparing a field to a constant or
+        # simple value.
+        if isinstance(expr.lhs, Col) and (
+            is_constant_value(expr.rhs) or getattr(expr.rhs, "is_simple_column", False)
+        ):
+            alias = expr.lhs.alias
+            expr = WhereNode(children=[expr], negated=negated)
+            return {alias: expr}
+        return {}
 
     def get_lookup_pipeline(self):
         result = []
