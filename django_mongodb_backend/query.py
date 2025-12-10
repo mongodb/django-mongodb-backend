@@ -56,6 +56,7 @@ class MongoQuery:
         # $lookup stage that encapsulates the pipeline for performing a nested
         # subquery.
         self.subquery_lookup = None
+        self.wrap_for_global_aggregation = compiler.wrap_for_global_aggregation
 
     def __repr__(self):
         return f"<MongoQuery: {self.match_mql!r} ORDER {self.ordering!r}>"
@@ -91,6 +92,23 @@ class MongoQuery:
             pipeline.append({"$match": self.match_mql})
         if self.aggregation_pipeline:
             pipeline.extend(self.aggregation_pipeline)
+        if self.wrap_for_global_aggregation:
+            pipeline.extend(
+                [
+                    # Workaround for https://jira.mongodb.org/browse/SERVER-114196:
+                    # $$NOW becomes unavailable after $unionWith, so it must be
+                    # stored beforehand to ensure it remains accessible later
+                    # in the pipeline.
+                    {"$addFields": {"__now": "$$NOW"}},
+                    # Add an empty extra document to handle default values on
+                    # empty results.
+                    {"$unionWith": {"pipeline": [{"$documents": [{}]}]}},
+                    # Limiting to one document ensures the original result
+                    # takes precedence when present, otherwise the injected
+                    # empty document is used.
+                    {"$limit": 1},
+                ]
+            )
         if self.project_fields:
             pipeline.append({"$project": self.project_fields})
         if self.combinator_pipeline:
