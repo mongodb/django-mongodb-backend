@@ -114,6 +114,9 @@ class CommandTests(EncryptionTestCase):
                 self._compare_output(expected, command_output[model_key])
 
     def test_missing_key(self):
+        connection = connections["encrypted"]
+        auto_encryption_opts = connection.connection._options.auto_encryption_opts
+        kms_providers = auto_encryption_opts._kms_providers
         test_key = "encryption__patient.patient_record.ssn"
         msg = (
             f"Encryption key {test_key} not found. Have migrated the "
@@ -125,11 +128,10 @@ class CommandTests(EncryptionTestCase):
                 call_command("showencryptedfieldsmap", "--database", "encrypted", verbosity=0)
         finally:
             # Replace the deleted key.
-            master_key = connections["encrypted"].settings_dict["KMS_CREDENTIALS"][
-                self.DEFAULT_KMS_PROVIDER
-            ]
-            connections["encrypted"].client_encryption.create_data_key(
-                kms_provider=self.DEFAULT_KMS_PROVIDER,
+            kms_provider = next(iter(kms_providers.keys()))
+            master_key = connection.settings_dict["KMS_CREDENTIALS"][kms_provider]
+            connection.client_encryption.create_data_key(
+                kms_provider=kms_provider,
                 master_key=master_key,
                 key_alt_names=[test_key],
             )
