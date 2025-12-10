@@ -5,6 +5,8 @@ Management commands
 Django MongoDB Backend includes some :doc:`Django management commands
 <django:ref/django-admin>`.
 
+.. _qe-showencryptedfieldsmap-required-configuration:
+
 Required configuration
 ======================
 
