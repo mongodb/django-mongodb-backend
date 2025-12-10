@@ -8,7 +8,6 @@ from django.db.models import Q
 from django.db.models.query import QuerySet
 from django.db.utils import DatabaseError
 from django.test import TransactionTestCase, skipUnlessDBFeature
-from pymongo.operations import SearchIndexModel
 
 from django_mongodb_backend.expressions import (
     CompoundExpression,
@@ -28,7 +27,7 @@ from django_mongodb_backend.expressions import (
     SearchVector,
     SearchWildcard,
 )
-from django_mongodb_backend.schema import DatabaseSchemaEditor
+from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 
 from .models import Article, Location, Writer
 
@@ -75,22 +74,15 @@ class SearchUtilsMixin(TransactionTestCase):
     assertListEqual = _delayed_assertion(timeout=2)(TransactionTestCase.assertListEqual)
     assertQuerySetEqual = _delayed_assertion(timeout=2)(TransactionTestCase.assertQuerySetEqual)
 
-    @staticmethod
-    def _get_collection(model):
-        return connection.database.get_collection(model._meta.db_table)
-
     @classmethod
-    def create_search_index(cls, model, index_name, definition, type="search"):
-        # TODO: create/delete indexes using DatabaseSchemaEditor when
-        # SearchIndexes support mappings (INTPYTHON-729).
-        collection = cls._get_collection(model)
-        idx = SearchIndexModel(definition=definition, name=index_name, type=type)
-        collection.create_search_index(idx)
-        DatabaseSchemaEditor.wait_until_index_created(collection, index_name)
+    def create_search_index(cls, model, index_name, field_mappings, index_cls=SearchIndex):
+        idx = index_cls(field_mappings=field_mappings, name=index_name)
+        with connection.schema_editor() as editor:
+            editor.add_index(model, idx)
 
         def drop_index():
-            collection.drop_search_index(index_name)
-            DatabaseSchemaEditor.wait_until_index_dropped(collection, index_name)
+            with connection.schema_editor() as editor:
+                editor.remove_index(model, idx)
 
         cls.addClassCleanup(drop_index)
 
@@ -101,12 +93,7 @@ class SearchEqualsTests(SearchUtilsMixin):
         cls.create_search_index(
             Article,
             "equals_headline_index",
-            {
-                "mappings": {
-                    "dynamic": False,
-                    "fields": {"headline": {"type": "token"}, "number": {"type": "number"}},
-                }
-            },
+            {"headline": {"type": "token"}, "number": {"type": "number"}},
         )
 
     def setUp(self):
@@ -167,32 +154,27 @@ class SearchAutocompleteTests(SearchUtilsMixin):
             Article,
             "autocomplete_headline_index",
             {
-                "mappings": {
-                    "dynamic": False,
+                "headline": {
+                    "type": "autocomplete",
+                    "analyzer": "lucene.standard",
+                    "tokenization": "edgeGram",
+                    "minGrams": 3,
+                    "maxGrams": 5,
+                    "foldDiacritics": False,
+                },
+                "writer": {
+                    "type": "document",
                     "fields": {
-                        "headline": {
+                        "name": {
                             "type": "autocomplete",
                             "analyzer": "lucene.standard",
                             "tokenization": "edgeGram",
                             "minGrams": 3,
                             "maxGrams": 5,
                             "foldDiacritics": False,
-                        },
-                        "writer": {
-                            "type": "document",
-                            "fields": {
-                                "name": {
-                                    "type": "autocomplete",
-                                    "analyzer": "lucene.standard",
-                                    "tokenization": "edgeGram",
-                                    "minGrams": 3,
-                                    "maxGrams": 5,
-                                    "foldDiacritics": False,
-                                }
-                            },
-                        },
+                        }
                     },
-                }
+                },
             },
         )
 
@@ -253,7 +235,7 @@ class SearchExistsTests(SearchUtilsMixin):
         cls.create_search_index(
             Article,
             "exists_body_index",
-            {"mappings": {"dynamic": False, "fields": {"body": {"type": "token"}}}},
+            {"body": {"type": "token"}},
         )
 
     def setUp(self):
@@ -282,7 +264,7 @@ class SearchInTests(SearchUtilsMixin):
         cls.create_search_index(
             Article,
             "in_headline_index",
-            {"mappings": {"dynamic": False, "fields": {"headline": {"type": "token"}}}},
+            {"headline": {"type": "token"}},
         )
 
     def setUp(self):
@@ -316,7 +298,7 @@ class SearchPhraseTests(SearchUtilsMixin):
         cls.create_search_index(
             Article,
             "phrase_body_index",
-            {"mappings": {"dynamic": False, "fields": {"body": {"type": "string"}}}},
+            {"body": {"type": "string"}},
         )
 
     def setUp(self):
@@ -356,13 +338,8 @@ class SearchQueryStringTests(SearchUtilsMixin):
             Article,
             "query_string_index",
             {
-                "mappings": {
-                    "dynamic": False,
-                    "fields": {
-                        "headline": {"type": "string"},
-                        "body": {"type": "string"},
-                    },
-                }
+                "headline": {"type": "string"},
+                "body": {"type": "string"},
             },
         )
 
@@ -416,7 +393,7 @@ class SearchRangeTests(SearchUtilsMixin):
         cls.create_search_index(
             Article,
             "range_number_index",
-            {"mappings": {"dynamic": False, "fields": {"number": {"type": "number"}}}},
+            {"number": {"type": "number"}},
         )
         Article.objects.create(headline="x", number=5, body="z")
 
@@ -453,12 +430,7 @@ class SearchRegexTests(SearchUtilsMixin):
         cls.create_search_index(
             Article,
             "regex_headline_index",
-            {
-                "mappings": {
-                    "dynamic": False,
-                    "fields": {"headline": {"type": "string", "analyzer": "lucene.keyword"}},
-                }
-            },
+            {"headline": {"type": "string", "analyzer": "lucene.keyword"}},
         )
 
     def setUp(self):
@@ -498,7 +470,7 @@ class SearchTextTests(SearchUtilsMixin):
         cls.create_search_index(
             Article,
             "text_body_index",
-            {"mappings": {"dynamic": False, "fields": {"body": {"type": "string"}}}},
+            {"body": {"type": "string"}},
         )
 
     def setUp(self):
@@ -560,12 +532,7 @@ class SearchWildcardTests(SearchUtilsMixin):
         cls.create_search_index(
             Article,
             "wildcard_headline_index",
-            {
-                "mappings": {
-                    "dynamic": False,
-                    "fields": {"headline": {"type": "string", "analyzer": "lucene.keyword"}},
-                }
-            },
+            {"headline": {"type": "string", "analyzer": "lucene.keyword"}},
         )
 
     def setUp(self):
@@ -603,12 +570,7 @@ class SearchGeoShapeTests(SearchUtilsMixin):
         cls.create_search_index(
             Article,
             "geoshape_location_index",
-            {
-                "mappings": {
-                    "dynamic": False,
-                    "fields": {"location": {"type": "geo", "indexShapes": True}},
-                }
-            },
+            {"location": {"type": "geo", "indexShapes": True}},
         )
 
     def setUp(self):
@@ -668,7 +630,7 @@ class SearchGeoWithinTests(SearchUtilsMixin):
         cls.create_search_index(
             Article,
             "geowithin_location_index",
-            {"mappings": {"dynamic": False, "fields": {"location": {"type": "geo"}}}},
+            {"location": {"type": "geo"}},
         )
 
     def setUp(self):
@@ -743,12 +705,7 @@ class SearchMoreLikeThisTests(SearchUtilsMixin):
         cls.create_search_index(
             Article,
             "mlt_index",
-            {
-                "mappings": {
-                    "dynamic": False,
-                    "fields": {"body": {"type": "string"}, "headline": {"type": "string"}},
-                }
-            },
+            {"body": {"type": "string"}, "headline": {"type": "string"}},
         )
         cls.article1 = Article.objects.create(
             headline="Space exploration", number=1, body="Webb telescope"
@@ -782,14 +739,9 @@ class CompoundSearchTests(SearchUtilsMixin):
             Article,
             "compound_index",
             {
-                "mappings": {
-                    "dynamic": False,
-                    "fields": {
-                        "headline": [{"type": "token"}, {"type": "string"}],
-                        "body": {"type": "string"},
-                        "number": {"type": "number"},
-                    },
-                }
+                "headline": [{"type": "token"}, {"type": "string"}],
+                "body": {"type": "string"},
+                "number": {"type": "number"},
             },
         )
 
@@ -962,26 +914,20 @@ class CompoundSearchTests(SearchUtilsMixin):
 class SearchVectorTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
-        cls.create_search_index(
-            Article,
-            "vector_index",
-            {
-                "fields": [
-                    {
-                        "type": "vector",
-                        "path": "plot_embedding",
-                        "numDimensions": 3,
-                        "similarity": "cosine",
-                        "quantization": "scalar",
-                    },
-                    {
-                        "type": "filter",
-                        "path": "number",
-                    },
-                ]
-            },
-            type="vectorSearch",
+        model = Article
+        idx = VectorSearchIndex(
+            fields=["plot_embedding", "number"],
+            name="vector_index",
+            similarities="cosine",
         )
+        with connection.schema_editor() as editor:
+            editor.add_index(model, idx)
+
+        def drop_index():
+            with connection.schema_editor() as editor:
+                editor.remove_index(model, idx)
+
+        cls.addClassCleanup(drop_index)
 
     def setUp(self):
         self.mars = Article.objects.create(

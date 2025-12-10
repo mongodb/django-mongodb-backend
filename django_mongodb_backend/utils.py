@@ -1,10 +1,12 @@
 import copy
 import time
+import warnings
 
 import django
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db.backends.utils import logger
+from django.utils.deprecation import RemovedInDjango60Warning
 from django.utils.functional import SimpleLazyObject
 from django.utils.text import format_lazy
 from django.utils.version import get_version_tuple
@@ -33,6 +35,11 @@ def parse_uri(uri, *, db_name=None, options=None, test=None):
     Convert the given uri into a dictionary suitable for Django's DATABASES
     setting.
     """
+    warnings.warn(
+        'parse_uri() is deprecated. Put the connection string in DATABASES["HOST"] instead.',
+        RemovedInDjango60Warning,
+        stacklevel=2,
+    )
     uri = pymongo_parse_uri(uri)
     host = None
     port = None

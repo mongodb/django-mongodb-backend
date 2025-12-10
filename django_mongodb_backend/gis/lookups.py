@@ -2,7 +2,7 @@ from django.contrib.gis.db.models.lookups import GISLookup
 from django.db import NotSupportedError
 
 
-def gis_lookup(self, compiler, connection):  # noqa: ARG001
+def gis_lookup(self, compiler, connection, as_expr=False):  # noqa: ARG001
     raise NotSupportedError(f"MongoDB does not support the {self.lookup_name} lookup.")
 
 

@@ -1,28 +1,6 @@
-=================
-Project internals
-=================
-
-Documentation for people working on Django MongoDB Backend itself. This is the
-place to go if you'd like to help improve Django MongoDB Backend or learn about
-how the project is managed.
-
-.. _issue-tracker:
-
-Issue tracker
-=============
-
-To report a bug or to request a new feature in Django MongoDB Backend, please
-open an issue in our issue tracker, JIRA:
-
-1. Create a `JIRA account <https://jira.mongodb.org/>`_.
-
-2. Navigate to the `Python Integrations project
-   <https://jira.mongodb.org/projects/INTPYTHON/>`_.
-
-3. Click **Create Issue**. Please provide as much information as possible about
-   the issue and the steps to reproduce it.
-
-Bug reports in JIRA for this project can be viewed by everyone.
+===============
+Release process
+===============
 
 .. _supported-versions-policy:
 
@@ -50,6 +28,39 @@ As a concrete example, consider a moment in time between the release of Django
 - Security fixes and bug fixes for data loss issues will be applied to main,
   5.1.x, and any active LTS branches (e.g. 4.2.x, if Django MongoDB Backend
   supported it). They will trigger the release of 5.2.x, 5.1.y, 4.2.z.
+
+MongoDB version support policy
+==============================
+
+Major versions of MongoDB have an end-of-life date and are supported for three
+years beyond that through the `MongoDB Extended Lifecycle Support Add-On
+<https://www.mongodb.com/services/support/enterprise-advanced-support-plans>`_.
+
+The goal of the Django MongoDB Backend MongoDB version support policy is to
+ensure a supported version of Django is available through each MongoDB
+version's extended lifecycle.
+
+The last version of Django to support a given version of MongoDB corresponds to
+the long-term support release of Django whose support extends approximately
+three years after the MongoDB version's end-of-life date.
+
+For example, MongoDB 6.0 reached its end-of-life on July 31, 2025 which means
+its end of extended lifecycle support is July 2028. Since Django 5.2 LTS is
+supported until April 2028 (within a few months of July 2028), it's the last
+version of Django to support MongoDB 6.0.
+
+.. csv-table::
+    :header: "Django release series", "Supported MongoDB versions"
+
+    "6.0", "7.0, 8.0"
+    "5.2 LTS", "6.0, 7.0, 8.0"
+
+.. seealso::
+
+    * `Django Supported Versions
+      <https://www.djangoproject.com/download/#supported-versions>`_
+    * `MongoDB Software Lifecycle Schedules
+      <https://www.mongodb.com/legal/support-policy/lifecycles>`_
 
 .. _branch-policy:
 

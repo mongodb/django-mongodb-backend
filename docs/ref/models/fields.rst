@@ -39,6 +39,18 @@ A few notes about some of the other fields:
 - Similarly, all :class:`~django.db.models.DurationField` values are stored as
   :class:`bson.int64.Int64`.
 
+Model field options
+===================
+
+Some notes about model field options:
+
+- Dollar signs and periods (``$`` and ``.``) are not supported in
+  :attr:`Field.db_column <django.db.models.Field.db_column>` because these field
+  names are :doc:`discouraged by MongoDB
+  <manual:core/dot-dollar-considerations>`. Querying fields with these
+  characters requires the ``$getField`` operator, which prevents queries from
+  using indexes.
+
 MongoDB-specific model fields
 =============================
 
@@ -315,8 +327,6 @@ These indexes use 0-based indexing.
 
 .. class:: EmbeddedModelArrayField(embedded_model, max_size=None, **kwargs)
 
-    .. versionadded:: 5.2.0b1
-
     Similar to :class:`EmbeddedModelField`, but stores a **list** of models of
     type ``embedded_model`` rather than a single instance.
 
@@ -360,8 +370,6 @@ These indexes use 0-based indexing.
 
 .. class:: PolymorphicEmbeddedModelField(embedded_models, **kwargs)
 
-    .. versionadded:: 5.2.0b2
-
     Stores a model of one of the types in ``embedded_models``.
 
     .. attribute:: embedded_models
@@ -389,8 +397,6 @@ These indexes use 0-based indexing.
 --------------------------------------
 
 .. class:: PolymorphicEmbeddedModelArrayField(embedded_models, **kwargs)
-
-    .. versionadded:: 5.2.0b2
 
     Similar to :class:`PolymorphicEmbeddedModelField`, but stores a **list** of
     models of type ``embedded_models`` rather than a single instance.

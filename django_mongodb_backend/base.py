@@ -2,7 +2,8 @@ import contextlib
 import logging
 import os
 
-from django.core.exceptions import ImproperlyConfigured
+from bson import Decimal128
+from django.core.exceptions import EmptyResultSet, FullResultSet, ImproperlyConfigured
 from django.db import DEFAULT_DB_ALIAS
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.utils import debug_transaction
@@ -20,7 +21,6 @@ from .creation import DatabaseCreation
 from .features import DatabaseFeatures
 from .introspection import DatabaseIntrospection
 from .operations import DatabaseOperations
-from .query_utils import regex_match
 from .schema import DatabaseSchemaEditor
 from .utils import OperationDebugWrapper
 from .validation import DatabaseValidation
@@ -97,44 +97,103 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     }
     _connection_pools = {}
 
-    def _isnull_operator(a, b):
-        is_null = {
-            "$or": [
-                # The path does not exist (i.e. is "missing")
-                {"$eq": [{"$type": a}, "missing"]},
-                # or the value is None.
-                {"$eq": [a, None]},
-            ]
-        }
-        return is_null if b else {"$not": is_null}
+    def _isnull_operator(field, is_null):
+        if is_null:
+            return {"$or": [{field: {"$exists": False}}, {field: None}]}
+        return {"$and": [{field: {"$exists": True}}, {field: {"$ne": None}}]}
+
+    def _range_operator(a, b):
+        conditions = []
+        start, end = b
+        if start is not None:
+            conditions.append({a: {"$gte": b[0]}})
+        if end is not None:
+            conditions.append({a: {"$lte": b[1]}})
+        if not conditions:
+            raise FullResultSet
+        if start is not None and end is not None:
+            # Decimal128 can't be natively compared.
+            if isinstance(start, Decimal128):
+                start = start.to_decimal()
+            if isinstance(end, Decimal128):
+                end = end.to_decimal()
+            if start > end:
+                raise EmptyResultSet
+        return {"$and": conditions}
+
+    def _regex_operator(field, regex, insensitive=False):
+        options = "i" if insensitive else ""
+        return {field: {"$regex": regex, "$options": options}}
 
     mongo_operators = {
+        "exact": lambda a, b: {a: b},
+        "gt": lambda a, b: {a: {"$gt": b}},
+        "gte": lambda a, b: {a: {"$gte": b}},
+        # MongoDB considers null less than zero. Exclude null values to match
+        # SQL behavior.
+        "lt": lambda a, b: {"$and": [{a: {"$lt": b}}, DatabaseWrapper._isnull_operator(a, False)]},
+        "lte": lambda a, b: {
+            "$and": [{a: {"$lte": b}}, DatabaseWrapper._isnull_operator(a, False)]
+        },
+        "in": lambda a, b: {a: {"$in": tuple(b)}},
+        "isnull": _isnull_operator,
+        "range": _range_operator,
+        "iexact": lambda a, b: DatabaseWrapper._regex_operator(a, f"^{b}$", insensitive=True),
+        "startswith": lambda a, b: DatabaseWrapper._regex_operator(a, f"^{b}"),
+        "istartswith": lambda a, b: DatabaseWrapper._regex_operator(a, f"^{b}", insensitive=True),
+        "endswith": lambda a, b: DatabaseWrapper._regex_operator(a, f"{b}$"),
+        "iendswith": lambda a, b: DatabaseWrapper._regex_operator(a, f"{b}$", insensitive=True),
+        "contains": lambda a, b: DatabaseWrapper._regex_operator(a, b),
+        "icontains": lambda a, b: DatabaseWrapper._regex_operator(a, b, insensitive=True),
+        "regex": lambda a, b: DatabaseWrapper._regex_operator(a, b),
+        "iregex": lambda a, b: DatabaseWrapper._regex_operator(a, b, insensitive=True),
+    }
+
+    def _isnull_expr(field, is_null):
+        mql = {
+            "$or": [
+                # The path does not exist (i.e. is "missing")
+                {"$eq": [{"$type": field}, "missing"]},
+                # or the value is None.
+                {"$eq": [field, None]},
+            ]
+        }
+        return mql if is_null else {"$not": mql}
+
+    def _regex_expr(field, regex_vals, insensitive=False):
+        regex = {"$concat": regex_vals} if isinstance(regex_vals, tuple) else regex_vals
+        options = "i" if insensitive else ""
+        return {"$regexMatch": {"input": field, "regex": regex, "options": options}}
+
+    mongo_expr_operators = {
         "exact": lambda a, b: {"$eq": [a, b]},
         "gt": lambda a, b: {"$gt": [a, b]},
         "gte": lambda a, b: {"$gte": [a, b]},
         # MongoDB considers null less than zero. Exclude null values to match
         # SQL behavior.
-        "lt": lambda a, b: {"$and": [{"$lt": [a, b]}, DatabaseWrapper._isnull_operator(a, False)]},
-        "lte": lambda a, b: {
-            "$and": [{"$lte": [a, b]}, DatabaseWrapper._isnull_operator(a, False)]
-        },
+        "lt": lambda a, b: {"$and": [{"$lt": [a, b]}, DatabaseWrapper._isnull_expr(a, False)]},
+        "lte": lambda a, b: {"$and": [{"$lte": [a, b]}, DatabaseWrapper._isnull_expr(a, False)]},
         "in": lambda a, b: {"$in": [a, b]},
-        "isnull": _isnull_operator,
+        "isnull": _isnull_expr,
         "range": lambda a, b: {
             "$and": [
-                {"$or": [DatabaseWrapper._isnull_operator(b[0], True), {"$gte": [a, b[0]]}]},
-                {"$or": [DatabaseWrapper._isnull_operator(b[1], True), {"$lte": [a, b[1]]}]},
+                {"$or": [DatabaseWrapper._isnull_expr(b[0], True), {"$gte": [a, b[0]]}]},
+                {"$or": [DatabaseWrapper._isnull_expr(b[1], True), {"$lte": [a, b[1]]}]},
             ]
         },
-        "iexact": lambda a, b: regex_match(a, ("^", b, {"$literal": "$"}), insensitive=True),
-        "startswith": lambda a, b: regex_match(a, ("^", b)),
-        "istartswith": lambda a, b: regex_match(a, ("^", b), insensitive=True),
-        "endswith": lambda a, b: regex_match(a, (b, {"$literal": "$"})),
-        "iendswith": lambda a, b: regex_match(a, (b, {"$literal": "$"}), insensitive=True),
-        "contains": lambda a, b: regex_match(a, b),
-        "icontains": lambda a, b: regex_match(a, b, insensitive=True),
-        "regex": lambda a, b: regex_match(a, b),
-        "iregex": lambda a, b: regex_match(a, b, insensitive=True),
+        "iexact": lambda a, b: DatabaseWrapper._regex_expr(
+            a, ("^", b, {"$literal": "$"}), insensitive=True
+        ),
+        "startswith": lambda a, b: DatabaseWrapper._regex_expr(a, ("^", b)),
+        "istartswith": lambda a, b: DatabaseWrapper._regex_expr(a, ("^", b), insensitive=True),
+        "endswith": lambda a, b: DatabaseWrapper._regex_expr(a, (b, {"$literal": "$"})),
+        "iendswith": lambda a, b: DatabaseWrapper._regex_expr(
+            a, (b, {"$literal": "$"}), insensitive=True
+        ),
+        "contains": lambda a, b: DatabaseWrapper._regex_expr(a, b),
+        "icontains": lambda a, b: DatabaseWrapper._regex_expr(a, b, insensitive=True),
+        "regex": lambda a, b: DatabaseWrapper._regex_expr(a, b),
+        "iregex": lambda a, b: DatabaseWrapper._regex_expr(a, b, insensitive=True),
     }
 
     display_name = "MongoDB"
@@ -272,6 +331,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     @async_unsafe
     def start_transaction_mongo(self):
         if self.session is None:
+            self.ensure_connection()
             self.session = self.connection.start_session()
             with debug_transaction(self, "session.start_transaction()"):
                 self.session.start_transaction()

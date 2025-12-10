@@ -5,8 +5,12 @@ from django import forms
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from ...utils import prefix_validation_error
-from ...validators import ArrayMaxLengthValidator, ArrayMinLengthValidator, LengthValidator
+from django_mongodb_backend.utils import prefix_validation_error
+from django_mongodb_backend.validators import (
+    ArrayMaxLengthValidator,
+    ArrayMinLengthValidator,
+    LengthValidator,
+)
 
 
 class SimpleArrayField(forms.CharField):

@@ -13,6 +13,7 @@ class Author(models.Model):
 class Book(models.Model):
     title = models.CharField(max_length=10)
     author = models.ForeignKey(Author, models.CASCADE)
+    isbn = models.CharField(max_length=13)
 
     def __str__(self):
         return self.title

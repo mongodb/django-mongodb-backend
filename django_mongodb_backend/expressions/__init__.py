@@ -1,3 +1,4 @@
+from .expressions import Remove
 from .search import (
     CombinedSearchExpression,
     CompoundExpression,
@@ -21,6 +22,7 @@ from .search import (
 __all__ = [
     "CombinedSearchExpression",
     "CompoundExpression",
+    "Remove",
     "SearchAutocomplete",
     "SearchEquals",
     "SearchExists",

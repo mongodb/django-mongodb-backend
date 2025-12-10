@@ -2,8 +2,6 @@
 Transactions
 ============
 
-.. versionadded:: 5.2.0b2
-
 .. module:: django_mongodb_backend.transaction
 
 MongoDB supports :doc:`transactions <manual:core/transactions>` if it's

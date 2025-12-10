@@ -16,11 +16,6 @@ Django MongoDB Backend because Django's API for connection-closing
 (``django.db.connection.close()``) has no effect. In other words, persistent
 connections are enabled by default.
 
-.. versionadded:: 5.2.0b0
-
-    Support for connection pooling was added.  In older versions, use
-    :setting:`CONN_MAX_AGE` to enable persistent connections.
-
 .. _connection-management:
 
 Connection management
@@ -37,7 +32,3 @@ no effect.
 Django's API for connection-closing (``django.db.connection.close()``) has no
 effect. Rather, if you need to close the connection pool, use
 ``django.db.connection.close_pool()``.
-
-.. versionadded:: 5.2.0b0
-
-    Support for connection pooling and ``connection.close_pool()`` were added.

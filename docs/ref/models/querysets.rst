@@ -8,12 +8,18 @@ Supported ``QuerySet`` methods
 All of Django's :doc:`QuerySet methods <django:ref/models/querysets>` are
 supported, except:
 
-  - :meth:`extra() <django.db.models.query.QuerySet.extra>`
-  - :meth:`prefetch_related() <django.db.models.query.QuerySet.prefetch_related>`
+- :meth:`~django.db.models.query.QuerySet.difference`
+- :meth:`~django.db.models.query.QuerySet.extra`
+- :meth:`~django.db.models.query.QuerySet.intersection`
+- :meth:`~django.db.models.query.QuerySet.prefetch_related`
+- :meth:`~django.db.models.query.QuerySet.raw` (use
+  :meth:`~django_mongodb_backend.queryset.MongoQuerySet.raw_aggregate`
+  instead)
+- :meth:`~django.db.models.query.QuerySet.select_for_update` (acts as a no-op)
 
 In addition, :meth:`QuerySet.delete() <django.db.models.query.QuerySet.delete>`
-and :meth:`update() <django.db.models.query.QuerySet.update>` do not support
-queries that span multiple collections.
+and :meth:`~django.db.models.query.QuerySet.update` do not support queries that
+span multiple collections.
 
 .. _queryset-explain:
 

@@ -9,17 +9,17 @@ from django.db.models.aggregates import Aggregate, Variance
 from django.db.models.expressions import Case, Col, OrderBy, Ref, Value, When
 from django.db.models.functions.comparison import Coalesce
 from django.db.models.functions.math import Power
-from django.db.models.lookups import IsNull, Lookup
+from django.db.models.lookups import IsNull
 from django.db.models.sql import compiler
 from django.db.models.sql.constants import GET_ITERATOR_CHUNK_SIZE, MULTI, SINGLE
 from django.db.models.sql.datastructures import BaseTable
-from django.db.models.sql.where import AND, WhereNode
+from django.db.models.sql.where import AND, OR, XOR, NothingNode, WhereNode
 from django.utils.functional import cached_property
 from pymongo import ASCENDING, DESCENDING
 
 from .expressions.search import SearchExpression, SearchVector
 from .query import MongoQuery, wrap_database_errors
-from .query_utils import is_direct_value
+from .query_utils import is_constant_value, is_direct_value
 
 
 class SQLCompiler(compiler.SQLCompiler):
@@ -69,12 +69,14 @@ class SQLCompiler(compiler.SQLCompiler):
         if getattr(sub_expr, "distinct", False):
             # If the expression should return distinct values, use $addToSet to
             # deduplicate.
-            rhs = sub_expr.as_mql(self, self.connection, resolve_inner_expression=True)
+            rhs = sub_expr.as_mql(
+                self, self.connection, resolve_inner_expression=True, as_expr=True
+            )
             group[alias] = {"$addToSet": rhs}
             replacing_expr = sub_expr.copy()
             replacing_expr.set_source_expressions([inner_column, None])
         else:
-            group[alias] = sub_expr.as_mql(self, self.connection)
+            group[alias] = sub_expr.as_mql(self, self.connection, as_expr=True)
             replacing_expr = inner_column
         # Count must return 0 rather than null.
         if isinstance(sub_expr, Count):
@@ -302,9 +304,7 @@ class SQLCompiler(compiler.SQLCompiler):
                     search.as_mql(self, self.connection),
                     {
                         "$addFields": {
-                            result_col.as_mql(self, self.connection, as_path=True): {
-                                "$meta": score_function
-                            }
+                            result_col.as_mql(self, self.connection): {"$meta": score_function}
                         }
                     },
                 ]
@@ -334,7 +334,7 @@ class SQLCompiler(compiler.SQLCompiler):
                     pipeline.extend(query.get_pipeline())
                 # Remove the added subqueries.
                 self.subqueries = []
-                pipeline.append({"$match": {"$expr": having}})
+                pipeline.append({"$match": having})
             self.aggregation_pipeline = pipeline
         self.annotations = {
             target: expr.replace_expressions(all_replacements)
@@ -481,11 +481,11 @@ class SQLCompiler(compiler.SQLCompiler):
             query.lookup_pipeline = self.get_lookup_pipeline()
             where = self.get_where()
             try:
-                expr = where.as_mql(self, self.connection) if where else {}
+                match_mql = where.as_mql(self, self.connection) if where else {}
             except FullResultSet:
                 query.match_mql = {}
             else:
-                query.match_mql = {"$expr": expr}
+                query.match_mql = match_mql
         if extra_fields:
             query.extra_fields = self.get_project_fields(extra_fields, force_expression=True)
         query.subqueries = self.subqueries
@@ -625,7 +625,10 @@ class SQLCompiler(compiler.SQLCompiler):
                     fields[expr.alias] = 1
                 else:
                     fields[alias] = f"${ref}" if alias != ref else 1
-            inner_pipeline.append({"$project": fields})
+            # Avoid duplicating the same $project stage when reusing subquery
+            # projections.
+            if not inner_pipeline or inner_pipeline[-1] != {"$project": fields}:
+                inner_pipeline.append({"$project": fields})
             # Combine query with the current combinator pipeline.
             if combinator_pipeline:
                 combinator_pipeline.append(
@@ -643,7 +646,9 @@ class SQLCompiler(compiler.SQLCompiler):
             for alias, expr in self.columns:
                 # Unfold foreign fields.
                 if isinstance(expr, Col) and expr.alias != self.collection_name:
-                    ids[expr.alias][expr.target.column] = expr.as_mql(self, self.connection)
+                    ids[expr.alias][expr.target.column] = expr.as_mql(
+                        self, self.connection, as_expr=True
+                    )
                 else:
                     ids[alias] = f"${alias}"
             # Convert defaultdict to dict so it doesn't appear as
@@ -656,27 +661,72 @@ class SQLCompiler(compiler.SQLCompiler):
                 combinator_pipeline.append({"$unset": "_id"})
         return combinator_pipeline
 
+    def _get_pushable_conditions(self):
+        """
+        Return a dict mapping each alias to a WhereNode holding its pushable
+        condition.
+        """
+
+        def collect_pushable(expr, negated=False):
+            if expr is None or isinstance(expr, NothingNode):
+                return {}
+            if isinstance(expr, WhereNode):
+                # Apply De Morgan: track negation so connectors are flipped
+                # when needed.
+                negated ^= expr.negated
+                pushable_expressions = [
+                    collect_pushable(sub_expr, negated=negated)
+                    for sub_expr in expr.children
+                    if sub_expr is not None
+                ]
+                operator = expr.connector
+                if operator == XOR:
+                    return {}
+                if negated:
+                    operator = OR if operator == AND else AND
+                alias_children = defaultdict(list)
+                for pe in pushable_expressions:
+                    for alias, expressions in pe.items():
+                        alias_children[alias].append(expressions)
+                # Build per-alias pushable condition nodes.
+                if operator == AND:
+                    return {
+                        alias: WhereNode(children=children, negated=False, connector=operator)
+                        for alias, children in alias_children.items()
+                    }
+                # Only aliases shared across all branches are pushable for OR.
+                shared_alias = (
+                    set.intersection(*(set(pe) for pe in pushable_expressions))
+                    if pushable_expressions
+                    else set()
+                )
+                return {
+                    alias: WhereNode(children=children, negated=False, connector=operator)
+                    for alias, children in alias_children.items()
+                    if alias in shared_alias
+                }
+            # A leaf is pushable only when comparing a field to a constant or
+            # simple value.
+            if isinstance(expr.lhs, Col) and (
+                is_constant_value(expr.rhs) or getattr(expr.rhs, "is_simple_column", False)
+            ):
+                alias = expr.lhs.alias
+                expr = WhereNode(children=[expr], negated=negated)
+                return {alias: expr}
+            return {}
+
+        return collect_pushable(self.get_where())
+
     def get_lookup_pipeline(self):
         result = []
         # To improve join performance, push conditions (filters) from the
         # WHERE ($match) clause to the JOIN ($lookup) clause.
-        where = self.get_where()
-        pushed_filters = defaultdict(list)
-        for expr in where.children if where and where.connector == AND else ():
-            # Push only basic lookups; no subqueries or complex conditions.
-            # To avoid duplication across subqueries, only use the LHS target
-            # table.
-            if (
-                isinstance(expr, Lookup)
-                and isinstance(expr.lhs, Col)
-                and (is_direct_value(expr.rhs) or isinstance(expr.rhs, (Value, Col)))
-            ):
-                pushed_filters[expr.lhs.alias].append(expr)
+        pushed_filters = self._get_pushable_conditions()
         for alias in tuple(self.query.alias_map):
             if not self.query.alias_refcount[alias] or self.collection_name == alias:
                 continue
             result += self.query.alias_map[alias].as_mql(
-                self, self.connection, WhereNode(pushed_filters[alias], connector=AND)
+                self, self.connection, pushed_filters.get(alias)
             )
         return result
 
@@ -707,16 +757,16 @@ class SQLCompiler(compiler.SQLCompiler):
                     # For brevity/simplicity, project {"field_name": 1}
                     # instead of {"field_name": "$field_name"}.
                     if isinstance(expr, Col) and name == expr.target.column and not force_expression
-                    else expr.as_mql(self, self.connection)
+                    else expr.as_mql(self, self.connection, as_expr=True)
                 )
             except EmptyResultSet:
                 empty_result_set_value = getattr(expr, "empty_result_set_value", NotImplemented)
                 value = (
                     False if empty_result_set_value is NotImplemented else empty_result_set_value
                 )
-                fields[collection][name] = Value(value).as_mql(self, self.connection)
+                fields[collection][name] = Value(value).as_mql(self, self.connection, as_expr=True)
             except FullResultSet:
-                fields[collection][name] = Value(True).as_mql(self, self.connection)
+                fields[collection][name] = Value(True).as_mql(self, self.connection, as_expr=True)
         # Annotations (stored in None) and the main collection's fields
         # should appear in the top-level of the fields dict.
         fields.update(fields.pop(None, {}))
@@ -739,10 +789,10 @@ class SQLCompiler(compiler.SQLCompiler):
         idx = itertools.count(start=1)
         for order in self.order_by_objs or []:
             if isinstance(order.expression, Col):
-                field_name = order.as_mql(self, self.connection).removeprefix("$")
+                field_name = order.as_mql(self, self.connection)
                 fields.append((order.expression.target.column, order.expression))
             elif isinstance(order.expression, Ref):
-                field_name = order.as_mql(self, self.connection).removeprefix("$")
+                field_name = order.as_mql(self, self.connection)
             else:
                 field_name = f"__order{next(idx)}"
                 fields.append((field_name, order.expression))
@@ -878,8 +928,10 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
                         f"{field.__class__.__name__}."
                     )
             prepared = field.get_db_prep_save(value, connection=self.connection)
-            if hasattr(value, "as_mql"):
-                prepared = prepared.as_mql(self, self.connection)
+            if is_direct_value(value):
+                prepared = {"$literal": prepared}
+            else:
+                prepared = prepared.as_mql(self, self.connection, as_expr=True)
             values[field.column] = prepared
         try:
             criteria = self.build_query().match_mql

@@ -15,7 +15,7 @@ Table of contents
     howto/index
     faq
     releases/index
-    internals
+    internals/index
 
 Indices
 =======

@@ -31,6 +31,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 
 [project.optional-dependencies]
@@ -97,16 +98,10 @@ ignore = [
   "S101",   # Use of `assert` detected
   "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
   "PLW2901", # `for` loop variable `value` overwritten by assignment target
-  "UP038",  # non-pep604-isinstance is deprecated
 ]
 unfixable = []
 exclude = []
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?)|dummy.*)$"
-
-[tool.ruff.lint.per-file-ignores]
-".github/workflows/mongodb_settings.py" = [
-    "S105",  # Possible hardcoded password assigned to: "SECRET_KEY"
-]
 
 [tool.coverage.report]
 exclude_lines = [

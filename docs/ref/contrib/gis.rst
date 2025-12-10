@@ -2,8 +2,6 @@
 GeoDjango
 =========
 
-.. versionadded:: 5.2.0b2
-
 Django MongoDB Backend supports :doc:`GeoDjango<django:ref/contrib/gis/index>`.
 
 Each model field stores data as :doc:`GeoJSON objects

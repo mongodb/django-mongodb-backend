@@ -1,4 +1,4 @@
-from django.db import DatabaseError
+from django.db import DatabaseError, connection
 from django.test import TransactionTestCase, skipIfDBFeature, skipUnlessDBFeature
 
 from django_mongodb_backend import transaction
@@ -139,6 +139,12 @@ class AtomicTests(TransactionTestCase):
                 pass
 
         transaction.atomic(Callable())  # Must not raise an exception
+
+    def test_initializes_connection(self):
+        """transaction.atomic() opens the connection if needed."""
+        connection.close_pool()
+        with transaction.atomic():
+            pass
 
 
 @skipIfDBFeature("_supports_transactions")

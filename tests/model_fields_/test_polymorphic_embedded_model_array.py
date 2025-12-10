@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.core.exceptions import FieldDoesNotExist
-from django.db import models
+from django.db import connection, models
 from django.test import SimpleTestCase, TestCase
 from django.test.utils import isolate_apps
 
@@ -18,7 +18,9 @@ class MethodTests(SimpleTestCase):
 
     def test_deconstruct(self):
         field = PolymorphicEmbeddedModelArrayField(["Dog"], null=True)
+        field.name = "field_name"
         name, path, args, kwargs = field.deconstruct()
+        self.assertEqual(name, "field_name")
         self.assertEqual(path, "django_mongodb_backend.fields.PolymorphicEmbeddedModelArrayField")
         self.assertEqual(args, [])
         self.assertEqual(kwargs, {"embedded_models": ["Dog"], "null": True})
@@ -59,6 +61,25 @@ class ModelTests(TestCase):
         Owner.objects.create(name="Bob")
         owner = Owner.objects.get(name="Bob")
         self.assertIsNone(owner.pets)
+
+    def test_missing_field_in_data(self):
+        """
+        Loading a model with a PolymorphicEmbeddedModelArrayField that has a
+        missing subfield (e.g. data not written by Django) that uses a database
+        converter (in this case, weight is a DecimalField) doesn't crash.
+        """
+        Owner.objects.create(name="Bob", pets=[Cat(name="Phoebe", weight="3.5")])
+        connection.database.model_fields__owner.update_many({}, {"$unset": {"pets.$[].weight": ""}})
+        self.assertIsNone(Owner.objects.first().pets[0].weight)
+
+    def test_embedded_model_field_respects_db_column(self):
+        """
+        EmbeddedModel data respects Field.db_column. In this case, Cat.name
+        has db_column="name_".
+        """
+        obj = Owner.objects.create(name="Bob", pets=[Cat(name="Phoebe", weight="3.5")])
+        query = connection.database.model_fields__owner.find({"_id": obj.pk})
+        self.assertEqual(query[0]["pets"][0]["name_"], "Phoebe")
 
 
 class QueryingTests(TestCase):
@@ -155,6 +176,11 @@ class QueryingTests(TestCase):
         with self.assertRaisesMessage(FieldDoesNotExist, msg):
             Owner.objects.filter(pets__xxx=10).first()
 
+    def test_invalid_nested_field(self):
+        msg = "The models of field 'toys' have no field named 'xxx'."
+        with self.assertRaisesMessage(FieldDoesNotExist, msg):
+            Owner.objects.filter(pets__toys__xxx=10).first()
+
     def test_invalid_lookup(self):
         msg = "Unsupported lookup 'return' for PolymorphicEmbeddedModelArrayField of 'CharField'"
         with self.assertRaisesMessage(FieldDoesNotExist, msg):
@@ -176,7 +202,7 @@ class QueryingTests(TestCase):
     def test_nested_lookup(self):
         msg = "Cannot perform multiple levels of array traversal in a query."
         with self.assertRaisesMessage(ValueError, msg):
-            Owner.objects.filter(pets__toys__name="")
+            Owner.objects.filter(pets__toys__brand="")
 
 
 @isolate_apps("model_fields_")

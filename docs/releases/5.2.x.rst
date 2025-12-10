@@ -2,7 +2,7 @@
 Django MongoDB Backend 5.2.x
 ============================
 
-5.2.2
+5.2.4
 =====
 
 *Unreleased*
@@ -16,6 +16,74 @@ Bug fixes
 ---------
 
 - ...
+
+Performance improvements
+------------------------
+
+- Improved ``QuerySet`` join (``$lookup``) performance by pushing complex
+  conditions from the ``WHERE`` (``$match``) clause to the ``$lookup`` stage.
+
+5.2.3
+=====
+
+*November 19, 2025*
+
+Bug fixes
+---------
+
+- Prevented ``QuerySet.union()`` queries from duplicating the ``$project``
+  pipeline.
+- Made :class:`~django.db.models.Value` wrap strings in ``$literal`` to
+  prevent dollar-prefixed strings from being interpreted as expressions.
+  Also wrapped dictionaries and tuples to prevent the same for them.
+- Made model update queries wrap values in ``$literal`` to prevent values from
+  being interpreted as expressions.
+
+Performance improvements
+------------------------
+
+- Simplified ``$lookup`` queries using ``localField`` and ``foreignField``.
+
+5.2.2
+=====
+
+*October 22, 2025*
+
+This release confirms support for Python 3.14. No code changes were required.
+
+New features
+------------
+
+- :class:`.SearchIndex`\'s new ``field_mappings``, ``analyzer``, and
+  ``search_analyzer`` arguments allow creating more complex indexes.
+
+Bug fixes
+---------
+
+- Fixed a ``KeyError`` crash when loading models with ``EmbeddedModel`` fields
+  that use a database converter, if the field isn't present in the data (e.g.
+  data not written by Django, or after a field was added to an existing
+  ``EmbeddedModel``).
+- Made ``EmbeddedModel`` fields respect
+  :attr:`~django.db.models.Field.db_column`.
+- Corrected the search index type of ``EmbeddedModelField`` and
+  ``PolymorphicEmbeddedModelField`` from ``embeddedDocuments`` to ``document``.
+- Fixed ``transaction.atomic()`` crash if the database connection isn't
+  initialized.
+
+Performance improvements
+------------------------
+
+- Continued the query optimization work started in 5.2.1, making queries avoid
+  using  ``$expr`` where possible, so that they can use indexes.
+
+Deprecated features
+-------------------
+
+- ``django_mongodb_backend.utils.parse_uri()`` is deprecated in favor of
+  putting the connection string in ``DATABASES["HOST"]``. See
+  :ref:`the deprecation timeline <parse-uri-deprecation>` for upgrade
+  instructions.
 
 5.2.1
 =====

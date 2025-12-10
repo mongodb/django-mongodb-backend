@@ -28,8 +28,6 @@ Some MongoDB-specific fields are available in ``django_mongodb_backend.forms``.
 
 .. class:: EmbeddedModelArrayField(model, *, prefix, max_num=None, extra_forms=3, **kwargs)
 
-    .. versionadded:: 5.2.0b1
-
     A field which maps to a list of model instances. The field will render as a
     :class:`ModelFormSet <django.forms.models.BaseModelFormSet>`.
 

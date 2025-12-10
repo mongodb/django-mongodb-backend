@@ -5,8 +5,9 @@ from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import models
 from django.db.models.fields.related import lazy_related_operation
 from django.db.models.lookups import Transform
+from django.utils.functional import cached_property
 
-from .. import forms
+from django_mongodb_backend import forms
 
 
 class EmbeddedModelField(models.Field):
@@ -23,10 +24,10 @@ class EmbeddedModelField(models.Field):
         super().__init__(*args, **kwargs)
 
     def db_type(self, connection):
-        return "embeddedDocuments"
+        return "object"
 
     def check(self, **kwargs):
-        from ..models import EmbeddedModel  # noqa: PLC0415
+        from django_mongodb_backend.models import EmbeddedModel  # noqa: PLC0415
 
         errors = super().check(**kwargs)
         if not issubclass(self.embedded_model, EmbeddedModel):
@@ -93,9 +94,9 @@ class EmbeddedModelField(models.Field):
             return value
         instance = self.embedded_model(
             **{
-                field.attname: field.to_python(value[field.attname])
+                field.attname: field.to_python(value[field.column])
                 for field in self.embedded_model._meta.fields
-                if field.attname in value
+                if field.column in value
             }
         )
         instance._state.adding = False
@@ -122,7 +123,7 @@ class EmbeddedModelField(models.Field):
             # Exclude unset primary keys (e.g. {'id': None}).
             if field.primary_key and value is None:
                 continue
-            field_values[field.attname] = value
+            field_values[field.column] = value
         # This instance will exist in the database soon.
         embedded_instance._state.adding = False
         return field_values
@@ -132,7 +133,7 @@ class EmbeddedModelField(models.Field):
         if transform:
             return transform
         field = self.embedded_model._meta.get_field(name)
-        return KeyTransformFactory(name, field)
+        return EmbeddedModelTransformFactory(field)
 
     def validate(self, value, model_instance):
         super().validate(value, model_instance)
@@ -156,23 +157,24 @@ class EmbeddedModelField(models.Field):
         )
 
 
-class KeyTransform(Transform):
-    def __init__(self, key_name, ref_field, *args, **kwargs):
+class EmbeddedModelTransform(Transform):
+    def __init__(self, field, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.key_name = str(key_name)
-        self.ref_field = ref_field
+        # self.field aliases self._field via BaseExpression.field returning
+        # self.output_field.
+        self._field = field
 
     def get_lookup(self, name):
-        return self.ref_field.get_lookup(name)
+        return self.field.get_lookup(name)
 
     def get_transform(self, name):
         """
         Validate that `name` is either a field of an embedded model or a
         lookup on an embedded model's field.
         """
-        if transform := self.ref_field.get_transform(name):
+        if transform := self.field.get_transform(name):
             return transform
-        suggested_lookups = difflib.get_close_matches(name, self.ref_field.get_lookups())
+        suggested_lookups = difflib.get_close_matches(name, self.field.get_lookups())
         if suggested_lookups:
             suggested_lookups = " or ".join(suggested_lookups)
             suggestion = f", perhaps you meant {suggested_lookups}?"
@@ -180,34 +182,50 @@ class KeyTransform(Transform):
             suggestion = "."
         raise FieldDoesNotExist(
             f"Unsupported lookup '{name}' for "
-            f"{self.ref_field.__class__.__name__} '{self.ref_field.name}'"
+            f"{self.field.__class__.__name__} '{self.field.name}'"
             f"{suggestion}"
         )
 
-    def as_mql(self, compiler, connection, as_path=False):
+    def _get_target_path(self):
         previous = self
-        key_transforms = []
-        while isinstance(previous, KeyTransform):
-            key_transforms.insert(0, previous.key_name)
+        columns = []
+        while isinstance(previous, EmbeddedModelTransform):
+            columns.insert(0, previous.field.column)
             previous = previous.lhs
-        if as_path:
-            mql = previous.as_mql(compiler, connection, as_path=True)
-            mql_path = ".".join(key_transforms)
-            return f"{mql}.{mql_path}"
-        mql = previous.as_mql(compiler, connection)
-        for key in key_transforms:
-            mql = {"$getField": {"input": mql, "field": key}}
+        return columns, previous
+
+    def as_mql_expr(self, compiler, connection):
+        columns, parent_field = self._get_target_path()
+        mql = parent_field.as_mql(compiler, connection, as_expr=True)
+        for column in columns:
+            mql = {"$getField": {"input": mql, "field": column}}
         return mql
+
+    def as_mql_path(self, compiler, connection):
+        columns, parent_field = self._get_target_path()
+        mql = parent_field.as_mql(compiler, connection)
+        mql_path = ".".join(columns)
+        return f"{mql}.{mql_path}"
 
     @property
     def output_field(self):
-        return self.ref_field
+        return self._field
+
+    @property
+    def can_use_path(self):
+        return self.is_simple_column
+
+    @cached_property
+    def is_simple_column(self):
+        previous = self
+        while isinstance(previous, EmbeddedModelTransform):
+            previous = previous.lhs
+        return previous.is_simple_column
 
 
-class KeyTransformFactory:
-    def __init__(self, key_name, ref_field):
-        self.key_name = key_name
-        self.ref_field = ref_field
+class EmbeddedModelTransformFactory:
+    def __init__(self, field):
+        self.field = field
 
     def __call__(self, *args, **kwargs):
-        return KeyTransform(self.key_name, self.ref_field, *args, **kwargs)
+        return EmbeddedModelTransform(self.field, *args, **kwargs)

@@ -5,11 +5,13 @@ from operator import attrgetter
 from django.core.exceptions import FieldDoesNotExist
 from django.db import connection, models
 from django.db.models.expressions import Value
+from django.db.models.functions import Concat
 from django.test import SimpleTestCase, TestCase
 from django.test.utils import CaptureQueriesContext, isolate_apps
 
 from django_mongodb_backend.fields import ArrayField, EmbeddedModelArrayField
 from django_mongodb_backend.models import EmbeddedModel
+from django_mongodb_backend.test import MongoTestCaseMixin
 
 from .models import Artifact, Audit, Exhibit, Movie, Restoration, Review, Section, Tour
 
@@ -17,7 +19,9 @@ from .models import Artifact, Audit, Exhibit, Movie, Restoration, Review, Sectio
 class MethodTests(SimpleTestCase):
     def test_deconstruct(self):
         field = EmbeddedModelArrayField("Data", null=True)
+        field.name = "field_name"
         name, path, args, kwargs = field.deconstruct()
+        self.assertEqual(name, "field_name")
         self.assertEqual(path, "django_mongodb_backend.fields.EmbeddedModelArrayField")
         self.assertEqual(args, [])
         self.assertEqual(kwargs, {"embedded_model": "Data", "null": True})
@@ -60,8 +64,29 @@ class ModelTests(TestCase):
         movie = Movie.objects.get(title="Lion King")
         self.assertIsNone(movie.reviews)
 
+    def test_missing_field_in_data(self):
+        """
+        Loading a model with an EmbeddedModelArrayField that has a missing
+        subfield (e.g. data not written by Django) that uses a database
+        converter (in this case, rating is an IntegerField) doesn't crash.
+        """
+        Movie.objects.create(title="Lion King", reviews=[Review(title="The best", rating=10)])
+        connection.database.model_fields__movie.update_many(
+            {}, {"$unset": {"reviews.$[].rating": ""}}
+        )
+        self.assertIsNone(Movie.objects.first().reviews[0].rating)
 
-class QueryingTests(TestCase):
+    def test_embedded_model_field_respects_db_column(self):
+        """
+        EmbeddedModel data respects Field.db_column. In this case,
+        Review.title has db_column="title_".
+        """
+        obj = Movie.objects.create(title="Lion King", reviews=[Review(title="Awesome", rating=10)])
+        query = connection.database.model_fields__movie.find({"_id": obj.pk})
+        self.assertEqual(query[0]["reviews"][0]["title_"], "Awesome")
+
+
+class QueryingTests(MongoTestCaseMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.egypt = Exhibit.objects.create(
@@ -155,22 +180,178 @@ class QueryingTests(TestCase):
         cls.audit_3 = Audit.objects.create(section_number=5, reviewed=False)
 
     def test_exact(self):
-        self.assertCountEqual(
-            Exhibit.objects.filter(sections__number=1), [self.egypt, self.wonders]
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(sections__number=1), [self.egypt, self.wonders]
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__exhibit",
+            [{"$match": {"sections.number": 1}}],
+        )
+
+    def test_exact_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(sections__number=Value(2) - 1), [self.egypt, self.wonders]
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__exhibit",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$anyElementTrue": {
+                                "$ifNull": [
+                                    {
+                                        "$map": {
+                                            "input": "$sections",
+                                            "as": "item",
+                                            "in": {
+                                                "$eq": [
+                                                    "$$item.number",
+                                                    {
+                                                        "$subtract": [
+                                                            {"$literal": 2},
+                                                            {"$literal": 1},
+                                                        ]
+                                                    },
+                                                ]
+                                            },
+                                        }
+                                    },
+                                    [],
+                                ]
+                            }
+                        }
+                    }
+                }
+            ],
         )
 
     def test_array_index(self):
-        self.assertCountEqual(
-            Exhibit.objects.filter(sections__0__number=1),
-            [self.egypt, self.wonders],
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(sections__0__number=1),
+                [self.egypt, self.wonders],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__exhibit",
+            [{"$match": {"sections.0.number": 1}}],
+        )
+
+    def test_array_index_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(sections__0__number=Value(2) - 1),
+                [self.egypt, self.wonders],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__exhibit",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$eq": [
+                                {
+                                    "$getField": {
+                                        "input": {"$arrayElemAt": ["$sections", 0]},
+                                        "field": "number",
+                                    }
+                                },
+                                {"$subtract": [{"$literal": 2}, {"$literal": 1}]},
+                            ]
+                        }
+                    }
+                }
+            ],
         )
 
     def test_nested_array_index(self):
-        self.assertCountEqual(
-            Exhibit.objects.filter(
-                main_section__artifacts__restorations__0__restored_by="Zacarias"
-            ),
-            [self.lost_empires],
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(
+                    main_section__artifacts__restorations__0__restored_by="Zacarias"
+                ),
+                [self.lost_empires],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__exhibit",
+            [{"$match": {"main_section.artifacts.restorations.0.restored_by": "Zacarias"}}],
+        )
+
+    def test_nested_array_index_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(
+                    main_section__artifacts__restorations__0__restored_by=Concat(
+                        Value("Z"), Value("acarias")
+                    )
+                ),
+                [self.lost_empires],
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__exhibit",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$anyElementTrue": {
+                                "$ifNull": [
+                                    {
+                                        "$map": {
+                                            "input": {
+                                                "$getField": {
+                                                    "input": "$main_section",
+                                                    "field": "artifacts",
+                                                }
+                                            },
+                                            "as": "item",
+                                            "in": {
+                                                "$eq": [
+                                                    {
+                                                        "$getField": {
+                                                            "input": {
+                                                                "$arrayElemAt": [
+                                                                    "$$item.restorations",
+                                                                    0,
+                                                                ]
+                                                            },
+                                                            "field": "restored_by",
+                                                        }
+                                                    },
+                                                    {
+                                                        "$concat": [
+                                                            {
+                                                                "$ifNull": [
+                                                                    {"$literal": "Z"},
+                                                                    {"$literal": ""},
+                                                                ]
+                                                            },
+                                                            {
+                                                                "$ifNull": [
+                                                                    {"$literal": "acarias"},
+                                                                    {"$literal": ""},
+                                                                ]
+                                                            },
+                                                        ]
+                                                    },
+                                                ]
+                                            },
+                                        }
+                                    },
+                                    [],
+                                ]
+                            }
+                        }
+                    }
+                }
+            ],
         )
 
     def test_array_slice(self):
@@ -184,7 +365,21 @@ class QueryingTests(TestCase):
             kwargs = {f"main_section__artifacts__metadata__origin__{lookup}": ["Pergamon", "Egypt"]}
             with CaptureQueriesContext(connection) as captured_queries:
                 self.assertCountEqual(Exhibit.objects.filter(**kwargs), [])
-                self.assertIn(f"'field': '{lookup}'", captured_queries[0]["sql"])
+            query = captured_queries[0]["sql"]
+            self.assertAggregateQuery(
+                query,
+                "model_fields__exhibit",
+                [
+                    {
+                        "$match": {
+                            f"main_section.artifacts.metadata.origin.{lookup}": [
+                                "Pergamon",
+                                "Egypt",
+                            ]
+                        }
+                    }
+                ],
+            )
 
     def test_len(self):
         self.assertCountEqual(Exhibit.objects.filter(sections__len=10), [])
@@ -259,6 +454,11 @@ class QueryingTests(TestCase):
         with self.assertRaisesMessage(FieldDoesNotExist, msg):
             Exhibit.objects.filter(sections__section__in=[10]).first()
 
+    def test_invalid_nested_field(self):
+        msg = "Artifact has no field named 'xx'"
+        with self.assertRaisesMessage(FieldDoesNotExist, msg):
+            Exhibit.objects.filter(sections__artifacts__xx=10).first()
+
     def test_invalid_lookup(self):
         msg = "Unsupported lookup 'return' for EmbeddedModelArrayField of 'IntegerField'"
         with self.assertRaisesMessage(FieldDoesNotExist, msg):
@@ -284,8 +484,16 @@ class QueryingTests(TestCase):
 
     def test_foreign_field_exact(self):
         """Querying from a foreign key to an EmbeddedModelArrayField."""
-        qs = Tour.objects.filter(exhibit__sections__number=1)
-        self.assertCountEqual(qs, [self.egypt_tour, self.wonders_tour])
+        with self.assertNumQueries(1) as ctx:
+            qs = Tour.objects.filter(exhibit__sections__number=1)
+            self.assertCountEqual(qs, [self.egypt_tour, self.wonders_tour])
+        self.assertNotIn("anyElementTrue", ctx.captured_queries[0]["sql"])
+
+    def test_foreign_field_exact_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            qs = Tour.objects.filter(exhibit__sections__number=Value(2) - Value(1))
+            self.assertCountEqual(qs, [self.egypt_tour, self.wonders_tour])
+        self.assertIn("anyElementTrue", ctx.captured_queries[0]["sql"])
 
     def test_foreign_field_with_slice(self):
         qs = Tour.objects.filter(exhibit__sections__0_2__number__in=[1, 2])
