@@ -56,34 +56,21 @@ def wrap_in(function):
 def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr):  # noqa: ARG001
     return [
         {
-            "$facet": {
-                "group": [
-                    {
-                        "$group": {
-                            "_id": None,
-                            "tmp_name": {
-                                "$addToSet": expr.as_mql(compiler, connection, as_expr=True)
-                            },
-                        }
-                    }
-                ]
+            "$group": {
+                "_id": None,
+                # Use a temporary name to support field_name="_id".
+                "subquery_results": {"$addToSet": expr.as_mql(compiler, connection, as_expr=True)},
             }
         },
-        {
-            "$project": {
-                field_name: {
-                    "$ifNull": [
-                        {
-                            "$getField": {
-                                "input": {"$arrayElemAt": ["$group", 0]},
-                                "field": "tmp_name",
-                            }
-                        },
-                        [],
-                    ]
-                }
-            }
-        },
+        # Workaround for https://jira.mongodb.org/browse/SERVER-114196:
+        # $$NOW becomes unavailable after $unionWith, so it must be stored
+        # beforehand to ensure it remains accessible later in the pipeline.
+        {"$addFields": {"__now": "$$NOW"}},
+        # Add an extra empty document to handle default values on empty
+        # results.
+        {"$unionWith": {"pipeline": [{"$documents": [{"subquery_results": []}]}]}},
+        {"$limit": 1},
+        {"$project": {field_name: "$subquery_results"}},
     ]
 
 
