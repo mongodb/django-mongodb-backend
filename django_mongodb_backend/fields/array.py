@@ -310,37 +310,23 @@ class ArrayOverlap(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
 
     def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr):
         return [
+            {"$project": {"subquery_results": expr.as_mql(compiler, connection, as_expr=True)}},
+            {"$unwind": "$subquery_results"},
             {
-                "$facet": {
-                    "group": [
-                        {"$project": {"tmp_name": expr.as_mql(compiler, connection, as_expr=True)}},
-                        {
-                            "$unwind": "$tmp_name",
-                        },
-                        {
-                            "$group": {
-                                "_id": None,
-                                "tmp_name": {"$addToSet": "$tmp_name"},
-                            }
-                        },
-                    ]
+                "$group": {
+                    "_id": None,
+                    "subquery_results": {"$addToSet": "$subquery_results"},
                 }
             },
-            {
-                "$project": {
-                    field_name: {
-                        "$ifNull": [
-                            {
-                                "$getField": {
-                                    "input": {"$arrayElemAt": ["$group", 0]},
-                                    "field": "tmp_name",
-                                }
-                            },
-                            [],
-                        ]
-                    }
-                }
-            },
+            # Workaround for https://jira.mongodb.org/browse/SERVER-114196:
+            # $$NOW becomes unavailable after $unionWith, so it must be stored
+            # beforehand to ensure it remains accessible later in the pipeline.
+            {"$addFields": {"__now": "$$NOW"}},
+            # Add an extra empty document to handle default values on empty
+            # results.
+            {"$unionWith": {"pipeline": [{"$documents": [{"subquery_results": []}]}]}},
+            {"$limit": 1},
+            {"$project": {field_name: "$subquery_results"}},
         ]
 
     def as_mql_expr(self, compiler, connection):

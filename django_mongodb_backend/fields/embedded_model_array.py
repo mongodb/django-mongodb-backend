@@ -150,44 +150,28 @@ class EmbeddedModelArrayFieldIn(EmbeddedModelArrayFieldBuiltinLookup, lookups.In
         # structure of EmbeddedModelArrayField on the RHS behaves similar to
         # ArrayField.
         return [
+            {"$project": {"subquery_results": expr.as_mql(compiler, connection, as_expr=True)}},
+            # Use an $unwind followed by a $group to concatenate all the values
+            # from the RHS subquery.
+            {"$unwind": "$subquery_results"},
+            # The $group stage collects values into an array using $addToSet.
+            # The use of {_id: null} results in a single grouped array, but
+            # because arrays from multiple documents are aggregated, the result
+            # is a list of lists.
             {
-                "$facet": {
-                    "gathered_data": [
-                        {"$project": {"tmp_name": expr.as_mql(compiler, connection, as_expr=True)}},
-                        # To concatenate all the values from the RHS subquery,
-                        # use an $unwind followed by a $group.
-                        {
-                            "$unwind": "$tmp_name",
-                        },
-                        # The $group stage collects values into an array using
-                        # $addToSet. The use of {_id: null} results in a
-                        # single grouped array. However, because arrays from
-                        # multiple documents are aggregated, the result is a
-                        # list of lists.
-                        {
-                            "$group": {
-                                "_id": None,
-                                "tmp_name": {"$addToSet": "$tmp_name"},
-                            }
-                        },
-                    ]
+                "$group": {
+                    "_id": None,
+                    "subquery_results": {"$addToSet": "$subquery_results"},
                 }
             },
-            {
-                "$project": {
-                    field_name: {
-                        "$ifNull": [
-                            {
-                                "$getField": {
-                                    "input": {"$arrayElemAt": ["$gathered_data", 0]},
-                                    "field": "tmp_name",
-                                }
-                            },
-                            [],
-                        ]
-                    }
-                }
-            },
+            # Workaround for https://jira.mongodb.org/browse/SERVER-114196:
+            # $$NOW becomes unavailable after $unionWith, so it must be stored
+            # beforehand to ensure it remains accessible later in the pipeline.
+            {"$addFields": {"__now": "$$NOW"}},
+            # Add a dummy document in case of an empty result.
+            {"$unionWith": {"pipeline": [{"$documents": [{"subquery_results": []}]}]}},
+            {"$limit": 1},
+            {"$project": {field_name: "$subquery_results"}},
         ]
 
 
