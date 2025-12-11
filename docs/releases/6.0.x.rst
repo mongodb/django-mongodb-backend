@@ -5,7 +5,7 @@ Django MongoDB Backend 6.0.x
 6.0.0
 =====
 
-*Unreleased*
+*December 11, 2025*
 
 Initial release from the state of :ref:`django-mongodb-backend 5.2.3
 <django-mongodb-backend-5.2.3>`.
