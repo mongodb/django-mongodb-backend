@@ -156,14 +156,12 @@ def model_has_encrypted_fields(model):
     """
     from django_mongodb_backend.fields import EmbeddedModelField  # noqa: PLC0415
 
-    for field in model._meta.fields:
-        if getattr(field, "encrypted", False):
-            return True
-
-        # Recursively check embedded models.
-        if isinstance(field, EmbeddedModelField) and model_has_encrypted_fields(
-            field.embedded_model
-        ):
-            return True
-
-    return False
+    # Recursively check embedded models.
+    return any(
+        getattr(field, "encrypted", False)
+        or (
+            isinstance(field, EmbeddedModelField)
+            and model_has_encrypted_fields(field.embedded_model)
+        )
+        for field in model._meta.fields
+    )

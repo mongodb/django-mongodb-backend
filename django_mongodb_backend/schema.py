@@ -534,9 +534,8 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                 # An EmbeddedModelField may not have any encrypted fields.
                 if embedded_result:
                     field_list.extend(embedded_result["fields"])
-                continue
             # Populate data for encrypted field.
-            if getattr(field, "encrypted", False):
+            elif getattr(field, "encrypted", False):
                 if create_data_keys:
                     data_key = connection.client_encryption.create_data_key(
                         kms_provider=kms_provider,
