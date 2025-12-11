@@ -260,10 +260,23 @@ Then run the migrations with:
     you change the definition of an encrypted field, for example, to make it
     queryable.
 
+Creating encrypted data
+=======================
+
 Now create and manipulate instances of the data just like any other Django
 model data. The fields will automatically handle encryption and decryption,
 ensuring that :ref:`sensitive data is stored securely in the database
 <manual:qe-features-encryption-at-rest>`.
+
+Here's an example of creating a new ``Patient`` instance with encrypted fields:
+
+.. code-block:: pycon
+
+    >>> from myapp.models import Patient, PatientRecord, Billing
+    >>> billing = Billing(cc_type="Visa", cc_number="4111111111111111")
+    >>> record = PatientRecord(ssn="123-45-6789", billing=billing, bill_amount=250.75)
+    >>> patient = Patient(patient_name="John Doe", patient_id=1001, patient_record=record)
+    >>> patient.save()
 
 Querying encrypted fields
 =========================
