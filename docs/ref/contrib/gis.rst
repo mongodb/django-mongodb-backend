@@ -18,7 +18,18 @@ Each model field stores data as :doc:`GeoJSON objects
 All fields have a :doc:`2dsphere index
 <manual:core/indexes/index-types/geospatial/2dsphere>` created on them.
 
-You can use any of the :ref:`geospatial query operators
+The following :doc:`GIS QuerySet APIs <django:ref/contrib/gis/geoquerysets>` are supported:
+- :meth:`~django.contrib.gis.db.models.query.GeoQuerySet.contains`
+- :meth:`~django.contrib.gis.db.models.query.GeoQuerySet.intersects`
+- :meth:`~django.contrib.gis.db.models.query.GeoQuerySet.disjoint`
+- :meth:`~django.contrib.gis.db.models.query.GeoQuerySet.within`
+- :meth:`~django.contrib.gis.db.models.query.GeoQuerySet.distance_gt`
+- :meth:`~django.contrib.gis.db.models.query.GeoQuerySet.distance_gte`
+- :meth:`~django.contrib.gis.db.models.query.GeoQuerySet.distance_lt`
+- :meth:`~django.contrib.gis.db.models.query.GeoQuerySet.distance_lte`
+- :meth:`~django.contrib.gis.db.models.query.GeoQuerySet.dwithin`
+
+You can also use any of the :ref:`geospatial query operators
 <manual:geospatial-query-operators>` or the :ref:`geospatial aggregation
 pipeline stage <geospatial-aggregation>` in :meth:`.raw_aggregate` queries.
 
@@ -39,6 +50,5 @@ Limitations
   (:attr:`BaseSpatialField.srid
   <django.contrib.gis.db.models.BaseSpatialField.srid>`)
   besides `4326 (WGS84) <https://spatialreference.org/ref/epsg/4326/>`_.
-- None of the :doc:`GIS QuerySet APIs <django:ref/contrib/gis/geoquerysets>`
-  (lookups, aggregates, and database functions) are supported.
+- QuerySet APIs do not support subqueries or expressions.
 - :class:`~django.contrib.gis.db.models.RasterField` isn't supported.
