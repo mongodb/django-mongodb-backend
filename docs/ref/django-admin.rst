@@ -19,7 +19,7 @@ Available commands
 ``showencryptedfieldsmap``
 --------------------------
 
-.. versionadded:: 6.0.0
+.. versionadded:: 6.0.1
 
 .. django-admin:: showencryptedfieldsmap
 

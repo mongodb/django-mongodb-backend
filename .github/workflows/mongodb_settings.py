@@ -1,4 +1,4 @@
-# Settings for django_mongodb_backend/tests when encryption isn't supported.
+# Settings for django_mongodb_backend/tests.
 from django_settings import *  # noqa: F403
 
 DATABASES["encrypted"] = {}  # noqa: F405
