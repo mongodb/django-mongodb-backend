@@ -3,16 +3,14 @@ from unittest import mock
 from django.core import checks
 from django.db import connection, models
 from django.test import TestCase
-from django.test.utils import isolate_apps, override_system_checks
+from django.test.utils import isolate_apps
 
-from django_mongodb_backend.checks import check_indexes
 from django_mongodb_backend.fields import ArrayField, ObjectIdField
 from django_mongodb_backend.indexes import SearchIndex, VectorSearchIndex
 from django_mongodb_backend.models import EmbeddedModel
 
 
-@isolate_apps("indexes_", attr_name="apps")
-@override_system_checks([check_indexes])
+@isolate_apps("indexes_")
 @mock.patch.object(connection.features, "supports_atlas_search", False)
 class UnsupportedSearchIndexesTests(TestCase):
     def test_search_requires_atlas_search_support(self):
@@ -22,9 +20,8 @@ class UnsupportedSearchIndexesTests(TestCase):
             class Meta:
                 indexes = [SearchIndex(fields=["title"])]
 
-        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
         self.assertEqual(
-            errors,
+            Article.check(databases={"default"}),
             [
                 checks.Warning(
                     "This MongoDB server does not support SearchIndex.",
@@ -46,9 +43,8 @@ class UnsupportedSearchIndexesTests(TestCase):
             class Meta:
                 indexes = [VectorSearchIndex(fields=["title", "vector"], similarities="cosine")]
 
-        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
         self.assertEqual(
-            errors,
+            Article.check(databases={"default"}),
             [
                 checks.Warning(
                     "This MongoDB server does not support VectorSearchIndex.",
@@ -63,8 +59,7 @@ class UnsupportedSearchIndexesTests(TestCase):
         )
 
 
-@isolate_apps("indexes_", attr_name="apps")
-@override_system_checks([check_indexes])
+@isolate_apps("indexes_")
 @mock.patch.object(connection.features, "supports_atlas_search", True)
 class InvalidVectorSearchIndexesTests(TestCase):
     def test_requires_size(self):
@@ -74,9 +69,8 @@ class InvalidVectorSearchIndexesTests(TestCase):
             class Meta:
                 indexes = [VectorSearchIndex(fields=["title_embedded"], similarities="cosine")]
 
-        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
         self.assertEqual(
-            errors,
+            Article.check(databases={"default"}),
             [
                 checks.Error(
                     "VectorSearchIndex requires 'size' on field 'title_embedded'.",
@@ -88,14 +82,13 @@ class InvalidVectorSearchIndexesTests(TestCase):
 
     def test_requires_float_inner_field(self):
         class Article(models.Model):
-            title_embedded = ArrayField(models.CharField(), size=30)
+            title_embedded = ArrayField(models.CharField(max_length=1), size=30)
 
             class Meta:
                 indexes = [VectorSearchIndex(fields=["title_embedded"], similarities="cosine")]
 
-        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
         self.assertEqual(
-            errors,
+            Article.check(databases={"default"}),
             [
                 checks.Error(
                     "VectorSearchIndex requires the base field of ArrayField "
@@ -114,9 +107,8 @@ class InvalidVectorSearchIndexesTests(TestCase):
             class Meta:
                 indexes = [VectorSearchIndex(fields=["data", "vector"], similarities="cosine")]
 
-        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
         self.assertEqual(
-            errors,
+            Article.check(databases={"default"}),
             [
                 checks.Error(
                     "VectorSearchIndex does not support field 'data' (JSONField).",
@@ -139,9 +131,8 @@ class InvalidVectorSearchIndexesTests(TestCase):
                     )
                 ]
 
-        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
         self.assertEqual(
-            errors,
+            Article.check(databases={"default"}),
             [
                 checks.Error(
                     "VectorSearchIndex requires the same number of similarities "
@@ -160,8 +151,7 @@ class InvalidVectorSearchIndexesTests(TestCase):
             class Meta:
                 indexes = [VectorSearchIndex(fields=["vector"], similarities="cosine")]
 
-        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
-        self.assertEqual(errors, [])
+        self.assertEqual(Article.check(databases={"default"}), [])
 
     def test_valid_fields(self):
         class Data(EmbeddedModel):
@@ -193,8 +183,7 @@ class InvalidVectorSearchIndexesTests(TestCase):
                     )
                 ]
 
-        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
-        self.assertEqual(errors, [])
+        self.assertEqual(SearchIndexTestModel.check(databases={"default"}), [])
 
     def test_requires_vector_field(self):
         class NoSearchVectorModel(models.Model):
@@ -207,9 +196,8 @@ class InvalidVectorSearchIndexesTests(TestCase):
                     )
                 ]
 
-        errors = checks.run_checks(app_configs=self.apps.get_app_configs(), databases={"default"})
         self.assertEqual(
-            errors,
+            NoSearchVectorModel.check(databases={"default"}),
             [
                 checks.Error(
                     "VectorSearchIndex requires at least one ArrayField to store vector data.",
