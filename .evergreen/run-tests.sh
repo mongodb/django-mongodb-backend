@@ -2,11 +2,22 @@
 
 set -eux
 
-# Install django-mongodb-backend
+# Export secrets as environment variables
+if [[ "${1:-}" == "encryption" ]]; then
+    . ../secrets-export.sh
+fi
+
+# Set up virtual environment
 /opt/python/3.12/bin/python3 -m venv venv
 . venv/bin/activate
 python -m pip install -U pip
-pip install -e .
+
+# Conditionally install encryption extra if "encryption" arg is passed
+if [[ "${1:-}" == "encryption" ]]; then
+    pip install -e '.[encryption]'
+else
+    pip install -e .
+fi
 
 # Install django and test dependencies
 git clone --branch mongodb-6.0.x https://github.com/mongodb-forks/django django_repo
