@@ -15,7 +15,7 @@ New features
 Bug fixes
 ---------
 
-- ...
+- Prevented ``Index`` system checks from running twice.
 
 Performance improvements
 ------------------------
