@@ -598,16 +598,10 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         return skips
 
     @cached_property
-    def is_mongodb_6_3(self):
-        return self.connection.get_database_version() >= (6, 3)
-
-    @cached_property
     def supports_atlas_search(self):
         """Does the server support Atlas search queries and search indexes?"""
         try:
-            # An existing collection must be used on MongoDB 6, otherwise
-            # the operation will not error when unsupported.
-            self.connection.get_collection("django_migrations").list_search_indexes()
+            self.connection.get_collection("__null").list_search_indexes()
         except OperationFailure:
             # It would be best to check the error message or error code to
             # avoid hiding some other exception, but the message/code varies
