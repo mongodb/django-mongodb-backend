@@ -598,10 +598,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         return skips
 
     @cached_property
-    def is_mongodb_6_3(self):
-        return self.connection.get_database_version() >= (6, 3)
-
-    @cached_property
     def supports_atlas_search(self):
         """Does the server support Atlas search queries and search indexes?"""
         try:
