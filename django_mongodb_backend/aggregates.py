@@ -70,7 +70,7 @@ def count(self, compiler, connection, resolve_inner_expression=False):
         if resolve_inner_expression:
             return lhs_mql
         return {"$sum": lhs_mql}
-    # Normalize empty documents (introduced upstream) to an empty set fallback.
+    # Normalize empty documents (introduced by aggregation wrapping) to an empty set fallback.
     agg_expression = Coalesce(agg_expression, [])
     # If distinct=True or resolve_inner_expression=False, sum the size of the
     # set.
