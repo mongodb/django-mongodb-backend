@@ -17,6 +17,11 @@ Bug fixes
 
 - ...
 
+Performance improvements
+------------------------
+
+- Removed usage of ``$facet`` from aggregate queries.
+
 6.0.0
 =====
 

@@ -634,6 +634,21 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
             self.objs[:3],
         )
 
+    def test_overlap_empty_values(self):
+        qs = NullableIntegerArrayModel.objects.filter(order__lt=-30)
+        self.assertCountEqual(
+            NullableIntegerArrayModel.objects.filter(
+                field__overlap=qs.values_list("field"),
+            ),
+            [],
+        )
+        self.assertCountEqual(
+            NullableIntegerArrayModel.objects.filter(
+                field__overlap=qs.values("field"),
+            ),
+            [],
+        )
+
     def test_index(self):
         self.assertSequenceEqual(
             NullableIntegerArrayModel.objects.filter(field__0=2), self.objs[1:3]

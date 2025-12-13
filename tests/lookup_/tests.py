@@ -137,28 +137,15 @@ class LookupMQLTests(MongoTestCaseMixin, TestCase):
                         "let": {},
                         "pipeline": [
                             {"$match": {"num": {"$gt": 2}}},
+                            {"$group": {"_id": None, "subquery_results": {"$addToSet": "$num"}}},
+                            {"$addFields": {"__now": "$$NOW"}},
                             {
-                                "$facet": {
-                                    "group": [
-                                        {"$group": {"_id": None, "tmp_name": {"$addToSet": "$num"}}}
-                                    ]
+                                "$unionWith": {
+                                    "pipeline": [{"$documents": [{"subquery_results": []}]}]
                                 }
                             },
-                            {
-                                "$project": {
-                                    "num": {
-                                        "$ifNull": [
-                                            {
-                                                "$getField": {
-                                                    "input": {"$arrayElemAt": ["$group", 0]},
-                                                    "field": "tmp_name",
-                                                }
-                                            },
-                                            [],
-                                        ]
-                                    }
-                                }
-                            },
+                            {"$limit": 1},
+                            {"$project": {"num": "$subquery_results"}},
                         ],
                     }
                 },
