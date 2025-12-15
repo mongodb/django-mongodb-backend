@@ -45,7 +45,7 @@ intersphinx_mapping = {
         "https://docs.djangoproject.com/en/6.0/",
         "https://docs.djangoproject.com/en/6.0/_objects/",
     ),
-    "mongodb": ("https://www.mongodb.com/docs/languages/python/django-mongodb/v5.2/", None),
+    "mongodb": ("https://www.mongodb.com/docs/languages/python/django-mongodb/v6.0/", None),
     "pymongo": ("https://www.mongodb.com/docs/languages/python/pymongo-driver/current/", None),
     "pymongo-api": ("https://pymongo.readthedocs.io/en/stable/", None),
     "python": ("https://docs.python.org/3/", None),
