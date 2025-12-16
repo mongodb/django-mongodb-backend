@@ -63,7 +63,7 @@ functions:
       params:
         file_location: src/report.json
 
-  send dashboard data:
+  "send dashboard data":
     - command: subprocess.exec
       params:
         binary: bash
