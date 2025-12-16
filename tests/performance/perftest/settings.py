@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-import os
 from pathlib import Path
 
 import django_mongodb_backend
@@ -57,22 +56,13 @@ WSGI_APPLICATION = "perftest.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-USER = os.environ.get("ATLAS_DEV_USER")
-PASSWORD = os.environ.get("ATLAS_DEV_PASSWORD")
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django_mongodb_backend",
-#         "HOST": f"mongodb+srv://{USER}:{PASSWORD}@intpython736.oztdp.mongodb-dev.net/?retryWrites=true&w=majority&appName=INTPYTHON736",
-#         "NAME": "benchmarking",
-#         "PORT": 27017,
-#     },
-# }
-
-settings = django_mongodb_backend.parse_uri(
-    "mongodb://localhost:27017/benchmarking",
-)
 DATABASES = {
-    "default": settings,
+    "default": {
+        "ENGINE": "django_mongodb_backend",
+        "HOST": "mongodb://localhost:27017/benchmarking",
+        "NAME": "benchmarking",
+        "PORT": 27017,
+    },
 }
 
 # Password validation

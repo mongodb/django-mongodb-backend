@@ -5,6 +5,10 @@ import shlex
 import subprocess
 import sys
 from datetime import datetime
+<<<<<<< Updated upstream
+=======
+from pathlib import Path
+>>>>>>> Stashed changes
 
 LOGGER = logging.getLogger("test")
 logging.basicConfig(level=logging.INFO, format="%(levelname)-8s %(message)s")
@@ -48,8 +52,19 @@ def run_command(cmd: str | list[str], **kwargs) -> None:
     LOGGER.info("Running command '%s'... done.", cmd)
 
 
-os.chdir("tests/performance")
-
 start_time = datetime.now()
 run_command(["python manage.py test"])
+ROOT = Path(__file__).absolute().parent.parent
+data_dir = ROOT / "specifications/source/benchmarking/odm-data"
+if not data_dir.exists():
+    run_command("git clone --depth 1 https://github.com/mongodb/specifications.git")
+    run_command("tar xf flat_models.tgz", cwd=data_dir)
+    run_command("tar xf nested_models.tgz", cwd=data_dir)
+
+os.chdir("tests/performance")
+start_time = datetime.now()
+run_command(
+    ["python manage.py test"],
+    env=os.environ | {"TEST_PATH": str(data_dir), "OUTPUT_FILE": str(ROOT / "results.json")},
+)
 handle_perf(start_time)

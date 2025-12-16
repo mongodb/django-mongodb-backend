@@ -168,7 +168,7 @@ class SmallFlatDocTest(PerformanceTest):
 
     def setUp(self):
         super().setUp()
-        with open(Path(TEST_PATH) / Path("flat_models") / self.dataset) as data:  # noqa: PTH123
+        with open(Path(TEST_PATH) / Path("flat-models") / self.dataset) as data:  # noqa: PTH123
             self.document = json_util.loads(data.read())
 
         self.data_size = len(encode(self.document)) * NUM_DOCS
@@ -251,7 +251,7 @@ class LargeFlatDocTest(PerformanceTest):
 
     def setUp(self):
         super().setUp()
-        with open(Path(TEST_PATH) / Path("flat_models") / self.dataset) as data:  # noqa: PTH123
+        with open(Path(TEST_PATH) / Path("flat-models") / self.dataset) as data:  # noqa: PTH123
             self.document = json_util.loads(data.read())
 
         self.data_size = len(encode(self.document)) * NUM_DOCS
@@ -292,7 +292,7 @@ class LargeNestedDocTest(PerformanceTest):
 
     def setUp(self):
         super().setUp()
-        with open(Path(TEST_PATH) / Path("nested_models") / self.dataset) as data:  # noqa: PTH123
+        with open(Path(TEST_PATH) / Path("nested-models") / self.dataset) as data:  # noqa: PTH123
             self.document = json_util.loads(data.read())
 
         self.data_size = len(encode(self.document)) * NUM_DOCS
