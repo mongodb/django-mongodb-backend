@@ -39,6 +39,7 @@ from django.db.models.functions.text import (
     Trim,
     Upper,
 )
+from django.db.models.functions.uuid import UUID4, UUID7
 
 from .query_utils import process_lhs
 
@@ -279,6 +280,14 @@ def trunc_time(self, compiler, connection):
     }
 
 
+def uuid4(self, compiler, connection, as_expr=False):  # noqa: ARG001
+    raise NotSupportedError("UUID4 is not supported on this database backend.")
+
+
+def uuid7(self, compiler, connection, as_expr=False):  # noqa: ARG001
+    raise NotSupportedError("UUID7 is not supported on this database backend.")
+
+
 def register_functions():
     Cast.as_mql_expr = cast
     Concat.as_mql_expr = concat
@@ -306,3 +315,5 @@ def register_functions():
     TruncDate.as_mql_expr = trunc_date
     TruncTime.as_mql_expr = trunc_time
     Upper.as_mql_expr = preserve_null("toUpper")
+    UUID4.as_mql = uuid4
+    UUID7.as_mql = uuid7
