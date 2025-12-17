@@ -244,13 +244,14 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     @cached_property
     def client_encryption(self):
-        auto_encryption_opts = self.connection._options.auto_encryption_opts
-        return ClientEncryption(
-            auto_encryption_opts._kms_providers,
-            auto_encryption_opts._key_vault_namespace,
-            self.connection,
-            self.connection.codec_options,
-        )
+        if auto_encryption_opts := self.connection._options.auto_encryption_opts:
+            return ClientEncryption(
+                auto_encryption_opts._kms_providers,
+                auto_encryption_opts._key_vault_namespace,
+                self.connection,
+                self.connection.codec_options,
+            )
+        return None
 
     @cached_property
     def database(self):
