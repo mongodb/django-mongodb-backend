@@ -129,7 +129,8 @@ class CommandTests(EncryptionTestCase):
         finally:
             # Replace the deleted key.
             kms_provider = next(iter(kms_providers.keys()))
-            master_key = connection.settings_dict["KMS_CREDENTIALS"][kms_provider]
+            credentials = connection.settings_dict.get("KMS_CREDENTIALS")
+            master_key = credentials[kms_provider] if credentials else None
             connection.client_encryption.create_data_key(
                 kms_provider=kms_provider,
                 master_key=master_key,

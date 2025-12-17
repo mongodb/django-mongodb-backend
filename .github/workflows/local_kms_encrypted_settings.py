@@ -18,7 +18,6 @@ DATABASES["encrypted"] = {  # noqa: F405
         ),
         "directConnection": True,
     },
-    "KMS_CREDENTIALS": {"local": {}},
 }
 
 
