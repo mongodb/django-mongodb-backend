@@ -5,10 +5,7 @@ import shlex
 import subprocess
 import sys
 from datetime import datetime
-<<<<<<< Updated upstream
-=======
 from pathlib import Path
->>>>>>> Stashed changes
 
 LOGGER = logging.getLogger("test")
 logging.basicConfig(level=logging.INFO, format="%(levelname)-8s %(message)s")
