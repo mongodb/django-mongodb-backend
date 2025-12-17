@@ -244,9 +244,7 @@ class FieldTests(EncryptionTestCase):
 
 class QueryTests(EncryptionTestCase):
     def test_aggregate_avg(self):
-        msg = (
-            "csfle \"analyze_query\" failed: Accumulator '$avg' cannot aggregate encrypted fields."
-        )
+        msg = "Accumulator '$avg' cannot aggregate encrypted fields."
         with self.assertRaisesMessage(DatabaseError, msg):
             list(IntegerModel.objects.aggregate(Avg("value")))
 
