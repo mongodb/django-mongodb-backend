@@ -50,7 +50,6 @@ def run_command(cmd: str | list[str], **kwargs) -> None:
 
 
 start_time = datetime.now()
-run_command(["python manage.py test"])
 ROOT = Path(__file__).absolute().parent.parent
 data_dir = ROOT / "specifications/source/benchmarking/odm-data"
 if not data_dir.exists():
