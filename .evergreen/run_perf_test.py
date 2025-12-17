@@ -61,6 +61,6 @@ os.chdir("tests/performance")
 start_time = datetime.now()
 run_command(
     ["python manage.py test"],
-    env=os.environ | {"TEST_PATH": str(data_dir), "OUTPUT_FILE": str(ROOT / "results.json")},
+    env=os.environ | {"TEST_PATH": str(data_dir), "OUTPUT_FILE": "results.json"},
 )
 handle_perf(start_time)
