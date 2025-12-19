@@ -93,7 +93,10 @@ The database name of the key vault must be the same as in ``"NAME"``. The
 vault's collection name can be whatever you wish, but by convention, it's often
 ``__keyVault``.
 
-.. admonition:: Dynamic library path configuration
+Dynamic library path configuration
+----------------------------------
+
+.. admonition:: Pymongocrypt.errors.MongoCryptError
 
    If you encounter the following error:
 
