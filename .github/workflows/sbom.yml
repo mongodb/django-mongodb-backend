@@ -1,0 +1,115 @@
+name: Generate SBOM
+
+# This workflow uses cyclonedx-py and publishes an sbom.json artifact.
+# It runs on manual trigger or when package files change on the target
+# branches, and creates a PR with the updated SBOM.
+# Internal documentation: go/sbom-scope
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: ['main', '5.2.x']
+    paths:
+      - 'pyproject.toml'
+      - 'requirements.txt'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sbom:
+    name: Generate SBOM and Create PR
+    runs-on: ubuntu-latest
+    concurrency:
+      group: sbom-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+      - name: Generate SBOM
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install .
+          pip uninstall -y pip setuptools
+          deactivate
+          python -m venv .venv-sbom
+          source .venv-sbom/bin/activate
+          pip install cyclonedx-bom==7.2.1
+          cyclonedx-py environment --spec-version 1.5 --output-format JSON --output-file sbom-new.json .venv
+          # Add PURL for django-mongodb-backend (local package doesn't get PURL automatically)
+          jq '(.components[] | select(.name == "django-mongodb-backend" and .purl == null)) |= (. + {purl: ("pkg:pypi/django-mongodb-backend@" + .version)})' sbom-new.json > sbom.tmp.json && mv sbom.tmp.json sbom-new.json
+      - name: Download CycloneDX CLI
+        run: |
+          curl -L -s -o /tmp/cyclonedx "https://github.com/CycloneDX/cyclonedx-cli/releases/download/v0.29.1/cyclonedx-linux-x64"
+          chmod +x /tmp/cyclonedx
+      - name: Validate SBOM
+        run: /tmp/cyclonedx validate --input-file sbom-new.json --fail-on-errors
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if [ -f sbom.json ]; then
+            echo "Comparing new SBOM with existing sbom.json..."
+            # Use cyclonedx diff to check for component changes
+            DIFF_OUTPUT=$(/tmp/cyclonedx diff sbom.json sbom-new.json --component-versions)
+
+            # Check if there are meaningful changes (output contains more than just "None")
+            if echo "$DIFF_OUTPUT" | grep -q "^None$"; then
+              echo "No component changes detected (only metadata differs)"
+              echo "Keeping existing sbom.json"
+              rm sbom-new.json
+            else
+              echo "Component changes detected:"
+              echo "$DIFF_OUTPUT"
+              echo "Updating sbom.json"
+              mv sbom-new.json sbom.json
+            fi
+          else
+            echo "No existing sbom.json found, creating initial version"
+            mv sbom-new.json sbom.json
+          fi
+      - name: Cleanup
+        if: always()
+        run: rm -rf .venv .venv-sbom
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: sbom
+          path: sbom.json
+          if-no-files-found: error
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@84ae59a2cdc2258d6fa0732dd66352dddae2a412 # v7.0.9
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'Update SBOM after dependency changes'
+          branch: auto-update-sbom-${{ github.run_id }}
+          delete-branch: true
+          title: 'Update SBOM'
+          body: |
+            ## Automated SBOM Update
+
+            This PR was automatically generated because dependency manifest files changed.
+
+            ### Changes
+            - Updated `sbom.json` to reflect current dependencies
+
+            ### Verification
+            The SBOM was generated using cyclonedx-py with the current Python environment.
+
+            ### Triggered by
+            - Commit: ${{ github.sha }}
+            - Workflow run: ${{ github.run_id }}
+
+            ---
+            _This PR was created automatically by the [SBOM workflow](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})_
+          labels: |
+            sbom
+            automated
+            dependencies
