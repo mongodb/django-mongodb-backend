@@ -228,7 +228,7 @@ class SchemaTests(TestMixin, TransactionTestCase):
     def test_constraints(self):
         """Meta.constraints on an embedded model."""
 
-        class Address(models.Model):
+        class Address(EmbeddedModel):
             unique_constraint_one = models.CharField(max_length=10)
 
             class Meta:
@@ -237,7 +237,7 @@ class SchemaTests(TestMixin, TransactionTestCase):
                     models.UniqueConstraint(fields=["unique_constraint_one"], name="unique_one")
                 ]
 
-        class Author(models.Model):
+        class Author(EmbeddedModel):
             address = EmbeddedModelField(Address)
             unique_constraint_two = models.CharField(max_length=10)
 
@@ -331,7 +331,7 @@ class SchemaTests(TestMixin, TransactionTestCase):
     def test_add_remove_field_unique_together(self):
         """AddField/RemoveField + EmbeddedModelField + Meta.unique_together."""
 
-        class Address(models.Model):
+        class Address(EmbeddedModel):
             unique_together_one = models.CharField(max_length=10)
             unique_together_two = models.CharField(max_length=10)
 
@@ -339,7 +339,7 @@ class SchemaTests(TestMixin, TransactionTestCase):
                 app_label = "schema_"
                 unique_together = [("unique_together_one", "unique_together_two")]
 
-        class Author(models.Model):
+        class Author(EmbeddedModel):
             address = EmbeddedModelField(Address)
             unique_together_three = models.CharField(max_length=10)
             unique_together_four = models.CharField(max_length=10)
@@ -349,8 +349,6 @@ class SchemaTests(TestMixin, TransactionTestCase):
                 unique_together = [("unique_together_three", "unique_together_four")]
 
         class Book(models.Model):
-            author = EmbeddedModelField(Author)
-
             class Meta:
                 app_label = "schema_"
 
@@ -400,14 +398,14 @@ class SchemaTests(TestMixin, TransactionTestCase):
     def test_add_remove_field_indexes(self):
         """AddField/RemoveField + EmbeddedModelField + Meta.indexes."""
 
-        class Address(models.Model):
+        class Address(EmbeddedModel):
             indexed_one = models.CharField(max_length=10)
 
             class Meta:
                 app_label = "schema_"
                 indexes = [models.Index(fields=["indexed_one"])]
 
-        class Author(models.Model):
+        class Author(EmbeddedModel):
             address = EmbeddedModelField(Address)
             indexed_two = models.CharField(max_length=10)
 
@@ -416,8 +414,6 @@ class SchemaTests(TestMixin, TransactionTestCase):
                 indexes = [models.Index(fields=["indexed_two"])]
 
         class Book(models.Model):
-            author = EmbeddedModelField(Author)
-
             class Meta:
                 app_label = "schema_"
 
@@ -459,7 +455,7 @@ class SchemaTests(TestMixin, TransactionTestCase):
     def test_add_remove_field_constraints(self):
         """AddField/RemoveField + EmbeddedModelField + Meta.constraints."""
 
-        class Address(models.Model):
+        class Address(EmbeddedModel):
             unique_constraint_one = models.CharField(max_length=10)
 
             class Meta:
@@ -468,7 +464,7 @@ class SchemaTests(TestMixin, TransactionTestCase):
                     models.UniqueConstraint(fields=["unique_constraint_one"], name="unique_one")
                 ]
 
-        class Author(models.Model):
+        class Author(EmbeddedModel):
             address = EmbeddedModelField(Address)
             unique_constraint_two = models.CharField(max_length=10)
 
@@ -479,8 +475,6 @@ class SchemaTests(TestMixin, TransactionTestCase):
                 ]
 
         class Book(models.Model):
-            author = EmbeddedModelField(Author)
-
             class Meta:
                 app_label = "schema_"
 
