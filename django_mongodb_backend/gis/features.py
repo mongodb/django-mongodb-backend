@@ -45,10 +45,6 @@ class GISFeatures(BaseSpatialFeatures):
                     # migrations don't need to call it, so the check doesn't happen.
                     "gis_tests.gis_migrations.test_operations.NoRasterSupportTests",
                 },
-                "MongoDB doesn't support redundant spatial indexes.": {
-                    # Error: Index already exists with a different name
-                    "gis_tests.geoapp.test_indexes.SchemaIndexesTests.test_index_name",
-                },
                 "GIS lookups not supported.": {
                     "gis_tests.geoapp.tests.GeoModelTest.test_gis_query_as_string",
                     "gis_tests.geoapp.tests.GeoLookupTest.test_gis_lookups_with_complex_expressions",
