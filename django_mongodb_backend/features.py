@@ -443,10 +443,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "db_functions.comparison.test_cast.CastTests.test_cast_from_python_to_datetime",
             "db_functions.comparison.test_cast.CastTests.test_cast_to_duration",
         },
-        "inspectdb is not supported.": {
-            "inspectdb.tests.InspectDBTestCase",
-            "inspectdb.tests.InspectDBTransactionalTests",
-        },
         "DatabaseIntrospection.get_table_description() not supported.": {
             "introspection.tests.IntrospectionTests.test_bigautofield",
             "introspection.tests.IntrospectionTests.test_get_table_description_col_lengths",
