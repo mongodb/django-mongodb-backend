@@ -157,7 +157,8 @@ test_apps = [
             x.name
             for x in (pathlib.Path(__file__).parent.parent.parent.resolve() / "tests").iterdir()
             # Omit GIS tests unless GIS libraries are installed.
-            if x.name != "gis_tests_"
+            # Always omit the performance benchmarking suite.
+            if x.name != "gis_tests_" and x.name != "performance"
         ]
     ),
 ]
