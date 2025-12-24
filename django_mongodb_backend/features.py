@@ -36,6 +36,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     supports_foreign_keys = False
     supports_frame_range_fixed_distance = True
     supports_ignore_conflicts = False
+    supports_inspectdb = False
     supports_json_field_contains = False
     # BSON Date type doesn't support microsecond precision.
     supports_microsecond_precision = False
@@ -298,10 +299,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "Casting datetime/timedelta literals has microsecond differences.": {
             "db_functions.comparison.test_cast.CastTests.test_cast_from_python_to_datetime",
             "db_functions.comparison.test_cast.CastTests.test_cast_to_duration",
-        },
-        "inspectdb is not supported.": {
-            "inspectdb.tests.InspectDBTestCase",
-            "inspectdb.tests.InspectDBTransactionalTests",
         },
         "DatabaseIntrospection.get_table_description() not supported.": {
             "introspection.tests.IntrospectionTests.test_bigautofield",
