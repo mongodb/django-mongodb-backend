@@ -4,6 +4,8 @@ from django.utils.functional import cached_property
 
 class GISFeatures(BaseSpatialFeatures):
     has_spatialrefsys_table = False
+    supports_distance_geodetic = False
+    supports_dwithin_distance_expr = False
     supports_transform = False
 
     @cached_property
@@ -49,9 +51,9 @@ class GISFeatures(BaseSpatialFeatures):
                     # Error: Index already exists with a different name
                     "gis_tests.geoapp.test_indexes.SchemaIndexesTests.test_index_name",
                 },
-                "GIS lookups not supported.": {
-                    "gis_tests.geoapp.tests.GeoModelTest.test_gis_query_as_string",
-                    "gis_tests.geoapp.tests.GeoLookupTest.test_gis_lookups_with_complex_expressions",
+                "Subqueries not supported.": {
+                    "gis_tests.geoapp.tests.GeoLookupTest.test_subquery_annotation",
+                    "gis_tests.geoapp.tests.GeoQuerySetTest.test_within_subquery",
                 },
                 "GeoJSONSerializer doesn't support ObjectId.": {
                     "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_fields_option",
