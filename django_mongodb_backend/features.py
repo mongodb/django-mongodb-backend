@@ -99,6 +99,10 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "model_fields.test_jsonfield.TestSaveLoad.test_bulk_update_custom_get_prep_value",
         # To debug: https://github.com/mongodb/django-mongodb-backend/issues/362
         "constraints.tests.UniqueConstraintTests.test_validate_case_when",
+        # CheckConstraint(condition=models.Q(price__gte=0)) doesn't accept null
+        # values because {'$gte': [None, 0]} returns False instead of NULL like
+        # in SQL.
+        "constraints.tests.CheckConstraintTests.test_validate_nullable_field_with_none",
         # bulk_create() population of _order doesn't work because of ObjectId
         # type mismatch when querying object_id CharField.
         # https://github.com/django/django/commit/953095d1e603fe0f8f01175b1409ca23818dcff9
@@ -146,19 +150,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             # PI()
             "db_functions.math.test_round.RoundTests.test_decimal_with_precision",
             "db_functions.math.test_round.RoundTests.test_float_with_precision",
-        },
-        "Check constraints are not supported.": {
-            # Constraint.validate() crashes:
-            # AttributeError: 'NoneType' object has no attribute 'db_table'
-            "constraints.tests.CheckConstraintTests.test_database_default",
-            "constraints.tests.CheckConstraintTests.test_validate",
-            "constraints.tests.CheckConstraintTests.test_validate_boolean_expressions",
-            "constraints.tests.CheckConstraintTests.test_validate_custom_error",
-            "constraints.tests.CheckConstraintTests.test_validate_jsonfield_exact",
-            "constraints.tests.CheckConstraintTests.test_validate_nullable_field_with_none",
-            "constraints.tests.CheckConstraintTests.test_validate_nullable_jsonfield",
-            "constraints.tests.CheckConstraintTests.test_validate_pk_field",
-            "constraints.tests.CheckConstraintTests.test_validate_rawsql_expressions_noop",
         },
         "MongoDB doesn't rename an index when a field is renamed.": {
             "migrations.test_operations.OperationTests.test_rename_field_index_together",
