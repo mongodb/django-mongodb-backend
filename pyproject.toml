@@ -121,3 +121,6 @@ directory = "htmlcov"
 
 [tool.rstcheck]
 report_level = "WARNING"
+
+[tool.codespell]
+skip = "tests/performance/odm-data/flat_models/*.json,tests/performance/odm-data/nested_models/*.json"
