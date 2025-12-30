@@ -10,7 +10,9 @@ Django MongoDB Backend 6.0.x
 New features
 ------------
 
-- ...
+- Support for some spatial lookups is added: ``contains``, ``disjoint``,
+  ``distance_gt``, ``distance_gte``,  ``distance_lt``, ``distance_lte``,
+  ``dwithin``, ``intersects``, and ``within``.
 
 Bug fixes
 ---------

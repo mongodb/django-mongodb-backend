@@ -18,9 +18,25 @@ Each model field stores data as :doc:`GeoJSON objects
 All fields have a :doc:`2dsphere index
 <manual:core/indexes/index-types/geospatial/2dsphere>` created on them.
 
-You can use any of the :ref:`geospatial query operators
+The following :ref:`spatial lookups <django:spatial-lookups>` are supported:
+
+- :lookup:`contains <gis-contains>`
+- :lookup:`disjoint`
+- :lookup:`distance_gt`
+- :lookup:`distance_gte`
+- :lookup:`distance_lt`
+- :lookup:`distance_lte`
+- :lookup:`dwithin`
+- :lookup:`intersects`
+- :lookup:`within`
+
+You can also use any of the :ref:`geospatial query operators
 <manual:geospatial-query-operators>` or the :ref:`geospatial aggregation
 pipeline stage <geospatial-aggregation>` in :meth:`.raw_aggregate` queries.
+
+.. versionadded:: 6.0.1
+
+    Support for spatial lookups was added.
 
 Configuration
 =============
@@ -39,6 +55,8 @@ Limitations
   (:attr:`BaseSpatialField.srid
   <django.contrib.gis.db.models.BaseSpatialField.srid>`)
   besides `4326 (WGS84) <https://spatialreference.org/ref/epsg/4326/>`_.
-- None of the :doc:`GIS QuerySet APIs <django:ref/contrib/gis/geoquerysets>`
-  (lookups, aggregates, and database functions) are supported.
+- Spatial lookups don't support subqueries or expressions.
+- :ref:`GIS aggregate functions <gis-aggregation-functions>` and
+  :doc:`geographic database functions <django:ref/contrib/gis/functions>`
+  aren't supported.
 - :class:`~django.contrib.gis.db.models.RasterField` isn't supported.
