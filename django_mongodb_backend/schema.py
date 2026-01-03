@@ -2,6 +2,7 @@ from time import monotonic, sleep
 
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
+from django.db.models.expressions import F, OrderBy
 from pymongo.operations import SearchIndexModel
 
 from django_mongodb_backend.indexes import SearchIndex
@@ -351,6 +352,37 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             )
         collection.drop_index(index_names[0])
 
+    def _check_expression_indexes_applicable(self, expressions):
+        # Check if all expressions are field references or ORDER BY expressions on a field.
+        return all(
+            isinstance(expression.expression if isinstance(expression, OrderBy) else expression, F)
+            for expression in expressions
+        )
+
+    def _unique_supported(
+        self,
+        condition=None,
+        deferrable=None,
+        include=None,
+        expressions=None,
+        nulls_distinct=None,
+    ):
+        return (
+            (not condition or self.connection.features.supports_partial_indexes)
+            and (not deferrable or self.connection.features.supports_deferrable_unique_constraints)
+            and (not include or self.connection.features.supports_covering_indexes)
+            and (
+                not expressions
+                or self.connection.features.supports_expression_indexes
+                # Expression indexes are partially supported.
+                or self._check_expression_indexes_applicable(expressions)
+            )
+            and (
+                nulls_distinct is None
+                or self.connection.features.supports_nulls_distinct_unique_constraints
+            )
+        )
+
     @ignore_embedded_models
     def add_constraint(self, model, constraint, field=None, column_prefix="", parent_model=None):
         if isinstance(constraint, UniqueConstraint) and self._unique_supported(
@@ -361,6 +393,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             nulls_distinct=constraint.nulls_distinct,
         ):
             idx = Index(
+                *constraint.expressions,
                 fields=constraint.fields,
                 name=constraint.name,
                 condition=constraint.condition,
@@ -391,6 +424,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             nulls_distinct=constraint.nulls_distinct,
         ):
             idx = Index(
+                *constraint.expressions,
                 fields=constraint.fields,
                 name=constraint.name,
                 condition=constraint.condition,

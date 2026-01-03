@@ -110,6 +110,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_mixed_scenario",
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_respects_mixed_manual_order",
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_with_existing_children",
+        # Simple expression index are supported
+        "schema.tests.SchemaTests.test_func_unique_constraint_unsupported",
+        "schema.tests.SchemaTests.test_func_index_unsupported",
     }
 
     @cached_property
