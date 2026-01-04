@@ -5,7 +5,6 @@ from django.core.checks import Error, Warning
 from django.db import NotSupportedError
 from django.db.backends.utils import names_digest, split_identifier
 from django.db.models import FloatField, Index, IntegerField, UniqueConstraint
-from django.db.models.indexes import IndexExpression
 from django.db.models.lookups import BuiltinLookup
 from django.db.models.sql.query import Query
 from django.db.models.sql.where import AND, XOR, WhereNode
@@ -13,7 +12,6 @@ from pymongo import ASCENDING, DESCENDING
 from pymongo.operations import IndexModel, SearchIndexModel
 
 from django_mongodb_backend.fields import ArrayField, EmbeddedModelField
-from django_mongodb_backend.query_utils import process_lhs
 
 from .query_utils import process_rhs
 
@@ -447,5 +445,4 @@ def register_indexes():
     BuiltinLookup.as_mql_idx = builtin_lookup_idx
     Index._get_condition_mql = _get_condition_mql
     Index.get_pymongo_index_model = get_pymongo_index_model
-    IndexExpression.as_mql = process_lhs
     WhereNode.as_mql_idx = where_node_idx

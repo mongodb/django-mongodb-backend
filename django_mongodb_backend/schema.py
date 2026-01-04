@@ -296,6 +296,8 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
 
     @ignore_embedded_models
     def remove_index(self, model, index):
+        if index.contains_expressions:
+            return
         collection = self.get_collection(model._meta.db_table)
         if isinstance(index, SearchIndex):
             # Drop the index if it's supported.
@@ -368,7 +370,6 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                 else Index
             )
             idx = idx_type(
-                *constraint.expressions,
                 fields=constraint.fields,
                 name=constraint.name,
                 condition=constraint.condition,
@@ -399,7 +400,6 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             nulls_distinct=constraint.nulls_distinct,
         ):
             idx = Index(
-                *constraint.expressions,
                 fields=constraint.fields,
                 name=constraint.name,
                 condition=constraint.condition,
