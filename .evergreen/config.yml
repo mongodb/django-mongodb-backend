@@ -12,6 +12,17 @@ post_error_fails_task: true
 post_timeout_secs: 1800 # 5 minutes
 
 functions:
+  "start csfle servers":
+    - command: ec2.assume_role
+      params:
+        role_arn: ${aws_test_secrets_role}
+    - command: subprocess.exec
+      params:
+        binary: bash
+        include_expansions_in_env: ["AWS_SECRET_ACCESS_KEY", "AWS_ACCESS_KEY_ID", "AWS_SESSION_TOKEN"]
+        args:
+          - ${DRIVERS_TOOLS}/.evergreen/csfle/setup.sh
+
   "setup":
     - command: git.get_project
       params:
@@ -48,15 +59,28 @@ functions:
         args:
           - ./.evergreen/run-tests.sh
 
+  "run encryption tests":
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        working_dir: "src"
+        include_expansions_in_env: ["DRIVERS_TOOLS", "MONGODB_URI", "DJANGO_SETTINGS_MODULE", "CRYPT_SHARED_LIB_PATH"]
+        args:
+          - ./.evergreen/run-tests.sh
+          - encryption
+
   "teardown":
     - command: subprocess.exec
       params:
         binary: bash
         args:
           - ${DRIVERS_TOOLS}/.evergreen/teardown.sh
+          - ${DRIVERS_TOOLS}/.evergreen/csfle/teardown.sh
 
 pre:
   - func: setup
+  - func: start csfle servers
   - func: bootstrap mongo-orchestration
 
 post:
@@ -66,6 +90,10 @@ tasks:
   - name: run-tests
     commands:
       - func: "run unit tests"
+
+  - name: run-encryption-tests
+    commands:
+      - func: "run encryption tests"
 
 buildvariants:
   - name: tests-7-noauth-nossl
@@ -111,3 +139,23 @@ buildvariants:
       SSL: "ssl"
     tasks:
       - name: run-tests
+
+  - name: tests-8-qe-local
+    display_name: Run Tests 8.2 QE local KMS
+    run_on: rhel87-small
+    expansions:
+      MONGODB_VERSION: "8.2"
+      TOPOLOGY: replica_set
+      DJANGO_SETTINGS_MODULE: "encrypted_settings"
+    tasks:
+      - name: run-encryption-tests
+
+  - name: tests-8-qe-aws
+    display_name: Run Tests 8.2 QE aws KMS
+    run_on: rhel87-small
+    expansions:
+      MONGODB_VERSION: "8.2"
+      TOPOLOGY: replica_set
+      DJANGO_SETTINGS_MODULE: "encrypted_aws_settings"
+    tasks:
+      - name: run-encryption-tests

@@ -589,6 +589,14 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         return skips
 
     @cached_property
+    def mongodb_version(self):
+        return self.connection.get_database_version()  # e.g., (6, 3, 0)
+
+    @cached_property
+    def is_mongodb_8_0(self):
+        return self.mongodb_version >= (8, 0)
+
+    @cached_property
     def supports_atlas_search(self):
         """Does the server support Atlas search queries and search indexes?"""
         try:
@@ -614,3 +622,22 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         hello = client.command("hello")
         # a replica set or a sharded cluster
         return "setName" in hello or hello.get("msg") == "isdbgrid"
+
+    @cached_property
+    def supports_queryable_encryption(self):
+        """
+        For testing purposes, Queryable Encryption requires a MongoDB 8.0 or
+        later replica set or sharded cluster, as well as MongoDB Atlas or
+        Enterprise. This flag must not guard any non-test functionality since
+        it would prevent MongoDB 7.0 from being used, which also supports
+        Queryable Encryption. The models in tests/encryption_ aren't compatible
+        with MongoDB 7.0 because {"queryType": "range"} being "rangePreview".
+        """
+        self.connection.ensure_connection()
+        build_info = self.connection.connection.admin.command("buildInfo")
+        is_enterprise = "enterprise" in build_info.get("modules")
+        return (
+            (is_enterprise or self.supports_atlas_search)
+            and self._supports_transactions
+            and self.is_mongodb_8_0
+        )

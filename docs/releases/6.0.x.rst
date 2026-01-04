@@ -10,7 +10,7 @@ Django MongoDB Backend 6.0.x
 New features
 ------------
 
-- ...
+- Added support for :doc:`Queryable Encryption </howto/queryable-encryption>`.
 
 Bug fixes
 ---------
