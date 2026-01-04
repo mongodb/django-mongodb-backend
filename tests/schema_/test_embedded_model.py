@@ -1,11 +1,11 @@
 import itertools
 
 from django.db import connection, models
-from django.db.models.expressions import F
 from django.test import TransactionTestCase, skipUnlessDBFeature
 from django.test.utils import isolate_apps
 
 from django_mongodb_backend.fields import EmbeddedModelField
+from django_mongodb_backend.indexes import EmbeddedModelIndex, EmbeddedModelUniqueConstraint
 from django_mongodb_backend.models import EmbeddedModel
 
 from .models import Address, Author, Book, new_apps
@@ -540,17 +540,16 @@ class EmbeddedModelsTopLevelIndexTest(TestMixin, TransactionTestCase):
             class Meta:
                 app_label = "schema_"
                 constraints = [
-                    models.UniqueConstraint(
-                        F("author__unique_together_three").asc(),
-                        F("author__unique_together_four").desc(),
+                    EmbeddedModelUniqueConstraint(
+                        fields=["author.unique_together_three", "author.unique_together_four"],
                         name="unique_together_34",
                     ),
-                    (
-                        models.UniqueConstraint(
-                            F("author__address__unique_together_one"),
-                            F("author__address__unique_together_two").asc(),
-                            name="unique_together_12",
-                        )
+                    EmbeddedModelUniqueConstraint(
+                        fields=[
+                            "author.address.unique_together_one",
+                            "author.address.unique_together_two",
+                        ],
+                        name="unique_together_12",
                     ),
                 ]
 
@@ -597,17 +596,13 @@ class EmbeddedModelsTopLevelIndexTest(TestMixin, TransactionTestCase):
             class Meta:
                 app_label = "schema_"
                 indexes = [
-                    models.Index(F("author__indexed_two").asc(), name="indexed_two"),
-                    models.Index(F("author__address__indexed_one").asc(), name="indexed_one"),
+                    EmbeddedModelIndex(fields=["author.indexed_two"], name="indexed_two"),
+                    EmbeddedModelIndex(fields=["author.address.indexed_one"], name="indexed_one"),
                 ]
-
-        new_field = EmbeddedModelField(Author)
-        new_field.set_attributes_from_name("author")
 
         with connection.schema_editor() as editor:
             # Create the table and add the field.
             editor.create_model(Book)
-            editor.add_field(Book, new_field)
             # Embedded indexes are created.
             self.assertEqual(
                 self.get_constraints_for_columns(Book, ["author.indexed_two"]),
@@ -646,19 +641,17 @@ class EmbeddedModelsTopLevelIndexTest(TestMixin, TransactionTestCase):
             class Meta:
                 app_label = "schema_"
                 constraints = [
-                    models.UniqueConstraint(F("author__unique_constraint_two"), name="unique_two"),
-                    models.UniqueConstraint(
-                        F("author__address__unique_constraint_one"), name="unique_one"
+                    EmbeddedModelUniqueConstraint(
+                        fields=["author.unique_constraint_two"], name="unique_two"
+                    ),
+                    EmbeddedModelUniqueConstraint(
+                        fields=["author.address.unique_constraint_one"], name="unique_one"
                     ),
                 ]
-
-        new_field = EmbeddedModelField(Author)
-        new_field.set_attributes_from_name("author")
 
         with connection.schema_editor() as editor:
             # Create the table and add the field.
             editor.create_model(Book)
-            editor.add_field(Book, new_field)
             # Embedded constraints are created.
             self.assertEqual(
                 self.get_constraints_for_columns(Book, ["author.unique_constraint_two"]),

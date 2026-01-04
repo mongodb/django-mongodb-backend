@@ -1,10 +1,10 @@
 import itertools
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 from django.core.checks import Error, Warning
 from django.db import NotSupportedError
-from django.db.models import FloatField, Index, IntegerField
-from django.db.models.expressions import OrderBy
+from django.db.backends.utils import names_digest, split_identifier
+from django.db.models import FloatField, Index, IntegerField, UniqueConstraint
 from django.db.models.indexes import IndexExpression
 from django.db.models.lookups import BuiltinLookup
 from django.db.models.sql.query import Query
@@ -12,7 +12,7 @@ from django.db.models.sql.where import AND, XOR, WhereNode
 from pymongo import ASCENDING, DESCENDING
 from pymongo.operations import IndexModel, SearchIndexModel
 
-from django_mongodb_backend.fields import ArrayField
+from django_mongodb_backend.fields import ArrayField, EmbeddedModelField
 from django_mongodb_backend.query_utils import process_lhs
 
 from .query_utils import process_rhs
@@ -25,6 +25,8 @@ MONGO_INDEX_OPERATORS = {
     "lte": "$lte",
     "in": "$in",
 }
+
+FieldColumn = namedtuple("FieldColumn", ["field", "column"])
 
 
 def _get_condition_mql(self, model, schema_editor):
@@ -49,29 +51,10 @@ def builtin_lookup_idx(self, compiler, connection):
 
 def get_pymongo_index_model(self, model, schema_editor, field=None, unique=False, column_prefix=""):
     """Return a pymongo IndexModel for this Django Index."""
-    filter_expression = defaultdict(dict)
-    expressions_fields = []
     if self.contains_expressions:
-        query = Query(model=model, alias_cols=False)
-        compiler = query.get_compiler(connection=schema_editor.connection)
-        for expression in self.expressions:
-            field_ = expression.resolve_expression(query)
-            column = field_.as_mql(compiler, schema_editor.connection)
-            db_type = (
-                field_.expression.db_type(schema_editor.connection)
-                if isinstance(field_, OrderBy)
-                else field_.output_field.db_type(schema_editor.connection)
-            )
-            if unique:
-                filter_expression[column].update({"$type": db_type})
-            order = (
-                DESCENDING
-                if isinstance(expression, OrderBy) and expression.descending
-                else ASCENDING
-            )
-            expressions_fields.append((column, order))
-
+        return None
     kwargs = {}
+    filter_expression = defaultdict(dict)
     if self.condition:
         filter_expression.update(self._get_condition_mql(model, schema_editor))
     if unique:
@@ -102,7 +85,7 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, unique=False
             for field_name, order in self.fields_orders
         ]
     )
-    return IndexModel(expressions_fields + index_orders, name=self.name, **kwargs)
+    return IndexModel(index_orders, name=self.name, **kwargs)
 
 
 def where_node_idx(self, compiler, connection):
@@ -125,6 +108,126 @@ def where_node_idx(self, compiler, connection):
     else:
         mql = {}
     return mql
+
+
+class EmbeddedModelFieldsCheckMixin:
+    def check(self, model, connection):
+        errors = [e for e in super().check(model, connection) if e.id != "models.E012"]
+        forward_fields = self._get_forward_fields(model)
+        for field_name in self.fields:
+            if field_name not in forward_fields:
+                errors.append(
+                    Error(
+                        f"'constraints' refers to the nonexistent field '{field_name}'.",
+                        obj=model,
+                        id="models.E012",
+                    )
+                )
+        return errors
+
+    def _get_forward_fields(self, model):
+        forward_fields = set()
+        for field in model._meta._get_fields(reverse=False):
+            if isinstance(field, EmbeddedModelField):
+                sub_forward_fields = self._get_forward_fields(field.embedded_model)
+                for column in sub_forward_fields:
+                    forward_fields.add(f"{field.name}.{column}")
+                    # Logic imported from _check_local_fields(cls, fields, option):
+                    if hasattr(field, "attname"):
+                        forward_fields.add(f"{field.attname}.{column}")
+            # Fields inside an embedded model field
+            forward_fields.add(field.name)
+            if hasattr(field, "attname"):
+                forward_fields.add(field.attname)
+        return forward_fields
+
+
+class EmbeddedModelIndex(EmbeddedModelFieldsCheckMixin, Index):
+    def set_name_with_model(self, model):
+        """
+        Generate a unique name for the index.
+
+        The name is divided into 3 parts - table name (12 chars), field name
+        (8 chars) and unique hash + suffix (10 chars). Each part is made to
+        fit its size by truncating the excess length.
+        """
+        _, table_name = split_identifier(model._meta.db_table)
+        column_names = [
+            self.get_field(model, field_name).column for field_name, order in self.fields_orders
+        ]
+        column_names_with_order = [
+            (f"-{column_name}" if order else column_name)
+            for column_name, (field_name, order) in zip(
+                column_names, self.fields_orders, strict=False
+            )
+        ]
+        # The length of the parts of the name is based on the default max
+        # length of 30 characters.
+        hash_data = [table_name, *column_names_with_order, self.suffix]
+        self.name = (
+            f"{table_name[:11]}_{column_names[0][:7]}_"
+            f"{names_digest(*hash_data, length=6)}_{self.suffix}"
+        )
+        if len(self.name) > self.max_name_length:
+            raise ValueError(
+                "Index too long for multiple database support. Is self.suffix "
+                "longer than 3 characters?"
+            )
+        if self.name[0] == "_" or self.name[0].isdigit():
+            self.name = f"D{self.name[1:]}"
+
+    def get_pymongo_index_model(
+        self, model, schema_editor, field=None, unique=False, column_prefix=""
+    ):
+        """Return a pymongo IndexModel for this Django Index."""
+        filter_expression = defaultdict(dict)
+        if self.contains_expressions:
+            return None
+        kwargs = {}
+        if self.condition:
+            filter_expression.update(self._get_condition_mql(model, schema_editor))
+        if unique:
+            kwargs["unique"] = True
+            # Indexing on $type matches the value of most SQL databases by
+            # allowing multiple null values for the unique constraint.
+            if field:
+                column = column_prefix + field.column
+                filter_expression[column].update({"$type": field.db_type(schema_editor.connection)})
+            else:
+                for field_name, _ in self.fields_orders:
+                    field_ = self.get_field(model, field_name)
+                    filter_expression[field_.column].update(
+                        {"$type": field_.field.db_type(schema_editor.connection)}
+                    )
+        if filter_expression:
+            kwargs["partialFilterExpression"] = filter_expression
+        index_orders = (
+            [(column_prefix + field.column, ASCENDING)]
+            if field
+            else [
+                # order is "" if ASCENDING or "DESC" if DESCENDING (see
+                # django.db.models.indexes.Index.fields_orders).
+                (
+                    column_prefix + self.get_field(model, field_name).column,
+                    ASCENDING if order == "" else DESCENDING,
+                )
+                for field_name, order in self.fields_orders
+            ]
+        )
+        return IndexModel(index_orders, name=self.name, **kwargs)
+
+    def get_field(self, model, field_name):
+        path = []
+        for name in field_name.split("."):
+            field = model._meta.get_field(name)
+            path.append(field.column)
+            if isinstance(field, EmbeddedModelField):
+                model = field.embedded_model
+        return FieldColumn(field, ".".join(path))
+
+
+class EmbeddedModelUniqueConstraint(EmbeddedModelFieldsCheckMixin, UniqueConstraint):
+    pass
 
 
 class SearchIndex(Index):
