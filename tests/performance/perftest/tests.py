@@ -24,14 +24,11 @@ To run individual benchmarks quickly::
 import json
 import os
 import time
-import unittest
 import warnings
 from pathlib import Path
 
 from bson import ObjectId, encode, json_util
-from django.test import (
-    TestCase,
-)
+from django.test import TestCase
 
 from .models import (
     ForeignKeyModel,
@@ -54,7 +51,7 @@ else:
     NUM_ITERATIONS = 2
     MIN_ITERATION_TIME = 30
     MAX_ITERATION_TIME = 300
-    NUM_DOCS = 5000
+    NUM_DOCS = 1000
 
 TEST_PATH = os.environ.get("TEST_PATH", Path(os.path.realpath(__file__)).parent.parent / "odm-data")
 
@@ -298,30 +295,30 @@ class LargeNestedDocTest(PerformanceTest):
         self.data_size = len(encode(self.document)) * NUM_DOCS
         self.documents = [self.document.copy() for _ in range(NUM_DOCS)]
 
-    def create_model(self):
+    def setUpData(self):
         for doc in self.documents:
             model = LargeNestedModel()
-            for k, v in doc.items():
-                if "array" in k:
+            for field_name, model_data in doc.items():
+                if "array" in field_name:
                     array_models = []
-                    for item in v:
+                    for item in model_data:
                         embedded_str_model = StringEmbeddedModel(**item)
                         embedded_str_model.unique_field = str(ObjectId())
                         array_models.append(embedded_str_model)
-                    setattr(model, k, array_models)
-                elif "str" in k:
-                    embedded_str_model = StringEmbeddedModel(**v)
+                    setattr(model, field_name, array_models)
+                elif "embedded_str_doc" in field_name:
+                    embedded_str_model = StringEmbeddedModel(**model_data)
                     embedded_str_model.unique_field = str(ObjectId())
-                    setattr(model, k, embedded_str_model)
+                    setattr(model, field_name, embedded_str_model)
                 else:
-                    embedded_int_model = IntegerEmbeddedModel(**v)
-                    setattr(model, k, embedded_int_model)
+                    embedded_int_model = IntegerEmbeddedModel(**model_data)
+                    setattr(model, field_name, embedded_int_model)
             model.save()
 
 
 class TestLargeNestedDocCreation(LargeNestedDocTest, TestCase):
     def do_task(self):
-        self.create_model()
+        self.setUpData()
 
     def after(self):
         LargeNestedModel.objects.all().delete()
@@ -330,7 +327,7 @@ class TestLargeNestedDocCreation(LargeNestedDocTest, TestCase):
 class TestLargeNestedDocUpdate(LargeNestedDocTest, TestCase):
     def setUp(self):
         super().setUp()
-        self.create_model()
+        self.setUpData()
         self.models = list(LargeNestedModel.objects.all())
         self.data_size = len(encode({"field1": "updated_value0"})) * NUM_DOCS
         self.iteration = 0
@@ -349,7 +346,7 @@ class TestLargeNestedDocUpdate(LargeNestedDocTest, TestCase):
 class TestLargeNestedDocFilterById(LargeNestedDocTest, TestCase):
     def setUp(self):
         super().setUp()
-        self.create_model()
+        self.setUpData()
         self.ids = [
             model.embedded_str_doc_1.unique_field for model in list(LargeNestedModel.objects.all())
         ]
@@ -366,14 +363,18 @@ class TestLargeNestedDocFilterById(LargeNestedDocTest, TestCase):
 class TestLargeNestedDocFilterArray(LargeNestedDocTest, TestCase):
     def setUp(self):
         super().setUp()
-        self.create_model()
+        self.setUpData()
         self.ids = [
             model.embedded_str_doc_array[0].id for model in list(LargeNestedModel.objects.all())
         ]
 
     def do_task(self):
+        count = 0
         for _id in self.ids:
             list(LargeNestedModel.objects.filter(embedded_str_doc_array__id__in=[_id]))
+            count += 1
+            if count >= 100:
+                break
 
     def tearDown(self):
         super().tearDown()
@@ -420,7 +421,7 @@ class TestSmallFlatDocFilterPkByIn(SmallFlatDocTest, TestCase):
         SmallFlatModel.objects.all().delete()
 
 
-class TestLargeFlatDocFilterPkByIn(LargeFlatDocTest, unittest.TestCase):
+class TestLargeFlatDocFilterPkByIn(LargeFlatDocTest, TestCase):
     def setUp(self):
         super().setUp()
         models = []

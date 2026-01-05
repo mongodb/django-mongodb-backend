@@ -1,5 +1,4 @@
 #!/bin/bash
-# We use the requester expansion to determine whether the data is from a mainline evergreen run or not
 
 set -eu
 
@@ -14,7 +13,7 @@ response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X 'POST' \
 http_status=$(echo "$response" | grep "HTTP_STATUS" | awk -F':' '{print $2}')
 response_body=$(echo "$response" | sed '/HTTP_STATUS/d')
 
-# We want to throw an error if the data was not successfully submitted
+# Throw an error if the data was not successfully submitted
 if [ "$http_status" -ne 200 ]; then
   echo "Error: Received HTTP status $http_status"
   echo "Response Body: $response_body"
