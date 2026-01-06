@@ -365,16 +365,13 @@ class TestLargeNestedDocFilterArray(LargeNestedDocTest, TestCase):
         super().setUp()
         self.setUpData()
         self.ids = [
-            model.embedded_str_doc_array[0].unique_field for model in list(LargeNestedModel.objects.all())
+            model.embedded_str_doc_array[0].unique_field
+            for model in list(LargeNestedModel.objects.all())
         ]
 
     def do_task(self):
-        count = 0
         for _id in self.ids:
             list(LargeNestedModel.objects.filter(embedded_str_doc_array__unique_field__in=[_id]))
-            count += 1
-            if count >= 100:
-                break
 
     def tearDown(self):
         super().tearDown()
