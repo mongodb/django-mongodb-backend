@@ -38,7 +38,8 @@ else:
     NUM_DOCS = 10000
 
 DJANGO_MONGODB_PERFORMANCE_TEST_DATA_PATH = os.environ.get(
-    "DJANGO_MONGODB_PERFORMANCE_TEST_DATA_PATH"
+    "DJANGO_MONGODB_PERFORMANCE_TEST_DATA_PATH",
+    Path(os.path.realpath(__file__)).parent.parent / "odm-data",
 )
 
 result_data: list = []
