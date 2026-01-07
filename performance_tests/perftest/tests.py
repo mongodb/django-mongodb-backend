@@ -2,23 +2,7 @@
 
 See https://github.com/mongodb/specifications/blob/master/source/benchmarking/odm-benchmarking.md
 
-
-To set up the benchmarks locally::
-    git clone --depth 1 https://github.com/mongodb/specifications.git
-    pushd specifications/source/benchmarking/odm-data
-    tar xf flat_models.tgz
-    tar xf nested_models.tgz
-    popd
-    export TEST_PATH="specifications/source/benchmarking/odm-data"
-    export OUTPUT_FILE="results.json"
-
-Then to run all benchmarks quickly::
-    cd tests/performance
-    FASTBENCH=1 python manage.py test
-
-To run individual benchmarks quickly::
-    cd tests/performance
-    FASTBENCH=1 python manage.py test perftest.tests.TestLargeNestedDocFilterArray
+For instructions, see docs/internals/contributing/performance-tests.rst.
 """
 
 import json
@@ -53,7 +37,9 @@ else:
     MAX_ITERATION_TIME = 300
     NUM_DOCS = 10000
 
-TEST_PATH = os.environ.get("TEST_PATH", Path(os.path.realpath(__file__)).parent.parent / "odm-data")
+DJANGO_MONGODB_PERFORMANCE_TEST_DATA_PATH = os.environ.get(
+    "DJANGO_MONGODB_PERFORMANCE_TEST_DATA_PATH"
+)
 
 result_data: list = []
 
@@ -165,7 +151,9 @@ class SmallFlatDocTest(PerformanceTest):
 
     def setUp(self):
         super().setUp()
-        with open(Path(TEST_PATH) / Path("flat-models") / self.dataset) as data:  # noqa: PTH123
+        with open(  # noqa: PTH123
+            Path(DJANGO_MONGODB_PERFORMANCE_TEST_DATA_PATH) / Path("flat-models") / self.dataset
+        ) as data:
             self.document = json_util.loads(data.read())
 
         self.data_size = len(encode(self.document)) * NUM_DOCS
@@ -248,7 +236,9 @@ class LargeFlatDocTest(PerformanceTest):
 
     def setUp(self):
         super().setUp()
-        with open(Path(TEST_PATH) / Path("flat-models") / self.dataset) as data:  # noqa: PTH123
+        with open(  # noqa: PTH123
+            Path(DJANGO_MONGODB_PERFORMANCE_TEST_DATA_PATH) / Path("flat-models") / self.dataset
+        ) as data:
             self.document = json_util.loads(data.read())
 
         self.data_size = len(encode(self.document)) * NUM_DOCS
@@ -289,7 +279,9 @@ class LargeNestedDocTest(PerformanceTest):
 
     def setUp(self):
         super().setUp()
-        with open(Path(TEST_PATH) / Path("nested-models") / self.dataset) as data:  # noqa: PTH123
+        with open(  # noqa: PTH123
+            Path(DJANGO_MONGODB_PERFORMANCE_TEST_DATA_PATH) / Path("nested-models") / self.dataset
+        ) as data:
             self.document = json_util.loads(data.read())
 
         self.data_size = len(encode(self.document)) * NUM_DOCS

@@ -12,7 +12,8 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)-8s %(message)s")
 OUTPUT_FILE = os.environ.get("OUTPUT_FILE")
 
 
-def handle_perf(start_time: datetime):
+def format_output(start_time: datetime):
+    """Formats the output from the performance tests into a report.json file."""
     end_time = datetime.now()
     elapsed_secs = (end_time - start_time).total_seconds()
     with open(OUTPUT_FILE) as fid:  # noqa: PTH123
@@ -36,6 +37,7 @@ def handle_perf(start_time: datetime):
 
 
 def run_command(cmd: str | list[str], **kwargs) -> None:
+    """Runs a shell command. Exits on failure."""
     if isinstance(cmd, list):
         cmd = " ".join(cmd)
     LOGGER.info("Running command '%s'...", cmd)
@@ -57,10 +59,11 @@ if not data_dir.exists():
     run_command("tar xf flat_models.tgz", cwd=data_dir)
     run_command("tar xf nested_models.tgz", cwd=data_dir)
 
-os.chdir("tests/performance")
+os.chdir("performance_tests")
 start_time = datetime.now()
 run_command(
     "python manage.py test",
-    env=os.environ | {"TEST_PATH": str(data_dir), "OUTPUT_FILE": "results.json"},
+    env=os.environ
+    | {"DJANGO_MONGODB_PERFORMANCE_TEST_DATA_PATH": str(data_dir), "OUTPUT_FILE": "results.json"},
 )
-handle_perf(start_time)
+format_output(start_time)

@@ -11,5 +11,5 @@ python -m pip install -U pip
 pip install -e .
 
 python .evergreen/run_perf_test.py
-mv tests/performance/$OUTPUT_FILE $OUTPUT_FILE
-mv tests/performance/report.json report.json
+mv performance_tests/$OUTPUT_FILE $OUTPUT_FILE
+mv performance_tests/report.json report.json
