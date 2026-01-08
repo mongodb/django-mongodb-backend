@@ -148,6 +148,8 @@ class PerformanceTest:
 
 
 class SmallFlatDocTest(PerformanceTest):
+    """Parent class for small flat document tests."""
+
     dataset = "small_doc.json"
 
     def setUp(self):
@@ -162,6 +164,8 @@ class SmallFlatDocTest(PerformanceTest):
 
 
 class TestSmallFlatDocCreation(SmallFlatDocTest, TestCase):
+    """Benchmark for creating a small flat document."""
+
     def do_task(self):
         for doc in self.documents:
             SmallFlatModel.objects.create(**doc)
@@ -171,6 +175,8 @@ class TestSmallFlatDocCreation(SmallFlatDocTest, TestCase):
 
 
 class TestSmallFlatDocUpdate(SmallFlatDocTest, TestCase):
+    """Benchmark for updating a field within a small flat document."""
+
     def setUp(self):
         super().setUp()
         self.models = []
@@ -192,6 +198,8 @@ class TestSmallFlatDocUpdate(SmallFlatDocTest, TestCase):
 
 
 class TestSmallFlatDocFilterById(SmallFlatDocTest, TestCase):
+    """Benchmark for filtering small flat documents by their primary key."""
+
     def setUp(self):
         super().setUp()
         self.ids = []
@@ -211,6 +219,8 @@ class TestSmallFlatDocFilterById(SmallFlatDocTest, TestCase):
 
 
 class TestSmallFlatDocFilterByForeignKey(SmallFlatDocTest, TestCase):
+    """Benchmark for filtering small flat documents by a foreign key field."""
+
     def setUp(self):
         super().setUp()
         self.fks = []
@@ -233,6 +243,8 @@ class TestSmallFlatDocFilterByForeignKey(SmallFlatDocTest, TestCase):
 
 
 class LargeFlatDocTest(PerformanceTest):
+    """Parent class for large flat document tests."""
+
     dataset = "large_doc.json"
 
     def setUp(self):
@@ -247,6 +259,8 @@ class LargeFlatDocTest(PerformanceTest):
 
 
 class TestLargeFlatDocCreation(LargeFlatDocTest, TestCase):
+    """Benchmark for creating a large flat document."""
+
     def do_task(self):
         for doc in self.documents:
             LargeFlatModel.objects.create(**doc)
@@ -256,6 +270,8 @@ class TestLargeFlatDocCreation(LargeFlatDocTest, TestCase):
 
 
 class TestLargeFlatDocUpdate(LargeFlatDocTest, TestCase):
+    """Benchmark for updating a field within a large flat document."""
+
     def setUp(self):
         super().setUp()
         for doc in self.documents:
@@ -276,6 +292,8 @@ class TestLargeFlatDocUpdate(LargeFlatDocTest, TestCase):
 
 
 class LargeNestedDocTest(PerformanceTest):
+    """Parent class for large nested document tests."""
+
     dataset = "large_doc_nested.json"
 
     def setUp(self):
@@ -310,6 +328,8 @@ class LargeNestedDocTest(PerformanceTest):
 
 
 class TestLargeNestedDocCreation(LargeNestedDocTest, TestCase):
+    """Benchmark for creating a large nested document."""
+
     def do_task(self):
         self.setUpData()
 
@@ -318,6 +338,8 @@ class TestLargeNestedDocCreation(LargeNestedDocTest, TestCase):
 
 
 class TestLargeNestedDocUpdate(LargeNestedDocTest, TestCase):
+    """Benchmark for updating an embedded field within a large nested document."""
+
     def setUp(self):
         super().setUp()
         self.setUpData()
@@ -337,6 +359,8 @@ class TestLargeNestedDocUpdate(LargeNestedDocTest, TestCase):
 
 
 class TestLargeNestedDocFilterById(LargeNestedDocTest, TestCase):
+    """Benchmark for filtering large nested documents by a unique field in an embedded document."""
+
     def setUp(self):
         super().setUp()
         self.setUpData()
@@ -354,6 +378,9 @@ class TestLargeNestedDocFilterById(LargeNestedDocTest, TestCase):
 
 
 class TestLargeNestedDocFilterArray(LargeNestedDocTest, TestCase):
+    """Benchmark for filtering large nested documents using the __in operator
+    for unique values in an embedded document array."""
+
     def setUp(self):
         super().setUp()
         self.setUpData()
@@ -372,6 +399,8 @@ class TestLargeNestedDocFilterArray(LargeNestedDocTest, TestCase):
 
 
 class TestSmallFlatDocFilterByIn(SmallFlatDocTest, TestCase):
+    """Benchmark for filtering small flat documents using the __in operator."""
+
     def setUp(self):
         super().setUp()
         self.ids = []
@@ -393,6 +422,8 @@ class TestSmallFlatDocFilterByIn(SmallFlatDocTest, TestCase):
 
 
 class TestSmallFlatDocFilterPkByIn(SmallFlatDocTest, TestCase):
+    """Benchmark for filtering small flat documents using the __in operator for primary keys."""
+
     def setUp(self):
         super().setUp()
         self.ids = []
@@ -412,16 +443,18 @@ class TestSmallFlatDocFilterPkByIn(SmallFlatDocTest, TestCase):
 
 
 class TestLargeFlatDocFilterPkByIn(LargeFlatDocTest, TestCase):
+    """Benchmark for filtering large flat documents using the __in operator for primary keys."""
+
     def setUp(self):
         super().setUp()
         models = []
         for doc in self.documents:
             models.append(LargeFlatModel(**doc))
         LargeFlatModel.objects.bulk_create(models)
-        self.id = LargeFlatModel.objects.first().id
+        self.ids = [model.id for model in models]
 
     def do_task(self):
-        list(LargeFlatModel.objects.filter(id__in=[self.id]))
+        list(LargeFlatModel.objects.filter(id__in=self.ids))
 
     def tearDown(self):
         super().tearDown()
