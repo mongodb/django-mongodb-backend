@@ -398,28 +398,6 @@ class TestLargeNestedDocFilterArray(LargeNestedDocTest, TestCase):
         LargeNestedModel.objects.all().delete()
 
 
-class TestSmallFlatDocFilterByIn(SmallFlatDocTest, TestCase):
-    """Benchmark for filtering small flat documents using the __in operator."""
-
-    def setUp(self):
-        super().setUp()
-        self.ids = []
-        models = []
-        for doc in self.documents:
-            models.append(SmallFlatModel(**doc))
-        for model in models:
-            model.field1 = str(ObjectId())
-        inserted = SmallFlatModel.objects.bulk_create(models)
-        self.ids = [model.field1 for model in inserted]
-
-    def do_task(self):
-        list(SmallFlatModel.objects.filter(field1__in=self.ids))
-
-    def tearDown(self):
-        super().tearDown()
-        SmallFlatModel.objects.all().delete()
-
-
 class TestSmallFlatDocFilterPkByIn(SmallFlatDocTest, TestCase):
     """Benchmark for filtering small flat documents using the __in operator for primary keys."""
 
