@@ -413,8 +413,7 @@ class TestSmallFlatDocFilterByIn(SmallFlatDocTest, TestCase):
         self.ids = [model.field1 for model in inserted]
 
     def do_task(self):
-        for _id in self.ids:
-            list(SmallFlatModel.objects.filter(field1__in=[_id]))
+        list(SmallFlatModel.objects.filter(field1__in=self.ids))
 
     def tearDown(self):
         super().tearDown()
