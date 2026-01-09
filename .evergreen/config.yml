@@ -11,49 +11,8 @@ pre_timeout_secs: 1800 # 5 minutes
 post_error_fails_task: true
 post_timeout_secs: 1800 # 5 minutes
 
-functions:
-  "setup":
-    - command: git.get_project
-      params:
-        directory: src
-    - command: subprocess.exec
-      params:
-        binary: bash
-        working_dir: "src"
-        add_expansions_to_env: true
-        args:
-          - ./.evergreen/setup.sh
-    - command: expansions.update
-      params:
-        file: src/expansion.yml
-
-  "bootstrap mongo-orchestration":
-    - command: subprocess.exec
-      params:
-        binary: bash
-        add_expansions_to_env: true
-        args:
-          - ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
-    - command: expansions.update
-      params:
-        file: mo-expansion.yml
-
-  "run unit tests":
-    - command: subprocess.exec
-      type: test
-      params:
-        binary: bash
-        working_dir: "src"
-        include_expansions_in_env: ["DRIVERS_TOOLS", "MONGODB_URI"]
-        args:
-          - ./.evergreen/run-tests.sh
-
-  "teardown":
-    - command: subprocess.exec
-      params:
-        binary: bash
-        args:
-          - ${DRIVERS_TOOLS}/.evergreen/teardown.sh
+include:
+  - filename: .evergreen/functions.yml
 
 pre:
   - func: setup
@@ -66,6 +25,12 @@ tasks:
   - name: run-tests
     commands:
       - func: "run unit tests"
+
+  - name: perf-tests
+    commands:
+      - func: "run performance tests"
+      - func: "attach benchmark test results"
+      - func: "send dashboard data"
 
 buildvariants:
   - name: tests-7-noauth-nossl
@@ -111,3 +76,11 @@ buildvariants:
       SSL: "ssl"
     tasks:
       - name: run-tests
+
+  - name: performance-benchmarks
+    display_name: Performance Benchmarks
+    run_on:
+      - rhel90-dbx-perf-large
+    batchtime: 1440
+    tasks:
+      - name: perf-tests
