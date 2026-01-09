@@ -35,6 +35,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     supports_json_field_contains = False
     # BSON Date type doesn't support microsecond precision.
     supports_microsecond_precision = False
+    supports_on_delete_db_cascade = False
+    supports_on_delete_db_default = False
+    supports_on_delete_db_null = False
     supports_paramstyle_pyformat = False
     supports_select_difference = False
     supports_select_intersection = False
@@ -341,6 +344,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "annotations.tests.NonAggregateAnnotationTestCase.test_raw_sql_with_inherited_field",
             "async.test_async_queryset.AsyncQuerySetTest.test_raw",
             "backends.base.test_base.ExecuteWrapperTests",
+            "backends.base.test_operations.DatabaseOperationTests.test_last_executed_query_base_fallback",
             "backends.tests.BackendTestCase.test_cursor_contextmanager",
             "backends.tests.BackendTestCase.test_cursor_executemany",
             "backends.tests.BackendTestCase.test_cursor_executemany_with_empty_params_list",
@@ -431,10 +435,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "db_functions.comparison.test_cast.CastTests.test_cast_from_python_to_datetime",
             "db_functions.comparison.test_cast.CastTests.test_cast_to_duration",
         },
-        "inspectdb is not supported.": {
-            "inspectdb.tests.InspectDBTestCase",
-            "inspectdb.tests.InspectDBTransactionalTests",
-        },
         "DatabaseIntrospection.get_table_description() not supported.": {
             "introspection.tests.IntrospectionTests.test_bigautofield",
             "introspection.tests.IntrospectionTests.test_get_table_description_col_lengths",
@@ -456,6 +456,8 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             # There is no way to distinguish between a JSON "null" (represented
             # by Value(None, JSONField())) and a SQL null (queried using the
             # isnull lookup). Both of these queries return both nulls.
+            "model_fields.test_jsonfield.JSONExactNoneDeprecationTests",
+            "model_fields.test_jsonfield.JSONNullTests",
             "model_fields.test_jsonfield.TestSaveLoad.test_json_null_different_from_sql_null",
             # Some queries with Q objects, e.g. Q(value__foo="bar"), don't work
             # properly, particularly with QuerySet.exclude().
@@ -465,6 +467,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             # returns objects where the key doesn't exist.
             "model_fields.test_jsonfield.TestQuerying.test_none_key",
             "model_fields.test_jsonfield.TestQuerying.test_none_key_exclude",
+            "model_fields.test_jsonfield.TestQuerying.test_key_iexact_none",
         },
         "Queries without a collection aren't supported on MongoDB.": {
             "queries.test_q.QCheckTests",
