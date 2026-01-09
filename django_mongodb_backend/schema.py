@@ -4,7 +4,11 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
 from pymongo.operations import SearchIndexModel
 
-from django_mongodb_backend.indexes import SearchIndex
+from django_mongodb_backend.indexes import (
+    EmbeddedModelIndex,
+    EmbeddedModelUniqueConstraint,
+    SearchIndex,
+)
 
 from .fields import EmbeddedModelField
 from .gis.schema import GISSchemaEditor
@@ -360,7 +364,12 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             expressions=constraint.expressions,
             nulls_distinct=constraint.nulls_distinct,
         ):
-            idx = Index(
+            idx_type = (
+                EmbeddedModelIndex
+                if isinstance(constraint, EmbeddedModelUniqueConstraint)
+                else Index
+            )
+            idx = idx_type(
                 fields=constraint.fields,
                 name=constraint.name,
                 condition=constraint.condition,

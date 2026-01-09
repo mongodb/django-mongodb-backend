@@ -5,6 +5,7 @@ from django.test import TransactionTestCase, skipUnlessDBFeature
 from django.test.utils import isolate_apps
 
 from django_mongodb_backend.fields import EmbeddedModelField
+from django_mongodb_backend.indexes import EmbeddedModelIndex, EmbeddedModelUniqueConstraint
 from django_mongodb_backend.models import EmbeddedModel
 
 from .models import Address, Author, Book, new_apps
@@ -511,6 +512,160 @@ class SchemaTests(TestMixin, TransactionTestCase):
             )
             editor.delete_model(Author)
         self.assertTableNotExists(Author)
+
+
+class EmbeddedModelsTopLevelIndexTest(TestMixin, TransactionTestCase):
+    @isolate_apps("schema_")
+    def test_unique_together(self):
+        """Meta.unique_together defined at the top-level for embedded fields."""
+
+        class Address(EmbeddedModel):
+            unique_together_one = models.CharField(max_length=10)
+            unique_together_two = models.CharField(max_length=10)
+
+            class Meta:
+                app_label = "schema_"
+
+        class Author(EmbeddedModel):
+            address = EmbeddedModelField(Address)
+            unique_together_three = models.CharField(max_length=10)
+            unique_together_four = models.CharField(max_length=10)
+
+            class Meta:
+                app_label = "schema_"
+
+        class Book(models.Model):
+            author = EmbeddedModelField(Author)
+
+            class Meta:
+                app_label = "schema_"
+                constraints = [
+                    EmbeddedModelUniqueConstraint(
+                        fields=["author.unique_together_three", "author.unique_together_four"],
+                        name="unique_together_34",
+                    ),
+                    EmbeddedModelUniqueConstraint(
+                        fields=[
+                            "author.address.unique_together_one",
+                            "author.address.unique_together_two",
+                        ],
+                        name="unique_together_12",
+                    ),
+                ]
+
+        with connection.schema_editor() as editor:
+            editor.create_model(Book)
+            self.assertTableExists(Book)
+            # Embedded uniques are created from top-level definition.
+            self.assertEqual(
+                self.get_constraints_for_columns(
+                    Book, ["author.unique_together_three", "author.unique_together_four"]
+                ),
+                ["unique_together_34"],
+            )
+            self.assertEqual(
+                self.get_constraints_for_columns(
+                    Book,
+                    ["author.address.unique_together_one", "author.address.unique_together_two"],
+                ),
+                ["unique_together_12"],
+            )
+            editor.delete_model(Book)
+        self.assertTableNotExists(Book)
+
+    @isolate_apps("schema_")
+    def test_add_remove_field_indexes(self):
+        """AddField/RemoveField + EmbeddedModelField + Meta.indexes at top-level."""
+
+        class Address(EmbeddedModel):
+            indexed_one = models.CharField(max_length=10)
+
+            class Meta:
+                app_label = "schema_"
+
+        class Author(EmbeddedModel):
+            address = EmbeddedModelField(Address)
+            indexed_two = models.CharField(max_length=10)
+
+            class Meta:
+                app_label = "schema_"
+
+        class Book(models.Model):
+            author = EmbeddedModelField(Author)
+
+            class Meta:
+                app_label = "schema_"
+                indexes = [
+                    EmbeddedModelIndex(fields=["author.indexed_two"], name="indexed_two"),
+                    EmbeddedModelIndex(fields=["author.address.indexed_one"], name="indexed_one"),
+                ]
+
+        with connection.schema_editor() as editor:
+            # Create the table and add the field.
+            editor.create_model(Book)
+            # Embedded indexes are created.
+            self.assertEqual(
+                self.get_constraints_for_columns(Book, ["author.indexed_two"]),
+                ["indexed_two"],
+            )
+            self.assertEqual(
+                self.get_constraints_for_columns(
+                    Book,
+                    ["author.address.indexed_one"],
+                ),
+                ["indexed_one"],
+            )
+            editor.delete_model(Book)
+        self.assertTableNotExists(Book)
+
+    @isolate_apps("schema_")
+    def test_add_remove_field_constraints(self):
+        """AddField/RemoveField + EmbeddedModelField + Meta.constraints at top-level."""
+
+        class Address(EmbeddedModel):
+            unique_constraint_one = models.CharField(max_length=10)
+
+            class Meta:
+                app_label = "schema_"
+
+        class Author(EmbeddedModel):
+            address = EmbeddedModelField(Address)
+            unique_constraint_two = models.CharField(max_length=10)
+
+            class Meta:
+                app_label = "schema_"
+
+        class Book(models.Model):
+            author = EmbeddedModelField(Author)
+
+            class Meta:
+                app_label = "schema_"
+                constraints = [
+                    EmbeddedModelUniqueConstraint(
+                        fields=["author.unique_constraint_two"], name="unique_two"
+                    ),
+                    EmbeddedModelUniqueConstraint(
+                        fields=["author.address.unique_constraint_one"], name="unique_one"
+                    ),
+                ]
+
+        with connection.schema_editor() as editor:
+            # Create the table and add the field.
+            editor.create_model(Book)
+            # Embedded constraints are created.
+            self.assertEqual(
+                self.get_constraints_for_columns(Book, ["author.unique_constraint_two"]),
+                ["unique_two"],
+            )
+            self.assertEqual(
+                self.get_constraints_for_columns(
+                    Book,
+                    ["author.address.unique_constraint_one"],
+                ),
+                ["unique_one"],
+            )
+            editor.delete_model(Book)
+        self.assertTableNotExists(Book)
 
 
 class EmbeddedModelsIgnoredTests(TestMixin, TransactionTestCase):

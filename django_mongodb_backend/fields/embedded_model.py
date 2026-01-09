@@ -211,6 +211,9 @@ class EmbeddedModelTransform(Transform):
     def output_field(self):
         return self._field
 
+    def db_type(self, connection):
+        return self.output_field.db_type(connection)
+
     @property
     def can_use_path(self):
         return self.is_simple_column
