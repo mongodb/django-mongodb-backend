@@ -20,12 +20,12 @@ def wrap_database_errors(func):
             return func(*args, **kwargs)
         except BulkWriteError as e:
             if "E11000 duplicate key error" in str(e):
-                raise IntegrityError from e
+                raise IntegrityError(str(e)) from e
             raise
         except DuplicateKeyError as e:
-            raise IntegrityError from e
+            raise IntegrityError(str(e)) from e
         except PyMongoError as e:
-            raise DatabaseError from e
+            raise DatabaseError(str(e)) from e
 
     return wrapper
 

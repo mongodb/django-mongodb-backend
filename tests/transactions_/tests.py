@@ -152,7 +152,6 @@ class AtomicNotSupportedTests(TransactionTestCase):
     available_apps = ["transactions_"]
 
     def test_not_supported(self):
-        # If transactions aren't supported, MongoDB raises an error:
-        # "Transaction numbers are only allowed on a replica set member or mongos"
-        with self.assertRaises(DatabaseError), transaction.atomic():
+        msg = "Transaction numbers are only allowed on a replica set member or mongos"
+        with self.assertRaisesMessage(DatabaseError, msg), transaction.atomic():
             Reporter.objects.create(first_name="Haddock")
