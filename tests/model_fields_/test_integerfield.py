@@ -86,7 +86,7 @@ class SmallUniqueTests(TestCase):
 
     def test_integerfield(self):
         UniqueIntegers.objects.create(plain=self.test_value)
-        with self.assertRaises(IntegrityError):
+        with self.assertRaisesMessage(IntegrityError, "duplicate key error"):
             UniqueIntegers.objects.create(plain=self.test_value)
 
     def test_bigintegerfield(self):
