@@ -57,6 +57,11 @@ def get_field(model, field_name):
     return FieldColumn(field, ".".join(path))
 
 
+@staticmethod
+def get_index(*args, **kwargs):
+    return Index(*args, **kwargs)
+
+
 def get_pymongo_index_model(self, model, schema_editor, field=None, unique=False, column_prefix=""):
     """Return a pymongo IndexModel for this Django Index."""
     if self.contains_expressions:
@@ -193,6 +198,10 @@ class EmbeddedModelIndex(EmbeddedModelndexMixin, Index):
 
 class EmbeddedModelUniqueConstraint(EmbeddedModelndexMixin, UniqueConstraint):
     option = "constraints"
+
+    @staticmethod
+    def get_index(*args, **kwargs):
+        return EmbeddedModelIndex(*args, **kwargs)
 
 
 class SearchIndex(Index):
@@ -412,4 +421,5 @@ def register_indexes():
     BuiltinLookup.as_mql_idx = builtin_lookup_idx
     Index._get_condition_mql = _get_condition_mql
     Index.get_pymongo_index_model = get_pymongo_index_model
+    UniqueConstraint.get_index = get_index
     WhereNode.as_mql_idx = where_node_idx

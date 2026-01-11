@@ -5,8 +5,6 @@ from django.db.models import Index, UniqueConstraint
 from pymongo.operations import SearchIndexModel
 
 from django_mongodb_backend.indexes import (
-    EmbeddedModelIndex,
-    EmbeddedModelUniqueConstraint,
     SearchIndex,
 )
 
@@ -364,12 +362,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             expressions=constraint.expressions,
             nulls_distinct=constraint.nulls_distinct,
         ):
-            idx_type = (
-                EmbeddedModelIndex
-                if isinstance(constraint, EmbeddedModelUniqueConstraint)
-                else Index
-            )
-            idx = idx_type(
+            idx = constraint.get_index(
                 fields=constraint.fields,
                 name=constraint.name,
                 condition=constraint.condition,
