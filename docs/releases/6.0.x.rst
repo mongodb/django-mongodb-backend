@@ -18,6 +18,8 @@ Bug fixes
 - Prevented ``Index`` system checks from running twice.
 - Added exception messages to :class:`~django.db.DatabaseError` and
   :class:`~django.db.IntegrityError`.
+- Fixed ``QuerySet.defer()`` and ``only()`` so that they project the correct
+  fields. Previously, they had no effect.
 
 Performance improvements
 ------------------------

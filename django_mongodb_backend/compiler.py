@@ -338,17 +338,27 @@ class SQLCompiler(compiler.SQLCompiler):
             self.set_where(where.replace_expressions(search_replacements))
         return extra_select, order_by, group_by
 
+    def get_project_columns(self, columns):
+        # In order to construct less verbose queries, avoid $project if it's
+        # unneeded. The columns must be projected if...
+        needs_projection = (
+            # The query has annotations (which appear in $project)
+            self.query.annotations
+            # A subset of columns are selected (e.g. QuerySet.values())
+            or not self.query.default_cols
+            # It's a distinct query (e.g. QuerySet.distinct())
+            or self.query.distinct
+            # The query has a select mask (e.g. QuerySet.defer()/only())
+            or self.query.get_select_mask()
+        )
+        return columns if needs_projection else None
+
     def execute_sql(
         self, result_type=MULTI, chunked_fetch=False, chunk_size=GET_ITERATOR_CHUNK_SIZE
     ):
         self.pre_sql_setup()
         try:
-            query = self.build_query(
-                # Avoid $project (columns=None) if unneeded.
-                self.columns
-                if self.query.annotations or not self.query.default_cols or self.query.distinct
-                else None
-            )
+            query = self.build_query(self.get_project_columns(self.columns))
         except EmptyResultSet:
             return iter([]) if result_type == MULTI else None
 
@@ -813,10 +823,7 @@ class SQLCompiler(compiler.SQLCompiler):
         )
         # Build the query pipeline.
         self.pre_sql_setup()
-        query = self.build_query(
-            # Avoid $project (columns=None) if unneeded.
-            self.columns if self.query.annotations or not self.query.default_cols else None
-        )
+        query = self.build_query(self.get_project_columns(self.columns))
         pipeline = query.get_pipeline()
         # Explain the pipeline.
         kwargs = {}
@@ -969,13 +976,7 @@ class SQLAggregateCompiler(SQLCompiler):
             elide_empty=self.elide_empty,
         )
         compiler.pre_sql_setup(with_col_aliases=False)
-        # Avoid $project (columns=None) if unneeded.
-        columns = (
-            compiler.columns
-            if self.query.annotations or not self.query.default_cols or self.query.distinct
-            else None
-        )
-        subquery = compiler.build_query(columns)
+        subquery = compiler.build_query(self.get_project_columns(compiler.columns))
         query.subqueries = [subquery]
         return query
 
