@@ -585,6 +585,7 @@ class SQLCompiler(compiler.SQLCompiler):
             for query in self.query.combined_queries
         ]
         main_query_fields, _ = zip(*self.columns, strict=True)
+        combinator = self.query.combinator
         for compiler_ in compilers:
             try:
                 # If the columns list is limited, then all combined queries
@@ -608,8 +609,9 @@ class SQLCompiler(compiler.SQLCompiler):
                 columns = compiler_.columns
                 parts.append((compiler_.build_query(columns), compiler_, columns))
             except EmptyResultSet:
-                # Omit the empty queryset with UNION.
-                if self.query.combinator == "union":
+                # Omit the empty queryset with UNION and with DIFFERENCE if the
+                # first queryset is nonempty.
+                if combinator == "union" or (combinator == "difference" and parts):
                     continue
                 raise
         # Raise EmptyResultSet if all the combinator queries are empty.
@@ -634,14 +636,55 @@ class SQLCompiler(compiler.SQLCompiler):
                 inner_pipeline.append({"$project": fields})
             # Combine query with the current combinator pipeline.
             if combinator_pipeline:
-                combinator_pipeline.append(
-                    {
-                        "$unionWith": {
-                            "coll": compiler_.base_table.table_name,
-                            "pipeline": inner_pipeline,
+                if combinator == "union":
+                    combinator_pipeline.append(
+                        {
+                            "$unionWith": {
+                                "coll": compiler_.base_table.table_name,
+                                "pipeline": inner_pipeline,
+                            }
                         }
-                    }
-                )
+                    )
+                elif combinator in ("difference", "intersection"):
+                    tuple_expr = []
+                    for alias, expr in self.columns:
+                        if isinstance(expr, Col) and expr.alias != self.collection_name:
+                            tuple_expr.append(expr.as_mql(self, self.connection, as_expr=True))
+                        else:
+                            tuple_expr.append(f"${alias}")
+                    substract_pipeline = [
+                        *inner_pipeline,
+                        {"$addFields": {"__tuple": tuple_expr}},
+                        {"$group": {"_id": "$__tuple"}},
+                    ]
+                    predicate = {"$in": [tuple_expr, "$$bset"]}
+                    if combinator == "difference":
+                        predicate = {"$not": predicate}
+
+                    combinator_pipeline = [
+                        {"$limit": 1},
+                        {
+                            "$lookup": {
+                                "from": compiler_.base_table.table_name,
+                                "pipeline": substract_pipeline,
+                                "as": "_BSET",
+                            }
+                        },
+                        {"$project": {"_BSET": 1}},
+                        {
+                            "$lookup": {
+                                "from": self.base_table.table_name,
+                                "let": {"bset": "$_BSET._id"},
+                                "pipeline": [
+                                    *combinator_pipeline,
+                                    {"$match": {"$expr": predicate}},
+                                ],
+                                "as": "__result",
+                            },
+                        },
+                        {"$unwind": "$__result"},
+                        {"$replaceRoot": {"newRoot": "$__result"}},
+                    ]
             else:
                 combinator_pipeline = inner_pipeline
         if not self.query.combinator_all:
