@@ -10,7 +10,9 @@ Django MongoDB Backend 6.0.x
 New features
 ------------
 
-- ...
+- Added support for :meth:`QuerySet.intersection()
+  <django.db.models.query.QuerySet.intersection>` and
+  :meth:`~django.db.models.query.QuerySet.difference`.
 
 Bug fixes
 ---------

@@ -585,6 +585,7 @@ class SQLCompiler(compiler.SQLCompiler):
             for query in self.query.combined_queries
         ]
         main_query_fields, _ = zip(*self.columns, strict=True)
+        combinator = self.query.combinator
         for compiler_ in compilers:
             try:
                 # If the columns list is limited, then all combined queries
@@ -608,8 +609,9 @@ class SQLCompiler(compiler.SQLCompiler):
                 columns = compiler_.columns
                 parts.append((compiler_.build_query(columns), compiler_, columns))
             except EmptyResultSet:
-                # Omit the empty queryset with UNION.
-                if self.query.combinator == "union":
+                # Omit the empty queryset with UNION and with DIFFERENCE if the
+                # first queryset isn't empty.
+                if combinator == "union" or (combinator == "difference" and parts):
                     continue
                 raise
         # Raise EmptyResultSet if all the combinator queries are empty.
@@ -634,14 +636,72 @@ class SQLCompiler(compiler.SQLCompiler):
                 inner_pipeline.append({"$project": fields})
             # Combine query with the current combinator pipeline.
             if combinator_pipeline:
-                combinator_pipeline.append(
-                    {
-                        "$unionWith": {
-                            "coll": compiler_.base_table.table_name,
-                            "pipeline": inner_pipeline,
+                if combinator == "union":
+                    combinator_pipeline.append(
+                        {
+                            "$unionWith": {
+                                "coll": compiler_.base_table.table_name,
+                                "pipeline": inner_pipeline,
+                            }
                         }
-                    }
-                )
+                    )
+                elif combinator in {"difference", "intersection"}:
+                    # Compute INTERSECTION / DIFFERENCE on projected query
+                    # results. The RHS query is evaluated once and reduced to a
+                    # distinct set of canonical tuples derived from the
+                    # projected output. The LHS query is then evaluated and
+                    # filtered by tuple membership against that set. This
+                    # ensures correct set semantics even when queries apply
+                    # complex transformations or nested lookups.
+                    tuple_expr = []
+                    for alias, expr in self.columns:
+                        if isinstance(expr, Col) and expr.alias != self.collection_name:
+                            tuple_expr.append(expr.as_mql(self, self.connection, as_expr=True))
+                        else:
+                            tuple_expr.append(f"${alias}")
+                    distinct_tuple_pipeline = [
+                        *inner_pipeline,
+                        {"$addFields": {"__tuple": tuple_expr}},
+                        {"$group": {"_id": "$__tuple"}},
+                    ]
+                    # INTERSECTION keeps tuples present in the RHS set.
+                    predicate = {"$in": [tuple_expr, "$$rhs_set"]}
+                    if combinator == "difference":
+                        # DIFFERENCE keeps tuples absent from the RHS set.
+                        predicate = {"$not": predicate}
+                    combinator_pipeline = [
+                        # Anchor pipeline execution to a single document so the
+                        # RHS is evaluated once.
+                        {"$limit": 1},
+                        # Materialize the RHS query as a distinct set of
+                        # projected tuples.
+                        {
+                            "$lookup": {
+                                "from": compiler_.base_table.table_name,
+                                "pipeline": distinct_tuple_pipeline,
+                                "as": "__rhs_set",
+                            }
+                        },
+                        # Keep only the materialized RHS set to minimize
+                        # carried state.
+                        {"$project": {"__rhs_set": 1}},
+                        # Evaluate the LHS and filter by tuple membership.
+                        {
+                            "$lookup": {
+                                "from": self.base_table.table_name,
+                                "let": {"rhs_set": "$__rhs_set._id"},
+                                "pipeline": [
+                                    *combinator_pipeline,
+                                    {"$match": {"$expr": predicate}},
+                                ],
+                                "as": "__result",
+                            },
+                        },
+                        # Restore a standard one-document-per-row result
+                        # stream.
+                        {"$unwind": "$__result"},
+                        {"$replaceRoot": {"newRoot": "$__result"}},
+                    ]
             else:
                 combinator_pipeline = inner_pipeline
         if not self.query.combinator_all:
