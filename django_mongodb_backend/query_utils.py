@@ -1,6 +1,6 @@
 from django.core.exceptions import EmptyResultSet, FullResultSet
 from django.db.models import F
-from django.db.models.expressions import CombinedExpression, Func, Value
+from django.db.models.expressions import Col, CombinedExpression, Func, Value
 from django.db.models.sql.query import Query
 
 
@@ -41,7 +41,9 @@ def process_rhs(node, compiler, connection, as_expr=False):
             )
         else:
             value = rhs.as_mql(compiler, connection, as_expr=as_expr)
-            if lookup_name == "in":
+            # Preserve operator precedence without double wrapping, which can be
+            # misinterpreted for subqueries, ExpressionList, or embedded array transforms.
+            if lookup_name == "in" and isinstance(rhs, Col):
                 value = [value]
     else:
         _, value = node.process_rhs(compiler, connection)
