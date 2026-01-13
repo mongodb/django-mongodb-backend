@@ -30,6 +30,7 @@ def process_lhs(node, compiler, connection, as_expr=False):
 
 def process_rhs(node, compiler, connection, as_expr=False):
     rhs = node.rhs
+    lookup_name = node.lookup_name
     if hasattr(rhs, "as_mql"):
         if getattr(rhs, "subquery", False) and hasattr(node, "get_subquery_wrapping_pipeline"):
             value = rhs.as_mql(
@@ -40,9 +41,10 @@ def process_rhs(node, compiler, connection, as_expr=False):
             )
         else:
             value = rhs.as_mql(compiler, connection, as_expr=as_expr)
+            if lookup_name == "in":
+                value = [value]
     else:
         _, value = node.process_rhs(compiler, connection)
-        lookup_name = node.lookup_name
         # Undo Lookup.get_db_prep_lookup() putting params in a list.
         if lookup_name not in ("in", "range"):
             value = value[0]

@@ -635,7 +635,7 @@ class SQLCompiler(compiler.SQLCompiler):
                             }
                         }
                     )
-                elif combinator == "difference":
+                elif combinator in ("difference", "intersection"):
                     tuple_expr = []
                     for alias, expr in self.columns:
                         if isinstance(expr, Col) and expr.alias != self.collection_name:
@@ -647,6 +647,9 @@ class SQLCompiler(compiler.SQLCompiler):
                         {"$addFields": {"__tuple": tuple_expr}},
                         {"$group": {"_id": "$__tuple"}},
                     ]
+                    predicate = {"$in": [tuple_expr, "$$bset"]}
+                    if combinator == "difference":
+                        predicate = {"$not": predicate}
 
                     combinator_pipeline = [
                         {"$limit": 1},
@@ -654,21 +657,17 @@ class SQLCompiler(compiler.SQLCompiler):
                             "$lookup": {
                                 "from": compiler_.base_table.table_name,
                                 "pipeline": substract_pipeline,
-                                "as": "__substract",
+                                "as": "_BSET",
                             }
                         },
-                        {"$project": {"__substract": 1}},
+                        {"$project": {"_BSET": 1}},
                         {
                             "$lookup": {
-                                "from": self.collection_name,
-                                "let": {"bset": "$__substract._id"},
+                                "from": self.base_table.table_name,
+                                "let": {"bset": "$_BSET._id"},
                                 "pipeline": [
                                     *combinator_pipeline,
-                                    {
-                                        "$match": {
-                                            "$expr": {"$not": {"$in": [tuple_expr, "$$bset"]}}
-                                        }
-                                    },
+                                    {"$match": {"$expr": predicate}},
                                 ],
                                 "as": "__result",
                             },

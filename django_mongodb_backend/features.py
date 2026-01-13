@@ -37,7 +37,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     supports_microsecond_precision = False
     supports_paramstyle_pyformat = False
     supports_select_difference = True
-    supports_select_intersection = False
+    supports_select_intersection = True
     supports_sequence_reset = False
     supports_slicing_ordering_in_compound = True
     supports_table_check_constraints = False
