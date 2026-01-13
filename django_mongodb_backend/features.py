@@ -36,7 +36,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     # BSON Date type doesn't support microsecond precision.
     supports_microsecond_precision = False
     supports_paramstyle_pyformat = False
-    supports_select_difference = False
+    supports_select_difference = True
     supports_select_intersection = False
     supports_sequence_reset = False
     supports_slicing_ordering_in_compound = True
