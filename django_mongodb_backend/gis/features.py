@@ -25,9 +25,6 @@ class GISFeatures(BaseSpatialFeatures):
         skips = super().django_test_skips
         skips.update(
             {
-                "inspectdb not supported.": {
-                    "gis_tests.inspectapp.tests.InspectDbTests",
-                },
                 "Raw SQL not supported": {
                     "gis_tests.geoapp.tests.GeoModelTest.test_raw_sql_query",
                 },
