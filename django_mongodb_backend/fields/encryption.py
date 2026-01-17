@@ -3,6 +3,8 @@ from django.db import models
 from django_mongodb_backend.fields import ArrayField, EmbeddedModelArrayField, EmbeddedModelField
 from django_mongodb_backend.fields.objectid import ObjectIdField
 
+from .mixins import NoEncryptedEmbeddedFieldsMixin
+
 
 class EncryptedFieldMixin:
     encrypted = True
@@ -128,7 +130,9 @@ class EncryptedEmbeddedModelArrayField(
     pass
 
 
-class EncryptedEmbeddedModelField(NoQueriesMixin, EncryptedFieldMixin, EmbeddedModelField):
+class EncryptedEmbeddedModelField(
+    NoEncryptedEmbeddedFieldsMixin, NoQueriesMixin, EncryptedFieldMixin, EmbeddedModelField
+):
     pass
 
 
