@@ -38,6 +38,10 @@ docs = [
     "furo>=2025.7.19",
     "sphinx-copybutton",
 ]
+encryption = [
+    "pymongo>=4.16.0",
+    "pymongo[encryption]",
+]
 
 [project.urls]
 Homepage = "https://www.mongodb.org"
