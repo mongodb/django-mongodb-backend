@@ -1,7 +1,7 @@
 {
   "components": [
     {
-      "bom-ref": "Django==6.0",
+      "bom-ref": "Django==6.0.1",
       "description": "A high-level Python web framework that encourages rapid development and clean, pragmatic design.",
       "externalReferences": [
         {
@@ -43,9 +43,46 @@
         }
       ],
       "name": "Django",
-      "purl": "pkg:pypi/django@6.0",
+      "purl": "pkg:pypi/django@6.0.1",
       "type": "library",
-      "version": "6.0"
+      "version": "6.0.1"
+    },
+    {
+      "bom-ref": "anyio==4.12.1",
+      "description": "High-level concurrency and networking framework on top of asyncio or Trio",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Documentation",
+          "type": "documentation",
+          "url": "https://anyio.readthedocs.io/en/latest/"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Issue tracker",
+          "type": "issue-tracker",
+          "url": "https://github.com/agronholm/anyio/issues"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Source code",
+          "type": "other",
+          "url": "https://github.com/agronholm/anyio"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Changelog",
+          "type": "release-notes",
+          "url": "https://anyio.readthedocs.io/en/stable/versionhistory.html"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "anyio",
+      "purl": "pkg:pypi/anyio@4.12.1",
+      "type": "library",
+      "version": "4.12.1"
     },
     {
       "bom-ref": "asgiref==3.11.0",
@@ -88,6 +125,185 @@
       "purl": "pkg:pypi/asgiref@3.11.0",
       "type": "library",
       "version": "3.11.0"
+    },
+    {
+      "bom-ref": "boto3==1.42.31",
+      "description": "The AWS SDK for Python",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Documentation",
+          "type": "documentation",
+          "url": "https://boto3.amazonaws.com/v1/documentation/api/latest/index.html"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Source",
+          "type": "other",
+          "url": "https://github.com/boto/boto3"
+        },
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://github.com/boto/boto3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "boto3",
+      "purl": "pkg:pypi/boto3@1.42.31",
+      "type": "library",
+      "version": "1.42.31"
+    },
+    {
+      "bom-ref": "botocore==1.42.31",
+      "description": "Low-level, data-driven core of boto 3.",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://github.com/boto/botocore"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "botocore",
+      "properties": [
+        {
+          "name": "cdx:python:package:required-extra",
+          "value": "crt"
+        }
+      ],
+      "purl": "pkg:pypi/botocore@1.42.31",
+      "type": "library",
+      "version": "1.42.31"
+    },
+    {
+      "bom-ref": "certifi==2026.1.4",
+      "description": "Python package for providing Mozilla's CA Bundle.",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Source",
+          "type": "other",
+          "url": "https://github.com/certifi/python-certifi"
+        },
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://github.com/certifi/python-certifi"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MPL-2.0"
+          }
+        },
+        {
+          "license": {
+            "name": "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)"
+          }
+        }
+      ],
+      "name": "certifi",
+      "purl": "pkg:pypi/certifi@2026.1.4",
+      "type": "library",
+      "version": "2026.1.4"
+    },
+    {
+      "bom-ref": "cffi==2.0.0",
+      "description": "Foreign Function Interface for Python calling C code.",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Documentation",
+          "type": "documentation",
+          "url": "https://cffi.readthedocs.io/"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Issue Tracker",
+          "type": "issue-tracker",
+          "url": "https://github.com/python-cffi/cffi/issues"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Source Code",
+          "type": "other",
+          "url": "https://github.com/python-cffi/cffi"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Downloads",
+          "type": "other",
+          "url": "https://github.com/python-cffi/cffi/releases"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Contact",
+          "type": "other",
+          "url": "https://groups.google.com/forum/#!forum/python-cffi"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Changelog",
+          "type": "release-notes",
+          "url": "https://cffi.readthedocs.io/en/latest/whatsnew.html"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "cffi",
+      "purl": "pkg:pypi/cffi@2.0.0",
+      "type": "library",
+      "version": "2.0.0"
+    },
+    {
+      "bom-ref": "cryptography==46.0.3",
+      "description": "cryptography is a package which provides cryptographic recipes and primitives to Python developers.",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: documentation",
+          "type": "documentation",
+          "url": "https://cryptography.io/"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: issues",
+          "type": "issue-tracker",
+          "url": "https://github.com/pyca/cryptography/issues"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: source",
+          "type": "other",
+          "url": "https://github.com/pyca/cryptography/"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: changelog",
+          "type": "release-notes",
+          "url": "https://cryptography.io/en/latest/changelog/"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: homepage",
+          "type": "website",
+          "url": "https://github.com/pyca/cryptography"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0 OR BSD-3-Clause"
+        }
+      ],
+      "name": "cryptography",
+      "purl": "pkg:pypi/cryptography@46.0.3",
+      "type": "library",
+      "version": "46.0.3"
     },
     {
       "bom-ref": "django-mongodb-backend==6.0.1.dev0",
@@ -169,7 +385,216 @@
       "version": "2.8.0"
     },
     {
-      "bom-ref": "pymongo==4.15.5",
+      "bom-ref": "h11==0.16.0",
+      "description": "A pure-Python, bring-your-own-I/O implementation of HTTP/1.1",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://github.com/python-hyper/h11"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "h11",
+      "purl": "pkg:pypi/h11@0.16.0",
+      "type": "library",
+      "version": "0.16.0"
+    },
+    {
+      "bom-ref": "httpcore==1.0.9",
+      "description": "A minimal low-level HTTP client.",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Documentation",
+          "type": "documentation",
+          "url": "https://www.encode.io/httpcore"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Source",
+          "type": "other",
+          "url": "https://github.com/encode/httpcore"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Homepage",
+          "type": "website",
+          "url": "https://www.encode.io/httpcore/"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "httpcore",
+      "purl": "pkg:pypi/httpcore@1.0.9",
+      "type": "library",
+      "version": "1.0.9"
+    },
+    {
+      "bom-ref": "httpx==0.28.1",
+      "description": "The next generation HTTP client.",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Documentation",
+          "type": "documentation",
+          "url": "https://www.python-httpx.org"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Source",
+          "type": "other",
+          "url": "https://github.com/encode/httpx"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Changelog",
+          "type": "release-notes",
+          "url": "https://github.com/encode/httpx/blob/master/CHANGELOG.md"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Homepage",
+          "type": "website",
+          "url": "https://github.com/encode/httpx"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        },
+        {
+          "license": {
+            "name": "License :: OSI Approved :: BSD License"
+          }
+        }
+      ],
+      "name": "httpx",
+      "purl": "pkg:pypi/httpx@0.28.1",
+      "type": "library",
+      "version": "0.28.1"
+    },
+    {
+      "bom-ref": "idna==3.11",
+      "description": "Internationalized Domain Names in Applications (IDNA)",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Issue tracker",
+          "type": "issue-tracker",
+          "url": "https://github.com/kjd/idna/issues"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Source",
+          "type": "other",
+          "url": "https://github.com/kjd/idna"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Changelog",
+          "type": "release-notes",
+          "url": "https://github.com/kjd/idna/blob/master/HISTORY.rst"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "idna",
+      "purl": "pkg:pypi/idna@3.11",
+      "type": "library",
+      "version": "3.11"
+    },
+    {
+      "bom-ref": "jmespath==1.0.1",
+      "description": "JSON Matching Expressions",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://github.com/jmespath/jmespath.py"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "jmespath",
+      "purl": "pkg:pypi/jmespath@1.0.1",
+      "type": "library",
+      "version": "1.0.1"
+    },
+    {
+      "bom-ref": "packaging==25.0",
+      "description": "Core utilities for Python packages",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Documentation",
+          "type": "documentation",
+          "url": "https://packaging.pypa.io/"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Source",
+          "type": "other",
+          "url": "https://github.com/pypa/packaging"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "License :: OSI Approved :: Apache Software License"
+          }
+        },
+        {
+          "license": {
+            "name": "License :: OSI Approved :: BSD License"
+          }
+        }
+      ],
+      "name": "packaging",
+      "purl": "pkg:pypi/packaging@25.0",
+      "type": "library",
+      "version": "25.0"
+    },
+    {
+      "bom-ref": "pycparser==2.23",
+      "description": "C parser in Python",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://github.com/eliben/pycparser"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        },
+        {
+          "license": {
+            "name": "License :: OSI Approved :: BSD License"
+          }
+        }
+      ],
+      "name": "pycparser",
+      "purl": "pkg:pypi/pycparser@2.23",
+      "type": "library",
+      "version": "2.23"
+    },
+    {
+      "bom-ref": "pymongo==4.16.0",
       "description": "PyMongo - the Official MongoDB Python driver",
       "externalReferences": [
         {
@@ -196,14 +621,149 @@
       "licenses": [
         {
           "license": {
-            "name": "License :: OSI Approved :: Apache Software License"
+            "id": "Apache-2.0"
           }
         }
       ],
       "name": "pymongo",
-      "purl": "pkg:pypi/pymongo@4.15.5",
+      "properties": [
+        {
+          "name": "cdx:python:package:required-extra",
+          "value": "aws"
+        },
+        {
+          "name": "cdx:python:package:required-extra",
+          "value": "encryption"
+        }
+      ],
+      "purl": "pkg:pypi/pymongo@4.16.0",
       "type": "library",
-      "version": "4.15.5"
+      "version": "4.16.0"
+    },
+    {
+      "bom-ref": "pymongo-auth-aws==1.3.0",
+      "description": "MONGODB-AWS authentication support for PyMongo",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Homepage",
+          "type": "website",
+          "url": "https://github.com/mongodb/pymongo-auth-aws"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "License :: OSI Approved :: Apache Software License"
+          }
+        }
+      ],
+      "name": "pymongo-auth-aws",
+      "purl": "pkg:pypi/pymongo-auth-aws@1.3.0",
+      "type": "library",
+      "version": "1.3.0"
+    },
+    {
+      "bom-ref": "pymongocrypt==1.17.0",
+      "description": "Python bindings for libmongocrypt",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Homepage",
+          "type": "website",
+          "url": "https://github.com/mongodb/libmongocrypt/tree/master/bindings/python"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "License :: OSI Approved :: Apache Software License"
+          }
+        }
+      ],
+      "name": "pymongocrypt",
+      "purl": "pkg:pypi/pymongocrypt@1.17.0",
+      "type": "library",
+      "version": "1.17.0"
+    },
+    {
+      "bom-ref": "python-dateutil==2.9.0.post0",
+      "description": "Extensions to the standard Python datetime module",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Documentation",
+          "type": "documentation",
+          "url": "https://dateutil.readthedocs.io/en/stable/"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Source",
+          "type": "other",
+          "url": "https://github.com/dateutil/dateutil"
+        },
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://github.com/dateutil/dateutil"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "License :: OSI Approved :: Apache Software License"
+          }
+        },
+        {
+          "license": {
+            "name": "License :: OSI Approved :: BSD License"
+          }
+        }
+      ],
+      "name": "python-dateutil",
+      "purl": "pkg:pypi/python-dateutil@2.9.0.post0",
+      "type": "library",
+      "version": "2.9.0.post0"
+    },
+    {
+      "bom-ref": "s3transfer==0.16.0",
+      "description": "An Amazon S3 Transfer Manager",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://github.com/boto/s3transfer"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "License :: OSI Approved :: Apache Software License"
+          }
+        }
+      ],
+      "name": "s3transfer",
+      "purl": "pkg:pypi/s3transfer@0.16.0",
+      "type": "library",
+      "version": "0.16.0"
+    },
+    {
+      "bom-ref": "six==1.17.0",
+      "description": "Python 2 and 3 compatibility utilities",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://github.com/benjaminp/six"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "six",
+      "purl": "pkg:pypi/six@1.17.0",
+      "type": "library",
+      "version": "1.17.0"
     },
     {
       "bom-ref": "sqlparse==0.5.5",
@@ -246,6 +806,43 @@
       "purl": "pkg:pypi/sqlparse@0.5.5",
       "type": "library",
       "version": "0.5.5"
+    },
+    {
+      "bom-ref": "urllib3==2.6.3",
+      "description": "HTTP library with thread-safe connection pooling, file post, and more.",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Documentation",
+          "type": "documentation",
+          "url": "https://urllib3.readthedocs.io"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Issue tracker",
+          "type": "issue-tracker",
+          "url": "https://github.com/urllib3/urllib3/issues"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Code",
+          "type": "other",
+          "url": "https://github.com/urllib3/urllib3"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Changelog",
+          "type": "release-notes",
+          "url": "https://github.com/urllib3/urllib3/blob/main/CHANGES.rst"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "urllib3",
+      "purl": "pkg:pypi/urllib3@2.6.3",
+      "type": "library",
+      "version": "2.6.3"
     }
   ],
   "dependencies": [
@@ -254,33 +851,150 @@
         "asgiref==3.11.0",
         "sqlparse==0.5.5"
       ],
-      "ref": "Django==6.0"
+      "ref": "Django==6.0.1"
+    },
+    {
+      "dependsOn": [
+        "idna==3.11"
+      ],
+      "ref": "anyio==4.12.1"
     },
     {
       "ref": "asgiref==3.11.0"
     },
     {
       "dependsOn": [
-        "Django==6.0",
-        "pymongo==4.15.5"
+        "botocore==1.42.31",
+        "jmespath==1.0.1",
+        "s3transfer==0.16.0"
+      ],
+      "ref": "boto3==1.42.31"
+    },
+    {
+      "dependsOn": [
+        "jmespath==1.0.1",
+        "python-dateutil==2.9.0.post0",
+        "urllib3==2.6.3"
+      ],
+      "ref": "botocore==1.42.31"
+    },
+    {
+      "ref": "certifi==2026.1.4"
+    },
+    {
+      "dependsOn": [
+        "pycparser==2.23"
+      ],
+      "ref": "cffi==2.0.0"
+    },
+    {
+      "dependsOn": [
+        "certifi==2026.1.4",
+        "cffi==2.0.0"
+      ],
+      "ref": "cryptography==46.0.3"
+    },
+    {
+      "dependsOn": [
+        "Django==6.0.1",
+        "pymongo==4.16.0"
       ],
       "ref": "django-mongodb-backend==6.0.1.dev0"
     },
     {
+      "dependsOn": [
+        "cryptography==46.0.3",
+        "httpcore==1.0.9",
+        "httpx==0.28.1",
+        "idna==3.11"
+      ],
       "ref": "dnspython==2.8.0"
     },
     {
+      "ref": "h11==0.16.0"
+    },
+    {
       "dependsOn": [
-        "dnspython==2.8.0"
+        "anyio==4.12.1",
+        "certifi==2026.1.4",
+        "h11==0.16.0"
       ],
-      "ref": "pymongo==4.15.5"
+      "ref": "httpcore==1.0.9"
+    },
+    {
+      "dependsOn": [
+        "anyio==4.12.1",
+        "certifi==2026.1.4",
+        "httpcore==1.0.9",
+        "idna==3.11"
+      ],
+      "ref": "httpx==0.28.1"
+    },
+    {
+      "ref": "idna==3.11"
+    },
+    {
+      "ref": "jmespath==1.0.1"
+    },
+    {
+      "ref": "packaging==25.0"
+    },
+    {
+      "ref": "pycparser==2.23"
+    },
+    {
+      "dependsOn": [
+        "boto3==1.42.31",
+        "botocore==1.42.31",
+        "dnspython==2.8.0",
+        "pymongo==4.16.0"
+      ],
+      "ref": "pymongo-auth-aws==1.3.0"
+    },
+    {
+      "dependsOn": [
+        "certifi==2026.1.4",
+        "cryptography==46.0.3",
+        "dnspython==2.8.0",
+        "pymongo-auth-aws==1.3.0",
+        "pymongocrypt==1.17.0"
+      ],
+      "ref": "pymongo==4.16.0"
+    },
+    {
+      "dependsOn": [
+        "cffi==2.0.0",
+        "cryptography==46.0.3",
+        "httpx==0.28.1",
+        "packaging==25.0",
+        "pymongo==4.16.0"
+      ],
+      "ref": "pymongocrypt==1.17.0"
+    },
+    {
+      "dependsOn": [
+        "six==1.17.0"
+      ],
+      "ref": "python-dateutil==2.9.0.post0"
+    },
+    {
+      "dependsOn": [
+        "botocore==1.42.31"
+      ],
+      "ref": "s3transfer==0.16.0"
+    },
+    {
+      "ref": "six==1.17.0"
     },
     {
       "ref": "sqlparse==0.5.5"
+    },
+    {
+      "ref": "urllib3==2.6.3"
     }
   ],
   "metadata": {
-    "timestamp": "2025-12-29T20:15:43.883531+00:00",
+    "timestamp": "2026-01-21T01:34:46.204560+00:00",
     "tools": {
       "components": [
         {
@@ -382,7 +1096,7 @@
       ]
     }
   },
-  "serialNumber": "urn:uuid:3b8af17f-bb34-4f62-8ad5-95adec3ad268",
+  "serialNumber": "urn:uuid:bb5c747a-8800-4d48-b534-9dde271c6a19",
   "version": 1,
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
