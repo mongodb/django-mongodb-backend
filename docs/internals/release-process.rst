@@ -73,3 +73,36 @@ merge of a "Add support for Django X.Y" pull request. Before merging that pull
 request, a branch is created off of main to track the previous feature release.
 For example, the 5.1.x branch is created shortly after the release of Django
 5.2, and main starts tracking the Django 5.2.x series.
+
+.. _django-fork:
+
+The Django fork
+===============
+
+Since Django's test suite is designed for SQL backends, running the tests with
+Django MongoDB Backend requires some modifications that can't be incorporated
+upstream such as:
+
+- Modifying test models to use
+  :class:`~django_mongodb_backend.fields.ObjectIdAutoField` instead of
+  :class:`~django.db.models.AutoField`.
+- Modify URL patterns and tests that assume an integer primary key to work with
+  an :class:`~bson.objectid.ObjectId`.
+- Removing or modifying SQL-specific assertions.
+
+These changes are maintained in a `fork of Django
+<https://github.com/mongodb-forks/django/>`_. Each Django feature release has a
+corresponding branch in the fork. For example, for Django 6.0, the branch is
+``mongodb-6.0.x``.
+
+Periodically, each branch is rebased on the upstream Django branch to pickup
+the latest changes. For example, ``mongodb-6.0.x`` is rebased on Django's
+``stable/6.0.x`` branch.
+
+During the development of the next Django feature release, the fork's
+corresponding branch is rebased on Django's ``main`` branch. For example,
+during the development of Django 6.1, the ``mongodb-6.1.x`` is rebased on
+Django's ``main`` branch. The ``mongodb-6.1.x`` branch is used in the `"Update
+to Django 6.1" pull request
+<https://github.com/mongodb/django-mongodb-backend/pull/422>`_ to be merged
+upon the release of Django 6.1.
