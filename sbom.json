@@ -297,7 +297,9 @@
       ],
       "licenses": [
         {
-          "expression": "Apache-2.0 OR BSD-3-Clause"
+          "license": {
+            "id": "Apache-2.0"
+          }
         }
       ],
       "name": "cryptography",
