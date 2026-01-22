@@ -37,7 +37,7 @@ jobs:
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          pip install .[encryption]
+          pip install .
           pip uninstall -y pip setuptools
           deactivate
           python -m venv .venv-sbom
