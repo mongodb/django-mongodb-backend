@@ -25,11 +25,6 @@ tasks:
   - name: run-tests
     commands:
       - func: "run unit tests"
-
-  - name: perf-tests
-    commands:
-      - func: "run performance tests"
-      - func: "attach performance test results"
   - name: run-encryption-tests
     commands:
       - func: "start csfle servers"
@@ -38,7 +33,7 @@ tasks:
   - name: perf-tests
     commands:
       - func: "run performance tests"
-      - func: "attach benchmark test results"
+      - func: "attach performance test results"
       - func: "send dashboard data"
 
 buildvariants:
