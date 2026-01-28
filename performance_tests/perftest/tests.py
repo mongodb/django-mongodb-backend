@@ -331,7 +331,24 @@ class TestLargeNestedDocCreation(LargeNestedDocTest, TestCase):
     """Benchmark for creating a large nested document."""
 
     def do_task(self):
-        self.setUpData()
+        for doc in self.documents:
+            model = LargeNestedModel()
+            for field_name, model_data in doc.items():
+                if "array" in field_name:
+                    array_models = []
+                    for item in model_data:
+                        embedded_str_model = StringEmbeddedModel(**item)
+                        embedded_str_model.unique_field = str(ObjectId())
+                        array_models.append(embedded_str_model)
+                    setattr(model, field_name, array_models)
+                elif "embedded_str_doc" in field_name:
+                    embedded_str_model = StringEmbeddedModel(**model_data)
+                    embedded_str_model.unique_field = str(ObjectId())
+                    setattr(model, field_name, embedded_str_model)
+                else:
+                    embedded_int_model = IntegerEmbeddedModel(**model_data)
+                    setattr(model, field_name, embedded_int_model)
+            model.save()
 
     def after(self):
         LargeNestedModel.objects.all().delete()
