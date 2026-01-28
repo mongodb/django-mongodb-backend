@@ -20,12 +20,12 @@ def wrap_database_errors(func):
             return func(*args, **kwargs)
         except BulkWriteError as e:
             if "E11000 duplicate key error" in str(e):
-                raise IntegrityError from e
+                raise IntegrityError(str(e)) from e
             raise
         except DuplicateKeyError as e:
-            raise IntegrityError from e
+            raise IntegrityError(str(e)) from e
         except PyMongoError as e:
-            raise DatabaseError from e
+            raise DatabaseError(str(e)) from e
 
     return wrapper
 
@@ -56,6 +56,7 @@ class MongoQuery:
         # $lookup stage that encapsulates the pipeline for performing a nested
         # subquery.
         self.subquery_lookup = None
+        self.needs_wrap_aggregation = compiler.needs_wrap_aggregation
 
     def __repr__(self):
         return f"<MongoQuery: {self.match_mql!r} ORDER {self.ordering!r}>"
@@ -91,6 +92,44 @@ class MongoQuery:
             pipeline.append({"$match": self.match_mql})
         if self.aggregation_pipeline:
             pipeline.extend(self.aggregation_pipeline)
+        if self.needs_wrap_aggregation:
+            if self.compiler.connection.client_encryption:
+                # Automatic encryption doesn't support $unionWith, so use
+                # $collStats instead (which may perform a bit worse).
+                pipeline = [
+                    {"$collStats": {}},
+                    {
+                        "$lookup": {
+                            "from": self.compiler.collection_name,
+                            "as": "wrapped",
+                            "pipeline": pipeline,
+                        }
+                    },
+                    {
+                        "$replaceWith": {
+                            "$cond": [{"$eq": ["$wrapped", []]}, {}, {"$first": "$wrapped"}]
+                        }
+                    },
+                ]
+            else:
+                # Add the aggregation stage for queries without a GROUP BY.
+                # e.g. SQL equivalent of SELECT avg(col) FROM table
+                pipeline.extend(
+                    [
+                        # Workaround for https://jira.mongodb.org/browse/SERVER-114196:
+                        # $$NOW becomes unavailable after $unionWith, so it
+                        # must be stored beforehand to ensure it remains
+                        # accessible later in the pipeline.
+                        {"$addFields": {"__now": "$$NOW"}},
+                        # Add an empty extra document to handle default values
+                        # on empty results.
+                        {"$unionWith": {"pipeline": [{"$documents": [{}]}]}},
+                        # Limiting to one document ensures the original result
+                        # takes precedence when present, otherwise the injected
+                        # empty document is used.
+                        {"$limit": 1},
+                    ]
+                )
         if self.project_fields:
             pipeline.append({"$project": self.project_fields})
         if self.combinator_pipeline:

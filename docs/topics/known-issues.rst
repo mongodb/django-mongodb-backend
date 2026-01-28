@@ -26,6 +26,8 @@ Model fields
   - :class:`~django.db.models.CompositePrimaryKey`
   - :class:`~django.db.models.GeneratedField`
 
+.. _known-issues-querying:
+
 Querying
 ========
 
@@ -44,6 +46,9 @@ Querying
 - :meth:`QuerySet.delete() <django.db.models.query.QuerySet.delete>` and
   :meth:`~django.db.models.query.QuerySet.update` do not support queries that
   span multiple collections.
+
+- The :class:`~django.db.models.StringAgg` aggregation function isn't
+  supported.
 
 - When querying :class:`~django.db.models.JSONField`:
 

@@ -8,6 +8,7 @@ Model API reference.
    :maxdepth: 1
 
    fields
+   encrypted-fields
    querysets
    models
    indexes

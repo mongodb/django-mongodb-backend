@@ -2,7 +2,7 @@
 Django MongoDB Backend
 ======================
 
-version 5.2.x for Django 5.2.x
+version 6.0.x for Django 6.0.x
 
 .. rubric:: Everything you need to know about Django MongoDB Backend.
 
@@ -56,6 +56,15 @@ Forms
 =====
 
 - :doc:`ref/forms`
+
+MongoDB Features
+================
+
+- **Queryable Encryption:**
+  :doc:`How-to guide </howto/queryable-encryption>` |
+  :doc:`/ref/models/encrypted-fields/`
+- **Settings:**
+  :doc:`Django MongoDB Backend-specific settings </ref/settings>`
 
 Miscellaneous
 =============

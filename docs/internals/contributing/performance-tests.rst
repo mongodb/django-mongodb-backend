@@ -45,7 +45,6 @@ Then, set up the benchmark data:
     $ tar xf flat_models.tgz
     $ tar xf nested_models.tgz
     $ popd
-    $ export OUTPUT_FILE="results.json"
 
 Finally, run the benchmarks themselves:
 

@@ -35,6 +35,54 @@ functions:
         args:
           - ./.evergreen/run-tests.sh
 
+  "teardown":
+    - command: subprocess.exec
+      params:
+        binary: bash
+        args:
+          - ${DRIVERS_TOOLS}/.evergreen/teardown.sh
+
+  # Encryption-specific functions
+  "start csfle servers":
+    - command: ec2.assume_role
+      params:
+        role_arn: ${aws_test_secrets_role}
+    - command: subprocess.exec
+      params:
+        binary: bash
+        include_expansions_in_env: [
+          "AWS_SECRET_ACCESS_KEY",
+          "AWS_ACCESS_KEY_ID",
+          "AWS_SESSION_TOKEN",
+        ]
+        args:
+          - ${DRIVERS_TOOLS}/.evergreen/csfle/setup.sh
+
+  "teardown csfle":
+    - command: subprocess.exec
+      params:
+        binary: bash
+        args:
+          - ${DRIVERS_TOOLS}/.evergreen/csfle/teardown.sh
+
+  "run encryption tests":
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        working_dir: "src"
+        include_expansions_in_env: [
+          "AWS_KMS_ARN",
+          "DRIVERS_TOOLS",
+          "MONGODB_URI",
+          "DJANGO_SETTINGS_MODULE",
+          "CRYPT_SHARED_LIB_PATH",
+        ]
+        args:
+          - ./.evergreen/run-tests.sh
+          - encryption
+
+  # Performance test functions
   "run performance tests":
     - command: subprocess.exec
       type: test
@@ -92,10 +140,3 @@ functions:
           "is_mainline"
         ]
       type: test
-
-  "teardown":
-    - command: subprocess.exec
-      params:
-        binary: bash
-        args:
-          - ${DRIVERS_TOOLS}/.evergreen/teardown.sh

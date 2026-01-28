@@ -61,7 +61,7 @@ Django MongoDB Backend 5.1.x
   <django:persistent-database-connections>`.
 - Added :doc:`async <django:topics/async>` support.
 - Added the ``db_name`` parameter to
-  :func:`~django_mongodb_backend.utils.parse_uri`.
+  ``django_mongodb_backend.utils.parse_uri()``.
 - Added ``django_mongodb_backend.routers.MongoRouter`` to allow
   :djadmin:`dumpdata` to ignore embedded models. See
   :ref:`configuring-database-routers-setting`.

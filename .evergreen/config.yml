@@ -30,25 +30,34 @@ tasks:
     commands:
       - func: "run performance tests"
       - func: "attach performance test results"
+  - name: run-encryption-tests
+    commands:
+      - func: "start csfle servers"
+      - func: "run encryption tests"
+      - func: "teardown csfle"
+  - name: perf-tests
+    commands:
+      - func: "run performance tests"
+      - func: "attach benchmark test results"
       - func: "send dashboard data"
 
 buildvariants:
-  - name: tests-6-noauth-nossl
-    display_name: Run Tests 6.0 NoAuth NoSSL
+  - name: tests-7-noauth-nossl
+    display_name: Run Tests 7.0 NoAuth NoSSL
     run_on: rhel87-small
     expansions:
-      MONGODB_VERSION: "6.0"
+      MONGODB_VERSION: "7.0"
       TOPOLOGY: server
       AUTH: "noauth"
       SSL: "nossl"
     tasks:
       - name: run-tests
 
-  - name: tests-6-auth-ssl
-    display_name: Run Tests 6.0 Auth SSL
+  - name: tests-7-auth-ssl
+    display_name: Run Tests 7.0 Auth SSL
     run_on: rhel87-small
     expansions:
-      MONGODB_VERSION: "6.0"
+      MONGODB_VERSION: "7.0"
       TOPOLOGY: server
       AUTH: "auth"
       SSL: "ssl"
@@ -76,6 +85,26 @@ buildvariants:
       SSL: "ssl"
     tasks:
       - name: run-tests
+
+  - name: tests-8-qe-local
+    display_name: Run Tests 8.2 QE local KMS
+    run_on: rhel87-small
+    expansions:
+      MONGODB_VERSION: "8.2"
+      TOPOLOGY: replica_set
+      DJANGO_SETTINGS_MODULE: "encrypted_settings"
+    tasks:
+      - name: run-encryption-tests
+
+  - name: tests-8-qe-aws
+    display_name: Run Tests 8.2 QE AWS KMS
+    run_on: rhel87-small
+    expansions:
+      MONGODB_VERSION: "8.2"
+      TOPOLOGY: replica_set
+      DJANGO_SETTINGS_MODULE: "encrypted_aws_settings"
+    tasks:
+      - name: run-encryption-tests
 
   - name: performance-benchmarks
     display_name: Performance Benchmarks

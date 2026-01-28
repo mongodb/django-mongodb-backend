@@ -12,7 +12,7 @@ except ImproperlyConfigured:
 
 
 class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
-    minimum_database_version = (6, 0)
+    minimum_database_version = (7, 0)
     allow_sliced_subqueries_with_in = False
     allows_multiple_constraints_on_same_fields = False
     can_create_inline_fk = False
@@ -99,23 +99,23 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "model_fields.test_jsonfield.TestSaveLoad.test_bulk_update_custom_get_prep_value",
         # To debug: https://github.com/mongodb/django-mongodb-backend/issues/362
         "constraints.tests.UniqueConstraintTests.test_validate_case_when",
-    }
-    # $bitAnd, #bitOr, and $bitXor are new in MongoDB 6.3.
-    _django_test_expected_failures_bitwise = {
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_and",
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_or",
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_xor",
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_xor_null",
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_bitwise_xor_right_null",
-        "expressions.tests.ExpressionOperatorTests.test_lefthand_transformed_field_bitwise_or",
+        # CheckConstraint(condition=models.Q(price__gte=0)) doesn't accept null
+        # values because {'$gte': [None, 0]} returns False instead of NULL like
+        # in SQL.
+        "constraints.tests.CheckConstraintTests.test_validate_nullable_field_with_none",
+        # bulk_create() population of _order doesn't work because of ObjectId
+        # type mismatch when querying object_id CharField.
+        # https://github.com/django/django/commit/953095d1e603fe0f8f01175b1409ca23818dcff9
+        "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_allows_duplicate_order_values",
+        "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_mixed_scenario",
+        "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_respects_mixed_manual_order",
+        "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_with_existing_children",
     }
 
     @cached_property
     def django_test_expected_failures(self):
         expected_failures = super().django_test_expected_failures
         expected_failures.update(self._django_test_expected_failures)
-        if not self.is_mongodb_6_3:
-            expected_failures.update(self._django_test_expected_failures_bitwise)
         return expected_failures
 
     _django_test_skips = {
@@ -139,6 +139,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "validation.test_unique.PerformUniqueChecksTest.test_unique_db_default",
         },
         "Insert expressions aren't supported.": {
+            "basic.tests.ModelTest.test_save_expressions",
             "bulk_create.tests.BulkCreateTests.test_bulk_insert_now",
             "bulk_create.tests.BulkCreateTests.test_bulk_insert_expressions",
             "expressions.tests.BasicExpressionsTests.test_new_object_create",
@@ -149,19 +150,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             # PI()
             "db_functions.math.test_round.RoundTests.test_decimal_with_precision",
             "db_functions.math.test_round.RoundTests.test_float_with_precision",
-        },
-        "Check constraints are not supported.": {
-            # Constraint.validate() crashes:
-            # AttributeError: 'NoneType' object has no attribute 'db_table'
-            "constraints.tests.CheckConstraintTests.test_database_default",
-            "constraints.tests.CheckConstraintTests.test_validate",
-            "constraints.tests.CheckConstraintTests.test_validate_boolean_expressions",
-            "constraints.tests.CheckConstraintTests.test_validate_custom_error",
-            "constraints.tests.CheckConstraintTests.test_validate_jsonfield_exact",
-            "constraints.tests.CheckConstraintTests.test_validate_nullable_field_with_none",
-            "constraints.tests.CheckConstraintTests.test_validate_nullable_jsonfield",
-            "constraints.tests.CheckConstraintTests.test_validate_pk_field",
-            "constraints.tests.CheckConstraintTests.test_validate_rawsql_expressions_noop",
         },
         "MongoDB doesn't rename an index when a field is renamed.": {
             "migrations.test_operations.OperationTests.test_rename_field_index_together",
@@ -201,6 +189,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "prefetch_related.tests.LookupOrderingTest.test_order",
             "prefetch_related.tests.MultiDbTests.test_using_is_honored_m2m",
             "prefetch_related.tests.MultiTableInheritanceTest",
+            "prefetch_related.tests.PrefetchRelatedMTICacheTests",
             "prefetch_related.tests.PrefetchRelatedTests",
             "prefetch_related.tests.ReadPrefetchedObjectsCacheTests",
             "prefetch_related.tests.Ticket21410Tests",
@@ -563,6 +552,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "Custom lookups are not supported.": {
             "custom_lookups.tests.BilateralTransformTests",
             "custom_lookups.tests.LookupTests.test_basic_lookup",
+            "custom_lookups.tests.LookupTests.test_custom_lookup_with_subquery",
             "custom_lookups.tests.LookupTests.test_custom_name_lookup",
             "custom_lookups.tests.LookupTests.test_div3_extract",
             "custom_lookups.tests.SubqueryTransformTests.test_subquery_usage",
@@ -580,6 +570,16 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "test_utils.tests.DisallowedDatabaseQueriesTests.test_disallowed_database_queries",
             "test_utils.tests.DisallowedDatabaseQueriesTests.test_disallowed_thread_database_connection",
         },
+        "search lookup not supported on non-Atlas.": {
+            "expressions.tests.BasicExpressionsTests.test_lookups_subquery",
+        },
+        "StringAgg is not supported.": {
+            "aggregation.tests.AggregateTestCase.test_distinct_on_stringagg",
+            "aggregation.tests.AggregateTestCase.test_string_agg_escapes_delimiter",
+            "aggregation.tests.AggregateTestCase.test_string_agg_filter",
+            "aggregation.tests.AggregateTestCase.test_string_agg_filter_in_subquery",
+            "aggregation.tests.AggregateTestCase.test_stringagg_default_value",
+        },
     }
 
     @cached_property
@@ -589,16 +589,18 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         return skips
 
     @cached_property
-    def is_mongodb_6_3(self):
-        return self.connection.get_database_version() >= (6, 3)
+    def mongodb_version(self):
+        return self.connection.get_database_version()  # e.g., (6, 3, 0)
+
+    @cached_property
+    def is_mongodb_8_0(self):
+        return self.mongodb_version >= (8, 0)
 
     @cached_property
     def supports_atlas_search(self):
         """Does the server support Atlas search queries and search indexes?"""
         try:
-            # An existing collection must be used on MongoDB 6, otherwise
-            # the operation will not error when unsupported.
-            self.connection.get_collection("django_migrations").list_search_indexes()
+            self.connection.get_collection("__null").list_search_indexes()
         except OperationFailure:
             # It would be best to check the error message or error code to
             # avoid hiding some other exception, but the message/code varies
@@ -620,3 +622,22 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         hello = client.command("hello")
         # a replica set or a sharded cluster
         return "setName" in hello or hello.get("msg") == "isdbgrid"
+
+    @cached_property
+    def supports_queryable_encryption(self):
+        """
+        For testing purposes, Queryable Encryption requires a MongoDB 8.0 or
+        later replica set or sharded cluster, as well as MongoDB Atlas or
+        Enterprise. This flag must not guard any non-test functionality since
+        it would prevent MongoDB 7.0 from being used, which also supports
+        Queryable Encryption. The models in tests/encryption_ aren't compatible
+        with MongoDB 7.0 because {"queryType": "range"} is "rangePreview".
+        """
+        self.connection.ensure_connection()
+        build_info = self.connection.connection.admin.command("buildInfo")
+        is_enterprise = "enterprise" in build_info.get("modules")
+        return (
+            (is_enterprise or self.supports_atlas_search)
+            and self._supports_transactions
+            and self.is_mongodb_8_0
+        )

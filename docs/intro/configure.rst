@@ -18,9 +18,9 @@ project template:
 
 .. code-block:: bash
 
-    $ django-admin startproject mysite --template https://github.com/mongodb-labs/django-mongodb-project/archive/refs/heads/5.2.x.zip
+    $ django-admin startproject mysite --template https://github.com/mongodb-labs/django-mongodb-project/archive/refs/heads/6.0.x.zip
 
-(If you're using a version of Django other than 5.2.x, replace the two numbers
+(If you're using a version of Django other than 6.0.x, replace the two numbers
 to match the first two numbers from your version.)
 
 This template includes the following line in ``settings.py``::
@@ -85,22 +85,25 @@ third-party apps. For example:
 Creating Django applications
 ============================
 
-Whenever you run ``python manage.py startapp``, you must remove the line::
+To create a new application, use ``python manage.py startapp``. No extra steps
+are necessary.
 
-    default_auto_field = 'django.db.models.BigAutoField'
+.. versionchanged:: 6.0
 
-from the new application's ``apps.py`` file (or change it to reference
-``"django_mongodb_backend.fields.ObjectIdAutoField"``).
+    In Django 5.2.x and older, whenever you run ``python manage.py startapp``,
+    you must remove the line::
 
-Alternatively, you can use the following :djadmin:`startapp` template which
-includes this change:
+        default_auto_field = 'django.db.models.BigAutoField'
 
-.. code-block:: bash
+    from the new application's ``apps.py`` file (or change it to reference
+    ``"django_mongodb_backend.fields.ObjectIdAutoField"``).
 
-    $ python manage.py startapp myapp --template https://github.com/mongodb-labs/django-mongodb-app/archive/refs/heads/5.2.x.zip
+    Alternatively, you can use the following :djadmin:`startapp` template which
+    includes this change:
 
-(If you're using a version of Django other than 5.2.x, replace the two numbers
-to match the first two numbers from your version.)
+    .. code-block:: bash
+
+        $ python manage.py startapp myapp --template https://github.com/mongodb-labs/django-mongodb-app/archive/refs/heads/5.2.x.zip
 
 .. _configuring-databases-setting:
 
@@ -122,7 +125,7 @@ If you have a connection string, you can provide it like this::
 .. versionchanged:: 5.2.1
 
     Support for the connection string in ``"HOST"`` was added. Previous
-    versions recommended using :func:`~django_mongodb_backend.utils.parse_uri`.
+    versions recommended using ``django_mongodb_backend.utils.parse_uri()``.
 
 Alternatively, you can separate the connection string so that your settings
 look more like what you usually see with Django. This constructs a

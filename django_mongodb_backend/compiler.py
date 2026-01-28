@@ -38,6 +38,10 @@ class SQLCompiler(compiler.SQLCompiler):
         self.subqueries = []
         # Atlas search stage.
         self.search_pipeline = []
+        # Does the aggregation have no GROUP BY fields and need wrapping?
+        self.needs_wrap_aggregation = False
+        # The MQL equivalent to a SQL HAVING clause.
+        self.having_match_mql = None
 
     def _get_group_alias_column(self, expr, annotation_group_idx):
         """Generate a dummy field for use in the ids fields in $group."""
@@ -234,21 +238,10 @@ class SQLCompiler(compiler.SQLCompiler):
         """Build the aggregation pipeline for grouping."""
         pipeline = []
         if not ids:
-            group["_id"] = None
-            pipeline.append({"$facet": {"group": [{"$group": group}]}})
-            pipeline.append(
-                {
-                    "$addFields": {
-                        key: {
-                            "$getField": {
-                                "input": {"$arrayElemAt": ["$group", 0]},
-                                "field": key,
-                            }
-                        }
-                        for key in group
-                    }
-                }
-            )
+            pipeline.append({"$group": {"_id": None, **group}})
+            # The aggregation must be wrapped if there are no group by ids and
+            # no having clause.
+            self.needs_wrap_aggregation = not bool(self.having)
         else:
             group["_id"] = ids
             pipeline.append({"$group": group})
@@ -345,17 +338,27 @@ class SQLCompiler(compiler.SQLCompiler):
             self.set_where(where.replace_expressions(search_replacements))
         return extra_select, order_by, group_by
 
+    def get_project_columns(self, columns):
+        # In order to construct less verbose queries, avoid $project if it's
+        # unneeded. The columns must be projected if...
+        needs_projection = (
+            # The query has annotations (which appear in $project)
+            self.query.annotations
+            # A subset of columns are selected (e.g. QuerySet.values())
+            or not self.query.default_cols
+            # It's a distinct query (e.g. QuerySet.distinct())
+            or self.query.distinct
+            # The query has a select mask (e.g. QuerySet.defer()/only())
+            or self.query.get_select_mask()
+        )
+        return columns if needs_projection else None
+
     def execute_sql(
         self, result_type=MULTI, chunked_fetch=False, chunk_size=GET_ITERATOR_CHUNK_SIZE
     ):
         self.pre_sql_setup()
         try:
-            query = self.build_query(
-                # Avoid $project (columns=None) if unneeded.
-                self.columns
-                if self.query.annotations or not self.query.default_cols or self.query.distinct
-                else None
-            )
+            query = self.build_query(self.get_project_columns(self.columns))
         except EmptyResultSet:
             return iter([]) if result_type == MULTI else None
 
@@ -666,56 +669,56 @@ class SQLCompiler(compiler.SQLCompiler):
         Return a dict mapping each alias to a WhereNode holding its pushable
         condition.
         """
+        return self._collect_pushable(self.get_where())
 
-        def collect_pushable(expr, negated=False):
-            if expr is None or isinstance(expr, NothingNode):
+    @classmethod
+    def _collect_pushable(cls, expr, negated=False):
+        if expr is None or isinstance(expr, NothingNode):
+            return {}
+        if isinstance(expr, WhereNode):
+            # Apply De Morgan: track negation so connectors are flipped
+            # when needed.
+            negated ^= expr.negated
+            pushable_expressions = [
+                cls._collect_pushable(sub_expr, negated=negated)
+                for sub_expr in expr.children
+                if sub_expr is not None
+            ]
+            operator = expr.connector
+            if operator == XOR:
                 return {}
-            if isinstance(expr, WhereNode):
-                # Apply De Morgan: track negation so connectors are flipped
-                # when needed.
-                negated ^= expr.negated
-                pushable_expressions = [
-                    collect_pushable(sub_expr, negated=negated)
-                    for sub_expr in expr.children
-                    if sub_expr is not None
-                ]
-                operator = expr.connector
-                if operator == XOR:
-                    return {}
-                if negated:
-                    operator = OR if operator == AND else AND
-                alias_children = defaultdict(list)
-                for pe in pushable_expressions:
-                    for alias, expressions in pe.items():
-                        alias_children[alias].append(expressions)
-                # Build per-alias pushable condition nodes.
-                if operator == AND:
-                    return {
-                        alias: WhereNode(children=children, negated=False, connector=operator)
-                        for alias, children in alias_children.items()
-                    }
-                # Only aliases shared across all branches are pushable for OR.
-                shared_alias = (
-                    set.intersection(*(set(pe) for pe in pushable_expressions))
-                    if pushable_expressions
-                    else set()
-                )
+            if negated:
+                operator = OR if operator == AND else AND
+            alias_children = defaultdict(list)
+            for pe in pushable_expressions:
+                for alias, expressions in pe.items():
+                    alias_children[alias].append(expressions)
+            # Build per-alias pushable condition nodes.
+            if operator == AND:
                 return {
                     alias: WhereNode(children=children, negated=False, connector=operator)
                     for alias, children in alias_children.items()
-                    if alias in shared_alias
                 }
-            # A leaf is pushable only when comparing a field to a constant or
-            # simple value.
-            if isinstance(expr.lhs, Col) and (
-                is_constant_value(expr.rhs) or getattr(expr.rhs, "is_simple_column", False)
-            ):
-                alias = expr.lhs.alias
-                expr = WhereNode(children=[expr], negated=negated)
-                return {alias: expr}
-            return {}
-
-        return collect_pushable(self.get_where())
+            # Only aliases shared across all branches are pushable for OR.
+            shared_alias = (
+                set.intersection(*(set(pe) for pe in pushable_expressions))
+                if pushable_expressions
+                else set()
+            )
+            return {
+                alias: WhereNode(children=children, negated=False, connector=operator)
+                for alias, children in alias_children.items()
+                if alias in shared_alias
+            }
+        # A leaf is pushable only when comparing a field to a constant or
+        # simple value.
+        if isinstance(expr.lhs, Col) and (
+            is_constant_value(expr.rhs) or getattr(expr.rhs, "is_simple_column", False)
+        ):
+            alias = expr.lhs.alias
+            expr = WhereNode(children=[expr], negated=negated)
+            return {alias: expr}
+        return {}
 
     def get_lookup_pipeline(self):
         result = []
@@ -820,10 +823,7 @@ class SQLCompiler(compiler.SQLCompiler):
         )
         # Build the query pipeline.
         self.pre_sql_setup()
-        query = self.build_query(
-            # Avoid $project (columns=None) if unneeded.
-            self.columns if self.query.annotations or not self.query.default_cols else None
-        )
+        query = self.build_query(self.get_project_columns(self.columns))
         pipeline = query.get_pipeline()
         # Explain the pipeline.
         kwargs = {}
@@ -976,13 +976,7 @@ class SQLAggregateCompiler(SQLCompiler):
             elide_empty=self.elide_empty,
         )
         compiler.pre_sql_setup(with_col_aliases=False)
-        # Avoid $project (columns=None) if unneeded.
-        columns = (
-            compiler.columns
-            if self.query.annotations or not self.query.default_cols or self.query.distinct
-            else None
-        )
-        subquery = compiler.build_query(columns)
+        subquery = compiler.build_query(self.get_project_columns(compiler.columns))
         query.subqueries = [subquery]
         return query
 

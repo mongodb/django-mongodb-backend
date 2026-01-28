@@ -1,0 +1,61 @@
+============================
+Django MongoDB Backend 6.0.x
+============================
+
+6.0.2
+=====
+
+*Unreleased*
+
+New features
+------------
+
+- ...
+
+Bug fixes
+---------
+
+- ...
+
+6.0.1
+=====
+
+*January 22, 2026*
+
+New features
+------------
+
+- Added support for :doc:`Queryable Encryption </howto/queryable-encryption>`.
+- Added support for :ref:`spatial lookups <spatial-lookups>`.
+
+Bug fixes
+---------
+
+- Prevented ``Index`` system checks from running twice.
+- Added exception messages to :class:`~django.db.DatabaseError` and
+  :class:`~django.db.IntegrityError`.
+- Fixed ``QuerySet.defer()`` and ``only()`` so that they project the correct
+  fields. Previously, they had no effect.
+
+Performance improvements
+------------------------
+
+- Removed usage of ``$facet`` from aggregate queries.
+
+6.0.0
+=====
+
+*December 11, 2025*
+
+Initial release from the state of :ref:`django-mongodb-backend 5.2.3
+<django-mongodb-backend-5.2.3>`.
+
+Regarding new features in Django 6.0, the :class:`django.db.models.StringAgg`
+function isn't supported.
+
+Backwards incompatible changes
+------------------------------
+
+- ``django_mongodb_backend.utils.parse_uri()`` is removed as per the
+  :ref:`deprecation timeline <parse-uri-deprecation>`.
+- The minimum supported version of MongoDB is increased from 6.0 to 7.0.
