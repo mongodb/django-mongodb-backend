@@ -45,7 +45,7 @@ functions:
         args:
           - ./.evergreen/run-perf-tests.sh
 
-  "attach benchmark test results":
+  "attach performance test results":
     - command: attach.results
       params:
         file_location: src/report.json

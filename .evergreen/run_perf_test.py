@@ -9,7 +9,7 @@ from pathlib import Path
 
 LOGGER = logging.getLogger("test")
 logging.basicConfig(level=logging.INFO, format="%(levelname)-8s %(message)s")
-OUTPUT_FILE = os.environ.get("OUTPUT_FILE")
+OUTPUT_FILE = os.environ.get("OUTPUT_FILE", "results.json")
 
 
 def format_output(start_time: datetime):

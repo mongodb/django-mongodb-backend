@@ -29,7 +29,7 @@ tasks:
   - name: perf-tests
     commands:
       - func: "run performance tests"
-      - func: "attach benchmark test results"
+      - func: "attach performance test results"
       - func: "send dashboard data"
 
 buildvariants:

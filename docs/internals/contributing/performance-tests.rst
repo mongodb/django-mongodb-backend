@@ -4,6 +4,8 @@ Performance tests
 
 Django MongoDB Backend uses a benchmarking suite to catch performance regressions.
 This suite is located in the top-level ``performance_tests`` directory of the Django MongoDB Backend repository.
+See the `specification <https://github.com/mongodb/specifications/blob/master/source/benchmarking/odm-benchmarking.md>`__
+for detailed design and implementation decisions.
 
 .. _running-perf-tests:
 
@@ -36,11 +38,13 @@ Then, set up the benchmark data:
 .. code-block:: bash
 
     $ git clone --depth 1 https://github.com/mongodb/specifications.git
-    $ pushd specifications/source/benchmarking/odm-data
+    $ mkdir performance_tests/odm-data
+    $ cp specifications/source/benchmarking/odm-data/flat_models.tgz performance_tests/odm-data/flat_models.tgz
+    $ cp specifications/source/benchmarking/odm-data/nested_models.tgz performance_tests/odm-data/nested_models.tgz
+    $ pushd performance_tests/odm-data
     $ tar xf flat_models.tgz
     $ tar xf nested_models.tgz
     $ popd
-    $ export DJANGO_MONGODB_PERFORMANCE_TEST_DATA_PATH="specifications/source/benchmarking/odm-data"
     $ export OUTPUT_FILE="results.json"
 
 Finally, run the benchmarks themselves:

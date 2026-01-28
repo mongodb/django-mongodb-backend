@@ -10,9 +10,9 @@ import os
 import time
 import warnings
 from pathlib import Path
+from unittest import TestCase
 
 from bson import ObjectId, encode, json_util
-from django.test import TestCase
 
 from .models import (
     ForeignKeyModel,
