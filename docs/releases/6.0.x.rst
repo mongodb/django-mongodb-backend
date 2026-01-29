@@ -13,6 +13,9 @@ New features
 - Added support for :meth:`QuerySet.intersection()
   <django.db.models.query.QuerySet.intersection>` and
   :meth:`~django.db.models.query.QuerySet.difference`.
+- Added support for :attr:`UniqueConstraint.nulls_distinct
+  <django.db.models.UniqueConstraint.nulls_distinct>`. See
+  :ref:`unique-constraints` for MongoDB-specific details.
 
 Bug fixes
 ---------

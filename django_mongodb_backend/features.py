@@ -35,6 +35,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     supports_json_field_contains = False
     # BSON Date type doesn't support microsecond precision.
     supports_microsecond_precision = False
+    supports_nulls_distinct_unique_constraints = True
     supports_paramstyle_pyformat = False
     supports_sequence_reset = False
     supports_slicing_ordering_in_compound = True
@@ -570,6 +571,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         },
         "search lookup not supported on non-Atlas.": {
             "expressions.tests.BasicExpressionsTests.test_lookups_subquery",
+        },
+        "MongoDB does not support the 'startswith' lookup in indexes.": {
+            "schema.tests.SchemaTests.test_unique_constraint_nulls_distinct_condition",
         },
         "StringAgg is not supported.": {
             "aggregation.tests.AggregateTestCase.test_distinct_on_stringagg",

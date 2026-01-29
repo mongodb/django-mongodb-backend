@@ -15,17 +15,20 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefi
     filter_expression = defaultdict(dict)
     if self.condition:
         filter_expression.update(self._get_condition_mql(model, schema_editor))
-    # Indexing on $type matches the value of most SQL databases by allowing
-    # multiple null values for the unique constraint.
-    if field:
-        column = column_prefix + field.column
-        filter_expression[column].update({"$type": field.db_type(schema_editor.connection)})
-    else:
-        for field_name in self.fields:
-            field_ = model._meta.get_field(field_name)
-            filter_expression[field_.column].update(
-                {"$type": field_.db_type(schema_editor.connection)}
-            )
+    if self.nulls_distinct is None or self.nulls_distinct:
+        # Indexing on $type matches the value of most SQL databases by allowing
+        # multiple null values for the unique constraint. nulls_distinct will
+        # be True or False for a UniqueConstraint, or None for
+        # Field(unique=True) or Meta.unique_together.
+        if field:
+            column = column_prefix + field.column
+            filter_expression[column].update({"$type": field.db_type(schema_editor.connection)})
+        else:
+            for field_name in self.fields:
+                field_ = model._meta.get_field(field_name)
+                filter_expression[field_.column].update(
+                    {"$type": field_.db_type(schema_editor.connection)}
+                )
     if filter_expression:
         kwargs["partialFilterExpression"] = filter_expression
     index_orders = (

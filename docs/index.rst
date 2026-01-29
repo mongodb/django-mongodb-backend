@@ -42,6 +42,7 @@ Models
 - :doc:`ref/models/querysets`
 - :doc:`ref/models/models`
 - :doc:`ref/models/indexes`
+- :doc:`ref/models/constraints`
 - :doc:`ref/models/search`
 - :doc:`ref/database`
 - :doc:`ref/contrib/gis`
