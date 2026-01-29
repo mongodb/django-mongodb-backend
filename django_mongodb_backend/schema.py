@@ -264,11 +264,9 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             )
 
     @ignore_embedded_models
-    def add_index(
-        self, model, index, *, field=None, unique=False, column_prefix="", parent_model=None
-    ):
+    def add_index(self, model, index, *, field=None, column_prefix="", parent_model=None):
         idx = index.get_pymongo_index_model(
-            model, schema_editor=self, field=field, unique=unique, column_prefix=column_prefix
+            model, schema_editor=self, field=field, column_prefix=column_prefix
         )
         if idx:
             model = parent_model or model
@@ -361,19 +359,16 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             expressions=constraint.expressions,
             nulls_distinct=constraint.nulls_distinct,
         ):
-            idx = Index(
-                fields=constraint.fields,
-                name=constraint.name,
-                condition=constraint.condition,
-            )
-            self.add_index(
+            idx = constraint.get_pymongo_index_model(
                 model,
-                idx,
+                schema_editor=self,
                 field=field,
-                unique=True,
                 column_prefix=column_prefix,
-                parent_model=parent_model,
             )
+            if idx:
+                model = parent_model or model
+                collection = self.get_collection(model._meta.db_table)
+                collection.create_indexes([idx])
 
     def _add_field_unique(self, model, field, column_prefix=""):
         name = str(
