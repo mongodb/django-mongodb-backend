@@ -11,89 +11,8 @@ pre_timeout_secs: 1800 # 5 minutes
 post_error_fails_task: true
 post_timeout_secs: 1800 # 5 minutes
 
-functions:
-  "setup":
-    - command: git.get_project
-      params:
-        directory: src
-    - command: subprocess.exec
-      params:
-        binary: bash
-        working_dir: "src"
-        add_expansions_to_env: true
-        args:
-          - ./.evergreen/setup.sh
-    - command: expansions.update
-      params:
-        file: src/expansion.yml
-
-  "bootstrap mongo-orchestration":
-    - command: subprocess.exec
-      params:
-        binary: bash
-        add_expansions_to_env: true
-        args:
-          - ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
-    - command: expansions.update
-      params:
-        file: mo-expansion.yml
-
-  "run unit tests":
-    - command: subprocess.exec
-      type: test
-      params:
-        binary: bash
-        working_dir: "src"
-        include_expansions_in_env: ["DRIVERS_TOOLS", "MONGODB_URI"]
-        args:
-          - ./.evergreen/run-tests.sh
-
-  "teardown":
-    - command: subprocess.exec
-      params:
-        binary: bash
-        args:
-          - ${DRIVERS_TOOLS}/.evergreen/teardown.sh
-
-  # Encryption-specific functions
-  "start csfle servers":
-    - command: ec2.assume_role
-      params:
-        role_arn: ${aws_test_secrets_role}
-    - command: subprocess.exec
-      params:
-        binary: bash
-        include_expansions_in_env: [
-            "AWS_SECRET_ACCESS_KEY",
-            "AWS_ACCESS_KEY_ID",
-            "AWS_SESSION_TOKEN",
-        ]
-        args:
-          - ${DRIVERS_TOOLS}/.evergreen/csfle/setup.sh
-
-  "teardown csfle":
-    - command: subprocess.exec
-      params:
-        binary: bash
-        args:
-          - ${DRIVERS_TOOLS}/.evergreen/csfle/teardown.sh
-
-  "run encryption tests":
-    - command: subprocess.exec
-      type: test
-      params:
-        binary: bash
-        working_dir: "src"
-        include_expansions_in_env: [
-            "AWS_KMS_ARN",
-            "DRIVERS_TOOLS",
-            "MONGODB_URI",
-            "DJANGO_SETTINGS_MODULE",
-            "CRYPT_SHARED_LIB_PATH",
-        ]
-        args:
-          - ./.evergreen/run-tests.sh
-          - encryption
+include:
+  - filename: .evergreen/functions.yml
 
 pre:
   - func: setup
@@ -106,12 +25,16 @@ tasks:
   - name: run-tests
     commands:
       - func: "run unit tests"
-
   - name: run-encryption-tests
     commands:
       - func: "start csfle servers"
       - func: "run encryption tests"
       - func: "teardown csfle"
+  - name: perf-tests
+    commands:
+      - func: "run performance tests"
+      - func: "attach performance test results"
+      - func: "send dashboard data"
 
 buildvariants:
   - name: tests-7-noauth-nossl
@@ -177,3 +100,11 @@ buildvariants:
       DJANGO_SETTINGS_MODULE: "encrypted_aws_settings"
     tasks:
       - name: run-encryption-tests
+
+  - name: performance-benchmarks
+    display_name: Performance Benchmarks
+    run_on:
+      - rhel90-dbx-perf-large
+    batchtime: 1440
+    tasks:
+      - name: perf-tests
