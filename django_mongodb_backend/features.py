@@ -111,6 +111,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_mixed_scenario",
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_respects_mixed_manual_order",
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_with_existing_children",
+        # To be fixed
+        # https://github.com/django/django/commit/2831eaed797627e6e6410b06f74dadeb63316e09
+        "model_fields.test_decimalfield.DecimalFieldTests.test_roundtrip_integer_with_trailing_zeros",
     }
 
     @cached_property
