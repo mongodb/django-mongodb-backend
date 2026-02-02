@@ -13,7 +13,7 @@ OUTPUT_FILE = os.environ.get("OUTPUT_FILE", "results.json")
 
 
 def format_output(start_time: datetime):
-    """Formats the output from the performance tests into a report.json file."""
+    """Format the output from the performance tests into a report.json file."""
     end_time = datetime.now()
     elapsed_secs = (end_time - start_time).total_seconds()
     with open(OUTPUT_FILE) as fid:  # noqa: PTH123
@@ -37,7 +37,7 @@ def format_output(start_time: datetime):
 
 
 def run_command(cmd: str | list[str], **kwargs) -> None:
-    """Runs a shell command. Exits on failure."""
+    """Run a shell command. Exit on failure."""
     if isinstance(cmd, list):
         cmd = " ".join(cmd)
     LOGGER.info("Running command '%s'...", cmd)
@@ -52,7 +52,7 @@ def run_command(cmd: str | list[str], **kwargs) -> None:
 
 
 start_time = datetime.now()
-ROOT = Path(__file__).absolute().parent.parent
+ROOT = Path(__file__).absolute().parent.parent.parent
 data_dir = ROOT / "specifications/source/benchmarking/odm-data"
 if not data_dir.exists():
     run_command("git clone --depth 1 https://github.com/mongodb/specifications.git")
@@ -62,8 +62,11 @@ if not data_dir.exists():
 os.chdir("performance_tests")
 start_time = datetime.now()
 run_command(
-    "python manage.py test",
+    "python runtests.py",
     env=os.environ
-    | {"DJANGO_MONGODB_PERFORMANCE_TEST_DATA_PATH": str(data_dir), "OUTPUT_FILE": "results.json"},
+    | {
+        "DJANGO_MONGODB_PERFORMANCE_TEST_DATA_PATH": str(data_dir),
+        "OUTPUT_FILE": OUTPUT_FILE,
+    },
 )
 format_output(start_time)

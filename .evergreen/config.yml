@@ -104,7 +104,7 @@ functions:
         working_dir: "src"
         include_expansions_in_env: [ "DRIVERS_TOOLS", "MONGODB_URI" ]
         args:
-          - ./.evergreen/run-perf-tests.sh
+          - ./.evergreen/perf/run-tests.sh
 
   "attach performance test results":
     - command: attach.results
@@ -116,7 +116,7 @@ functions:
       params:
         binary: bash
         args:
-          - .evergreen/perf-submission-setup.sh
+          - .evergreen/perf/submission-setup.sh
         working_dir: src
         include_expansions_in_env: [
           "requester",
@@ -128,7 +128,7 @@ functions:
           "task_name",
           "task_id",
           "execution",
-          "is_mainline"
+          "is_mainline",
         ]
       type: test
     - command: expansions.update
@@ -138,7 +138,7 @@ functions:
       params:
         binary: bash
         args:
-          - .evergreen/perf-submission.sh
+          - .evergreen/perf/submission.sh
         working_dir: src
         include_expansions_in_env: [
           "requester",
@@ -150,7 +150,7 @@ functions:
           "task_name",
           "task_id",
           "execution",
-          "is_mainline"
+          "is_mainline",
         ]
       type: test
 
@@ -172,7 +172,7 @@ tasks:
       - func: "run encryption tests"
       - func: "teardown csfle"
 
-  - name: perf-tests
+  - name: run-performance-tests
     commands:
       - func: "run performance tests"
       - func: "attach performance test results"
@@ -247,6 +247,6 @@ buildvariants:
     display_name: Performance Benchmarks
     run_on:
       - rhel90-dbx-perf-large
-    batchtime: 1440
+    batchtime: 1440  # Daily
     tasks:
-      - name: perf-tests
+      - name: run-performance-tests

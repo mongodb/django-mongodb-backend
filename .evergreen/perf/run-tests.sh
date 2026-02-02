@@ -10,6 +10,6 @@ export OUTPUT_FILE="results.json"
 python -m pip install -U pip
 pip install -e .
 
-python .evergreen/run_perf_test.py
+python .evergreen/perf/runtests.py
 mv performance_tests/$OUTPUT_FILE $OUTPUT_FILE
 mv performance_tests/report.json report.json
