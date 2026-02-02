@@ -1,5 +1,3 @@
-from typing import Any
-
 from django.db import models
 
 from django_mongodb_backend.fields import EmbeddedModelArrayField, EmbeddedModelField
@@ -48,7 +46,9 @@ class SmallFlatModelFk(models.Model):
     field_fk = models.ForeignKey(ForeignKeyModel, on_delete=models.DO_NOTHING)
 
 
-large_flat_model_attrs: dict[str, Any] = {
+# Construct LargeFlatModel programmatically to avoid a very long model
+# definition.
+large_flat_model_attrs = {
     "__module__": "perftest.models",
     "image_field": models.BinaryField(),
 }
