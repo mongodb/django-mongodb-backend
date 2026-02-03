@@ -67,6 +67,7 @@ run_command(
     | {
         "DJANGO_MONGODB_PERFORMANCE_TEST_DATA_PATH": str(data_dir),
         "OUTPUT_FILE": OUTPUT_FILE,
+        "FASTBENCH": "1",
     },
 )
 format_output(start_time)
