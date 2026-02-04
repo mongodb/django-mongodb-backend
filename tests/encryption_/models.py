@@ -95,6 +95,7 @@ class BooleanModel(EncryptedModel):
 
 class CharModel(EncryptedModel):
     value = EncryptedCharField(max_length=255, queries={"queryType": "equality"})
+    plain = models.CharField(max_length=255, blank=True)
 
 
 class EmailModel(EncryptedModel):

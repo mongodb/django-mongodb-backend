@@ -1,7 +1,7 @@
 import itertools
 from collections import defaultdict
 
-from bson import SON, json_util
+from bson import SON, ObjectId, json_util
 from django.core.exceptions import EmptyResultSet, FieldError, FullResultSet
 from django.db import IntegrityError, NotSupportedError
 from django.db.models import Count
@@ -967,8 +967,10 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
         """
         self.pre_sql_setup()
         values = {}
+        update_has_expression = False
         for field, _, value in self.query.values:
             if hasattr(value, "resolve_expression"):
+                update_has_expression = True
                 value = value.resolve_expression(self.query, allow_joins=False, for_save=True)
                 if value.contains_aggregate:
                     raise FieldError(
@@ -989,7 +991,10 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
                     )
             prepared = field.get_db_prep_save(value, connection=self.connection)
             if is_direct_value(value):
-                prepared = {"$literal": prepared}
+                # Encrypted updates don't use aggregation expression syntax and
+                # thus must not be escaped.
+                if not self.connection.auto_encryption_opts:
+                    prepared = {"$literal": prepared}
             else:
                 prepared = prepared.as_mql(self, self.connection, as_expr=True)
             values[field.column] = prepared
@@ -998,7 +1003,15 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
         except EmptyResultSet:
             return 0
         is_empty = not bool(values)
-        rows = 0 if is_empty else self.update(criteria, [{"$set": values}])
+        update_expr = [{"$set": values}]
+        if self.connection.auto_encryption_opts:
+            if update_has_expression:
+                raise NotSupportedError(
+                    "Expressions in update queries are not allowed with Queryable Encryption."
+                )
+            # Pipelines in updates are not allowed with Queryable Encryption.
+            update_expr = update_expr[0]
+        rows = 0 if is_empty else self.update(criteria, update_expr)
         for query in self.query.get_related_updates():
             aux_rows = query.get_compiler(self.using).execute_sql(result_type)
             if is_empty and aux_rows:
@@ -1008,7 +1021,15 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
 
     @wrap_database_errors
     def update(self, criteria, pipeline):
-        return self.collection.update_many(
+        # If "_id" is in the criteria and is an ObjectId, the update will match
+        # one document (and is most likely model update). Use update_one()
+        # since update_many() isn't supported by Queryable Encryption.
+        update_method = (
+            "update_one"
+            if "_id" in criteria and isinstance(criteria["_id"], ObjectId)
+            else "update_many"
+        )
+        return getattr(self.collection, update_method)(
             criteria, pipeline, session=self.connection.session
         ).matched_count
 

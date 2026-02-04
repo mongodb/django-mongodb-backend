@@ -30,7 +30,8 @@ New features
 Bug fixes
 ---------
 
-- ...
+- Fixed ``Model.save()`` crash on existing models when using Queryable
+  Encryption.
 
 6.0.1
 =====

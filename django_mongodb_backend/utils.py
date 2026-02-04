@@ -80,6 +80,7 @@ class OperationDebugWrapper:
         "list_search_indexes",
         "rename",
         "update_many",
+        "update_one",
     }
 
     def __init__(self, db, collection=None):

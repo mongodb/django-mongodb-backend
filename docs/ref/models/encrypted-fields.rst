@@ -173,6 +173,8 @@ that use a database connection with Automatic Encryption, regardless of whether
 or not the models have encrypted fields. Each unsupported method is followed by
 a sample error message from the database.
 
+- :meth:`~django.db.models.query.QuerySet.bulk_update` "Expressions in update
+  queries are not allowed with Queryable Encryption."
 - :meth:`~django.db.models.query.QuerySet.update`: "Multi-document updates are
   not allowed with Queryable Encryption."
 - :meth:`~django.db.models.query.QuerySet.aggregate`: "Invalid reference to an

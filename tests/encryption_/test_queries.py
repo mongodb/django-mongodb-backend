@@ -49,7 +49,7 @@ class QueryTests(EncryptionTestCase):
         ]
         objs[0].value = "def"
         objs[1].value = "mno"
-        msg = "Multi-document updates are not allowed with Queryable Encryption"
+        msg = "Expressions in update queries are not allowed with Queryable Encryption."
         with self.assertRaisesMessage(DatabaseError, msg):
             CharModel.objects.bulk_update(objs, ["value"])
 
@@ -129,10 +129,12 @@ class QueryTests(EncryptionTestCase):
             self.assertEqual(CharModel.objects.update(value="xyz"), 1)
 
     def test_update_or_create(self):
-        CharModel.objects.create(value="xyz")
-        msg = "Multi-document updates are not allowed with Queryable Encryption"
-        with self.assertRaisesMessage(DatabaseError, msg):
-            CharModel.objects.update_or_create(value="xyz", defaults={"plain": "abc"})
+        obj, created = CharModel.objects.update_or_create(value="xyz")
+        self.assertIs(created, True)
+        self.assertEqual(obj.value, "xyz")
+        obj, created = CharModel.objects.update_or_create(value="xyz", defaults={"plain": "abc"})
+        self.assertIs(created, False)
+        self.assertEqual(obj.plain, "abc")
 
     def test_union(self):
         msg = "Aggregation stage $unionWith is not allowed or supported with automatic encryption."

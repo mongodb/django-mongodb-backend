@@ -36,7 +36,7 @@ class ModelUpdateTests(MongoTestCaseMixin, TestCase):
             obj.save()
         obj.refresh_from_db()
         self.assertEqual(obj.name, "$updated")
-        self.assertUpdateQuery(
+        self.assertUpdateOneQuery(
             ctx.captured_queries[0]["sql"],
             "basic__author",
             {"_id": obj.id},
@@ -50,7 +50,7 @@ class ModelUpdateTests(MongoTestCaseMixin, TestCase):
             obj.save()
         obj.refresh_from_db()
         self.assertEqual(obj.name, "$updated")
-        self.assertUpdateQuery(
+        self.assertUpdateOneQuery(
             ctx.captured_queries[0]["sql"],
             "basic__author",
             {"_id": obj.id},

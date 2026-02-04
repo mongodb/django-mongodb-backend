@@ -41,3 +41,16 @@ class MongoTestCaseMixin:
         condition, set_expression = eval(pipeline[:-1], self.query_types, {})  # noqa: S307
         self.assertEqual(condition, expected_condition)
         self.assertEqual(set_expression, expected_set)
+
+    def assertUpdateOneQuery(self, query, expected_collection, expected_condition, expected_set):
+        """
+        Assert that the logged query is equal to:
+            db.{expected_collection}.update_one({expected_condition}, {expected_set})
+        """
+        prefix, pipeline = query.split("(", 1)
+        _, collection, operator = prefix.split(".")
+        self.assertEqual(operator, "update_one")
+        self.assertEqual(collection, expected_collection)
+        condition, set_expression = eval(pipeline[:-1], self.query_types, {})  # noqa: S307
+        self.assertEqual(condition, expected_condition)
+        self.assertEqual(set_expression, expected_set)
