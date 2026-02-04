@@ -11,3 +11,5 @@ SECRET_KEY = "django_tests_secret_key"  # noqa: S105
 INSTALLED_APPS = ["perftest"]
 
 DEFAULT_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
+
+TEST_RUNNER = "perftest.runner.TestRunner"
