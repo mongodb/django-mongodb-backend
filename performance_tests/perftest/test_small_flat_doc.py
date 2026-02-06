@@ -22,17 +22,25 @@ class SmallFlatDocTest(PerformanceTest):
             Path(self.test_data_path) / Path("flat-models") / self.dataset
         ) as data:
             self.document = json_util.loads(data.read())
-
+        self.setUpData()
         self.data_size = len(encode(self.document)) * self.num_docs
-        self.documents = [self.document.copy() for _ in range(self.num_docs)]
+
+    def setUpData(self):
+        SmallFlatModel.objects.bulk_create(
+            SmallFlatModel(**self.document) for _ in range(self.num_docs)
+        )
 
 
 class TestSmallFlatDocCreation(SmallFlatDocTest, TestCase):
     """Benchmark for creating a small flat document."""
 
+    def setUpData(self):
+        # Don't create data since this is the creation benchmark.
+        pass
+
     def do_task(self):
-        for doc in self.documents:
-            SmallFlatModel.objects.create(**doc)
+        for _ in range(self.num_docs):
+            SmallFlatModel.objects.create(**self.document)
 
     def after(self):
         SmallFlatModel.objects.all().delete()
@@ -43,10 +51,7 @@ class TestSmallFlatDocUpdate(SmallFlatDocTest, TestCase):
 
     def setUp(self):
         super().setUp()
-        self.models = []
-        for doc in self.documents:
-            self.models.append(SmallFlatModel(**doc))
-        SmallFlatModel.objects.bulk_create(self.models)
+        self.models = list(SmallFlatModel.objects.all())
         self.data_size = len(encode({"field1": "updated_value0"})) * self.num_docs
         self.iteration = 0
 
@@ -66,12 +71,7 @@ class TestSmallFlatDocFilterById(SmallFlatDocTest, TestCase):
 
     def setUp(self):
         super().setUp()
-        self.ids = []
-        models = []
-        for doc in self.documents:
-            models.append(SmallFlatModel(**doc))
-        inserted = SmallFlatModel.objects.bulk_create(models)
-        self.ids = [model.id for model in inserted]
+        self.ids = SmallFlatModel.objects.values_list("id", flat=True)
 
     def do_task(self):
         for _id in self.ids:
@@ -88,13 +88,17 @@ class TestSmallFlatDocFilterByForeignKey(SmallFlatDocTest, TestCase):
     def setUp(self):
         super().setUp()
         self.fks = []
-        for doc in self.documents:
-            model = SmallFlatModelFk(**doc)
+        for _ in range(self.num_docs):
+            model = SmallFlatModelFk(**self.document)
             foreign_key_model = ForeignKeyModel.objects.create(name="foreign_key_name")
             self.fks.append(foreign_key_model)
             foreign_key_model.save()
             model.field_fk = foreign_key_model
             model.save()
+
+    def setUpData(self):
+        # Don't create data since foreign keys will be added.
+        pass
 
     def do_task(self):
         for fk in self.fks:
@@ -111,13 +115,7 @@ class TestSmallFlatDocFilterPkByIn(SmallFlatDocTest, TestCase):
 
     def setUp(self):
         super().setUp()
-        self.ids = []
-        models = []
-        for doc in self.documents:
-            models.append(SmallFlatModel(**doc))
-
-        SmallFlatModel.objects.bulk_create(models)
-        self.ids = [model.id for model in models]
+        self.ids = SmallFlatModel.objects.values_list("id", flat=True)
 
     def do_task(self):
         list(SmallFlatModel.objects.filter(id__in=self.ids))

@@ -18,17 +18,25 @@ class LargeFlatDocTest(PerformanceTest):
             Path(self.test_data_path) / Path("flat-models") / self.dataset
         ) as data:
             self.document = json_util.loads(data.read())
-
+        self.setUpData()
         self.data_size = len(encode(self.document)) * self.num_docs
-        self.documents = [self.document.copy() for _ in range(self.num_docs)]
+
+    def setUpData(self):
+        LargeFlatModel.objects.bulk_create(
+            LargeFlatModel(**self.document) for _ in range(self.num_docs)
+        )
 
 
 class TestLargeFlatDocCreation(LargeFlatDocTest, TestCase):
     """Benchmark for creating a large flat document."""
 
+    def setUpData(self):
+        # Don't create data since this is the creation benchmark.
+        pass
+
     def do_task(self):
-        for doc in self.documents:
-            LargeFlatModel.objects.create(**doc)
+        for _ in range(self.num_docs):
+            LargeFlatModel.objects.create(**self.document)
 
     def after(self):
         LargeFlatModel.objects.all().delete()
@@ -39,8 +47,6 @@ class TestLargeFlatDocUpdate(LargeFlatDocTest, TestCase):
 
     def setUp(self):
         super().setUp()
-        for doc in self.documents:
-            LargeFlatModel.objects.create(**doc)
         self.models = list(LargeFlatModel.objects.all())
         self.data_size = len(encode({"field1": "updated_value0"})) * self.num_docs
         self.iteration = 0
@@ -61,11 +67,7 @@ class TestLargeFlatDocFilterPkByIn(LargeFlatDocTest, TestCase):
 
     def setUp(self):
         super().setUp()
-        models = []
-        for doc in self.documents:
-            models.append(LargeFlatModel(**doc))
-        LargeFlatModel.objects.bulk_create(models)
-        self.ids = [model.id for model in models]
+        self.ids = LargeFlatModel.objects.values_list("id", flat=True)
 
     def do_task(self):
         list(LargeFlatModel.objects.filter(id__in=self.ids))
