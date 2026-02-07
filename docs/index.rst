@@ -52,6 +52,7 @@ Models
 
 - :doc:`topics/embedded-models`
 - :doc:`topics/transactions`
+- :doc:`topics/urls`
 
 Forms
 =====

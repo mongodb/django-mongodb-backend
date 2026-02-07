@@ -14,6 +14,7 @@ from .functions import register_functions  # noqa: E402
 from .indexes import register_indexes  # noqa: E402
 from .lookups import register_lookups  # noqa: E402
 from .query import register_nodes  # noqa: E402
+from .urls import register_urls  # noqa: E402
 
 register_aggregates()
 register_constraints()
@@ -23,3 +24,4 @@ register_functions()
 register_indexes()
 register_lookups()
 register_nodes()
+register_urls()

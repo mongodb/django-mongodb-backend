@@ -10,7 +10,8 @@ Django MongoDB Backend 6.0.x
 New features
 ------------
 
-- ...
+- Added :ref:`support for matching ObjectIDs in URL patterns
+  <object-id-in-url-patterns>`.
 
 Bug fixes
 ---------
