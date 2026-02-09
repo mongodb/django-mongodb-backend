@@ -49,7 +49,7 @@ class SmallFlatModelFk(models.Model):
 # Construct LargeFlatModel programmatically to avoid a very long model
 # definition.
 large_flat_model_attrs = {
-    "__module__": "perftest.models",
+    "__module__": "perf.models",
     "image_field": models.BinaryField(),
 }
 for i in range(125):

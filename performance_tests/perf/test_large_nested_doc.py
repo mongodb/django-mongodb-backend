@@ -22,14 +22,13 @@ class LargeNestedDocTest(PerformanceTest):
             Path(self.test_data_path) / Path("nested-models") / self.dataset
         ) as data:
             self.document = json_util.loads(data.read())
-
+        self.setUpData()
         self.data_size = len(encode(self.document)) * self.num_docs
-        self.documents = [self.document.copy() for _ in range(self.num_docs)]
 
     def setUpData(self):
-        for doc in self.documents:
+        for _ in range(self.num_docs):
             model = LargeNestedModel()
-            for field_name, model_data in doc.items():
+            for field_name, model_data in self.document.items():
                 if "array" in field_name:
                     array_models = []
                     for item in model_data:
@@ -50,10 +49,14 @@ class LargeNestedDocTest(PerformanceTest):
 class TestLargeNestedDocCreation(LargeNestedDocTest, TestCase):
     """Benchmark for creating a large nested document."""
 
+    def setUpData(self):
+        # Don't create data since this is the creation benchmark.
+        pass
+
     def do_task(self):
-        for doc in self.documents:
+        for _ in range(self.num_docs):
             model = LargeNestedModel()
-            for field_name, model_data in doc.items():
+            for field_name, model_data in self.document.items():
                 if "array" in field_name:
                     array_models = []
                     for item in model_data:
@@ -79,7 +82,6 @@ class TestLargeNestedDocUpdate(LargeNestedDocTest, TestCase):
 
     def setUp(self):
         super().setUp()
-        self.setUpData()
         self.models = list(LargeNestedModel.objects.all())
         self.data_size = len(encode({"field1": "updated_value0"})) * self.num_docs
         self.iteration = 0
@@ -120,7 +122,6 @@ class TestLargeNestedDocFilterArray(LargeNestedDocTest, TestCase):
 
     def setUp(self):
         super().setUp()
-        self.setUpData()
         self.ids = [
             model.embedded_str_doc_array[0].unique_field
             for model in list(LargeNestedModel.objects.all())
