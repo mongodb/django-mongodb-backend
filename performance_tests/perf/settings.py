@@ -8,8 +8,8 @@ DATABASES = {
 
 SECRET_KEY = "django_tests_secret_key"  # noqa: S105
 
-INSTALLED_APPS = ["perftest"]
+INSTALLED_APPS = ["perf"]
 
 DEFAULT_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
 
-TEST_RUNNER = "perftest.runner.TestRunner"
+TEST_RUNNER = "perf.runner.TestRunner"

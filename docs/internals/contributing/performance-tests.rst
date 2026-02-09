@@ -46,4 +46,4 @@ To run an individual benchmark (again, you may want to add ``FASTBENCH=1``):
 
 .. code-block:: bash
 
-    $ ./runtests.py perftest.tests.TestLargeNestedDocFilterArray
+    $ ./runtests.py perf.tests.TestLargeNestedDocFilterArray
