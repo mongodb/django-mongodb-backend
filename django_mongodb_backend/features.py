@@ -303,6 +303,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "queries.tests.Queries1Tests.test_tickets_1878_2939",
             "queries.tests.Queries1Tests.test_tickets_7087_12242",
             "queries.tests.Queries5Tests.test_extra_select_literal_percent_s",
+            "queries.tests.Queries5Tests.test_ordering_with_extra",
             "queries.tests.Queries5Tests.test_ticket7256",
             "queries.tests.ValuesQuerysetTests.test_extra_multiple_select_params_values_order_by",
             "queries.tests.ValuesQuerysetTests.test_extra_select_params_values_order_in_extra",
