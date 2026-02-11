@@ -45,9 +45,16 @@ Embedded field constraints
 
     Subclass of :class:`~django.db.models.UniqueConstraint` for use on a
     top-level model in order to add a unique constraint on subfields of
-    :class:`~.fields.EmbeddedModelField` and
-    :class:`~.fields.EmbeddedModelArrayField`.
+    embedded model fields.
 
     The ``fields`` argument uses dotted paths to reference embedded fields. For
     examples, see :ref:`embedded-model-field-unique-constraints` and
-    :ref:`embedded-model-array-field-unique-constraints`.
+    :ref:`embedded-model-array-field-unique-constraints`,
+    :ref:`polymorphic-embedded-model-field-unique-constraints`, and
+    :ref:`polymorphic-embedded-model-array-field-unique-constraints`.
+
+    .. versionchanged:: 6.0.3
+
+        Support for subfields of polymorphic model fields was added. (In 6.0.2,
+        only subfields of :class:`~.fields.EmbeddedModelField` and
+        :class:`~.fields.EmbeddedModelArrayField` are supported.)
