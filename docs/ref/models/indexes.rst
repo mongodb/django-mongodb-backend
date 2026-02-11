@@ -20,13 +20,19 @@ Embedded field indexes
     .. versionadded:: 6.0.2
 
     Subclass of :class:`~django.db.models.Index` for use on a top-level model
-    in order to add an index on subfields of
-    :class:`~.fields.EmbeddedModelField` and
-    :class:`~.fields.EmbeddedModelArrayField`.
+    in order to add an index on subfields of embedded model fields.
 
     The ``fields`` argument uses dotted paths to reference embedded fields. For
-    examples, see :ref:`embedded-model-field-indexes` and
-    :ref:`embedded-model-array-field-indexes`.
+    examples, see :ref:`embedded-model-field-indexes`,
+    :ref:`embedded-model-array-field-indexes`,
+    :ref:`polymorphic-embedded-model-field-indexes`, and
+    :ref:`polymorphic-embedded-model-array-field-indexes`.
+
+    .. versionchanged:: 6.0.3
+
+        Support for subfields of polymorphic model fields was added. (In 6.0.2,
+        only subfields of :class:`~.fields.EmbeddedModelField` and
+        :class:`~.fields.EmbeddedModelArrayField` are supported.)
 
 Search indexes
 ==============

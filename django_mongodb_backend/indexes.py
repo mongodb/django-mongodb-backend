@@ -1,3 +1,4 @@
+import contextlib
 import itertools
 from collections import defaultdict, namedtuple
 
@@ -12,11 +13,7 @@ from django.db.models.sql.where import AND, XOR, WhereNode
 from pymongo import ASCENDING, DESCENDING
 from pymongo.operations import IndexModel, SearchIndexModel
 
-from django_mongodb_backend.fields import (
-    ArrayField,
-    EmbeddedModelArrayField,
-    EmbeddedModelField,
-)
+from django_mongodb_backend.fields import ArrayField
 
 from .query_utils import process_rhs
 
@@ -60,12 +57,27 @@ def get_field(model, field_name):
     path = []
     base_model = model
     *parents, leaf = field_name.split(".")
-    for name in parents:
+    for i, name in enumerate(parents):
         field = model._meta.get_field(name)
         path.append(field.column)
-        if not isinstance(field, EmbeddedModelField | EmbeddedModelArrayField):
+        # For EmbeddedModelFields, advance to the embedded model and continue
+        # to loop, searching for the next field.
+        if hasattr(field, "embedded_model"):
+            model = field.embedded_model
+        # For PolymorphicEmbeddedModelFields, recurse into each embedded model
+        # until the field is found.
+        elif models := getattr(field, "embedded_models", None):
+            for submodel in models:
+                with contextlib.suppress(FieldDoesNotExist):
+                    subfield = get_field(submodel, ".".join([*parents[i + 1 :], leaf]))
+                    path.extend(subfield.column.split("."))
+                    return FieldColumn(subfield.field, ".".join(path))
+            raise FieldDoesNotExist(
+                f"The models of field '{'.'.join(parents)}' have no field named '{leaf}'."
+            )
+        else:
             raise FieldDoesNotExist(f"{base_model.__name__} has no field named '{field_name}'.")
-        model = field.embedded_model
+    # Add the final field.
     field = model._meta.get_field(leaf)
     path.append(field.column)
     return FieldColumn(field, ".".join(path))
@@ -145,14 +157,20 @@ class EmbeddedFieldIndexMixin:
     def _get_forward_fields(self, model):
         """
         Return the set of forward field paths for the given model, including
-        embedded fields of EmbeddedModelField/EmbeddedModelArrayField.
+        embedded fields.
         """
         forward_fields = set()
         for field in model._meta._get_fields(reverse=False):
             # Recurse into embedded models and flatten their forward fields
             # using dotted paths (e.g. "field.subfield").
-            if isinstance(field, EmbeddedModelField | EmbeddedModelArrayField):
-                sub_forward_fields = self._get_forward_fields(field.embedded_model)
+            if embedded_model := getattr(field, "embedded_model", None):
+                embedded_models = [embedded_model]
+            elif embedded_models := getattr(field, "embedded_models", None):
+                pass
+            else:
+                embedded_models = []
+            for embedded_model in embedded_models:
+                sub_forward_fields = self._get_forward_fields(embedded_model)
                 for column in sub_forward_fields:
                     forward_fields.add(f"{field.name}.{column}")
                     if hasattr(field, "attname"):

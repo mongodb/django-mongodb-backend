@@ -366,6 +366,33 @@ Similarly, querying into nested embedded model fields with the same name isn't
 well supported: the first model in ``embedded_models`` is the one that will be
 used for nested lookups.
 
+.. _polymorphic-embedded-model-field-indexes:
+
+Indexing ``PolymorphicEmbeddedModelField``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 6.0.3
+
+You can create indexes on ``PolymorphicEmbeddedModelField`` subfields :ref:`in
+the same way <embedded-model-field-indexes>` as for ``EmbeddedModelField``.
+
+.. _polymorphic-embedded-model-field-unique-constraints:
+
+Unique constraints on ``PolymorphicEmbeddedModelField``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 6.0.3
+
+You can enforce uniqueness of ``PolymorphicEmbeddedModelField`` subfields
+:ref:`in the same way <embedded-model-field-unique-constraints>` as for
+``EmbeddedModelField``.
+
+You must not use :ref:`clashing field names
+<polymorphic-embedded-model-field-clashing-field-names>` if
+:attr:`~django.db.models.UniqueConstraint.nulls_distinct` is unspecified or
+``False`` as an appropriate unique constraint can't be created across fields of
+different types. The constraint will be created with only one of the types.
+
 .. _polymorphic-embedded-model-array-field-example:
 
 ``PolymorphicEmbeddedModelArrayField``
@@ -449,3 +476,26 @@ Clashing field names
 As with :class:`~.fields.PolymorphicEmbeddedModelField`, take care that your embedded
 models don't use :ref:`clashing field names
 <polymorphic-embedded-model-field-clashing-field-names>`.
+
+.. _polymorphic-embedded-model-array-field-indexes:
+
+Indexing ``PolymorphicEmbeddedModelArrayField``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 6.0.3
+
+You can create indexes on ``PolymorphicEmbeddedModelArrayField`` subfields
+:ref:`in the same way <embedded-model-field-indexes>` as for
+``EmbeddedModelField``.
+
+.. _polymorphic-embedded-model-array-field-unique-constraints:
+
+Unique constraints on ``PolymorphicEmbeddedModelArrayField``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 6.0.3
+
+You can enforce uniqueness of ``PolymorphicEmbeddedModelArrayField`` subfields
+:ref:`in the same way <embedded-model-array-field-unique-constraints>` as for
+``EmbeddedModelArrayField``. The same behavior and restrictions (e.g.
+``nulls_distinct=False`` requirement) apply.

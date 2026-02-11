@@ -13,7 +13,7 @@ from django_mongodb_backend.indexes import (
 )
 from django_mongodb_backend.models import EmbeddedModel
 
-from .models import DataHolder, Movie
+from .models import DataHolder, Movie, Owner, Person, Store
 
 
 @isolate_apps("indexes_")
@@ -263,3 +263,48 @@ class EmbeddedFieldIndexChecksTests(TestCase):
         )
         self.assertEqual(errors[1].id, "models.E012")
         self.assertEqual(errors[1].msg, "'indexes' refers to the nonexistent field 'non_existing'.")
+
+    def test_valid_polymorphic_embedded_model_subfield(self):
+        index = EmbeddedFieldIndex(name="name", fields=["pet.name"])
+        errors = index.check(Person, connection=connection)
+        self.assertEqual(errors, [])
+
+    def test_nonexistent_polymorphic_embedded_model_subfield(self):
+        index = EmbeddedFieldIndex(name="name", fields=["pet.non_existing"])
+        errors = index.check(Person, connection=connection)
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].id, "models.E012")
+        self.assertEqual(
+            errors[0].msg,
+            "'indexes' refers to the nonexistent field 'pet.non_existing'.",
+        )
+
+    def test_valid_polymorphic_embedded_model_array_subfield(self):
+        index = EmbeddedFieldIndex(name="name", fields=["pets.name"])
+        errors = index.check(Owner, connection=connection)
+        self.assertEqual(errors, [])
+
+    def test_nonexistent_polymorphic_embedded_model_array_subfield(self):
+        index = EmbeddedFieldIndex(name="name", fields=["pets.non_existing"])
+        errors = index.check(Owner, connection=connection)
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].id, "models.E012")
+        self.assertEqual(
+            errors[0].msg,
+            "'indexes' refers to the nonexistent field 'pets.non_existing'.",
+        )
+
+    def test_valid_nested_polymorphic_subfield(self):
+        index = EmbeddedFieldIndex(name="name", fields=["thing.tags.name"])
+        errors = index.check(Store, connection=connection)
+        self.assertEqual(errors, [])
+
+    def test_nonexistent_nested_polymorphic_subfield(self):
+        index = EmbeddedFieldIndex(name="name", fields=["thing.tags.xxx"])
+        errors = index.check(Store, connection=connection)
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].id, "models.E012")
+        self.assertEqual(
+            errors[0].msg,
+            "'indexes' refers to the nonexistent field 'thing.tags.xxx'.",
+        )
