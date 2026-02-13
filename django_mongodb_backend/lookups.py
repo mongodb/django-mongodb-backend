@@ -133,16 +133,6 @@ REGEX_MATCH_ESCAPE_CHARS = (
 )
 
 
-def _strip_percent_signs(lookup_name, value):
-    if lookup_name in ("startswith", "istartswith"):
-        value = value[:-1]
-    elif lookup_name in ("endswith", "iendswith"):
-        value = value[1:]
-    elif lookup_name in ("contains", "icontains"):
-        value = value[1:-1]
-    return value
-
-
 def pattern_lookup_expr(self, compiler, connection):
     lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
     value = process_rhs(self, compiler, connection, as_expr=True)
@@ -151,18 +141,7 @@ def pattern_lookup_expr(self, compiler, connection):
         # Analogous to PatternLookup.get_rhs_op() / pattern_esc.
         for find, replacement in REGEX_MATCH_ESCAPE_CHARS:
             value = {"$replaceAll": {"input": value, "find": find, "replacement": replacement}}
-    else:
-        # If value is a literal, remove percent signs added by
-        # PatternLookup.process_rhs() for LIKE queries.
-        value = _strip_percent_signs(self.lookup_name, value)
     return connection.mongo_expr_operators[self.lookup_name](lhs_mql, value)
-
-
-def pattern_lookup_path(self, compiler, connection):
-    lhs_mql = process_lhs(self, compiler, connection)
-    value = process_rhs(self, compiler, connection)
-    value = _strip_percent_signs(self.lookup_name, value)
-    return connection.mongo_operators[self.lookup_name](lhs_mql, value)
 
 
 def uuid_text_mixin(self, compiler, connection, as_expr=False):  # noqa: ARG001
@@ -184,5 +163,4 @@ def register_lookups():
     LessThanOrEqual.as_mql_path = less_than_or_equal_path
     Lookup.can_use_path = lookup_can_use_path
     PatternLookup.as_mql_expr = pattern_lookup_expr
-    PatternLookup.as_mql_path = pattern_lookup_path
     UUIDTextMixin.as_mql = uuid_text_mixin
