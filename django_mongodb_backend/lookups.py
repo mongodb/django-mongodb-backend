@@ -133,7 +133,19 @@ REGEX_MATCH_ESCAPE_CHARS = (
 )
 
 
-def pattern_lookup_prep_lookup_value(self, value):
+def _strip_percent_signs(lookup_name, value):
+    if lookup_name in ("startswith", "istartswith"):
+        value = value[:-1]
+    elif lookup_name in ("endswith", "iendswith"):
+        value = value[1:]
+    elif lookup_name in ("contains", "icontains"):
+        value = value[1:-1]
+    return value
+
+
+def pattern_lookup_expr(self, compiler, connection):
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+    value = process_rhs(self, compiler, connection, as_expr=True)
     if hasattr(self.rhs, "as_mql"):
         # If value is a column reference, escape $regexMatch special chars.
         # Analogous to PatternLookup.get_rhs_op() / pattern_esc.
@@ -142,13 +154,15 @@ def pattern_lookup_prep_lookup_value(self, value):
     else:
         # If value is a literal, remove percent signs added by
         # PatternLookup.process_rhs() for LIKE queries.
-        if self.lookup_name in ("startswith", "istartswith"):
-            value = value[:-1]
-        elif self.lookup_name in ("endswith", "iendswith"):
-            value = value[1:]
-        elif self.lookup_name in ("contains", "icontains"):
-            value = value[1:-1]
-    return value
+        value = _strip_percent_signs(self.lookup_name, value)
+    return connection.mongo_expr_operators[self.lookup_name](lhs_mql, value)
+
+
+def pattern_lookup_path(self, compiler, connection):
+    lhs_mql = process_lhs(self, compiler, connection)
+    value = process_rhs(self, compiler, connection)
+    value = _strip_percent_signs(self.lookup_name, value)
+    return connection.mongo_operators[self.lookup_name](lhs_mql, value)
 
 
 def uuid_text_mixin(self, compiler, connection, as_expr=False):  # noqa: ARG001
@@ -169,5 +183,6 @@ def register_lookups():
     LessThan.as_mql_path = less_than_path
     LessThanOrEqual.as_mql_path = less_than_or_equal_path
     Lookup.can_use_path = lookup_can_use_path
-    PatternLookup.prep_lookup_value_mongo = pattern_lookup_prep_lookup_value
+    PatternLookup.as_mql_expr = pattern_lookup_expr
+    PatternLookup.as_mql_path = pattern_lookup_path
     UUIDTextMixin.as_mql = uuid_text_mixin

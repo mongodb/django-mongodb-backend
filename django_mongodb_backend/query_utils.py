@@ -46,8 +46,6 @@ def process_rhs(node, compiler, connection, as_expr=False):
         # Undo Lookup.get_db_prep_lookup() putting params in a list.
         if lookup_name not in ("in", "range"):
             value = value[0]
-    if hasattr(node, "prep_lookup_value_mongo"):
-        value = node.prep_lookup_value_mongo(value)
     return value
 
 
