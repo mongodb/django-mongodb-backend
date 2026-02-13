@@ -21,6 +21,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     greatest_least_ignores_nulls = True
     has_json_object_function = False
     has_native_json_field = True
+    pattern_lookup_needs_param_pattern = False
     rounds_to_even = True
     supports_boolean_expr_in_select_clause = True
     supports_collation_on_charfield = False
