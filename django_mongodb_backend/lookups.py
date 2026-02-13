@@ -139,15 +139,6 @@ def pattern_lookup_prep_lookup_value(self, value):
         # Analogous to PatternLookup.get_rhs_op() / pattern_esc.
         for find, replacement in REGEX_MATCH_ESCAPE_CHARS:
             value = {"$replaceAll": {"input": value, "find": find, "replacement": replacement}}
-    else:
-        # If value is a literal, remove percent signs added by
-        # PatternLookup.process_rhs() for LIKE queries.
-        if self.lookup_name in ("startswith", "istartswith"):
-            value = value[:-1]
-        elif self.lookup_name in ("endswith", "iendswith"):
-            value = value[1:]
-        elif self.lookup_name in ("contains", "icontains"):
-            value = value[1:-1]
     return value
 
 
