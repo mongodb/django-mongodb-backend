@@ -16,7 +16,9 @@ New features
 Bug fixes
 ---------
 
-- ...
+- Made model saving raise an exception to prevent a misconfiguration from
+  resulting in the creation of models with encrypted fields in non-encrypted
+  databases.
 
 6.0.2
 =====

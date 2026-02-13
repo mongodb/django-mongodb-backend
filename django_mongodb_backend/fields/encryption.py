@@ -1,3 +1,4 @@
+from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 
 from django_mongodb_backend.fields import ArrayField, EmbeddedModelArrayField, EmbeddedModelField
@@ -29,6 +30,14 @@ class EncryptedFieldMixin:
                 "django_mongodb_backend.fields",
             )
         return name, path, args, kwargs
+
+    def get_db_prep_save(self, value, connection):
+        if not connection.auto_encryption_opts:
+            raise ImproperlyConfigured(
+                f"Cannot save encrypted field '{self.name}' in non-encrypted "
+                f"database '{connection.alias}'."
+            )
+        return super().get_db_prep_save(value, connection)
 
 
 class NoQueriesMixin:

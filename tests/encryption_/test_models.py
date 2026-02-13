@@ -1,3 +1,4 @@
+from django.core.exceptions import ImproperlyConfigured
 from django.db import NotSupportedError
 from django.db.models import F
 
@@ -6,6 +7,11 @@ from .test_base import EncryptionTestCase
 
 
 class ModelTests(EncryptionTestCase):
+    def test_create_in_non_encrypted_connection(self):
+        msg = "Cannot save encrypted field 'value' in non-encrypted database 'default'."
+        with self.assertRaisesMessage(ImproperlyConfigured, msg):
+            CharModel.objects.using("default").create(value="value")
+
     def test_update(self):
         obj = CharModel.objects.create(value="hello")
         obj.value = "updated"
