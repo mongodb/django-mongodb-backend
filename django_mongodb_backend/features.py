@@ -96,8 +96,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         # Value.as_mql() doesn't call output_field.get_db_prep_save():
         # https://github.com/mongodb/django-mongodb-backend/issues/282
         "model_fields.test_jsonfield.TestSaveLoad.test_bulk_update_custom_get_prep_value",
-        # To debug: https://github.com/mongodb/django-mongodb-backend/issues/362
-        "constraints.tests.UniqueConstraintTests.test_validate_case_when",
         # CheckConstraint(condition=models.Q(price__gte=0)) doesn't accept null
         # values because {'$gte': [None, 0]} returns False instead of NULL like
         # in SQL.
