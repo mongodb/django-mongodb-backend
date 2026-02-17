@@ -110,6 +110,12 @@ def less_than_or_equal_path(self, compiler, connection):
     return connection.mongo_operators[self.lookup_name](lhs_mql, value)
 
 
+@property
+def lookup_can_use_path(self):
+    # Can use path MQL if the LHS is a column and the RHS is a constant.
+    return getattr(self.lhs, "is_simple_column", False) and is_constant_value(self.rhs)
+
+
 # from https://www.pcre.org/current/doc/html/pcre2pattern.html#SEC4
 REGEX_MATCH_ESCAPE_CHARS = (
     ("\\", r"\\"),  # general escape character
@@ -125,12 +131,6 @@ REGEX_MATCH_ESCAPE_CHARS = (
     ("?", r"\?"),  # 0 or 1 quantifier
     ("{", r"\}"),  # start min/max quantifier
 )
-
-
-@property
-def lookup_can_use_path(self):
-    # Can use path MQL if the LHS is a column and the RHS is a constant.
-    return getattr(self.lhs, "is_simple_column", False) and is_constant_value(self.rhs)
 
 
 def pattern_lookup_prep_lookup_value(self, value):
