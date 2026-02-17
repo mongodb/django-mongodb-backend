@@ -15,8 +15,8 @@ from .query_utils import is_constant_value, process_lhs, process_rhs
 
 
 def builtin_lookup_expr(self, compiler, connection):
-    value = process_rhs(self, compiler, connection, as_expr=True)
     lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+    value = process_rhs(self, compiler, connection, as_expr=True)
     return connection.mongo_expr_operators[self.lookup_name](lhs_mql, value)
 
 
