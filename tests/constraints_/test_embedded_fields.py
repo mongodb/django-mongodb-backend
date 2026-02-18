@@ -84,13 +84,26 @@ class EmbeddedFieldUniqueConstraintTests(TestCase):
             with connection.schema_editor() as editor:
                 editor.remove_constraint(constraint=constraint, model=Movie)
 
-    def test_add_constraint_nonexistent_field(self):
-        # This case shouldn't happen as it should be caught by system checks
-        # before the migrate stage.
-        constraint = EmbeddedFieldUniqueConstraint(
-            name="embedded_multi_idx",
-            fields=["title.xxx"],
-        )
+
+class AddConstraintNonexistentFieldTests(TestCase):
+    # These cases shouldn't happen as they should be caught by system checks
+    # before the migrate stage. Nonetheless, it could be useful to have helpful
+    # error messages.
+
+    def test_field(self):
+        constraint = EmbeddedFieldUniqueConstraint(name="name", fields=["xxx"])
+        msg = "Movie has no field named 'xxx"
+        with connection.schema_editor() as editor, self.assertRaisesMessage(FieldDoesNotExist, msg):
+            editor.add_constraint(constraint=constraint, model=Movie)
+
+    def test_field_with_dot(self):
+        constraint = EmbeddedFieldUniqueConstraint(name="name", fields=["title.xxx"])
         msg = "Movie has no field named 'title.xxx"
+        with connection.schema_editor() as editor, self.assertRaisesMessage(FieldDoesNotExist, msg):
+            editor.add_constraint(constraint=constraint, model=Movie)
+
+    def test_embedded_subfield(self):
+        constraint = EmbeddedFieldUniqueConstraint(name="name", fields=["reviews.xxx"])
+        msg = "Review has no field named 'xxx"
         with connection.schema_editor() as editor, self.assertRaisesMessage(FieldDoesNotExist, msg):
             editor.add_constraint(constraint=constraint, model=Movie)
