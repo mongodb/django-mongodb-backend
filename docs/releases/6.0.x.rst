@@ -13,6 +13,15 @@ New features
 - Added :ref:`support for matching ObjectIDs in URL patterns
   <object-id-in-url-patterns>`.
 
+- Added polymorphic subfield support to
+  :class:`~django_mongodb_backend.indexes.EmbeddedFieldIndex` and
+  :class:`~django_mongodb_backend.constraints.EmbeddedFieldUniqueConstraint`.
+
+  See :ref:`polymorphic-embedded-model-field-indexes`,
+  :ref:`polymorphic-embedded-model-field-unique-constraints`,
+  :ref:`polymorphic-embedded-model-array-field-indexes`, and
+  :ref:`polymorphic-embedded-model-array-field-unique-constraints`.
+
 Bug fixes
 ---------
 

@@ -6,7 +6,7 @@ from django.db.models import UniqueConstraint
 from pymongo import ASCENDING
 from pymongo.operations import IndexModel
 
-from .fields import EmbeddedModelArrayField
+from .fields import EmbeddedModelArrayField, PolymorphicEmbeddedModelArrayField
 from .indexes import EmbeddedFieldIndexMixin, _get_condition_mql, get_field
 
 
@@ -62,12 +62,12 @@ class EmbeddedFieldUniqueConstraint(EmbeddedFieldIndexMixin, UniqueConstraint):
                     field = model._meta.get_field(local_field_name)
                 except FieldDoesNotExist:
                     continue
-                if isinstance(field, EmbeddedModelArrayField):
+                if isinstance(field, (EmbeddedModelArrayField, PolymorphicEmbeddedModelArrayField)):
                     errors.append(
                         checks.Error(
                             f"EmbeddedFieldUniqueConstraint {self.name!r} must "
                             "have nulls_distinct=False since it references "
-                            f"EmbeddedModelArrayField '{local_field_name}'.",
+                            f"{field.__class__.__name__} '{local_field_name}'.",
                             obj=model,
                             id="django_mongodb_backend.constraints.E001",
                         )
