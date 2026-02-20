@@ -28,7 +28,17 @@ class MethodTests(SimpleTestCase):
         self.assertEqual(name, "field_name")
         self.assertEqual(path, "django_mongodb_backend.fields.PolymorphicEmbeddedModelField")
         self.assertEqual(args, [])
-        self.assertEqual(kwargs, {"embedded_models": ["Data"], "null": True})
+        self.assertEqual(kwargs, {"embedded_models": ("data",), "null": True})
+
+    def test_deconstruct_model_class(self):
+        field = PolymorphicEmbeddedModelField([Cat, Dog])
+        *_, kwargs = field.deconstruct()
+        self.assertEqual(kwargs["embedded_models"], ("model_fields_.cat", "model_fields_.dog"))
+
+    def test_deconstruct_model_string(self):
+        field = PolymorphicEmbeddedModelField(["app_label.Model"])
+        *_, kwargs = field.deconstruct()
+        self.assertEqual(kwargs["embedded_models"], ("app_label.model",))
 
     def test_get_db_prep_save_invalid(self):
         msg = (

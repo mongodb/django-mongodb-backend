@@ -13,6 +13,7 @@ from django_mongodb_backend.fields.array import ArrayField, ArrayLenTransform
 from django_mongodb_backend.query_utils import process_lhs, process_rhs
 
 from .mixins import NoEncryptedEmbeddedFieldsMixin
+from .utils import serialize_model_reference
 
 
 class EmbeddedModelArrayField(NoEncryptedEmbeddedFieldsMixin, ArrayField):
@@ -37,7 +38,7 @@ class EmbeddedModelArrayField(NoEncryptedEmbeddedFieldsMixin, ArrayField):
         name, path, args, kwargs = super().deconstruct()
         if path == "django_mongodb_backend.fields.embedded_model_array.EmbeddedModelArrayField":
             path = "django_mongodb_backend.fields.EmbeddedModelArrayField"
-        kwargs["embedded_model"] = self.embedded_model
+        kwargs["embedded_model"] = serialize_model_reference(self.embedded_model)
         del kwargs["base_field"]
         return name, path, args, kwargs
 
@@ -70,7 +71,7 @@ class EmbeddedModelArrayField(NoEncryptedEmbeddedFieldsMixin, ArrayField):
         transform = super().get_transform(name)
         if transform:
             return transform
-        field = self.base_field.embedded_model._meta.get_field(name)
+        field = self.base_field.resolved_embedded_model._meta.get_field(name)
         return EmbeddedModelArrayFieldTransformFactory(field)
 
     def _get_lookup(self, lookup_name):
