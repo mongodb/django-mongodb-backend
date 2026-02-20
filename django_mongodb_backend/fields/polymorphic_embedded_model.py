@@ -1,12 +1,14 @@
 import contextlib
 
+from django.apps import apps
 from django.core import checks
 from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import models
 from django.db.models.fields.related import lazy_related_operation
+from django.utils.functional import cached_property
 
 from .embedded_model import EmbeddedModelTransformFactory
-from .utils import get_mongodb_connection
+from .utils import get_mongodb_connection, serialize_model_reference
 
 
 class PolymorphicEmbeddedModelField(models.Field):
@@ -80,7 +82,9 @@ class PolymorphicEmbeddedModelField(models.Field):
                 "django_mongodb_backend.fields.polymorphic_embedded_model",
                 "django_mongodb_backend.fields",
             )
-        kwargs["embedded_models"] = self.embedded_models
+        kwargs["embedded_models"] = tuple(
+            serialize_model_reference(x) for x in self.embedded_models
+        )
         del kwargs["editable"]
         return name, path, args, kwargs
 
@@ -158,11 +162,21 @@ class PolymorphicEmbeddedModelField(models.Field):
         embedded_instance._state.adding = False
         return field_values
 
+    @cached_property
+    def resolved_embedded_models(self):
+        # Since Field.deconstruct() serializes self.embedded_models as a list
+        # of strings, these strings may need to be resolved after a
+        # Field.clone() in querying.
+        return tuple(
+            apps.get_model(model) if isinstance(model, str) else model
+            for model in self.embedded_models
+        )
+
     def get_transform(self, name):
         transform = super().get_transform(name)
         if transform:
             return transform
-        for model in self.embedded_models:
+        for model in self.resolved_embedded_models:
             with contextlib.suppress(FieldDoesNotExist):
                 field = model._meta.get_field(name)
                 break

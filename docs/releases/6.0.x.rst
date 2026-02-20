@@ -31,6 +31,10 @@ Bug fixes
   resulting in the creation of models with encrypted fields in non-encrypted
   databases.
 
+- Made ``makemigrations`` serialize embedded model references as strings so
+  that references in migrations don't need to be adjusted if models are later
+  removed.
+
 6.0.2
 =====
 
