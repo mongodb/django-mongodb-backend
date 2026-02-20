@@ -4,11 +4,7 @@ from unittest import TestCase
 from bson import encode, json_util
 
 from .base import PerformanceTest
-from .models import (
-    ForeignKeyModel,
-    SmallFlatModel,
-    SmallFlatModelFk,
-)
+from .models import ForeignKeyModel, SmallFlatModel, SmallFlatModelFk
 
 
 class SmallFlatDocTest(PerformanceTest):
@@ -30,9 +26,13 @@ class SmallFlatDocTest(PerformanceTest):
             SmallFlatModel(**self.document) for _ in range(self.num_docs)
         )
 
+    def tearDown(self):
+        super().tearDown()
+        SmallFlatModel.objects.all().delete()
+
 
 class TestSmallFlatDocCreation(SmallFlatDocTest, TestCase):
-    """Benchmark for creating a small flat document."""
+    """Creating a small flat document."""
 
     def setUpData(self):
         # Don't create data since this is the creation benchmark.
@@ -47,7 +47,7 @@ class TestSmallFlatDocCreation(SmallFlatDocTest, TestCase):
 
 
 class TestSmallFlatDocUpdate(SmallFlatDocTest, TestCase):
-    """Benchmark for updating a field within a small flat document."""
+    """Updating a field within a small flat document."""
 
     def setUp(self):
         super().setUp()
@@ -61,13 +61,9 @@ class TestSmallFlatDocUpdate(SmallFlatDocTest, TestCase):
             model.save()
         self.iteration += 1
 
-    def tearDown(self):
-        super().tearDown()
-        SmallFlatModel.objects.all().delete()
-
 
 class TestSmallFlatDocFilterById(SmallFlatDocTest, TestCase):
-    """Benchmark for filtering small flat documents by their primary key."""
+    """Filtering small flat documents by their primary key."""
 
     def setUp(self):
         super().setUp()
@@ -77,32 +73,27 @@ class TestSmallFlatDocFilterById(SmallFlatDocTest, TestCase):
         for _id in self.ids:
             list(SmallFlatModel.objects.filter(id=_id))
 
-    def tearDown(self):
-        super().tearDown()
-        SmallFlatModel.objects.all().delete()
-
 
 class TestSmallFlatDocFilterByForeignKey(SmallFlatDocTest, TestCase):
-    """Benchmark for filtering small flat documents by a foreign key field."""
+    """Filtering small flat documents by a foreign key field."""
 
     def setUp(self):
         super().setUp()
         self.fks = []
         for _ in range(self.num_docs):
-            model = SmallFlatModelFk(**self.document)
             foreign_key_model = ForeignKeyModel.objects.create(name="foreign_key_name")
-            self.fks.append(foreign_key_model)
-            foreign_key_model.save()
+            self.fks.append(foreign_key_model.id)
+            model = SmallFlatModelFk(**self.document)
             model.field_fk = foreign_key_model
             model.save()
 
     def setUpData(self):
-        # Don't create data since foreign keys will be added.
+        # Don't create data since SmallFlatModel isn't used.
         pass
 
     def do_task(self):
         for fk in self.fks:
-            list(SmallFlatModelFk.objects.filter(field_fk__id=fk.id))
+            list(SmallFlatModelFk.objects.filter(field_fk=fk))
 
     def tearDown(self):
         super().tearDown()
@@ -111,15 +102,11 @@ class TestSmallFlatDocFilterByForeignKey(SmallFlatDocTest, TestCase):
 
 
 class TestSmallFlatDocFilterPkByIn(SmallFlatDocTest, TestCase):
-    """Benchmark for filtering small flat documents using the __in operator for primary keys."""
+    """Filtering small flat documents using __in for primary keys."""
 
     def setUp(self):
         super().setUp()
-        self.ids = SmallFlatModel.objects.values_list("id", flat=True)
+        self.ids = SmallFlatModel.objects.values_list("id", flat=True)[:100]
 
     def do_task(self):
         list(SmallFlatModel.objects.filter(id__in=self.ids))
-
-    def tearDown(self):
-        super().tearDown()
-        SmallFlatModel.objects.all().delete()

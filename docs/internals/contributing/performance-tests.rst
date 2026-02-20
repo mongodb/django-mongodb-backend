@@ -16,12 +16,12 @@ Running the performance tests
 
 First, :ref:`setup your environment to run the unit tests<running-unit-tests>`.
 
-Then, set up the benchmark data:
+Then, set up the benchmark data, running the following commands from the
+``django-mongodb-backend`` repository's root directory::
 
 .. code-block:: bash
 
     $ git clone --depth 1 https://github.com/mongodb/specifications.git
-    # From the django-mongodb-backend root directory
     $ mkdir performance_tests/odm-data
     $ cp specifications/source/benchmarking/odm-data/flat_models.tgz performance_tests/odm-data/flat_models.tgz
     $ cp specifications/source/benchmarking/odm-data/nested_models.tgz performance_tests/odm-data/nested_models.tgz

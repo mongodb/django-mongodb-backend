@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
 
-# Submit the performance data to the SPS endpoint
+# Submit the performance data to the SPS endpoint.
 # shellcheck disable=SC2154
 response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X 'POST' \
   "https://performance-monitoring-api.corp.mongodb.com/raw_perf_results/cedar_report?project=${project_id}&version=${version_id}&variant=${build_variant}&order=${parsed_order_id}&task_name=${task_name}&task_id=${task_id}&execution=${execution}&mainline=${is_mainline}" \
@@ -12,7 +12,7 @@ response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X 'POST' \
 http_status=$(echo "$response" | grep "HTTP_STATUS" | awk -F':' '{print $2}')
 response_body=$(echo "$response" | sed '/HTTP_STATUS/d')
 
-# Throw an error if the data was not successfully submitted
+# Display an error if the data was not successfully submitted.
 if [ "$http_status" -ne 200 ]; then
   echo "Error: Received HTTP status $http_status"
   echo "Response Body: $response_body"

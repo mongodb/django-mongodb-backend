@@ -10,9 +10,14 @@ import warnings
 from pathlib import Path
 
 if os.environ.get("FASTBENCH"):
+    # Each benchmark will run for at least NUM_ITERATIONS and at least
+    # MIN_ITERATION_TIME seconds.
     NUM_ITERATIONS = 1
     MIN_ITERATION_TIME = 5
+    # A benchmark times out (exiting early with a warning) if it runs for more
+    # than MAX_ITERATION_TIME seconds but doesn't reach NUM_ITERATIONS.
     MAX_ITERATION_TIME = 10
+    # The number of model instances to use for each benchmark.
     NUM_DOCS = 1000
 else:
     NUM_ITERATIONS = 2
@@ -31,10 +36,15 @@ class Timer:
         self.interval = self.end - self.start
 
 
+# The tearDown() method of each PerformanceTest appends metrics to this list.
+# The test runner uses it at the end of the test suite to write the output
+# file.
 result_data = []
 
 
 def write_output_file():
+    if not result_data:
+        return
     output = json.dumps(result_data, indent=4)
     if OUTPUT_FILE := os.environ.get("OUTPUT_FILE"):
         with open(OUTPUT_FILE, "w") as opf:  # noqa: PTH123
@@ -61,6 +71,9 @@ class PerformanceTest:
         # Remove "Test" so that TestMyTestName is reported as "MyTestName".
         name = self.__class__.__name__[4:]
         median = self.percentile(50)
+        if median is None:
+            # Test failed.
+            return
         megabytes_per_sec = self.data_size / median / 1000000
         print(  # noqa: T201
             f"Completed {self.__class__.__name__} {megabytes_per_sec:.3f} MB/s, "
@@ -100,7 +113,7 @@ class PerformanceTest:
             sorted_results = sorted(self.results)
             percentile_index = int(len(sorted_results) * percentile / 100) - 1
             return sorted_results[percentile_index]
-        self.fail("Test execution failed")
+        # Test failed.
         return None
 
     def runTest(self):
