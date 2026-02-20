@@ -26,9 +26,13 @@ class LargeFlatDocTest(PerformanceTest):
             LargeFlatModel(**self.document) for _ in range(self.num_docs)
         )
 
+    def tearDown(self):
+        super().tearDown()
+        LargeFlatModel.objects.all().delete()
+
 
 class TestLargeFlatDocCreation(LargeFlatDocTest, TestCase):
-    """Benchmark for creating a large flat document."""
+    """Creating a large flat document."""
 
     def setUpData(self):
         # Don't create data since this is the creation benchmark.
@@ -43,7 +47,7 @@ class TestLargeFlatDocCreation(LargeFlatDocTest, TestCase):
 
 
 class TestLargeFlatDocUpdate(LargeFlatDocTest, TestCase):
-    """Benchmark for updating a field within a large flat document."""
+    """Updating a field within a large flat document."""
 
     def setUp(self):
         super().setUp()
@@ -57,21 +61,13 @@ class TestLargeFlatDocUpdate(LargeFlatDocTest, TestCase):
             model.save()
         self.iteration += 1
 
-    def tearDown(self):
-        super().tearDown()
-        LargeFlatModel.objects.all().delete()
-
 
 class TestLargeFlatDocFilterPkByIn(LargeFlatDocTest, TestCase):
-    """Benchmark for filtering large flat documents using the __in operator for primary keys."""
+    """Filtering large flat documents using __in for primary keys."""
 
     def setUp(self):
         super().setUp()
-        self.ids = LargeFlatModel.objects.values_list("id", flat=True)
+        self.ids = LargeFlatModel.objects.values_list("id", flat=True)[:100]
 
     def do_task(self):
         list(LargeFlatModel.objects.filter(id__in=self.ids))
-
-    def tearDown(self):
-        super().tearDown()
-        LargeFlatModel.objects.all().delete()

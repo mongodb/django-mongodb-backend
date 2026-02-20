@@ -4,11 +4,7 @@ from unittest import TestCase
 from bson import ObjectId, encode, json_util
 
 from .base import PerformanceTest
-from .models import (
-    IntegerEmbeddedModel,
-    LargeNestedModel,
-    StringEmbeddedModel,
-)
+from .models import IntegerEmbeddedModel, LargeNestedModel, StringEmbeddedModel
 
 
 class LargeNestedDocTest(PerformanceTest):
@@ -45,9 +41,13 @@ class LargeNestedDocTest(PerformanceTest):
                     setattr(model, field_name, embedded_int_model)
             model.save()
 
+    def tearDown(self):
+        super().tearDown()
+        LargeNestedModel.objects.all().delete()
+
 
 class TestLargeNestedDocCreation(LargeNestedDocTest, TestCase):
-    """Benchmark for creating a large nested document."""
+    """Creating a large nested document."""
 
     def setUpData(self):
         # Don't create data since this is the creation benchmark.
@@ -78,7 +78,7 @@ class TestLargeNestedDocCreation(LargeNestedDocTest, TestCase):
 
 
 class TestLargeNestedDocUpdate(LargeNestedDocTest, TestCase):
-    """Benchmark for updating an embedded field within a large nested document."""
+    """Updating an embedded field within a large nested document."""
 
     def setUp(self):
         super().setUp()
@@ -92,45 +92,36 @@ class TestLargeNestedDocUpdate(LargeNestedDocTest, TestCase):
             model.save()
         self.iteration += 1
 
-    def tearDown(self):
-        super().tearDown()
-        LargeNestedModel.objects.all().delete()
 
-
-class TestLargeNestedDocFilterById(LargeNestedDocTest, TestCase):
-    """Benchmark for filtering large nested documents by a unique field in an embedded document."""
+class TestLargeNestedDocFilterByUniqueField(LargeNestedDocTest, TestCase):
+    """
+    Filtering large nested documents by a unique field in an embedded document.
+    """
 
     def setUp(self):
         super().setUp()
         self.setUpData()
-        self.ids = [
-            model.embedded_str_doc_1.unique_field for model in list(LargeNestedModel.objects.all())
-        ]
+        self.ids = LargeNestedModel.objects.values_list(
+            "embedded_str_doc_1__unique_field", flat=True
+        )
 
     def do_task(self):
         for _id in self.ids:
             list(LargeNestedModel.objects.filter(embedded_str_doc_1__unique_field=_id))
 
-    def tearDown(self):
-        super().tearDown()
-        LargeNestedModel.objects.all().delete()
 
-
-class TestLargeNestedDocFilterArray(LargeNestedDocTest, TestCase):
-    """Benchmark for filtering large nested documents using the __in operator
-    for unique values in an embedded document array."""
+class TestLargeNestedDocFilterArrayByUniqueField(LargeNestedDocTest, TestCase):
+    """
+    Filtering large nested documents by a unique field in an embedded document
+    array.
+    """
 
     def setUp(self):
         super().setUp()
-        self.ids = [
-            model.embedded_str_doc_array[0].unique_field
-            for model in list(LargeNestedModel.objects.all())
-        ]
+        self.ids = LargeNestedModel.objects.values_list(
+            "embedded_str_doc_array__0__unique_field", flat=True
+        )
 
     def do_task(self):
         for _id in self.ids:
-            list(LargeNestedModel.objects.filter(embedded_str_doc_array__unique_field__in=[_id]))
-
-    def tearDown(self):
-        super().tearDown()
-        LargeNestedModel.objects.all().delete()
+            list(LargeNestedModel.objects.filter(embedded_str_doc_array__unique_field=_id))
