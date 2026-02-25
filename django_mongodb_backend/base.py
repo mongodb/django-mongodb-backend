@@ -386,6 +386,10 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     ## Queryable Encryption properties
     @cached_property
     def auto_encryption_opts(self):
+        # Initialize the connection if needed. The access of this property in
+        # EncryptedFieldMixin.get_db_prep_save() may be the first time
+        # self.connection is accessed.
+        self.ensure_connection()
         return self.connection._options.auto_encryption_opts
 
     @cached_property
