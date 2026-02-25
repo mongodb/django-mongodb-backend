@@ -42,7 +42,17 @@ class MethodTests(SimpleTestCase):
         self.assertEqual(name, "field_name")
         self.assertEqual(path, "django_mongodb_backend.fields.EmbeddedModelField")
         self.assertEqual(args, [])
-        self.assertEqual(kwargs, {"embedded_model": "Data", "null": True})
+        self.assertEqual(kwargs, {"embedded_model": "data", "null": True})
+
+    def test_deconstruct_model_class(self):
+        field = EmbeddedModelField(Data)
+        *_, kwargs = field.deconstruct()
+        self.assertEqual(kwargs["embedded_model"], "model_fields_.data")
+
+    def test_deconstruct_model_string(self):
+        field = EmbeddedModelField("app_label.Model")
+        *_, kwargs = field.deconstruct()
+        self.assertEqual(kwargs["embedded_model"], "app_label.model")
 
     def test_get_db_prep_save_invalid(self):
         msg = "Expected instance of type <class 'model_fields_.models.Data'>, not <class 'int'>."

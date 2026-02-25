@@ -1,5 +1,6 @@
 import difflib
 
+from django.apps import apps
 from django.core import checks
 from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import models
@@ -8,6 +9,8 @@ from django.db.models.lookups import Transform
 from django.utils.functional import cached_property
 
 from django_mongodb_backend import forms
+
+from .utils import serialize_model_reference
 
 
 class EmbeddedModelField(models.Field):
@@ -58,7 +61,7 @@ class EmbeddedModelField(models.Field):
             path = path.replace(
                 "django_mongodb_backend.fields.embedded_model", "django_mongodb_backend.fields"
             )
-        kwargs["embedded_model"] = self.embedded_model
+        kwargs["embedded_model"] = serialize_model_reference(self.embedded_model)
         return name, path, args, kwargs
 
     def get_internal_type(self):
@@ -128,11 +131,18 @@ class EmbeddedModelField(models.Field):
         embedded_instance._state.adding = False
         return field_values
 
+    @cached_property
+    def resolved_embedded_model(self):
+        # Since Field.deconstruct() serializes self.embedded_model as a string,
+        # it may need to be resolved after a Field.clone() in querying.
+        model = self.embedded_model
+        return apps.get_model(model) if isinstance(model, str) else model
+
     def get_transform(self, name):
         transform = super().get_transform(name)
         if transform:
             return transform
-        field = self.embedded_model._meta.get_field(name)
+        field = self.resolved_embedded_model._meta.get_field(name)
         return EmbeddedModelTransformFactory(field)
 
     def validate(self, value, model_instance):

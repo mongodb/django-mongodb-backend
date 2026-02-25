@@ -11,6 +11,7 @@ from .embedded_model_array import (
     EmbeddedModelArrayFieldTransform,
     EmbeddedModelArrayFieldTransformFactory,
 )
+from .utils import serialize_model_reference
 
 
 class PolymorphicEmbeddedModelArrayField(ArrayField):
@@ -39,7 +40,9 @@ class PolymorphicEmbeddedModelArrayField(ArrayField):
             "PolymorphicEmbeddedModelArrayField"
         ):
             path = "django_mongodb_backend.fields.PolymorphicEmbeddedModelArrayField"
-        kwargs["embedded_models"] = self.embedded_models
+        kwargs["embedded_models"] = tuple(
+            serialize_model_reference(x) for x in self.embedded_models
+        )
         del kwargs["base_field"]
         del kwargs["editable"]
         return name, path, args, kwargs
@@ -64,7 +67,7 @@ class PolymorphicEmbeddedModelArrayField(ArrayField):
         transform = super().get_transform(name)
         if transform:
             return transform
-        for model in self.base_field.embedded_models:
+        for model in self.base_field.resolved_embedded_models:
             with contextlib.suppress(FieldDoesNotExist):
                 field = model._meta.get_field(name)
                 break

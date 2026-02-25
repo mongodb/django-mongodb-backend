@@ -24,7 +24,17 @@ class MethodTests(SimpleTestCase):
         self.assertEqual(name, "field_name")
         self.assertEqual(path, "django_mongodb_backend.fields.EmbeddedModelArrayField")
         self.assertEqual(args, [])
-        self.assertEqual(kwargs, {"embedded_model": "Data", "null": True})
+        self.assertEqual(kwargs, {"embedded_model": "data", "null": True})
+
+    def test_deconstruct_model_class(self):
+        field = EmbeddedModelArrayField(Movie)
+        *_, kwargs = field.deconstruct()
+        self.assertEqual(kwargs["embedded_model"], "model_fields_.movie")
+
+    def test_deconstruct_model_string(self):
+        field = EmbeddedModelArrayField("app_label.Model")
+        *_, kwargs = field.deconstruct()
+        self.assertEqual(kwargs["embedded_model"], "app_label.model")
 
     def test_size_not_supported(self):
         msg = "EmbeddedModelArrayField does not support size."
