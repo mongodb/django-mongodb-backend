@@ -1,5 +1,5 @@
 from django.core.exceptions import ImproperlyConfigured
-from django.db import NotSupportedError
+from django.db import NotSupportedError, connections
 from django.db.models import F
 
 from .models import CharModel
@@ -8,6 +8,10 @@ from .test_base import EncryptionTestCase
 
 class ModelTests(EncryptionTestCase):
     def test_create_in_non_encrypted_connection(self):
+        connections["default"].close_pool()
+        # Simulate the first connection to the database where cached properties
+        # aren't initialized.
+        del connections["default"].auto_encryption_opts
         msg = "Cannot save encrypted field 'value' in non-encrypted database 'default'."
         with self.assertRaisesMessage(ImproperlyConfigured, msg):
             CharModel.objects.using("default").create(value="value")
