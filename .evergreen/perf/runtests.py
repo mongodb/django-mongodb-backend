@@ -18,7 +18,7 @@ def format_output(start_time: datetime):
     elapsed_secs = (end_time - start_time).total_seconds()
     with open(OUTPUT_FILE) as fid:  # noqa: PTH123
         results = json.load(fid)
-    LOGGER.info("results.json:\n%s", json.dumps(results, indent=2))
+    LOGGER.info(f"{OUTPUT_FILE}:\n{json.dumps(results, indent=2))}") 
 
     results = {
         "status": "PASS",
