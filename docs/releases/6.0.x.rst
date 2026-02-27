@@ -29,6 +29,16 @@ Bug fixes
   resulting in the creation of models with encrypted fields in non-encrypted
   databases.
 
+Deprecated features
+-------------------
+
+- Defining indexes and constraints on embedded models using ``unique=True``,
+  ``db_index=True``, ``Meta.constraints``, and ``Meta.indexes`` is deprecated
+  in favor of using :class:`~django_mongodb_backend.indexes.EmbeddedFieldIndex`
+  and :class:`~django_mongodb_backend.constraints.EmbeddedFieldUniqueConstraint`
+  on the top-level model. See :ref:`inline-constraints-and-indexes-deprecation`
+  for an example.
+
 6.0.2
 =====
 
