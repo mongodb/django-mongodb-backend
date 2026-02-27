@@ -1,5 +1,9 @@
-from django.db import NotSupportedError
+from django.core import checks
+from django.db import NotSupportedError, models
 from django.test import SimpleTestCase
+from django.test.utils import isolate_apps
+
+from django_mongodb_backend.models import EmbeddedModel
 
 from .models import Embed
 
@@ -14,6 +18,109 @@ class TestMethods(SimpleTestCase):
         e = Embed()
         with self.assertRaisesMessage(NotSupportedError, "EmbeddedModels cannot be deleted."):
             e.delete()
+
+
+@isolate_apps("models_")
+class TestChecks(SimpleTestCase):
+    def test_db_index(self):
+        class Target(EmbeddedModel):
+            foo = models.IntegerField(db_index=True)
+
+        errors = Target().check()
+        self.assertEqual(
+            errors,
+            [
+                checks.Warning(
+                    "Using db_index=True on embedded fields is deprecated "
+                    "in favor of using EmbeddedFieldIndex in Meta.indexes "
+                    "on the top-level model.",
+                    id="mongodb.fields.embedded_model.W004",
+                    obj=Target._meta.get_field("foo"),
+                )
+            ],
+        )
+
+    def test_unique(self):
+        class Target(EmbeddedModel):
+            foo = models.IntegerField(unique=True)
+
+        errors = Target().check()
+        self.assertEqual(
+            errors,
+            [
+                checks.Warning(
+                    "Using unique=True on embedded fields is deprecated "
+                    "in favor of using EmbeddedFieldUniqueConstraint in "
+                    "Meta.constraints on the top-level model.",
+                    id="mongodb.fields.embedded_model.W005",
+                    obj=Target._meta.get_field("foo"),
+                )
+            ],
+        )
+
+    def test_constraints(self):
+        class Target(EmbeddedModel):
+            foo = models.IntegerField()
+
+            class Meta:
+                constraints = [models.UniqueConstraint(fields=["foo"], name="name")]
+
+        errors = Target().check()
+        self.assertEqual(
+            errors,
+            [
+                checks.Warning(
+                    "Using Meta.constraints on embedded models is deprecated "
+                    "in favor of using EmbeddedFieldUniqueConstraint in "
+                    "Meta.constraints on the top-level model.",
+                    id="mongodb.fields.embedded_model.W006",
+                    obj=Target,
+                )
+            ],
+        )
+
+    def test_indexes(self):
+        class Target(EmbeddedModel):
+            foo = models.IntegerField()
+
+            class Meta:
+                indexes = [models.Index(fields=["foo"])]
+
+        errors = Target().check()
+        self.assertEqual(
+            errors,
+            [
+                checks.Warning(
+                    "Using Meta.indexes on embedded models is deprecated in "
+                    "favor of using EmbeddedFieldIndex in Meta.indexes on the "
+                    "top-level model.",
+                    id="mongodb.fields.embedded_model.W007",
+                    obj=Target,
+                )
+            ],
+        )
+
+    def test_unique_together(self):
+        class Target(EmbeddedModel):
+            a = models.IntegerField()
+            b = models.IntegerField()
+
+            class Meta:
+                unique_together = ["a", "b"]
+
+        errors = Target().check()
+        self.assertEqual(
+            errors,
+            [
+                checks.Warning(
+                    "Using Meta.unique_together on embedded models is "
+                    "deprecated in favor of using EmbeddedFieldUniqueConstraint "
+                    "in Meta.constraints on the top-level model.",
+                    id="mongodb.fields.embedded_model.W008",
+                    obj=Target,
+                )
+            ],
+        )
 
 
 class TestManagerMethods(SimpleTestCase):
