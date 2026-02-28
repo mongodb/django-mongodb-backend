@@ -36,6 +36,23 @@ class MQLTests(MongoTestCaseMixin, TestCase):
         )
 
 
+class QuerySetQueryTests(TestCase):
+    def test_all(self):
+        self.assertEqual(str(Author.objects.all().query), "db.queries__author.aggregate([])")
+
+    def test_filter(self):
+        self.assertEqual(
+            str(Author.objects.filter(name="Bob").query),
+            "db.queries__author.aggregate([{'$match': {'name': 'Bob'}}])",
+        )
+
+    def test_values(self):
+        self.assertEqual(
+            str(Author.objects.values("name").query),
+            "db.queries__author.aggregate([{'$project': {'name': 1}}])",
+        )
+
+
 class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
     def test_filter_on_local_and_related_fields(self):
         with self.assertNumQueries(1) as ctx:

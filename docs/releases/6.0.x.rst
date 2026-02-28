@@ -22,6 +22,8 @@ New features
   :ref:`polymorphic-embedded-model-array-field-indexes`, and
   :ref:`polymorphic-embedded-model-array-field-unique-constraints`.
 
+- ``str(queryset.query)`` now outputs MQL instead of SQL.
+
 Bug fixes
 ---------
 
