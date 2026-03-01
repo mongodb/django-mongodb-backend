@@ -897,6 +897,11 @@ class SQLCompiler(compiler.SQLCompiler):
         )
         return [json_util.dumps(explain, indent=4, ensure_ascii=False)]
 
+    def as_sql(self, with_limits=True, with_col_aliases=False):
+        self.pre_sql_setup()
+        pipeline = self.build_query(self.get_project_columns(self.columns)).get_pipeline()
+        return f"db.{self.collection_name}.aggregate({pipeline})", []
+
 
 class SQLInsertCompiler(SQLCompiler):
     def execute_sql(self, returning_fields=None):
