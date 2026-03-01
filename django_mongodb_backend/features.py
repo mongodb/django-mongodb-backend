@@ -21,6 +21,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     greatest_least_ignores_nulls = True
     has_json_object_function = False
     has_native_json_field = True
+    pattern_lookup_needs_param_pattern = False
     rounds_to_even = True
     supports_boolean_expr_in_select_clause = True
     supports_collation_on_charfield = False
@@ -32,10 +33,14 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     supports_expression_indexes = False
     supports_foreign_keys = False
     supports_ignore_conflicts = False
+    supports_inspectdb = False
     supports_json_field_contains = False
     # BSON Date type doesn't support microsecond precision.
     supports_microsecond_precision = False
     supports_nulls_distinct_unique_constraints = True
+    supports_on_delete_db_cascade = False
+    supports_on_delete_db_default = False
+    supports_on_delete_db_null = False
     supports_paramstyle_pyformat = False
     supports_sequence_reset = False
     supports_slicing_ordering_in_compound = True
@@ -107,6 +112,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_mixed_scenario",
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_respects_mixed_manual_order",
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_with_existing_children",
+        # To be fixed
+        # https://github.com/django/django/commit/2831eaed797627e6e6410b06f74dadeb63316e09
+        "model_fields.test_decimalfield.DecimalFieldTests.test_roundtrip_integer_with_trailing_zeros",
     }
 
     @cached_property
@@ -296,6 +304,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "queries.tests.Queries1Tests.test_tickets_1878_2939",
             "queries.tests.Queries1Tests.test_tickets_7087_12242",
             "queries.tests.Queries5Tests.test_extra_select_literal_percent_s",
+            "queries.tests.Queries5Tests.test_ordering_with_extra",
             "queries.tests.Queries5Tests.test_ticket7256",
             "queries.tests.ValuesQuerysetTests.test_extra_multiple_select_params_values_order_by",
             "queries.tests.ValuesQuerysetTests.test_extra_select_params_values_order_in_extra",
@@ -333,11 +342,12 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "aggregation.tests.AggregateTestCase.test_coalesced_empty_result_set",
             "aggregation_regress.tests.AggregationTests.test_annotate_with_extra",
             "aggregation_regress.tests.AggregationTests.test_annotation",
-            "aggregation_regress.tests.AggregationTests.test_more_more3",
-            "aggregation_regress.tests.AggregationTests.test_more_more_more3",
+            "aggregation_regress.tests.AggregationTests.test_extra_select_grouping_with_params",
+            "aggregation_regress.tests.AggregationTests.test_values_extra_grouping",
             "annotations.tests.NonAggregateAnnotationTestCase.test_raw_sql_with_inherited_field",
             "async.test_async_queryset.AsyncQuerySetTest.test_raw",
             "backends.base.test_base.ExecuteWrapperTests",
+            "backends.base.test_operations.DatabaseOperationTests.test_last_executed_query_base_fallback",
             "backends.tests.BackendTestCase.test_cursor_contextmanager",
             "backends.tests.BackendTestCase.test_cursor_executemany",
             "backends.tests.BackendTestCase.test_cursor_executemany_with_empty_params_list",
@@ -428,10 +438,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "db_functions.comparison.test_cast.CastTests.test_cast_from_python_to_datetime",
             "db_functions.comparison.test_cast.CastTests.test_cast_to_duration",
         },
-        "inspectdb is not supported.": {
-            "inspectdb.tests.InspectDBTestCase",
-            "inspectdb.tests.InspectDBTransactionalTests",
-        },
         "DatabaseIntrospection.get_table_description() not supported.": {
             "introspection.tests.IntrospectionTests.test_bigautofield",
             "introspection.tests.IntrospectionTests.test_get_table_description_col_lengths",
@@ -453,6 +459,8 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             # There is no way to distinguish between a JSON "null" (represented
             # by Value(None, JSONField())) and a SQL null (queried using the
             # isnull lookup). Both of these queries return both nulls.
+            "model_fields.test_jsonfield.JSONExactNoneDeprecationTests",
+            "model_fields.test_jsonfield.JSONNullTests",
             "model_fields.test_jsonfield.TestSaveLoad.test_json_null_different_from_sql_null",
             # Some queries with Q objects, e.g. Q(value__foo="bar"), don't work
             # properly, particularly with QuerySet.exclude().
@@ -462,6 +470,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             # returns objects where the key doesn't exist.
             "model_fields.test_jsonfield.TestQuerying.test_none_key",
             "model_fields.test_jsonfield.TestQuerying.test_none_key_exclude",
+            "model_fields.test_jsonfield.TestQuerying.test_key_iexact_none",
         },
         "Queries without a collection aren't supported on MongoDB.": {
             "queries.test_q.QCheckTests",

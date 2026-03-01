@@ -3,6 +3,8 @@ from django.db.backends.base.creation import TEST_DATABASE_PREFIX, BaseDatabaseC
 
 
 class DatabaseCreation(BaseDatabaseCreation):
+    destroy_test_db_connection_close_method = "close_pool"
+
     def _execute_create_test_db(self, cursor, parameters, keepdb=False):
         # Close the connection (which may point to the non-test database) so
         # that a new connection to the test database can be established later.
