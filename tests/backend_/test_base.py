@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from django.core.exceptions import ImproperlyConfigured
-from django.db import connection
+from django.db import NotSupportedError, connection
 from django.db.backends.signals import connection_created
 from django.test import SimpleTestCase, TestCase
 
@@ -146,3 +146,26 @@ class DatabaseWrapperConnectionTests(TestCase):
         data.clear()
         connection.connect()
         self.assertEqual(data, {})
+
+
+class CursorTests(TestCase):
+    def test_callproc(self):
+        msg = "MongoDB does not support cursor.callproc()."
+        with self.assertRaisesMessage(NotSupportedError, msg), connection.cursor() as cursor:
+            cursor.callproc("...")
+        with self.assertRaisesMessage(NotSupportedError, msg), connection.cursor() as cursor:
+            cursor.callproc("...", [])
+        with self.assertRaisesMessage(NotSupportedError, msg), connection.cursor() as cursor:
+            cursor.callproc("...", [], [])
+
+    def test_execute(self):
+        msg = "MongoDB does not support cursor.execute()."
+        with self.assertRaisesMessage(NotSupportedError, msg), connection.cursor() as cursor:
+            cursor.execute("...")
+        with self.assertRaisesMessage(NotSupportedError, msg), connection.cursor() as cursor:
+            cursor.execute("...", [])
+
+    def test_executemany(self):
+        msg = "MongoDB does not support cursor.executemany()."
+        with self.assertRaisesMessage(NotSupportedError, msg), connection.cursor() as cursor:
+            cursor.executemany("...", [])
