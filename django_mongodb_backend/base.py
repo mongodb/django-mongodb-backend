@@ -4,7 +4,7 @@ import os
 
 from bson import Decimal128
 from django.core.exceptions import EmptyResultSet, FullResultSet, ImproperlyConfigured
-from django.db import DEFAULT_DB_ALIAS
+from django.db import DEFAULT_DB_ALIAS, NotSupportedError
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.utils import debug_transaction
 from django.utils.asyncio import async_unsafe
@@ -28,13 +28,22 @@ from .validation import DatabaseValidation
 
 
 class Cursor:
-    """A "nodb" cursor that does nothing except work on a context manager."""
+    """DB-API style cursors aren't supported by MongoDB."""
 
     def __enter__(self):
-        pass
+        return self
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
         pass
+
+    def execute(self, query, args=None):
+        raise NotSupportedError("MongoDB does not support cursor.execute().")
+
+    def executemany(self, query, args):
+        raise NotSupportedError("MongoDB does not support cursor.executemany().")
+
+    def callproc(self, procname, params=None, kparams=None):
+        raise NotSupportedError("MongoDB does not support cursor.callproc().")
 
 
 logger = logging.getLogger("django.db.backends.base")
