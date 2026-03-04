@@ -20,6 +20,7 @@ from pymongo import ASCENDING, DESCENDING
 from .expressions.search import SearchExpression, SearchVector
 from .query import MongoQuery, wrap_database_errors
 from .query_utils import is_constant_value, is_direct_value
+from .utils import model_has_encrypted_fields
 
 
 class SQLCompiler(compiler.SQLCompiler):
@@ -923,6 +924,25 @@ class SQLInsertCompiler(SQLCompiler):
     @wrap_database_errors
     def insert(self, docs, returning_fields=None):
         """Store a list of documents using field columns as element names."""
+        model = self.query.model
+        if (
+            model_has_encrypted_fields(model)
+            and self.collection_name not in self.connection._verified_encrypted_collections
+        ):
+            # Prevent auto-creation of unencrypted collections by checking
+            # that the collection exists before inserting. Cache the result
+            # to avoid repeated database calls.
+            existing_collections = self.connection.introspection.table_names()
+            if self.collection_name not in existing_collections:
+                raise IntegrityError(
+                    f"Cannot insert into collection '{self.collection_name}' because "
+                    f"it does not exist. Model '{model._meta.label}' has encrypted "
+                    f"fields and must be migrated before inserting data to ensure "
+                    f"the collection is created with encryption. Run "
+                    f"'python manage.py migrate' first."
+                )
+            # Cache that this collection has been verified
+            self.connection._verified_encrypted_collections.add(self.collection_name)
         inserted_ids = self.collection.insert_many(
             docs, session=self.connection.session
         ).inserted_ids

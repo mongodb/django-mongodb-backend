@@ -472,6 +472,8 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             )
             encrypted_fields = self._get_encrypted_fields(model)
             db.create_collection(db_table, encryptedFields=encrypted_fields)
+            # Mark this collection as verified for encrypted field validation
+            self.connection._verified_encrypted_collections.add(db_table)
         else:
             db.create_collection(db_table)
 

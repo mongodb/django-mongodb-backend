@@ -227,6 +227,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         self.in_atomic_block_mongo = False
         # Current number of nested 'atomic' calls.
         self.nested_atomics = 0
+        # Cache of collection names that have been verified to exist for
+        # encrypted field validation.
+        self._verified_encrypted_collections = set()
         # If database "NAME" isn't specified, try to get it from HOST, if it's
         # a connection string.
         if self.settings_dict["NAME"] == "":  # Empty string = unspecified; None = _nodb_cursor()
