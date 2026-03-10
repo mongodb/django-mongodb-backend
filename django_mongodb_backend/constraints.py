@@ -10,7 +10,7 @@ from .fields import EmbeddedModelArrayField, PolymorphicEmbeddedModelArrayField
 from .indexes import EmbeddedFieldIndexMixin, _get_condition_mql, get_field
 
 
-def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefix=""):
+def get_pymongo_index_model(self, model, schema_editor, field=None):
     """Return a pymongo IndexModel for this UniqueConstraint."""
     if self.contains_expressions:
         return None
@@ -24,8 +24,9 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefi
         # be True or False for a UniqueConstraint, or None for
         # Field(unique=True) or Meta.unique_together.
         if field:
-            column = column_prefix + field.column
-            filter_expression[column].update({"$type": field.db_type(schema_editor.connection)})
+            filter_expression[field.column].update(
+                {"$type": field.db_type(schema_editor.connection)}
+            )
         else:
             for field_name in self.fields:
                 field_ = get_field(model, field_name)
@@ -35,12 +36,9 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefi
     if filter_expression:
         kwargs["partialFilterExpression"] = filter_expression
     index_orders = (
-        [(column_prefix + field.column, ASCENDING)]
+        [(field.column, ASCENDING)]
         if field
-        else [
-            (column_prefix + get_field(model, field_name).column, ASCENDING)
-            for field_name in self.fields
-        ]
+        else [(get_field(model, field_name).column, ASCENDING) for field_name in self.fields]
     )
     return IndexModel(index_orders, name=self.name, unique=True, **kwargs)
 
