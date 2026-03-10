@@ -591,13 +591,13 @@ class CheckTests(SimpleTestCase):
 
         errors = MyModel().check()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].id, "django_mongodb_backend.array.E001")
+        self.assertEqual(errors[0].id, "mongodb.fields.array.E001")
         msg = errors[0].msg
         self.assertEqual(
             msg,
             "Base field for array has errors:\n    "
             "Embedded models cannot have relational fields (Target.key is a ForeignKey). "
-            "(django_mongodb_backend.embedded_model.E001)",
+            "(mongodb.fields.embedded_model.E001)",
         )
 
     def test_embedded_model_subclass(self):
@@ -609,12 +609,12 @@ class CheckTests(SimpleTestCase):
 
         errors = MyModel().check()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].id, "django_mongodb_backend.array.E001")
+        self.assertEqual(errors[0].id, "mongodb.fields.array.E001")
         msg = errors[0].msg
         self.assertEqual(
             msg,
             "Base field for array has errors:\n    "
             "Embedded models must be a subclass of "
             "django_mongodb_backend.models.EmbeddedModel. "
-            "(django_mongodb_backend.embedded_model.E002)",
+            "(mongodb.fields.embedded_model.E002)",
         )

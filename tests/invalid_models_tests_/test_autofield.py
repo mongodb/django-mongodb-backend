@@ -21,7 +21,7 @@ class ProhibitedFieldTests(SimpleTestCase):
                     "MongoDB does not support AutoField.",
                     hint="Use django_mongodb_backend.fields.ObjectIdAutoField instead.",
                     obj=field,
-                    id="mongodb.E001",
+                    id="mongodb.fields.auto.E001",
                 )
             ],
         )
@@ -39,7 +39,7 @@ class ProhibitedFieldTests(SimpleTestCase):
                     "MongoDB does not support BigAutoField.",
                     hint="Use django_mongodb_backend.fields.ObjectIdAutoField instead.",
                     obj=field,
-                    id="mongodb.E001",
+                    id="mongodb.fields.auto.E001",
                 )
             ],
         )
@@ -57,7 +57,7 @@ class ProhibitedFieldTests(SimpleTestCase):
                     "MongoDB does not support SmallAutoField.",
                     hint="Use django_mongodb_backend.fields.ObjectIdAutoField instead.",
                     obj=field,
-                    id="mongodb.E001",
+                    id="mongodb.fields.auto.E001",
                 )
             ],
         )

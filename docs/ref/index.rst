@@ -11,4 +11,5 @@ API reference
    database
    django-admin
    settings
+   checks
    utils

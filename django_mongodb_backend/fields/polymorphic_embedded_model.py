@@ -42,7 +42,7 @@ class PolymorphicEmbeddedModelField(models.Field):
                         "django_mongodb_backend.models.EmbeddedModel.",
                         obj=self,
                         hint="{model} doesn't subclass EmbeddedModel.",
-                        id="django_mongodb_backend.embedded_model.E002",
+                        id="mongodb.fields.embedded_model.E002",
                     )
                 ]
             for field in model._meta.fields:
@@ -53,7 +53,7 @@ class PolymorphicEmbeddedModelField(models.Field):
                             f"({model().__class__.__name__}.{field.name} "
                             f"is a {field.__class__.__name__}).",
                             obj=self,
-                            id="django_mongodb_backend.embedded_model.E001",
+                            id="mongodb.fields.embedded_model.E001",
                         )
                     )
                 field_name = field.name
@@ -66,7 +66,7 @@ class PolymorphicEmbeddedModelField(models.Field):
                                 f"and {field.model._meta.label} both have field "
                                 f"'{field_name}' of different type.",
                                 obj=self,
-                                id="django_mongodb_backend.embedded_model.E003",
+                                id="mongodb.fields.embedded_model.W003",
                                 hint="It may be impossible to query both fields.",
                             )
                         )

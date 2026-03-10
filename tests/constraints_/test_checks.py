@@ -72,7 +72,7 @@ class EmbeddedFieldUniqueConstraintTests(TestCase):
         )
         errors = constraint.check(Movie, connection=connection)
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].id, "django_mongodb_backend.constraints.E001")
+        self.assertEqual(errors[0].id, "mongodb.constraints.embedded_unique.E001")
         self.assertEqual(
             errors[0].msg,
             "EmbeddedFieldUniqueConstraint 'constraint_name' must have "
@@ -131,7 +131,7 @@ class EmbeddedFieldUniqueConstraintTests(TestCase):
         )
         errors = constraint.check(Owner, connection=connection)
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].id, "django_mongodb_backend.constraints.E001")
+        self.assertEqual(errors[0].id, "mongodb.constraints.embedded_unique.E001")
         self.assertEqual(
             errors[0].msg,
             "EmbeddedFieldUniqueConstraint 'constraint_name' must have "

@@ -69,7 +69,7 @@ class EmbeddedFieldUniqueConstraint(EmbeddedFieldIndexMixin, UniqueConstraint):
                             "have nulls_distinct=False since it references "
                             f"{field.__class__.__name__} '{local_field_name}'.",
                             obj=model,
-                            id="django_mongodb_backend.constraints.E001",
+                            id="mongodb.constraints.embedded_unique.E001",
                         )
                     )
         return errors

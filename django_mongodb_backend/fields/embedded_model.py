@@ -39,7 +39,7 @@ class EmbeddedModelField(models.Field):
                     "Embedded models must be a subclass of "
                     "django_mongodb_backend.models.EmbeddedModel.",
                     obj=self,
-                    id="django_mongodb_backend.embedded_model.E002",
+                    id="mongodb.fields.embedded_model.E002",
                 )
             ]
         for field in self.embedded_model._meta.fields:
@@ -50,7 +50,7 @@ class EmbeddedModelField(models.Field):
                         f"({self.embedded_model().__class__.__name__}.{field.name} "
                         f"is a {field.__class__.__name__}).",
                         obj=self,
-                        id="django_mongodb_backend.embedded_model.E001",
+                        id="mongodb.fields.embedded_model.E001",
                     )
                 )
         return errors

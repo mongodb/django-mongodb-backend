@@ -36,7 +36,7 @@ class UnsupportedSearchIndexesTests(TestCase):
                         "or silence this warning if you don't care about it."
                     ),
                     obj=Article,
-                    id="django_mongodb_backend.indexes.SearchIndex.W001",
+                    id="mongodb.indexes.search.W001",
                 )
             ],
         )
@@ -59,7 +59,7 @@ class UnsupportedSearchIndexesTests(TestCase):
                         "or silence this warning if you don't care about it."
                     ),
                     obj=Article,
-                    id="django_mongodb_backend.indexes.VectorSearchIndex.W001",
+                    id="mongodb.indexes.search.W001",
                 )
             ],
         )
@@ -80,7 +80,7 @@ class InvalidVectorSearchIndexesTests(TestCase):
             [
                 checks.Error(
                     "VectorSearchIndex requires 'size' on field 'title_embedded'.",
-                    id="django_mongodb_backend.indexes.VectorSearchIndex.E002",
+                    id="mongodb.indexes.search.E002",
                     obj=Article,
                 )
             ],
@@ -99,7 +99,7 @@ class InvalidVectorSearchIndexesTests(TestCase):
                 checks.Error(
                     "VectorSearchIndex requires the base field of ArrayField "
                     "'title_embedded' to be FloatField or IntegerField but is CharField.",
-                    id="django_mongodb_backend.indexes.VectorSearchIndex.E003",
+                    id="mongodb.indexes.search.E003",
                     obj=Article,
                 )
             ],
@@ -118,7 +118,7 @@ class InvalidVectorSearchIndexesTests(TestCase):
             [
                 checks.Error(
                     "VectorSearchIndex does not support field 'data' (JSONField).",
-                    id="django_mongodb_backend.indexes.VectorSearchIndex.E004",
+                    id="mongodb.indexes.search.E004",
                     obj=Article,
                     hint="Allowed types are boolean, date, number, objectId, string, uuid.",
                 )
@@ -144,7 +144,7 @@ class InvalidVectorSearchIndexesTests(TestCase):
                     "VectorSearchIndex requires the same number of similarities "
                     "and vector fields; Article has 1 ArrayField(s) but similarities "
                     "has 2 element(s).",
-                    id="django_mongodb_backend.indexes.VectorSearchIndex.E005",
+                    id="mongodb.indexes.search.E005",
                     obj=Article,
                 ),
             ],
@@ -207,7 +207,7 @@ class InvalidVectorSearchIndexesTests(TestCase):
             [
                 checks.Error(
                     "VectorSearchIndex requires at least one ArrayField to store vector data.",
-                    id="django_mongodb_backend.indexes.VectorSearchIndex.E006",
+                    id="mongodb.indexes.search.E006",
                     obj=NoSearchVectorModel,
                     hint="If you want to perform search operations without vectors, "
                     "use SearchIndex instead.",
