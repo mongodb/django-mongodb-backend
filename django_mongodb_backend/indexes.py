@@ -83,7 +83,7 @@ def get_field(model, field_name):
     return FieldColumn(field, ".".join(path))
 
 
-def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefix=""):
+def get_pymongo_index_model(self, model, schema_editor, field=None):
     """Return a pymongo IndexModel for this Django Index."""
     if self.contains_expressions:
         return None
@@ -94,13 +94,13 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefi
     if filter_expression:
         kwargs["partialFilterExpression"] = filter_expression
     index_orders = (
-        [(column_prefix + field.column, ASCENDING)]
+        [(field.column, ASCENDING)]
         if field
         else [
             # order is "" if ASCENDING or "DESC" if DESCENDING (see
             # django.db.models.indexes.Index.fields_orders).
             (
-                column_prefix + get_field(model, field_name).column,
+                get_field(model, field_name).column,
                 ASCENDING if order == "" else DESCENDING,
             )
             for field_name, order in self.fields_orders
@@ -281,12 +281,12 @@ class SearchIndex(Index):
             return "embeddedDocuments"
         return db_type
 
-    def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefix=""):
+    def get_pymongo_index_model(self, model, schema_editor, field=None):
         if not schema_editor.connection.features.supports_search:
             return None
         fields = {}
         for field_name, _ in self.fields_orders:
-            field_path = column_prefix + model._meta.get_field(field_name).column
+            field_path = model._meta.get_field(field_name).column
             if self.field_mappings:
                 fields[field_path] = self.field_mappings[field_name]
             else:
