@@ -18,7 +18,7 @@ class NoEncryptedEmbeddedFieldsMixin:
                         f"{self.__class__.__name__} cannot contain encrypted "
                         f"fields (found {field.__class__.__name__}).",
                         obj=self,
-                        id="django_mongodb_backend.embedded_model_array.E001",
+                        id="mongodb.fields.encryption.E001",
                     )
                 ]
         return []

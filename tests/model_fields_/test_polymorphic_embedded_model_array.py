@@ -226,13 +226,13 @@ class CheckTests(SimpleTestCase):
 
         errors = MyModel().check()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].id, "django_mongodb_backend.array.E001")
+        self.assertEqual(errors[0].id, "mongodb.fields.array.E001")
         msg = errors[0].msg
         self.assertEqual(
             msg,
             "Base field for array has errors:\n    "
             "Embedded models cannot have relational fields (Target.key is a ForeignKey). "
-            "(django_mongodb_backend.embedded_model.E001)",
+            "(mongodb.fields.embedded_model.E001)",
         )
 
     def test_embedded_model_subclass(self):
@@ -244,14 +244,14 @@ class CheckTests(SimpleTestCase):
 
         errors = MyModel().check()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].id, "django_mongodb_backend.array.E001")
+        self.assertEqual(errors[0].id, "mongodb.fields.array.E001")
         msg = errors[0].msg
         self.assertEqual(
             msg,
             "Base field for array has errors:\n    "
             "Embedded models must be a subclass of "
             "django_mongodb_backend.models.EmbeddedModel. "
-            "(django_mongodb_backend.embedded_model.E002)",
+            "(mongodb.fields.embedded_model.E002)",
         )
 
     def test_clashing_fields(self):
@@ -266,13 +266,13 @@ class CheckTests(SimpleTestCase):
 
         errors = MyModel().check()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].id, "django_mongodb_backend.array.W004")
+        self.assertEqual(errors[0].id, "mongodb.fields.array.W004")
         self.assertEqual(
             errors[0].msg,
             "Base field for array has warnings:\n    "
             "Embedded models model_fields_.Target1 and model_fields_.Target2 "
             "both have field 'clash' of different type. "
-            "(django_mongodb_backend.embedded_model.E003)",
+            "(mongodb.fields.embedded_model.W003)",
         )
 
     def test_clashing_fields_of_same_type(self):
