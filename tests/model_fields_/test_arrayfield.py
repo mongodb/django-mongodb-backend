@@ -870,7 +870,7 @@ class CheckTests(SimpleTestCase):
         errors = model.check()
         self.assertEqual(len(errors), 1)
         # The inner CharField has a non-positive max_length.
-        self.assertEqual(errors[0].id, "django_mongodb_backend.array.E001")
+        self.assertEqual(errors[0].id, "mongodb.fields.array.E001")
         msg = errors[0].msg
         self.assertIn("Base field for array has errors:", msg)
         self.assertIn("'max_length' must be a positive integer. (fields.E121)", msg)
@@ -886,7 +886,7 @@ class CheckTests(SimpleTestCase):
         model = MyModel()
         errors = model.check()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].id, "django_mongodb_backend.array.W004")
+        self.assertEqual(errors[0].id, "mongodb.fields.array.W004")
         msg = errors[0].msg
         self.assertIn("Base field for array has warnings:", msg)
         self.assertIn("Test warning (test.E001)", msg)
@@ -898,7 +898,7 @@ class CheckTests(SimpleTestCase):
         model = MyModel()
         errors = model.check()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].id, "django_mongodb_backend.array.E002")
+        self.assertEqual(errors[0].id, "mongodb.fields.array.E002")
 
     def test_both_size_and_max_size(self):
         class MyModel(models.Model):
@@ -907,7 +907,7 @@ class CheckTests(SimpleTestCase):
         model = MyModel()
         errors = model.check()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].id, "django_mongodb_backend.array.E003")
+        self.assertEqual(errors[0].id, "mongodb.fields.array.E003")
         self.assertEqual(errors[0].msg, "ArrayField cannot have both size and max_size.")
 
     def test_invalid_default(self):
@@ -957,7 +957,7 @@ class CheckTests(SimpleTestCase):
         errors = model.check()
         self.assertEqual(len(errors), 1)
         # The inner CharField has a non-positive max_length.
-        self.assertEqual(errors[0].id, "django_mongodb_backend.array.E001")
+        self.assertEqual(errors[0].id, "mongodb.fields.array.E001")
         self.assertIn("max_length", errors[0].msg)
 
     def test_choices_tuple_list(self):

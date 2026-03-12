@@ -14,7 +14,7 @@ class DatabaseValidation(BaseDatabaseValidation):
                     f"{self.connection.display_name} does not support {field.__class__.__name__}.",
                     obj=field,
                     hint="Use django_mongodb_backend.fields.ObjectIdAutoField instead.",
-                    id="mongodb.E001",
+                    id="mongodb.fields.auto.E001",
                 )
             )
         return errors

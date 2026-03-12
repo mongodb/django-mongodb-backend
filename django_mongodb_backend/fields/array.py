@@ -73,7 +73,7 @@ class ArrayField(CheckFieldDefaultMixin, Field):
                 checks.Error(
                     "Base field for array cannot be a related field.",
                     obj=self,
-                    id="django_mongodb_backend.array.E002",
+                    id="mongodb.fields.array.E002",
                 )
             )
         else:
@@ -89,7 +89,7 @@ class ArrayField(CheckFieldDefaultMixin, Field):
                         checks.Error(
                             f"Base field for array has errors:\n    {error_messages}",
                             obj=self,
-                            id="django_mongodb_backend.array.E001",
+                            id="mongodb.fields.array.E001",
                         )
                     )
                 warning_messages = "\n    ".join(
@@ -102,7 +102,7 @@ class ArrayField(CheckFieldDefaultMixin, Field):
                         checks.Warning(
                             f"Base field for array has warnings:\n    {warning_messages}",
                             obj=self,
-                            id="django_mongodb_backend.array.W004",
+                            id="mongodb.fields.array.W004",
                         )
                     )
         if self.size and self.max_size:
@@ -110,7 +110,7 @@ class ArrayField(CheckFieldDefaultMixin, Field):
                 checks.Error(
                     "ArrayField cannot have both size and max_size.",
                     obj=self,
-                    id="django_mongodb_backend.array.E003",
+                    id="mongodb.fields.array.E003",
                 )
             )
         return errors

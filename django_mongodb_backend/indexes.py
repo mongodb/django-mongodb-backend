@@ -215,7 +215,6 @@ class EmbeddedFieldIndex(EmbeddedFieldIndexMixin, Index):
 
 class SearchIndex(Index):
     suffix = "six"
-    _error_id_prefix = "django_mongodb_backend.indexes.SearchIndex"
 
     def __init__(
         self, *, fields=(), field_mappings=None, name=None, analyzer=None, search_analyzer=None
@@ -260,7 +259,7 @@ class SearchIndex(Index):
                         "or silence this warning if you don't care about it."
                     ),
                     obj=model,
-                    id=f"{self._error_id_prefix}.W001",
+                    id="mongodb.indexes.search.W001",
                 )
             )
         return errors
@@ -307,7 +306,6 @@ class SearchIndex(Index):
 
 class VectorSearchIndex(SearchIndex):
     suffix = "vsi"
-    _error_id_prefix = "django_mongodb_backend.indexes.VectorSearchIndex"
     VALID_FIELD_TYPES = frozenset(("boolean", "date", "number", "objectId", "string", "uuid"))
     VALID_SIMILARITIES = frozenset(("cosine", "dotProduct", "euclidean"))
 
@@ -341,7 +339,7 @@ class VectorSearchIndex(SearchIndex):
                         Error(
                             f"VectorSearchIndex requires 'size' on field '{field_name}'.",
                             obj=model,
-                            id=f"{self._error_id_prefix}.E002",
+                            id="mongodb.indexes.search.E002",
                         )
                     )
                 if not isinstance(field.base_field, (FloatField, IntegerField)):
@@ -352,7 +350,7 @@ class VectorSearchIndex(SearchIndex):
                             "IntegerField but is "
                             f"{field.base_field.get_internal_type()}.",
                             obj=model,
-                            id=f"{self._error_id_prefix}.E003",
+                            id="mongodb.indexes.search.E003",
                         )
                     )
             else:
@@ -363,7 +361,7 @@ class VectorSearchIndex(SearchIndex):
                             "VectorSearchIndex does not support field "
                             f"'{field_name}' ({field.get_internal_type()}).",
                             obj=model,
-                            id=f"{self._error_id_prefix}.E004",
+                            id="mongodb.indexes.search.E004",
                             hint=f"Allowed types are {', '.join(sorted(self.VALID_FIELD_TYPES))}.",
                         )
                     )
@@ -375,7 +373,7 @@ class VectorSearchIndex(SearchIndex):
                     f"{num_arrayfields} ArrayField(s) but similarities "
                     f"has {len(self.similarities)} element(s).",
                     obj=model,
-                    id=f"{self._error_id_prefix}.E005",
+                    id="mongodb.indexes.search.E005",
                 )
             )
         if num_arrayfields == 0:
@@ -383,7 +381,7 @@ class VectorSearchIndex(SearchIndex):
                 Error(
                     "VectorSearchIndex requires at least one ArrayField to store vector data.",
                     obj=model,
-                    id=f"{self._error_id_prefix}.E006",
+                    id="mongodb.indexes.search.E006",
                     hint="If you want to perform search operations without vectors, "
                     "use SearchIndex instead.",
                 )

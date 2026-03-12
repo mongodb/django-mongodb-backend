@@ -68,6 +68,9 @@ MongoDB Features
 - **Settings:**
   :doc:`Django MongoDB Backend-specific settings </ref/settings>`
 
+- **System checks:**
+  :doc:`Reference list <ref/checks>`
+
 Miscellaneous
 =============
 

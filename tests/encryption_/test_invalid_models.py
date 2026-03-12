@@ -28,7 +28,7 @@ class InvalidModelsTests(SimpleTestCase):
                     "EmbeddedModelArrayField cannot contain encrypted "
                     "fields (found EncryptedIntegerField).",
                     obj=Model._meta.get_field("field"),
-                    id="django_mongodb_backend.embedded_model_array.E001",
+                    id="mongodb.fields.encryption.E001",
                 ),
             ],
         )
@@ -47,7 +47,7 @@ class InvalidModelsTests(SimpleTestCase):
                     "EncryptedEmbeddedModelField cannot contain encrypted "
                     "fields (found EncryptedIntegerField).",
                     obj=Model._meta.get_field("field"),
-                    id="django_mongodb_backend.embedded_model_array.E001",
+                    id="mongodb.fields.encryption.E001",
                 ),
             ],
         )
@@ -66,7 +66,7 @@ class InvalidModelsTests(SimpleTestCase):
                     "EncryptedEmbeddedModelArrayField cannot contain "
                     "encrypted fields (found EncryptedIntegerField).",
                     obj=Model._meta.get_field("field"),
-                    id="django_mongodb_backend.embedded_model_array.E001",
+                    id="mongodb.fields.encryption.E001",
                 ),
             ],
         )
