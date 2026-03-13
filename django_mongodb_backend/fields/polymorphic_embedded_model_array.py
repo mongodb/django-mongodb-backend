@@ -1,6 +1,7 @@
 import contextlib
 
 from django.core.exceptions import FieldDoesNotExist
+from django.core.serializers import register_field_serializer
 from django.db.models.expressions import Col
 from django.db.models.fields.related import lazy_related_operation
 from django.db.models.lookups import Lookup, Transform
@@ -11,7 +12,12 @@ from .embedded_model_array import (
     EmbeddedModelArrayFieldTransform,
     EmbeddedModelArrayFieldTransformFactory,
 )
-from .utils import serialize_model_reference
+from .utils import (
+    deserialize_from_python,
+    deserialize_from_xml,
+    serialize_model_reference,
+    serialize_to_python,
+)
 
 
 class PolymorphicEmbeddedModelArrayField(ArrayField):
@@ -112,3 +118,39 @@ class PolymorphicArrayFieldTransform(EmbeddedModelArrayFieldTransform):
 class PolymorphicArrayFieldTransformFactory(EmbeddedModelArrayFieldTransformFactory):
     def __call__(self, *args, **kwargs):
         return PolymorphicArrayFieldTransform(self.field, *args, **kwargs)
+
+
+@register_field_serializer("python", PolymorphicEmbeddedModelArrayField)
+class PythonSerializer:
+    @classmethod
+    def serialize(cls, field, obj, serializer):
+        value = field.value_from_object(obj)
+        if value is None:
+            return None
+        return [serialize_to_python(val, serializer, polymorphic=True) for val in value]
+
+    @classmethod
+    def deserialize(cls, field, value, deserializer):
+        if value is None:
+            return None
+        return [deserialize_from_python(val, deserializer, field=field) for val in value]
+
+
+@register_field_serializer("xml", PolymorphicEmbeddedModelArrayField)
+class XMLSerializer:
+    @classmethod
+    def serialize(cls, field, obj, serializer):
+        value_list = field.value_from_object(obj)
+        if value_list is None:
+            serializer.xml.addQuickElement("None")
+        else:
+            for value in value_list:
+                serializer.start_object(value)
+                for field in value._meta.local_fields:
+                    serializer.handle_field(value, field)
+                serializer.end_object(value)
+        return ""
+
+    @classmethod
+    def deserialize(cls, field, field_node, deserializer):
+        return deserialize_from_xml(field_node, deserializer, field=field)

@@ -3,6 +3,7 @@ import difflib
 from django.apps import apps
 from django.core import checks
 from django.core.exceptions import FieldDoesNotExist, ValidationError
+from django.core.serializers import register_field_serializer
 from django.db import models
 from django.db.models.fields.related import lazy_related_operation
 from django.db.models.lookups import Transform
@@ -10,7 +11,13 @@ from django.utils.functional import cached_property
 
 from django_mongodb_backend import forms
 
-from .utils import serialize_model_reference
+from .utils import (
+    deserialize_from_python,
+    deserialize_from_xml,
+    serialize_model_reference,
+    serialize_to_python,
+    serialize_to_xml,
+)
 
 
 class EmbeddedModelField(models.Field):
@@ -165,6 +172,35 @@ class EmbeddedModelField(models.Field):
                 **kwargs,
             }
         )
+
+
+@register_field_serializer("python", EmbeddedModelField)
+class PythonSerializer:
+    @classmethod
+    def serialize(cls, field, obj, serializer):
+        value = field.value_from_object(obj)
+        if value is None:
+            return None
+        return serialize_to_python(value, serializer)
+
+    @classmethod
+    def deserialize(cls, field, value, deserializer):
+        if value is None:
+            return None
+        return deserialize_from_python(value, deserializer, model=field.embedded_model)
+
+
+@register_field_serializer("xml", EmbeddedModelField)
+class XMLSerializer:
+    @classmethod
+    def serialize(cls, field, obj, serializer):
+        value = field.value_from_object(obj)
+        serialize_to_xml(value, serializer)
+        return ""
+
+    @classmethod
+    def deserialize(cls, field, field_node, deserializer):
+        return deserialize_from_xml(field_node, deserializer, model=field.embedded_model)[0]
 
 
 class EmbeddedModelTransform(Transform):
