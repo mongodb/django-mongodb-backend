@@ -313,15 +313,14 @@ These indexes use 0-based indexing.
     See :ref:`the embedded model topic guide <embedded-model-field-example>`
     for more details and examples.
 
-.. admonition:: Migrations support is limited
+.. admonition:: Migrations support
 
-    :djadmin:`makemigrations` does not yet detect changes to embedded models.
+    .. versionadded: 6.0.4
 
-    After you create a model with an ``EmbeddedModelField`` or add an
-    ``EmbeddedModelField`` to an existing model, no further updates to the
-    embedded model will be made. Using the models above as an example, if you
-    created these models and then add or remove a field from ``Address``,
-    existing documents won't be updated.
+    Django MongoDB Backend's custom :djadmin:`makemigrations` command detects
+    changes to embedded models referenced by ``EmbeddedModelField``. You must
+    have ``django_mongodb_backend`` in your :setting:`INSTALLED_APPS` setting
+    when running :djadmin:`makemigrations`.
 
 ``EmbeddedModelArrayField``
 ---------------------------
@@ -348,8 +347,12 @@ These indexes use 0-based indexing.
 
 .. admonition:: Migrations support is limited
 
-    As described above for :class:`EmbeddedModelField`,
-    :djadmin:`makemigrations` does not yet detect changes to embedded models.
+    :djadmin:`makemigrations` does not yet detect changes to embedded models
+    of ``EmbeddedModelArrayField``.
+
+    After you create a model with an ``EmbeddedModelFieldArray`` or add an
+    ``EmbeddedModelFieldArray`` to an existing model, no further schema updates
+    to the embedded model will be made.
 
 ``ObjectIdAutoField``
 ---------------------
