@@ -535,6 +535,23 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                 field_list.append(field_dict)
         return {"fields": field_list}
 
+    # Embedded field operations
+    def add_embedded_field(self, model, name, field):
+        # Set default value on existing documents.
+        self.get_collection(model._meta.db_table).update_many(
+            {}, [{"$set": {name: self.effective_default(field)}}]
+        )
+
+    def alter_embedded_field(self, model, old_name, new_name):
+        if old_name != new_name:
+            self.get_collection(model._meta.db_table).update_many(
+                {}, {"$rename": {old_name: new_name}}
+            )
+
+    def remove_embedded_field(self, model, name):
+        # Remove field from existing documents.
+        self.get_collection(model._meta.db_table).update_many({}, {"$unset": {name: ""}})
+
 
 # GISSchemaEditor extends some SchemaEditor methods.
 class DatabaseSchemaEditor(GISSchemaEditor, BaseSchemaEditor):

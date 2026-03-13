@@ -33,6 +33,11 @@ New features
   :lookup:`regex`, and :lookup:`iregex`) on
   :class:`~django.db.models.UUIDField`.
 
+- Added schema change support for ``EmbeddedModelField``. Fields in embedded
+  models referenced by ``EmbeddedModelField``\s will now be added, altered,
+  and removed. You must have ``django_mongodb_backend`` in your
+  :setting:`INSTALLED_APPS` setting when running :djadmin:`makemigrations`.
+
 Bug fixes
 ---------
 
