@@ -10,7 +10,13 @@ from django.utils.functional import cached_property
 
 from django_mongodb_backend import forms
 
-from .utils import serialize_model_reference
+from .utils import (
+    deserialize_from_python,
+    deserialize_from_xml,
+    serialize_model_reference,
+    serialize_to_python,
+    serialize_to_xml,
+)
 
 
 class EmbeddedModelField(models.Field):
@@ -104,6 +110,23 @@ class EmbeddedModelField(models.Field):
         )
         instance._state.adding = False
         return instance
+
+    def serialize_to_python(self, obj, serializer):
+        value = self.value_from_object(obj)
+        if value is None:
+            return None
+        return serialize_to_python(value, serializer)
+
+    def deserialize_from_python(self, value):
+        return deserialize_from_python(value, model=self.embedded_model)
+
+    def serialize_to_xml(self, obj, serializer):
+        value = self.value_from_object(obj)
+        serialize_to_xml(value, serializer)
+        return ""
+
+    def deserialize_from_xml(self, field_node):
+        return deserialize_from_xml(field_node, model=self.embedded_model)[0]
 
     def get_db_prep_save(self, embedded_instance, connection):
         """

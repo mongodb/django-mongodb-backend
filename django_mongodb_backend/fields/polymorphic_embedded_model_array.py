@@ -11,7 +11,12 @@ from .embedded_model_array import (
     EmbeddedModelArrayFieldTransform,
     EmbeddedModelArrayFieldTransformFactory,
 )
-from .utils import serialize_model_reference
+from .utils import (
+    deserialize_from_python,
+    deserialize_from_xml,
+    serialize_model_reference,
+    serialize_to_python,
+)
 
 
 class PolymorphicEmbeddedModelArrayField(ArrayField):
@@ -46,6 +51,30 @@ class PolymorphicEmbeddedModelArrayField(ArrayField):
         del kwargs["base_field"]
         del kwargs["editable"]
         return name, path, args, kwargs
+
+    def serialize_to_python(self, obj, serializer):
+        value = self.value_from_object(obj)
+        if value is None:
+            return None
+        return [serialize_to_python(val, serializer, polymorphic=True) for val in value]
+
+    def deserialize_from_python(self, value):
+        return [deserialize_from_python(val, field=self) for val in value]
+
+    def serialize_to_xml(self, obj, serializer):
+        value_list = self.value_from_object(obj)
+        if value_list is None:
+            serializer.xml.addQuickElement("None")
+        else:
+            for value in value_list:
+                serializer.start_object(value)
+                for field in value._meta.local_fields:
+                    serializer.handle_field(value, field)
+                serializer.end_object(value)
+        return ""
+
+    def deserialize_from_xml(self, field_node):
+        return deserialize_from_xml(field_node, field=self)
 
     def get_db_prep_value(self, value, connection, prepared=False):
         if isinstance(value, (list, tuple)):
