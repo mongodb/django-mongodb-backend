@@ -10,7 +10,12 @@ from django.utils.functional import cached_property
 
 from django_mongodb_backend import forms
 
-from .utils import serialize_model_reference
+from .utils import (
+    deserialize_from_python,
+    serialize_model_reference,
+    serialize_to_python,
+    serialize_to_xml,
+)
 
 
 class EmbeddedModelField(models.Field):
@@ -104,6 +109,38 @@ class EmbeddedModelField(models.Field):
         )
         instance._state.adding = False
         return instance
+
+    def serialize_to_python(self, obj, serializer):
+        value = self.value_from_object(obj)
+        if value is None:
+            return None
+        return serialize_to_python(value, serializer)
+
+    def deserialize_from_python(self, value):
+        return deserialize_from_python(value, model=self.embedded_model)
+
+    def serialize_to_xml(self, obj, serializer):
+        value = self.value_from_object(obj)
+        serialize_to_xml(value, serializer)
+        return ""
+
+    def deserialize_from_xml(self, field_node):
+        from django.core.serializers.xml_serializer import (  # noqa: PLC0415
+            getChildElementsByTagName,
+        )
+
+        obj = getChildElementsByTagName(field_node, "object")[0]
+        data = {}
+        model = self.embedded_model
+        for subfield_node in getChildElementsByTagName(obj, "field"):
+            field_name = subfield_node.getAttribute("name")
+            field = model._meta.get_field(field_name)
+            if getChildElementsByTagName(subfield_node, "None"):
+                value = None
+            else:
+                value = field.deserialize_from_xml(subfield_node)
+            data[field_name] = value
+        return model(**data)
 
     def get_db_prep_save(self, embedded_instance, connection):
         """
