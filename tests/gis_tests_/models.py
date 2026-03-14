@@ -15,12 +15,6 @@ class City(NamedModel):
     point = models.PointField()
 
 
-class MultiFields(NamedModel):
-    city = models.ForeignKey(City, models.CASCADE)
-    point = models.PointField()
-    poly = models.PolygonField()
-
-
 class Zipcode(models.Model):
     code = models.CharField(max_length=10)
     poly = models.PolygonField(geography=True)
