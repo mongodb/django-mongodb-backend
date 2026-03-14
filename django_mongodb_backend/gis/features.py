@@ -1,4 +1,5 @@
 from django.contrib.gis.db.backends.base.features import BaseSpatialFeatures
+from django.db import NotSupportedError
 from django.utils.functional import cached_property
 
 
@@ -28,9 +29,6 @@ class GISFeatures(BaseSpatialFeatures):
                 "inspectdb not supported.": {
                     "gis_tests.inspectapp.tests.InspectDbTests",
                 },
-                "Raw SQL not supported": {
-                    "gis_tests.geoapp.tests.GeoModelTest.test_raw_sql_query",
-                },
                 "MongoDB doesn't support the SRID used in this test.": {
                     # Error messages:
                     # - Can't extract geo keys
@@ -47,10 +45,6 @@ class GISFeatures(BaseSpatialFeatures):
                     # migrations don't need to call it, so the check doesn't happen.
                     "gis_tests.gis_migrations.test_operations.NoRasterSupportTests",
                 },
-                "MongoDB does not support expressions for spatial lookup values.": {
-                    "gis_tests.geoapp.tests.GeoLookupTest.test_subquery_annotation",
-                    "gis_tests.geoapp.tests.GeoQuerySetTest.test_within_subquery",
-                },
                 "GeoJSONSerializer doesn't support ObjectId.": {
                     "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_fields_option",
                     "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_geometry_field_option",
@@ -60,3 +54,16 @@ class GISFeatures(BaseSpatialFeatures):
             },
         )
         return skips
+
+    django_test_expected_raises = {
+        (NotSupportedError, "MongoDB does not support cursor.execute()."): {
+            "gis_tests.geoapp.tests.GeoModelTest.test_raw_sql_query",
+        },
+        (
+            NotSupportedError,
+            "MongoDB does not support expressions for spatial lookup values.",
+        ): {
+            "gis_tests.geoapp.tests.GeoLookupTest.test_subquery_annotation",
+            "gis_tests.geoapp.tests.GeoQuerySetTest.test_within_subquery",
+        },
+    }

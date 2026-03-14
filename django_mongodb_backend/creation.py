@@ -1,5 +1,33 @@
+import functools
+import sys
+import types
+
 from django.conf import settings
 from django.db.backends.base.creation import TEST_DATABASE_PREFIX, BaseDatabaseCreation
+from django.utils.module_loading import import_string
+
+
+def assertRaises(exception, message):
+    """
+    Wrap a test to assert that it raise the given exception with the given
+    message.
+    """
+
+    def decorator(test):
+        # Protect against a class reference in django_test_expected_raises.
+        if not isinstance(test, types.FunctionType):
+            raise TypeError(
+                "Items in django_test_expected_raises must be test methods (got {test})."
+            )
+
+        @functools.wraps(test)
+        def assert_raises_wrapper(self, *args, **kwargs):
+            with self.assertRaisesMessage(exception, message):
+                test(self, *args, **kwargs)
+
+        return assert_raises_wrapper
+
+    return decorator
 
 
 class DatabaseCreation(BaseDatabaseCreation):
@@ -36,3 +64,26 @@ class DatabaseCreation(BaseDatabaseCreation):
             self.connection.settings_dict["OPTIONS"][
                 "auto_encryption_opts"
             ]._key_vault_namespace = opts._key_vault_namespace[len(TEST_DATABASE_PREFIX) :]
+
+    def mark_expected_failures_and_skips(self):
+        super().mark_expected_failures_and_skips()
+        # Add an assertion wrapper to tests that are expected to raise an
+        # exception (most often NotSupportedError).
+        if self.connection.alias != "default":
+            # Wrap tests only once since assertRaises() doesn't work if nested.
+            return
+        for (exception, msg), tests in self.connection.features.django_test_expected_raises.items():
+            for test_name in tests:
+                module_or_class_name, _, name_to_mark = test_name.rpartition(".")
+                test_app = test_name.split(".")[0]
+                # Importing a test app that isn't installed raises RuntimeError.
+                if test_app in settings.INSTALLED_APPS:
+                    try:
+                        test_frame = import_string(module_or_class_name)
+                    except ImportError:
+                        # Same comment from similar logic in superclass.
+                        test_to_mark = import_string(test_name)
+                        test_frame = sys.modules.get(test_to_mark.__module__)
+                    else:
+                        test_to_mark = getattr(test_frame, name_to_mark)
+                    setattr(test_frame, name_to_mark, assertRaises(exception, msg)(test_to_mark))

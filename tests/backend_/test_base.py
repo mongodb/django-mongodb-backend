@@ -157,15 +157,3 @@ class CursorTests(TestCase):
             cursor.callproc("...", [])
         with self.assertRaisesMessage(NotSupportedError, msg), connection.cursor() as cursor:
             cursor.callproc("...", [], [])
-
-    def test_execute(self):
-        msg = "MongoDB does not support cursor.execute()."
-        with self.assertRaisesMessage(NotSupportedError, msg), connection.cursor() as cursor:
-            cursor.execute("...")
-        with self.assertRaisesMessage(NotSupportedError, msg), connection.cursor() as cursor:
-            cursor.execute("...", [])
-
-    def test_executemany(self):
-        msg = "MongoDB does not support cursor.executemany()."
-        with self.assertRaisesMessage(NotSupportedError, msg), connection.cursor() as cursor:
-            cursor.executemany("...", [])

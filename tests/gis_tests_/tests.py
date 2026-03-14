@@ -1,10 +1,10 @@
 from django.contrib.gis.geos import LineString, Point, Polygon
 from django.contrib.gis.measure import Distance
 from django.db import NotSupportedError
-from django.db.models import Case, CharField, F, OuterRef, Subquery, Value, When
+from django.db.models import Case, CharField, Value, When
 from django.test import TestCase, skipUnlessDBFeature
 
-from .models import City, MultiFields, Zipcode
+from .models import City, Zipcode
 
 
 @skipUnlessDBFeature("gis_enabled")
@@ -120,23 +120,3 @@ class LookupTests(TestCase):
                     output_field=CharField(),
                 )
             ).first()
-
-    def test_subquery_on_lhs(self):
-        msg = "MongoDB does not support expressions for spatial lookup values."
-        with self.assertRaisesMessage(NotSupportedError, msg):
-            MultiFields.objects.annotate(
-                city_point=Subquery(
-                    City.objects.filter(
-                        id=OuterRef("city"),
-                    ).values("point")
-                ),
-            ).filter(
-                city_point__within=F("poly"),
-            ).get()
-
-    def test_subquery_on_rhs(self):
-        msg = "MongoDB does not support expressions for spatial lookup values."
-        with self.assertRaisesMessage(NotSupportedError, msg):
-            City.objects.filter(
-                point__within=Zipcode.objects.filter(code="73301").values("poly")
-            ).get()
