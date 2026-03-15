@@ -166,7 +166,7 @@ class MongoQuery:
         return pipeline
 
 
-def extra_where(self, compiler, connection):  # noqa: ARG001
+def extra_where(self, compiler, connection, as_expr=False):  # noqa: ARG001
     raise NotSupportedError("QuerySet.extra() is not supported on MongoDB.")
 
 

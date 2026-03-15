@@ -13,7 +13,7 @@ from django.db.models.lookups import IsNull
 from django.db.models.sql import compiler
 from django.db.models.sql.constants import GET_ITERATOR_CHUNK_SIZE, MULTI, SINGLE
 from django.db.models.sql.datastructures import BaseTable
-from django.db.models.sql.where import AND, OR, XOR, NothingNode, WhereNode
+from django.db.models.sql.where import AND, OR, XOR, ExtraWhere, NothingNode, WhereNode
 from django.utils.functional import cached_property
 from pymongo import ASCENDING, DESCENDING
 
@@ -733,7 +733,7 @@ class SQLCompiler(compiler.SQLCompiler):
 
     @classmethod
     def _collect_pushable(cls, expr, negated=False):
-        if expr is None or isinstance(expr, NothingNode):
+        if expr is None or isinstance(expr, (NothingNode, ExtraWhere)):
             return {}
         if isinstance(expr, WhereNode):
             # Apply De Morgan: track negation so connectors are flipped
