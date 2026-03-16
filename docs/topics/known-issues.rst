@@ -80,7 +80,6 @@ Database functions
   - :class:`~django.db.models.functions.LPad`,
     :class:`~django.db.models.functions.RPad`
   - :class:`~django.db.models.functions.MD5`
-  - :class:`~django.db.models.functions.Now`
   - :class:`~django.db.models.functions.Ord`
   - :class:`~django.db.models.functions.Repeat`
   - :class:`~django.db.models.functions.Reverse`
