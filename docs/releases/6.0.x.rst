@@ -35,6 +35,9 @@ Bug fixes
   that references in migrations don't need to be adjusted if models are later
   removed.
 
+- Added a helpful ``NotSupportedError`` for ``QuerySet.extra(where=...)``
+  rather than crashing with a more obscure exception.
+
 Deprecated features
 -------------------
 
