@@ -223,7 +223,7 @@ class SearchIndex(Index):
         if field_mappings and not isinstance(field_mappings, dict):
             raise ValueError(
                 "field_mappings must be a dictionary mapping field names to their "
-                "Atlas Search index options."
+                "MongoDB Search index options."
             )
         if analyzer and not isinstance(analyzer, str):
             raise ValueError(f"analyzer must be a string; got: {type(analyzer)}.")
@@ -251,12 +251,12 @@ class SearchIndex(Index):
 
     def check(self, model, connection):
         errors = []
-        if not connection.features.supports_atlas_search:
+        if not connection.features.supports_search:
             errors.append(
                 Warning(
                     f"This MongoDB server does not support {self.__class__.__name__}.",
                     hint=(
-                        "The index won't be created. Use an Atlas-enabled version of MongoDB, "
+                        "The index won't be created. Use a Search-enabled version of MongoDB, "
                         "or silence this warning if you don't care about it."
                     ),
                     obj=model,
@@ -283,7 +283,7 @@ class SearchIndex(Index):
         return db_type
 
     def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefix=""):
-        if not schema_editor.connection.features.supports_atlas_search:
+        if not schema_editor.connection.features.supports_search:
             return None
         fields = {}
         for field_name, _ in self.fields_orders:
@@ -396,7 +396,7 @@ class VectorSearchIndex(SearchIndex):
         return path, args, kwargs
 
     def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefix=""):
-        if not schema_editor.connection.features.supports_atlas_search:
+        if not schema_editor.connection.features.supports_search:
             return None
         similarities = (
             itertools.cycle([self.similarities])

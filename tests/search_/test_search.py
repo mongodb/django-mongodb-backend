@@ -58,14 +58,14 @@ def _delayed_assertion(timeout: float = 4, interval: float = 0.5):
     return decorator
 
 
-@skipUnlessDBFeature("supports_atlas_search")
+@skipUnlessDBFeature("supports_search")
 class SearchUtilsMixin(TransactionTestCase):
     available_apps = None
 
     """
-    These assertions include a small delay to account for MongoDB Atlas Search's
+    These assertions include a small delay to account for MongoDB Search's
     eventual consistency and indexing latency. Data inserted into MongoDB is not
-    immediately available for $search queries because Atlas Search indexes are
+    immediately available for $search queries because search indexes are
     updated asynchronously via change streams. While this is usually fast, delays
     can occur due to replication lag, system load, index complexity, or a high
     number of search indexes.
@@ -330,7 +330,7 @@ class SearchPhraseTests(SearchUtilsMixin):
         )
 
 
-@skipUnlessDBFeature("supports_atlas_search")
+@skipUnlessDBFeature("supports_search")
 class SearchQueryStringTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):

@@ -296,7 +296,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         collection = self.get_collection(model._meta.db_table)
         if isinstance(index, SearchIndex):
             # Drop the index if it's supported.
-            if self.connection.features.supports_atlas_search:
+            if self.connection.features.supports_search:
                 collection.drop_search_index(index.name)
                 self.wait_until_index_dropped(collection, index.name)
         else:

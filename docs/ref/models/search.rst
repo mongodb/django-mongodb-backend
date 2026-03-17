@@ -1,14 +1,14 @@
-====================
-Atlas Search queries
-====================
+======================
+MongoDB Search queries
+======================
 
 .. currentmodule:: django_mongodb_backend.expressions
 
-Atlas Search expressions
-========================
+Search expressions
+==================
 
-Atlas search expressions ease the use of MongoDB Atlas search's :doc:`full text
-and vector search engine <atlas:atlas-search>`.
+Search expressions ease the use of MongoDB Search's :doc:`full text and vector
+search engine <atlas:atlas-search>`.
 
 For the examples in this document, we'll use the following models::
 
@@ -37,7 +37,7 @@ For the examples in this document, we'll use the following models::
 Matches documents where a field is equal to a given value.
 
 Uses the :doc:`equals operator<atlas:atlas-search/operators-collectors/equals>`
-to perform exact matches on fields indexed in a MongoDB Atlas Search index.
+to perform exact matches on fields indexed in a MongoDB Search index.
 
 .. code-block:: pycon
 
@@ -61,7 +61,7 @@ Enables autocomplete behavior on string fields.
 Uses the :doc:`autocomplete operator
 <atlas:atlas-search/operators-collectors/autocomplete>` to match the input
 query against a field indexed with ``"type": "autocomplete"`` in a MongoDB
-Atlas Search index.
+Search index.
 
 .. code-block:: pycon
 
@@ -97,7 +97,7 @@ filtering documents that include (or exclude) optional fields.
     >>> from django_mongodb_backend.expressions import SearchExists
     >>> Article.objects.annotate(score=SearchExists(path="writer__name"))
     <QuerySet [
-        <Article: title: Exploring Atlas Search Capabilities (by Ana)>,
+        <Article: title: Exploring MongoDB Search Capabilities (by Ana)>,
         <Article: title: Indexing Strategies with MongoDB (by Miguel)>
     ]>
 
@@ -121,7 +121,7 @@ match documents whose field contains a value from the provided array.
     >>> from django_mongodb_backend.expressions import SearchIn
     >>> Article.objects.annotate(score=SearchIn(path="number", value=[1, 2]))
     <QuerySet [
-        <Article: title: Introduction to Atlas Search (number=1)>,
+        <Article: title: Introduction to MongoDB Search (number=1)>,
         <Article: title: Boosting Relevance Scores (number=2)>
     ]>
 
@@ -140,7 +140,7 @@ Matches a phrase in the specified field.
 
 Uses the :doc:`phrase operator<atlas:atlas-search/operators-collectors/phrase>`
 to find exact or near-exact sequences of terms. It supports optional slop (term
-distance) and synonym mappings defined in the Atlas Search index.
+distance) and synonym mappings defined in the MongoDB Search index.
 
 .. code-block:: pycon
 
@@ -158,7 +158,8 @@ distance) and synonym mappings defined in the Atlas Search index.
 - ``path``: The document path to the field.
 - ``query``: The value to match.
 - ``slop``: The maximum number of terms allowed between phrase terms.
-- ``synonyms``: The name of a synonym mapping defined in your Atlas index.
+- ``synonyms``: The name of a synonym mapping defined in your MongoDB Search
+  index.
 - ``score``: A :class:`SearchScoreOption` to tune the relevance score.
 
 ``SearchQueryString``
@@ -236,7 +237,7 @@ to match a regular expression pattern to the contents of a specified field.
     >>> Article.objects.annotate(score=SearchRegex(path="headline", query=r"^Breaking_"))
     <QuerySet [
         <Article: title: Breaking_News: MongoDB Release Update>,
-        <Article: title: Breaking_Changes in Atlas Search API>
+        <Article: title: Breaking_Changes in MongoDB Search API>
     ]>
 
 **Arguments:**
@@ -267,7 +268,7 @@ and synonym mappings.
     ...     )
     ... )
     <QuerySet [
-        <Article: title: MongoDB Atlas: Features and Benefits>,
+        <Article: title: MongoDB Search: Features and Benefits>,
         <Article: title: Understanding MongoDB Query Optimization>
     ]>
 
@@ -277,8 +278,9 @@ and synonym mappings.
 - ``query``: The search term or phrase.
 - ``fuzzy``: A dictionary of fuzzy matching options, e.g., ``{"maxEdits": 1}``.
 - ``match_criteria``: Whether to match ``"all"`` or ``"any"`` terms (defaults
-  to Atlas Search behavior).
-- ``synonyms``: The name of a synonym mapping defined in your Atlas index.
+  to MongoDB Search behavior).
+- ``synonyms``: The name of a synonym mapping defined in your MongoDB Search
+  index.
 - ``score``: A :class:`SearchScoreOption` to tune the relevance score.
 
 ``SearchWildcard``
@@ -447,8 +449,8 @@ matching and scoring.
 Combinable expressions
 ----------------------
 
-All Atlas Search expressions subclassed from ``SearchExpression``
-can be combined using Python's bitwise operators:
+All expressions subclassed from ``SearchExpression`` can be combined using
+Python's bitwise operators:
 
 - ``&`` → ``and``
 - ``|`` → ``or``
@@ -516,13 +518,13 @@ cannot be nested or composed.
 
 .. class:: SearchScoreOption(definitions=None)
 
-Controls the relevance score in an Atlas Search expression.
+Controls the relevance score in a search expression.
 
-It can be passed to most Atlas Search operators through the ``score`` argument
-to customize how MongoDB calculates and applies scoring.
+It can be passed to most search expressions through the ``score`` argument to
+customize how MongoDB calculates and applies scoring.
 
 It directly maps to the :doc:`score option <atlas:atlas-search/scoring>` of
-the relevant Atlas Search operator.
+the relevant MongoDB Search operator.
 
 .. code-block:: pycon
 
@@ -550,7 +552,7 @@ Use the ``search`` lookup on :class:`~django.db.models.CharField` and
     >>> Article.objects.filter(headline__search="mongodb")
     <QuerySet [
         <Article: title: Introduction to MongoDB>,
-        <Article: title: MongoDB Atlas Overview>
+        <Article: title: MongoDB Search Overview>
     ]>
 
 Internally, it creates a :class:`SearchText` expression and returns matching

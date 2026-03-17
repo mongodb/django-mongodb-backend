@@ -607,7 +607,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "test_utils.tests.DisallowedDatabaseQueriesTests.test_disallowed_database_queries",
             "test_utils.tests.DisallowedDatabaseQueriesTests.test_disallowed_thread_database_connection",
         },
-        "search lookup not supported on non-Atlas.": {
+        "search lookup not supported on non-Atlas until MongoDB 8.2.": {
             "expressions.tests.BasicExpressionsTests.test_lookups_subquery",
         },
         "MongoDB does not support the 'startswith' lookup in indexes.": {
@@ -637,8 +637,8 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         return self.mongodb_version >= (8, 0)
 
     @cached_property
-    def supports_atlas_search(self):
-        """Does the server support Atlas search queries and search indexes?"""
+    def supports_search(self):
+        """Does the server support MongoDB search queries and indexes?"""
         try:
             self.connection.get_collection("__null").list_search_indexes()
         except OperationFailure:
@@ -677,7 +677,10 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         build_info = self.connection.connection.admin.command("buildInfo")
         is_enterprise = "enterprise" in build_info.get("modules")
         return (
-            (is_enterprise or self.supports_atlas_search)
+            # self.supports_search is a proxy for "is Atlas" until MongoDB 8.2
+            # when search support was added in Community Edition. Thus, this
+            # may need to be reworked, however, it only affects when tests run.
+            (is_enterprise or self.supports_search)
             and self._supports_transactions
             and self.is_mongodb_8_0
         )

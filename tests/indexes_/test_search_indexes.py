@@ -9,7 +9,7 @@ from .models import SearchIndexTestModel
 from .test_base import SchemaAssertionMixin
 
 
-@mock.patch.object(connection.features, "supports_atlas_search", False)
+@mock.patch.object(connection.features, "supports_search", False)
 class UnsupportedSearchIndexesTests(TestCase):
     def test_search_index_not_created(self):
         index = SearchIndex(name="recent_test_idx", fields=["number"])
@@ -61,7 +61,7 @@ class SearchIndexTests(SimpleTestCase):
     def test_field_mappings_type(self):
         msg = (
             "field_mappings must be a dictionary mapping field names to their "
-            "Atlas Search index options."
+            "MongoDB Search index options."
         )
         with self.assertRaisesMessage(ValueError, msg):
             SearchIndex(field_mappings={"foo"})
@@ -157,7 +157,7 @@ class VectorSearchIndexTests(SimpleTestCase):
             )
 
 
-@skipUnlessDBFeature("supports_atlas_search")
+@skipUnlessDBFeature("supports_search")
 class SearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
     def test_simple(self):
         index = SearchIndex(name="recent_test_idx", fields=["char"])
@@ -313,7 +313,7 @@ class SearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
                 editor.remove_index(index=index, model=SearchIndexTestModel)
 
 
-@skipUnlessDBFeature("supports_atlas_search")
+@skipUnlessDBFeature("supports_search")
 class VectorSearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
     def test_simple(self):
         index = VectorSearchIndex(name="recent_test_idx", fields=["integer"], similarities="cosine")

@@ -17,9 +17,9 @@ from .models import DataHolder, Movie, Owner, Person, Store
 
 
 @isolate_apps("indexes_")
-@mock.patch.object(connection.features, "supports_atlas_search", False)
+@mock.patch.object(connection.features, "supports_search", False)
 class UnsupportedSearchIndexesTests(TestCase):
-    def test_search_requires_atlas_search_support(self):
+    def test_search_requires_search_support(self):
         class Article(models.Model):
             title = models.CharField(max_length=10)
 
@@ -32,7 +32,7 @@ class UnsupportedSearchIndexesTests(TestCase):
                 checks.Warning(
                     "This MongoDB server does not support SearchIndex.",
                     hint=(
-                        "The index won't be created. Use an Atlas-enabled version of MongoDB, "
+                        "The index won't be created. Use a Search-enabled version of MongoDB, "
                         "or silence this warning if you don't care about it."
                     ),
                     obj=Article,
@@ -41,7 +41,7 @@ class UnsupportedSearchIndexesTests(TestCase):
             ],
         )
 
-    def test_vector_search_requires_atlas_search_support(self):
+    def test_vector_search_requires_search_support(self):
         class Article(models.Model):
             title = models.CharField(max_length=10)
             vector = ArrayField(models.FloatField(), size=10)
@@ -55,7 +55,7 @@ class UnsupportedSearchIndexesTests(TestCase):
                 checks.Warning(
                     "This MongoDB server does not support VectorSearchIndex.",
                     hint=(
-                        "The index won't be created. Use an Atlas-enabled version of MongoDB, "
+                        "The index won't be created. Use a Search-enabled version of MongoDB, "
                         "or silence this warning if you don't care about it."
                     ),
                     obj=Article,
@@ -66,7 +66,7 @@ class UnsupportedSearchIndexesTests(TestCase):
 
 
 @isolate_apps("indexes_")
-@mock.patch.object(connection.features, "supports_atlas_search", True)
+@mock.patch.object(connection.features, "supports_search", True)
 class InvalidVectorSearchIndexesTests(TestCase):
     def test_requires_size(self):
         class Article(models.Model):

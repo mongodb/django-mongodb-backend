@@ -75,7 +75,10 @@ class SupportsQueryableEncryptionTests(TestCase):
             patch(
                 "pymongo.synchronous.database.Database.command", wraps=self.non_enterprise_response
             ),
-            patch("django.db.connection.features.supports_atlas_search", True),
+            # supports_search is a proxy for "is Atlas" until MongoDB 8.2
+            # when search support was added in Community Edition. Thus, this
+            # may need to be reworked, however, it only affects when tests run.
+            patch("django.db.connection.features.supports_search", True),
             patch("django.db.connection.features._supports_transactions", True),
             patch("django.db.connection.features.is_mongodb_8_0", True),
         ):
@@ -85,7 +88,7 @@ class SupportsQueryableEncryptionTests(TestCase):
         """Supported on MongoDB 8.0+ Enterprise replica set or sharded cluster."""
         with (
             patch("pymongo.synchronous.database.Database.command", wraps=self.enterprise_response),
-            patch("django.db.connection.features.supports_atlas_search", False),
+            patch("django.db.connection.features.supports_search", False),
             patch("django.db.connection.features._supports_transactions", True),
             patch("django.db.connection.features.is_mongodb_8_0", True),
         ):
@@ -97,7 +100,7 @@ class SupportsQueryableEncryptionTests(TestCase):
             patch(
                 "pymongo.synchronous.database.Database.command", wraps=self.non_enterprise_response
             ),
-            patch("django.db.connection.features.supports_atlas_search", False),
+            patch("django.db.connection.features.supports_search", False),
             patch("django.db.connection.features._supports_transactions", True),
             patch("django.db.connection.features.is_mongodb_8_0", True),
         ):
@@ -110,7 +113,7 @@ class SupportsQueryableEncryptionTests(TestCase):
         """
         with (
             patch("pymongo.synchronous.database.Database.command", wraps=self.enterprise_response),
-            patch("django.db.connection.features.supports_atlas_search", False),
+            patch("django.db.connection.features.supports_search", False),
             patch("django.db.connection.features._supports_transactions", False),
             patch("django.db.connection.features.is_mongodb_8_0", True),
         ):
@@ -120,7 +123,7 @@ class SupportsQueryableEncryptionTests(TestCase):
         """Not supported on MongoDB < 8.0"""
         with (
             patch("pymongo.synchronous.database.Database.command", wraps=self.enterprise_response),
-            patch("django.db.connection.features.supports_atlas_search", False),
+            patch("django.db.connection.features.supports_search", False),
             patch("django.db.connection.features._supports_transactions", True),
             patch("django.db.connection.features.is_mongodb_8_0", False),
         ):

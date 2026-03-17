@@ -70,7 +70,7 @@ class SearchCombinable:
 
 class SearchExpression(SearchCombinable, Expression):
     """
-    Base expression for MongoDB Atlas `$search` stage.
+    Base expression for $search stage.
 
     Subclasses produce the operator document placed under $search and expose
     the stage to queryset methods such as annotate(), filter(), or order_by().
@@ -287,7 +287,7 @@ class SearchPhrase(SearchExpression):
         path: The document path to search (as string or expression).
         query: The phrase to match as a single string or list of terms.
         slop: Optional maximum word distance allowed between phrase terms.
-        synonyms: Optional name of a synonym mapping defined in an Atlas index.
+        synonyms: Optional name of a synonym mapping defined in a search index.
         score: Optional[SearchScore] expression to modify the relevance score.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/phrase/
@@ -465,7 +465,7 @@ class SearchText(SearchExpression):
         query: The search term or phrase.
         fuzzy: Optional dictionary to configure fuzzy matching parameters.
         match_criteria: Optional criteria for term matching (e.g., "all" or "any").
-        synonyms: Optional name of a synonym mapping defined in an Atlas index.
+        synonyms: Optional name of a synonym mapping defined in a search index.
         score: Optional[SearchScore] expression to adjust the relevance score.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/text/

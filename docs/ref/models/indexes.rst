@@ -57,8 +57,8 @@ minutes, depending on the size of the collection.
     on the given field(s).
 
     Some fields such as :class:`~django.db.models.DecimalField` aren't
-    supported. See the :ref:`Atlas documentation <atlas:bson-data-chart>` for a
-    complete list of unsupported data types.
+    supported. See the :ref:`Search documentation <atlas:bson-data-chart>` for
+    a complete list of unsupported data types.
 
     Use ``field_mappings`` (instead of ``fields``) to create a complex search
     index. ``field_mappings`` is a dictionary that maps field names to index

@@ -36,7 +36,7 @@ class SQLCompiler(compiler.SQLCompiler):
         # A list of OrderBy objects for this query.
         self.order_by_objs = None
         self.subqueries = []
-        # Atlas search stage.
+        # Search stage.
         self.search_pipeline = []
         # Does the aggregation have no GROUP BY fields and need wrapping?
         self.needs_wrap_aggregation = False
