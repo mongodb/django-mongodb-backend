@@ -9,3 +9,13 @@ class StringAggTests(TestCase):
     def test_not_supprted(self):
         with self.assertRaisesMessage(NotSupportedError, "StringAgg is not supported."):
             list(Author.objects.aggregate(all_names=StringAgg("name", Value(","))))
+
+    def test_distinct(self):
+        with self.assertRaisesMessage(NotSupportedError, "StringAgg is not supported."):
+            Author.objects.aggregate(
+                stringagg=StringAgg(
+                    "name",
+                    delimiter=Value(";"),
+                    distinct=True,
+                )
+            )

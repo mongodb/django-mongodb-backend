@@ -86,7 +86,7 @@ def stddev_variance(self, compiler, connection):
     return aggregate(self, compiler, connection, operator=operator)
 
 
-def string_agg(self, compiler, connection):  # noqa: ARG001
+def string_agg(self, compiler, connection, resolve_inner_expression=False):  # noqa: ARG001
     raise NotSupportedError("StringAgg is not supported.")
 
 
