@@ -7,7 +7,7 @@ from decimal import Decimal
 from bson import Decimal128, Int64
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.db import DataError
+from django.db import DataError, models
 from django.db.backends.base.operations import BaseDatabaseOperations
 from django.db.models import TextField
 from django.db.models.expressions import Combinable, Expression
@@ -65,6 +65,15 @@ class DatabaseOperations(GISOperations, BaseDatabaseOperations):
         if value is None:
             return None
         return Decimal128(value)
+
+    def adapt_durationfield_value(self, value):
+        """DurationField stores milliseconds rather than microseconds."""
+        value = super().adapt_durationfield_value(value)
+        if value is not None:
+            value //= 1000
+            # Store value as Int64 (long).
+            value = Int64(value)
+        return value
 
     def adapt_integerfield_value(self, value, internal_type):
         """Store non-SmallIntegerField variants as Int64 (long)."""
@@ -224,6 +233,29 @@ class DatabaseOperations(GISOperations, BaseDatabaseOperations):
     def convert_uuidfield_value(self, value, expression, connection):
         if value is not None:
             value = uuid.UUID(value)
+        return value
+
+    def convert_trunc_expression(self, value, expression):
+        if value is None:
+            return None
+        convert_to_tz = settings.USE_TZ and expression.get_tzname() != "UTC"
+        if isinstance(expression.output_field, models.DateTimeField):
+            if convert_to_tz:
+                # Unlike other databases, MongoDB returns the value in UTC,
+                # so rather than setting the time zone equal to expression.tzinfo,
+                # the value must be converted to tzinfo.
+                value = value.astimezone(expression.tzinfo)
+        elif isinstance(value, datetime.datetime):
+            if isinstance(expression.output_field, models.DateField):
+                if convert_to_tz:
+                    value = value.astimezone(expression.tzinfo)
+                # Truncate for Trunc(..., output_field=DateField)
+                value = value.date()
+            elif isinstance(expression.output_field, models.TimeField):
+                if convert_to_tz:
+                    value = value.astimezone(expression.tzinfo)
+                # Truncate for Trunc(..., output_field=TimeField)
+                value = value.time()
         return value
 
     def combine_expression(self, connector, sub_expressions):
