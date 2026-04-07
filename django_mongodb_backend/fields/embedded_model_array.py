@@ -13,7 +13,12 @@ from django_mongodb_backend.fields.array import ArrayField, ArrayLenTransform
 from django_mongodb_backend.query_utils import process_lhs, process_rhs
 
 from .mixins import NoEncryptedEmbeddedFieldsMixin
-from .utils import serialize_model_reference
+from .utils import (
+    deserialize_from_python,
+    deserialize_from_xml,
+    serialize_model_reference,
+    serialize_to_python,
+)
 
 
 class EmbeddedModelArrayField(NoEncryptedEmbeddedFieldsMixin, ArrayField):
@@ -41,6 +46,30 @@ class EmbeddedModelArrayField(NoEncryptedEmbeddedFieldsMixin, ArrayField):
         kwargs["embedded_model"] = serialize_model_reference(self.embedded_model)
         del kwargs["base_field"]
         return name, path, args, kwargs
+
+    def serialize_to_python(self, obj, serializer):
+        value = self.value_from_object(obj)
+        if value is None:
+            return None
+        return [serialize_to_python(val, serializer) for val in value]
+
+    def deserialize_from_python(self, value):
+        return [deserialize_from_python(val, model=self.embedded_model) for val in value]
+
+    def serialize_to_xml(self, obj, serializer):
+        value_list = self.value_from_object(obj)
+        if value_list is None:
+            serializer.xml.addQuickElement("None")
+        else:
+            for value in value_list:
+                serializer.start_object(value)
+                for field in value._meta.local_fields:
+                    serializer.handle_field(value, field)
+                serializer.end_object(value)
+        return ""
+
+    def deserialize_from_xml(self, field_node):
+        return deserialize_from_xml(field_node, model=self.embedded_model)
 
     def get_db_prep_value(self, value, connection, prepared=False):
         if isinstance(value, (list, tuple)):
