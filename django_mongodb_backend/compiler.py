@@ -920,7 +920,11 @@ class SQLInsertCompiler(SQLCompiler):
                     raise IntegrityError(
                         f"You can't set {field.name} (a non-nullable field) to None."
                     )
-
+                if hasattr(value, "as_mql"):
+                    raise NotSupportedError(
+                        f"MongoDB does not support creating models with "
+                        f"expressions: got {value} for field {field.name}."
+                    )
                 field_values[field.column] = value
             objs.append(field_values)
         return self.insert(objs, returning_fields=returning_fields)
