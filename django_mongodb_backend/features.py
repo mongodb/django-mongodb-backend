@@ -137,19 +137,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "schema.tests.SchemaTests.test_rename_keep_db_default",
             "validation.test_unique.PerformUniqueChecksTest.test_unique_db_default",
         },
-        "Insert expressions aren't supported.": {
-            "basic.tests.ModelTest.test_save_expressions",
-            "bulk_create.tests.BulkCreateTests.test_bulk_insert_now",
-            "bulk_create.tests.BulkCreateTests.test_bulk_insert_expressions",
-            "expressions.tests.BasicExpressionsTests.test_new_object_create",
-            "expressions.tests.BasicExpressionsTests.test_new_object_save",
-            "expressions.tests.BasicExpressionsTests.test_object_create_with_aggregate",
-            "expressions.tests.BasicExpressionsTests.test_object_create_with_f_expression_in_subquery",
-            "expressions.tests.BasicExpressionsTests.test_object_update_unsaved_objects",
-            # PI()
-            "db_functions.math.test_round.RoundTests.test_decimal_with_precision",
-            "db_functions.math.test_round.RoundTests.test_float_with_precision",
-        },
         "MongoDB doesn't rename an index when a field is renamed.": {
             "migrations.test_operations.OperationTests.test_rename_field_index_together",
             "migrations.test_operations.OperationTests.test_rename_field_unique_together",
@@ -480,6 +467,24 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
 
     # Tests that are expected to raise certain exceptions:
     _django_test_expected_raises = {
+        (
+            NotSupportedError,
+            "MongoDB does not support creating models with expressions: got "
+            "Now() for field pub_date.",
+        ): {
+            "basic.tests.ModelTest.test_save_expressions",
+        },
+        (NotSupportedError, "MongoDB does not support creating models with expressions"): {
+            "bulk_create.tests.BulkCreateTests.test_bulk_insert_now",
+            "bulk_create.tests.BulkCreateTests.test_bulk_insert_expressions",
+            "expressions.tests.BasicExpressionsTests.test_new_object_create",
+            "expressions.tests.BasicExpressionsTests.test_new_object_save",
+            "expressions.tests.BasicExpressionsTests.test_object_create_with_aggregate",
+            "expressions.tests.BasicExpressionsTests.test_object_create_with_f_expression_in_subquery",
+            "expressions.tests.BasicExpressionsTests.test_object_update_unsaved_objects",
+            "db_functions.math.test_round.RoundTests.test_decimal_with_precision",
+            "db_functions.math.test_round.RoundTests.test_float_with_precision",
+        },
         (NotSupportedError, "Pattern lookups on UUIDField are not supported."): {
             "model_fields.test_uuid.TestQuerying.test_contains",
             "model_fields.test_uuid.TestQuerying.test_endswith",

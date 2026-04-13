@@ -15,7 +15,7 @@ New features
 Bug fixes
 ---------
 
-- ...
+- Made creating models with expressions raise a helpful error message.
 
 6.0.3
 =====
