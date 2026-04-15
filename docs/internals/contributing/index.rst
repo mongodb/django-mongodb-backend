@@ -7,6 +7,7 @@ Backend? Here are some resources:
 
 .. toctree::
 
+   ai-policy
    coding-style
    unit-tests
    performance-tests
