@@ -58,6 +58,12 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     supports_unspecified_pk = True
     uses_savepoints = False
 
+    disallowed_simple_test_case_connection_methods = [
+        ("connect", "connections"),
+        ("get_collection", "queries"),
+        ("temporary_connection", "connections"),
+    ]
+
     _django_test_expected_failures = {
         # $concat only supports strings, not int
         "db_functions.text.test_concat.ConcatTests.test_concat_non_str",
@@ -93,6 +99,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         # Connection creation doesn't follow the usual Django API.
         "backends.tests.ThreadTests.test_pass_connection_between_threads",
         "backends.tests.ThreadTests.test_default_connection_thread_local",
+        "test_utils.tests.DisallowedDatabaseQueriesTests.test_disallowed_thread_database_connection",
         # Object of type ObjectId is not JSON serializable.
         "auth_tests.test_views.LoginTest.test_login_session_without_hash_session_key",
         # GenericRelation.value_to_string() assumes integer pk.
@@ -422,15 +429,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "connection.close() does not close the connection.": {
             "servers.test_liveserverthread.LiveServerThreadTest.test_closes_connections",
             "servers.tests.LiveServerTestCloseConnectionTest.test_closes_connections",
-        },
-        "Disallowed query protection doesn't work on MongoDB.": {
-            # Because this backend doesn't use cursor(), chunked_cursor(), etc.
-            # https://github.com/django/django/blob/045110ff3089aefd9c3e65c707df465bacfed986/django/test/testcases.py#L195-L206
-            "test_utils.test_testcase.TestTestCase.test_disallowed_database_queries",
-            "test_utils.test_transactiontestcase.DisallowedDatabaseQueriesTests.test_disallowed_database_queries",
-            "test_utils.tests.DisallowedDatabaseQueriesTests.test_disallowed_database_chunked_cursor_queries",
-            "test_utils.tests.DisallowedDatabaseQueriesTests.test_disallowed_database_queries",
-            "test_utils.tests.DisallowedDatabaseQueriesTests.test_disallowed_thread_database_connection",
         },
         "search lookup not supported on non-Atlas until MongoDB 8.2.": {
             "expressions.tests.BasicExpressionsTests.test_lookups_subquery",
