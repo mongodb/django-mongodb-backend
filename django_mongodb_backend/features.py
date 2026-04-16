@@ -324,9 +324,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "queries.test_query.TestQueryNoModel",
         },
         "MongoDB doesn't use CursorDebugWrapper.": {
-            # It prevents RuntimeWarning for import-time queries from working.
-            # https://github.com/django/django/commit/fbd16438f46bc2128926958ad24331da5d1b406f
-            "apps.tests.QueryPerformingAppTests",
             "backends.tests.LastExecutedQueryTest.test_last_executed_query",
             "backends.tests.LastExecutedQueryTest.test_last_executed_query_with_duplicate_params",
             "backends.tests.LastExecutedQueryTest.test_query_encoding",
@@ -676,6 +673,8 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "schema.test_logging.SchemaLoggerTests.test_extra_args"
         },
         (NotSupportedError, "MongoDB does not support cursor.execute()."): {
+            "apps.tests.QueryPerformingAppTests.test_query_default_database_using_cursor",
+            "apps.tests.QueryPerformingAppTests.test_query_other_database_using_cursor",
             "backends.tests.BackendTestCase.test_queries",
             "backends.tests.BackendTestCase.test_queries_bare_where",
             "backends.tests.BackendTestCase.test_queries_limit",
@@ -705,6 +704,8 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "timezones.tests.NewDatabaseTests.test_raw_sql",
         },
         (NotSupportedError, "MongoDB does not support cursor.executemany()."): {
+            "apps.tests.QueryPerformingAppTests.test_query_many_default_database_using_cursor",
+            "apps.tests.QueryPerformingAppTests.test_query_many_other_database_using_cursor",
             "backends.tests.BackendTestCase.test_cursor_executemany",
             "backends.tests.BackendTestCase.test_cursor_executemany_with_empty_params_list",
             "backends.tests.BackendTestCase.test_cursor_executemany_with_iterator",

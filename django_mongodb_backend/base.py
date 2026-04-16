@@ -1,12 +1,14 @@
 import contextlib
 import logging
 import os
+import warnings
 
 from bson import Decimal128
+from django.apps import apps
 from django.core.exceptions import EmptyResultSet, FullResultSet, ImproperlyConfigured
 from django.db import DEFAULT_DB_ALIAS, NotSupportedError
 from django.db.backends.base.base import BaseDatabaseWrapper
-from django.db.backends.utils import debug_transaction
+from django.db.backends.utils import CursorWrapper, debug_transaction
 from django.utils.asyncio import async_unsafe
 from django.utils.functional import cached_property
 from pymongo.collection import Collection
@@ -241,6 +243,14 @@ class DatabaseWrapper(BaseDatabaseWrapper):
                 raise ImproperlyConfigured('settings.DATABASES is missing the "NAME" value.')
 
     def get_collection(self, name, **kwargs):
+        if not apps.ready and not apps.stored_app_configs:
+            warnings.warn(
+                CursorWrapper.APPS_NOT_READY_WARNING_MSG,
+                category=RuntimeWarning,
+                # With any luck, stacklevel 12 points outside of Django and
+                # Django MongoDB Backend to the offending user code.
+                stacklevel=12,
+            )
         collection = Collection(self.database, name, **kwargs)
         if self.queries_logged:
             collection = OperationDebugWrapper(self, collection)
