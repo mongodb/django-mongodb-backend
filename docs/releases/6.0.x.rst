@@ -17,6 +17,9 @@ Bug fixes
 
 - Made creating models with expressions raise a helpful error message.
 
+- Prevented :func:`~django_mongodb_backend.transaction.atomic` from silencing
+  exceptions raised on commit.
+
 6.0.3
 =====
 

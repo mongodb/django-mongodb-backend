@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.db import DatabaseError, connection
 from django.test import TransactionTestCase, skipIfDBFeature, skipUnlessDBFeature
 
@@ -145,6 +147,17 @@ class AtomicTests(TransactionTestCase):
         connection.close_pool()
         with transaction.atomic():
             pass
+
+    def test_failure_on_commit_transaction(self):
+        """transaction.atomic() re-raises an error during transaction commit."""
+        msg = "commit failed"
+        with (
+            mock.patch.object(connection, "commit_mongo", side_effect=DatabaseError(msg)),
+            self.assertRaisesMessage(DatabaseError, msg),
+            transaction.atomic(),
+        ):
+            Reporter.objects.create(first_name="Tintin")
+        self.assertSequenceEqual(Reporter.objects.all(), [])
 
 
 @skipIfDBFeature("_supports_transactions")

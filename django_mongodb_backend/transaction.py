@@ -45,6 +45,7 @@ class Atomic(ContextDecorator):
                     connection.commit_mongo()
                 except DatabaseError:
                     connection.rollback_mongo()
+                    raise
         else:
             # atomic() exited with an error.
             if not connection.in_atomic_block_mongo:
