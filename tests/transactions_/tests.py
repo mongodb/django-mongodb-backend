@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.db import DatabaseError, connection
 from django.test import TransactionTestCase, skipIfDBFeature, skipUnlessDBFeature
 
@@ -146,6 +148,63 @@ class AtomicTests(TransactionTestCase):
         with transaction.atomic():
             pass
 
+    def test_raise_on_commit_failure_if_flag_true_context_manager(self):
+        with (
+            patch.object(connection, "commit_mongo", side_effect=DatabaseError("commit failed")),
+            self.assertRaisesMessage(DatabaseError, "commit failed"),
+            transaction.atomic(raise_on_commit_failure=True),
+        ):
+            Reporter.objects.create(first_name="Tintin")
+        self.assertSequenceEqual(Reporter.objects.all(), [])
+
+    def test_raise_on_commit_failure_if_flag_true_decorator(self):
+        @transaction.atomic(raise_on_commit_failure=True)
+        def make_reporter():
+            Reporter.objects.create(first_name="Tintin")
+
+        with (
+            patch.object(connection, "commit_mongo", side_effect=DatabaseError("commit failed")),
+            self.assertRaisesMessage(DatabaseError, "commit failed"),
+        ):
+            make_reporter()
+
+        self.assertSequenceEqual(Reporter.objects.all(), [])
+
+    def test_dont_raise_on_commit_failure_if_flag_false_context_manager(self):
+        with (
+            patch.object(connection, "commit_mongo", side_effect=DatabaseError("commit failed")),
+            transaction.atomic(raise_on_commit_failure=False),
+        ):
+            Reporter.objects.create(first_name="Tintin")
+        self.assertSequenceEqual(Reporter.objects.all(), [])
+
+    def test_dont_raise_on_commit_failure_if_flag_false_decorator(self):
+        @transaction.atomic(raise_on_commit_failure=False)
+        def make_reporter():
+            Reporter.objects.create(first_name="Tintin")
+
+        with (patch.object(connection, "commit_mongo", side_effect=DatabaseError("commit failed"))):
+            make_reporter()
+
+        self.assertSequenceEqual(Reporter.objects.all(), [])
+
+    def test_dont_raise_on_commit_failure_if_flag_not_set_context_manager(self):
+        with (
+            patch.object(connection, "commit_mongo", side_effect=DatabaseError("commit failed")),
+            transaction.atomic(),
+        ):
+            Reporter.objects.create(first_name="Tintin")
+        self.assertSequenceEqual(Reporter.objects.all(), [])
+
+    def test_dont_raise_on_commit_failure_if_flag_not_set_decorator(self):
+        @transaction.atomic
+        def make_reporter():
+            Reporter.objects.create(first_name="Tintin")
+
+        with (patch.object(connection, "commit_mongo", side_effect=DatabaseError("commit failed"))):
+            make_reporter()
+
+        self.assertSequenceEqual(Reporter.objects.all(), [])
 
 @skipIfDBFeature("_supports_transactions")
 class AtomicNotSupportedTests(TransactionTestCase):

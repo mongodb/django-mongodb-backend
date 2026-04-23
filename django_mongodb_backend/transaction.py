@@ -16,8 +16,9 @@ class Atomic(ContextDecorator):
     Simplified from django.db.transaction.
     """
 
-    def __init__(self, using):
+    def __init__(self, using, raise_on_commit_failure):
         self.using = using
+        self.raise_on_commit_failure = raise_on_commit_failure
 
     def __enter__(self):
         connection = get_connection(self.using)
@@ -45,6 +46,8 @@ class Atomic(ContextDecorator):
                     connection.commit_mongo()
                 except DatabaseError:
                     connection.rollback_mongo()
+                    if self.raise_on_commit_failure:
+                        raise
         else:
             # atomic() exited with an error.
             if not connection.in_atomic_block_mongo:
@@ -52,10 +55,10 @@ class Atomic(ContextDecorator):
                 connection.rollback_mongo()
 
 
-def atomic(using=None):
+def atomic(using=None, raise_on_commit_failure=False):
     # Bare decorator: @atomic -- although the first argument is called `using`,
     # it's actually the function being decorated.
     if callable(using):
-        return Atomic(DEFAULT_DB_ALIAS)(using)
+        return Atomic(DEFAULT_DB_ALIAS, raise_on_commit_failure=raise_on_commit_failure)(using)
     # Decorator: @atomic(...) or context manager: with atomic(...): ...
-    return Atomic(using)
+    return Atomic(using, raise_on_commit_failure=raise_on_commit_failure)
