@@ -183,7 +183,7 @@ class AtomicTests(TransactionTestCase):
         def make_reporter():
             Reporter.objects.create(first_name="Tintin")
 
-        with (patch.object(connection, "commit_mongo", side_effect=DatabaseError("commit failed"))):
+        with patch.object(connection, "commit_mongo", side_effect=DatabaseError("commit failed")):
             make_reporter()
 
         self.assertSequenceEqual(Reporter.objects.all(), [])
@@ -201,10 +201,11 @@ class AtomicTests(TransactionTestCase):
         def make_reporter():
             Reporter.objects.create(first_name="Tintin")
 
-        with (patch.object(connection, "commit_mongo", side_effect=DatabaseError("commit failed"))):
+        with patch.object(connection, "commit_mongo", side_effect=DatabaseError("commit failed")):
             make_reporter()
 
         self.assertSequenceEqual(Reporter.objects.all(), [])
+
 
 @skipIfDBFeature("_supports_transactions")
 class AtomicNotSupportedTests(TransactionTestCase):
