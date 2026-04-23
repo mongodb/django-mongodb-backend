@@ -15,7 +15,8 @@ New features
 Bug fixes
 ---------
 
-- ...
+- Prevented :func:`~django_mongodb_backend.transaction.atomic` from silencing
+  exceptions raised on commit.
 
 Performance improvements
 ------------------------
