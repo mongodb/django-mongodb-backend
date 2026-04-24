@@ -473,7 +473,7 @@ This allows for more expressive and readable search logic:
 .. class:: SearchVector(path, query_vector, limit, *, num_candidates=None, exact=None, filter=None)
 
 Performs vector similarity search using the :doc:`$vectorSearch stage
-<atlas:atlas-vector-search/vector-search-stage>`.
+<vector-search:query/aggregation-stages/vector-search-stage>`.
 
 Retrieves documents whose vector field is most similar to a given query vector,
 using either approximate or exact nearest neighbor search.

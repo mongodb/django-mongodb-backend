@@ -50,6 +50,7 @@ intersphinx_mapping = {
     "pymongo-api": ("https://pymongo.readthedocs.io/en/stable/", None),
     "python": ("https://docs.python.org/3/", None),
     "atlas": ("https://www.mongodb.com/docs/atlas/", None),
+    "vector-search": ("https://www.mongodb.com/docs/vector-search/", None),
     "manual": ("https://www.mongodb.com/docs/manual/", None),
     "sphinx": ("https://www.sphinx-doc.org/en/master", None),
 }

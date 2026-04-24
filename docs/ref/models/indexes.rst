@@ -88,7 +88,7 @@ minutes, depending on the size of the collection.
 .. class:: VectorSearchIndex(*, fields=(), name=None, similarities)
 
     A subclass of :class:`SearchIndex` that creates a :doc:`vector search index
-    <atlas:atlas-vector-search/vector-search-type>` on the given field(s).
+    <vector-search:index/vector-search-type>` on the given field(s).
 
     The index must reference at least one vector field: an :class:`.ArrayField`
     with a :attr:`~.ArrayField.base_field` of
@@ -101,7 +101,7 @@ minutes, depending on the size of the collection.
 
     Available values for the required ``similarities`` keyword argument are
     ``"cosine"``, ``"dotProduct"``, and ``"euclidean"`` (see
-    :ref:`atlas:avs-similarity-functions` for how to choose). You can provide
-    this value either a string, in which case that value will be applied to all
-    vector fields, or a list or tuple of values with a similarity corresponding
-    to each vector field.
+    :ref:`vector-search:avs-similarity-functions` for how to choose). You can
+    provide this value either a string, in which case that value will be
+    applied to all vector fields, or a list or tuple of values with a
+    similarity corresponding to each vector field.
