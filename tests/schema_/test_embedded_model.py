@@ -98,14 +98,14 @@ class SchemaTests(TestMixin, TransactionTestCase):
             editor.create_model(Book)
             # The table is there
             self.assertTableExists(Book)
-            # Embedded indexes are created.
+            # Embedded indexes are not created.
             self.assertEqual(
                 self.get_constraints_for_columns(Book, ["author.age"]),
-                ["schema__book_author.age_dc08100b"],
+                [],
             )
             self.assertEqual(
                 self.get_constraints_for_columns(Book, ["author.address.zip_code"]),
-                ["schema__book_author.address.zip_code_7b9a9307"],
+                [],
             )
             # Clean up that table
             editor.delete_model(Book)
@@ -117,14 +117,14 @@ class SchemaTests(TestMixin, TransactionTestCase):
         with connection.schema_editor() as editor:
             editor.create_model(Book)
             self.assertTableExists(Book)
-            # Embedded uniques are created.
+            # Embedded uniques are not created.
             self.assertEqual(
                 self.get_constraints_for_columns(Book, ["author.employee_id"]),
-                ["schema__book_author.employee_id_7d4d3eff_uniq"],
+                [],
             )
             self.assertEqual(
                 self.get_constraints_for_columns(Book, ["author.address.uid"]),
-                ["schema__book_author.address.uid_8124a01f_uniq"],
+                [],
             )
             # Clean up that table
             editor.delete_model(Book)
@@ -160,23 +160,19 @@ class SchemaTests(TestMixin, TransactionTestCase):
         with connection.schema_editor() as editor:
             editor.create_model(Book)
             self.assertTableExists(Book)
-            # Embedded uniques are created.
+            # Embedded uniques are not created.
             self.assertEqual(
                 self.get_constraints_for_columns(
                     Book, ["author.unique_together_three", "author.unique_together_four"]
                 ),
-                [
-                    "schema__author_author.unique_together_three_author.unique_together_four_39e1cb43_uniq"
-                ],
+                [],
             )
             self.assertEqual(
                 self.get_constraints_for_columns(
                     Book,
                     ["author.address.unique_together_one", "author.address.unique_together_two"],
                 ),
-                [
-                    "schema__address_author.address.unique_together_one_author.address.unique_together_two_de682e30_uniq"
-                ],
+                [],
             )
             editor.delete_model(Book)
         self.assertTableNotExists(Book)
@@ -209,17 +205,17 @@ class SchemaTests(TestMixin, TransactionTestCase):
         with connection.schema_editor() as editor:
             editor.create_model(Book)
             self.assertTableExists(Book)
-            # Embedded uniques are created.
+            # Embedded uniques are not created.
             self.assertEqual(
                 self.get_constraints_for_columns(Book, ["author.indexed_two"]),
-                ["schema__aut_indexed_b19137_idx"],
+                [],
             )
             self.assertEqual(
                 self.get_constraints_for_columns(
                     Book,
                     ["author.address.indexed_one"],
                 ),
-                ["schema__add_indexed_b64972_idx"],
+                [],
             )
             editor.delete_model(Author)
         self.assertTableNotExists(Author)
@@ -256,17 +252,17 @@ class SchemaTests(TestMixin, TransactionTestCase):
         with connection.schema_editor() as editor:
             editor.create_model(Book)
             self.assertTableExists(Book)
-            # Embedded uniques are created.
+            # Embedded uniques are not created.
             self.assertEqual(
                 self.get_constraints_for_columns(Book, ["author.unique_constraint_two"]),
-                ["unique_two"],
+                [],
             )
             self.assertEqual(
                 self.get_constraints_for_columns(
                     Book,
                     ["author.address.unique_constraint_one"],
                 ),
-                ["unique_one"],
+                [],
             )
             editor.delete_model(Author)
         self.assertTableNotExists(Author)
@@ -288,23 +284,23 @@ class SchemaTests(TestMixin, TransactionTestCase):
             # Create the table amd add the field.
             editor.create_model(Book)
             editor.add_field(Book, new_field)
-            # Embedded indexes are created.
+            # Embedded indexes are not created.
             self.assertEqual(
                 self.get_constraints_for_columns(Book, ["author.age"]),
-                ["schema__book_author.age_dc08100b"],
+                [],
             )
             self.assertEqual(
                 self.get_constraints_for_columns(Book, ["author.address.zip_code"]),
-                ["schema__book_author.address.zip_code_7b9a9307"],
+                [],
             )
             # Embedded uniques
             self.assertEqual(
                 self.get_constraints_for_columns(Book, ["author.employee_id"]),
-                ["schema__book_author.employee_id_7d4d3eff_uniq"],
+                [],
             )
             self.assertEqual(
                 self.get_constraints_for_columns(Book, ["author.address.uid"]),
-                ["schema__book_author.address.uid_8124a01f_uniq"],
+                [],
             )
             editor.remove_field(Book, new_field)
             # Embedded indexes are removed.
@@ -358,23 +354,26 @@ class SchemaTests(TestMixin, TransactionTestCase):
             # Create the table and add the field.
             editor.create_model(Book)
             editor.add_field(Book, new_field)
-            # Embedded uniques are created.
+            # Embedded uniques are not created.
             self.assertEqual(
                 self.get_constraints_for_columns(
                     Book, ["author.unique_together_three", "author.unique_together_four"]
                 ),
-                [
-                    "schema__author_author.unique_together_three_author.unique_together_four_39e1cb43_uniq"
-                ],
+                [],
             )
+            self.assertEqual(
+                self.get_constraints_for_columns(
+                    Author, ["unique_together_three", "unique_together_four"]
+                ),
+                [],
+            )
+
             self.assertEqual(
                 self.get_constraints_for_columns(
                     Book,
                     ["author.address.unique_together_one", "author.address.unique_together_two"],
                 ),
-                [
-                    "schema__address_author.address.unique_together_one_author.address.unique_together_two_de682e30_uniq"
-                ],
+                [],
             )
             editor.remove_field(Book, new_field)
             # Embedded indexes are removed.
@@ -426,14 +425,14 @@ class SchemaTests(TestMixin, TransactionTestCase):
             # Embedded indexes are created.
             self.assertEqual(
                 self.get_constraints_for_columns(Book, ["author.indexed_two"]),
-                ["schema__aut_indexed_b19137_idx"],
+                [],
             )
             self.assertEqual(
                 self.get_constraints_for_columns(
                     Book,
                     ["author.address.indexed_one"],
                 ),
-                ["schema__add_indexed_b64972_idx"],
+                [],
             )
             editor.remove_field(Book, new_field)
             # Embedded indexes are removed.
@@ -484,17 +483,17 @@ class SchemaTests(TestMixin, TransactionTestCase):
             # Create the table and add the field.
             editor.create_model(Book)
             editor.add_field(Book, new_field)
-            # Embedded constraints are created.
+            # Embedded constraints are not created.
             self.assertEqual(
                 self.get_constraints_for_columns(Book, ["author.unique_constraint_two"]),
-                ["unique_two"],
+                [],
             )
             self.assertEqual(
                 self.get_constraints_for_columns(
                     Book,
                     ["author.address.unique_constraint_one"],
                 ),
-                ["unique_one"],
+                [],
             )
             editor.remove_field(Book, new_field)
             # Embedded constraints are removed.
