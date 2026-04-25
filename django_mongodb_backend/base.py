@@ -155,9 +155,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         "istartswith": lambda a, b: DatabaseWrapper._regex_operator(a, f"^{b}", insensitive=True),
         "endswith": lambda a, b: DatabaseWrapper._regex_operator(a, f"{b}$"),
         "iendswith": lambda a, b: DatabaseWrapper._regex_operator(a, f"{b}$", insensitive=True),
-        "contains": lambda a, b: DatabaseWrapper._regex_operator(a, b),
+        "contains": _regex_operator,
         "icontains": lambda a, b: DatabaseWrapper._regex_operator(a, b, insensitive=True),
-        "regex": lambda a, b: DatabaseWrapper._regex_operator(a, b),
+        "regex": _regex_operator,
         "iregex": lambda a, b: DatabaseWrapper._regex_operator(a, b, insensitive=True),
     }
 
@@ -202,9 +202,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         "iendswith": lambda a, b: DatabaseWrapper._regex_expr(
             a, (b, {"$literal": "$"}), insensitive=True
         ),
-        "contains": lambda a, b: DatabaseWrapper._regex_expr(a, b),
+        "contains": _regex_expr,
         "icontains": lambda a, b: DatabaseWrapper._regex_expr(a, b, insensitive=True),
-        "regex": lambda a, b: DatabaseWrapper._regex_expr(a, b),
+        "regex": _regex_expr,
         "iregex": lambda a, b: DatabaseWrapper._regex_expr(a, b, insensitive=True),
     }
 
