@@ -1,8 +1,9 @@
 from django.db import connection, migrations, models
 from django.db.migrations.state import ProjectState
+from django.test.utils import CaptureQueriesContext
 from migrations.test_base import OperationTestBase
 
-from django_mongodb_backend.db.migrations.operations import AddEmbeddedField
+from django_mongodb_backend.db.migrations.operations import AddEmbeddedField, RemoveEmbeddedField
 from django_mongodb_backend.fields import EmbeddedModelField, ObjectIdAutoField
 
 
@@ -101,3 +102,42 @@ class OperationTests(OperationTestBase):
         self.assertEqual(name, "AddEmbeddedField")
         self.assertEqual(args, [])
         self.assertEqual(kwargs, {"model_name": "Book", "name": "author.age", "field": new_field})
+
+    def test_remove_embedded_field(self):
+        """Test the RemoveEmbeddedField operation."""
+        app_label = "test_rmemfl"
+        project_state = self.set_up_test_model(app_label)
+        # Test the state alteration
+        operation = RemoveEmbeddedField("Book", "author.name")
+        self.assertEqual(operation.describe(), "Remove embedded field author.name from Book")
+        self.assertEqual(
+            operation.formatted_description(), "- Remove embedded field author.name from Book"
+        )
+        self.assertEqual(operation.migration_name_fragment, "remove_book_author.name")
+        new_state = project_state.clone()
+        operation.state_forwards(app_label, new_state)
+        # self.assertEqual(len(new_state.models["test_rmfl", "pony"].fields), 4)
+        # Test the database alteration
+        # self.assertColumnExists("test_rmfl_pony", "pink")
+        with (
+            connection.schema_editor() as editor,
+            CaptureQueriesContext(connection) as ctx,
+        ):
+            operation.database_forwards(app_label, editor, project_state, new_state)
+        self.assertEqual(
+            ctx.captured_queries[-1]["sql"],
+            "db.test_rmemfl_book.update_many({}, {'$unset': {'author.name': ''}})",
+        )
+        # And test reversal
+        # with (
+        #     connection.schema_editor() as editor,
+        #     CaptureQueriesContext(connection) as ctx,
+        # ):
+        #     operation.database_backwards(app_label, editor, new_state, project_state)
+        # self.assertEqual(ctx.captured_queries[-1]["sql"],
+        # "db.test_rmemfl_book.update_many({}, {'$unset': {'author.name': ''}})")
+        # And deconstruction
+        definition = operation.deconstruct()
+        self.assertEqual(definition[0], "RemoveEmbeddedField")
+        self.assertEqual(definition[1], [])
+        self.assertEqual(definition[2], {"model_name": "Book", "name": "author.name"})
