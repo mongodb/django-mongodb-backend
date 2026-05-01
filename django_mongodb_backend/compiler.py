@@ -890,7 +890,7 @@ class SQLCompiler(compiler.SQLCompiler):
         for option in self.connection.ops.explain_options:
             if value := options.get(option):
                 kwargs[option] = value
-        explain = self.connection.database.command(
+        explain = self.connection.get_database().command(
             "explain",
             {"aggregate": self.collection_name, "pipeline": pipeline, "cursor": {}},
             **kwargs,

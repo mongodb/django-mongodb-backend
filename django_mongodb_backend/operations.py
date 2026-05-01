@@ -37,6 +37,7 @@ class DatabaseOperations(GISOperations, BaseDatabaseOperations):
         Combinable.BITXOR: "bitXor",
     }
     explain_options = {"comment", "verbosity"}
+    explain_prefix = "db.command('explain',"  # Expected value for tests.
 
     def adapt_datefield_value(self, value):
         """Store DateField as datetime."""

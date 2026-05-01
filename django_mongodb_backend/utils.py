@@ -67,6 +67,7 @@ class OperationDebugWrapper:
     # The PyMongo database and collection methods that this backend uses.
     wrapped_methods = {
         "aggregate",
+        "command",
         "create_collection",
         "create_indexes",
         "create_search_index",

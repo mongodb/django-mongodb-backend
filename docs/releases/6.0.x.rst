@@ -20,6 +20,8 @@ Bug fixes
 - Prevented :func:`~django_mongodb_backend.transaction.atomic` from silencing
   exceptions raised on commit.
 
+- Added debug logging of ``QuerySet.explain()`` queries.
+
 6.0.3
 =====
 
