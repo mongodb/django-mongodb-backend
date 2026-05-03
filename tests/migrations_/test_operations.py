@@ -67,7 +67,7 @@ class OperationTests(OperationTestBase):
         self.assertEqual(operation.migration_name_fragment, "book_author.age")
 
         initial_state = self.set_up_test_model(app_label)
-        # Create initiald data
+        # Create initial data
         Book = initial_state.apps.get_model(app_label, "Book")
         Author = initial_state.apps.get_model(app_label, "Author")
         book = Book.objects.create(name="Moby Dick", author=Author(name="Melville"))

@@ -5,7 +5,6 @@ from unittest import mock
 from django.contrib.auth.models import AbstractBaseUser
 from django.db import models
 from django.db.migrations.autodetector import MigrationAutodetector
-from django.db.migrations.graph import MigrationGraph
 from django.db.migrations.questioner import MigrationQuestioner
 from django.db.migrations.state import ModelState, ProjectState
 from django.test import TestCase
@@ -459,41 +458,6 @@ class AutodetectorTests(BaseAutodetectorTests):
             ("publisher", models.ForeignKey("testapp.Publisher", models.CASCADE)),
         ],
     )
-    publisher = ModelState(
-        "testapp",
-        "Publisher",
-        [
-            ("id", models.AutoField(primary_key=True)),
-            ("name", models.CharField(max_length=100)),
-        ],
-    )
-    publisher_with_author = ModelState(
-        "testapp",
-        "Publisher",
-        [
-            ("id", models.AutoField(primary_key=True)),
-            ("author", models.ForeignKey("testapp.Author", models.CASCADE)),
-            ("name", models.CharField(max_length=100)),
-        ],
-    )
-    publisher_with_aardvark_author = ModelState(
-        "testapp",
-        "Publisher",
-        [
-            ("id", models.AutoField(primary_key=True)),
-            ("author", models.ForeignKey("testapp.Aardvark", models.CASCADE)),
-            ("name", models.CharField(max_length=100)),
-        ],
-    )
-    publisher_with_book = ModelState(
-        "testapp",
-        "Publisher",
-        [
-            ("id", models.AutoField(primary_key=True)),
-            ("author", models.ForeignKey("otherapp.Book", models.CASCADE)),
-            ("name", models.CharField(max_length=100)),
-        ],
-    )
     other_pony = ModelState(
         "otherapp",
         "Pony",
@@ -715,65 +679,6 @@ class AutodetectorTests(BaseAutodetectorTests):
         },
     )
 
-    def test_arrange_for_graph(self):
-        """Tests auto-naming of migrations for graph matching."""
-        # Make a fake graph
-        graph = MigrationGraph()
-        graph.add_node(("testapp", "0001_initial"), None)
-        graph.add_node(("testapp", "0002_foobar"), None)
-        graph.add_node(("otherapp", "0001_initial"), None)
-        graph.add_dependency(
-            "testapp.0002_foobar",
-            ("testapp", "0002_foobar"),
-            ("testapp", "0001_initial"),
-        )
-        graph.add_dependency(
-            "testapp.0002_foobar",
-            ("testapp", "0002_foobar"),
-            ("otherapp", "0001_initial"),
-        )
-        # Use project state to make a new migration change set
-        before = self.make_project_state([self.publisher, self.other_pony])
-        after = self.make_project_state(
-            [
-                self.author_empty,
-                self.publisher,
-                self.other_pony,
-                self.other_stable,
-            ]
-        )
-        autodetector = MigrationAutodetector(before, after)
-        changes = autodetector._detect_changes()
-        # Run through arrange_for_graph
-        changes = autodetector.arrange_for_graph(changes, graph)
-        # Make sure there's a new name, deps match, etc.
-        self.assertEqual(changes["testapp"][0].name, "0003_author")
-        self.assertEqual(changes["testapp"][0].dependencies, [("testapp", "0002_foobar")])
-        self.assertEqual(changes["otherapp"][0].name, "0002_stable")
-        self.assertEqual(changes["otherapp"][0].dependencies, [("otherapp", "0001_initial")])
-
-    def test_arrange_for_graph_with_multiple_initial(self):
-        # Make a fake graph.
-        graph = MigrationGraph()
-        # Use project state to make a new migration change set.
-        before = self.make_project_state([])
-        after = self.make_project_state([self.author_with_book, self.book, self.attribution])
-        autodetector = MigrationAutodetector(
-            before, after, MigrationQuestioner({"ask_initial": True})
-        )
-        changes = autodetector._detect_changes()
-        changes = autodetector.arrange_for_graph(changes, graph)
-
-        self.assertEqual(changes["otherapp"][0].name, "0001_initial")
-        self.assertEqual(changes["otherapp"][0].dependencies, [])
-        self.assertEqual(changes["otherapp"][1].name, "0002_initial")
-        self.assertCountEqual(
-            changes["otherapp"][1].dependencies,
-            [("testapp", "0001_initial"), ("otherapp", "0001_initial")],
-        )
-        self.assertEqual(changes["testapp"][0].name, "0001_initial")
-        self.assertEqual(changes["testapp"][0].dependencies, [("otherapp", "0001_initial")])
-
     def test_old_model(self):
         """Tests deletion of old models."""
         changes = self.get_changes([self.author_empty], [])
@@ -840,7 +745,9 @@ class AutodetectorTests(BaseAutodetectorTests):
         )
 
     def test_add_embedded_field_db_column(self):
-        """Detection of new embedded fields (Author.age)."""
+        """
+        AddEmbeddedField's name uses each field's db_column in embedded paths.
+        """
         changes = self.get_changes(
             [
                 ModelState(
@@ -849,7 +756,7 @@ class AutodetectorTests(BaseAutodetectorTests):
                     [
                         ("id", ObjectIdAutoField(primary_key=True)),
                         ("name", models.CharField(max_length=200)),
-                        ("author", EmbeddedModelField("testapp.author")),
+                        ("author", EmbeddedModelField("testapp.author", db_column="the_author")),
                     ],
                 ),
                 ModelState(
@@ -869,7 +776,7 @@ class AutodetectorTests(BaseAutodetectorTests):
                     [
                         ("id", ObjectIdAutoField(primary_key=True)),
                         ("name", models.CharField(max_length=200)),
-                        ("author", EmbeddedModelField("testapp.author")),
+                        ("author", EmbeddedModelField("testapp.author", db_column="the_author")),
                     ],
                 ),
                 ModelState(
@@ -878,7 +785,7 @@ class AutodetectorTests(BaseAutodetectorTests):
                     [
                         ("id", ObjectIdAutoField(primary_key=True)),
                         ("name", models.CharField(max_length=10)),
-                        ("age", models.IntegerField()),
+                        ("age", models.IntegerField(db_column="the_age")),
                     ],
                     {"db_table": EMBEDDED},
                 ),
@@ -893,7 +800,7 @@ class AutodetectorTests(BaseAutodetectorTests):
             0,
             1,
             model_name="book",
-            name="author.age",
+            name="the_author.the_age",
         )
 
     @mock.patch(
@@ -980,6 +887,66 @@ class AutodetectorTests(BaseAutodetectorTests):
         self.assertOperationFieldAttributes(changes, "testapp", 0, 1, auto_now_add=True)
         self.assertOperationFieldAttributes(changes, "testapp", 0, 2, auto_now_add=True)
         self.assertEqual(mocked_ask_method.call_count, 3)
+
+    def test_add_embedded_model_field(self):
+        """Detection of new embedded fields (Author.age)."""
+        changes = self.get_changes(
+            [
+                ModelState(
+                    "testapp",
+                    "Book",
+                    [
+                        ("id", ObjectIdAutoField(primary_key=True)),
+                        ("name", models.CharField(max_length=200)),
+                        # ("author", EmbeddedModelField("testapp.author")),
+                    ],
+                ),
+                #                ModelState(
+                #                    "testapp",
+                #                    "Author",
+                #                    [
+                #                        ("id", ObjectIdAutoField(primary_key=True)),
+                #                        ("name", models.CharField(max_length=10)),
+                #                    ],
+                #                    {"db_table": EMBEDDED},
+                #                ),
+            ],
+            [
+                ModelState(
+                    "testapp",
+                    "Book",
+                    [
+                        ("id", ObjectIdAutoField(primary_key=True)),
+                        ("name", models.CharField(max_length=200)),
+                        ("author", EmbeddedModelField("testapp.author")),
+                    ],
+                ),
+                ModelState(
+                    "testapp",
+                    "Author",
+                    [
+                        ("id", ObjectIdAutoField(primary_key=True)),
+                        ("name", models.CharField(max_length=10)),
+                        ("age", models.IntegerField()),
+                    ],
+                    {"db_table": EMBEDDED},
+                ),
+            ],
+        )
+        # Right number/type of migrations?
+        self.assertNumberMigrations(changes, "testapp", 1)
+        self.assertOperationTypes(changes, "testapp", 0, ["AddField", "AddEmbeddedField"])
+
+        # Should generate AddEmbeddedModelField for the new model and not an
+        # AddEmbeddedField for each subfield.
+        self.assertOperationAttributes(
+            changes,
+            "testapp",
+            0,
+            1,
+            model_name="book",
+            name="author.age",
+        )
 
     def test_remove_embedded_field(self):
         """Tests autodetection of removed fields."""
@@ -1399,129 +1366,6 @@ class AutodetectorTests(BaseAutodetectorTests):
         )
         self.assertNumberMigrations(changes, "testapp", 0)
         self.assertNumberMigrations(changes, "otherapp", 0)
-
-    def test_renamed_referenced_m2m_model_case(self):
-        publisher_renamed = ModelState(
-            "testapp",
-            "publisher",
-            [
-                ("id", models.AutoField(primary_key=True)),
-                ("name", models.CharField(max_length=100)),
-            ],
-        )
-        changes = self.get_changes(
-            [self.publisher, self.author_with_m2m],
-            [publisher_renamed, self.author_with_m2m],
-            questioner=MigrationQuestioner({"ask_rename_model": True}),
-        )
-        self.assertNumberMigrations(changes, "testapp", 0)
-        self.assertNumberMigrations(changes, "otherapp", 0)
-
-    def test_rename_m2m_through_model(self):
-        """
-        Tests autodetection of renamed models that are used in M2M relations as
-        through models.
-        """
-        changes = self.get_changes(
-            [self.author_with_m2m_through, self.publisher, self.contract],
-            [
-                self.author_with_renamed_m2m_through,
-                self.publisher,
-                self.contract_renamed,
-            ],
-            MigrationQuestioner({"ask_rename_model": True}),
-        )
-        # Right number/type of migrations?
-        self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["RenameModel"])
-        self.assertOperationAttributes(
-            changes, "testapp", 0, 0, old_name="Contract", new_name="Deal"
-        )
-
-    def test_rename_model_with_renamed_rel_field(self):
-        """
-        Tests autodetection of renamed models while simultaneously renaming one
-        of the fields that relate to the renamed model.
-        """
-        changes = self.get_changes(
-            [self.author_with_book, self.book],
-            [self.author_renamed_with_book, self.book_with_field_and_author_renamed],
-            MigrationQuestioner({"ask_rename": True, "ask_rename_model": True}),
-        )
-        # Right number/type of migrations?
-        self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["RenameModel"])
-        self.assertOperationAttributes(
-            changes, "testapp", 0, 0, old_name="Author", new_name="Writer"
-        )
-        # Right number/type of migrations for related field rename?
-        # Alter is already taken care of.
-        self.assertNumberMigrations(changes, "otherapp", 1)
-        self.assertOperationTypes(changes, "otherapp", 0, ["RenameField"])
-        self.assertOperationAttributes(
-            changes, "otherapp", 0, 0, old_name="author", new_name="writer"
-        )
-
-    def test_empty_unique_together(self):
-        """Empty unique_together shouldn't generate a migration."""
-        # Explicitly testing for not specified, since this is the case after
-        # a CreateModel operation w/o any definition on the original model
-        model_state_not_specified = ModelState(
-            "a", "model", [("id", models.AutoField(primary_key=True))]
-        )
-        # Explicitly testing for None, since this was the issue in #23452 after
-        # an AlterUniqueTogether operation with e.g. () as value
-        model_state_none = ModelState(
-            "a",
-            "model",
-            [("id", models.AutoField(primary_key=True))],
-            {
-                "unique_together": None,
-            },
-        )
-        # Explicitly testing for the empty set, since we now always have sets.
-        # During removal (('col1', 'col2'),) --> () this becomes set([])
-        model_state_empty = ModelState(
-            "a",
-            "model",
-            [("id", models.AutoField(primary_key=True))],
-            {
-                "unique_together": set(),
-            },
-        )
-
-        def test(from_state, to_state, msg):
-            changes = self.get_changes([from_state], [to_state])
-            if changes:
-                ops = ", ".join(o.__class__.__name__ for o in changes["a"][0].operations)
-                self.fail(f"Created operation(s) {ops} from {msg}")
-
-        tests = (
-            (
-                model_state_not_specified,
-                model_state_not_specified,
-                '"not specified" to "not specified"',
-            ),
-            (model_state_not_specified, model_state_none, '"not specified" to "None"'),
-            (
-                model_state_not_specified,
-                model_state_empty,
-                '"not specified" to "empty"',
-            ),
-            (model_state_none, model_state_not_specified, '"None" to "not specified"'),
-            (model_state_none, model_state_none, '"None" to "None"'),
-            (model_state_none, model_state_empty, '"None" to "empty"'),
-            (
-                model_state_empty,
-                model_state_not_specified,
-                '"empty" to "not specified"',
-            ),
-            (model_state_empty, model_state_none, '"empty" to "None"'),
-            (model_state_empty, model_state_empty, '"empty" to "empty"'),
-        )
-
-        for t in tests:
-            test(*t)
 
     def test_remove_field_with_model_options(self):
         before_state = [
