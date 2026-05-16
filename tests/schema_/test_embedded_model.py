@@ -558,9 +558,16 @@ class GISTests(TestMixin, TransactionTestCase):
         """
         from django.contrib.gis.db.models import PointField  # noqa: PLC0415
 
+        class Subplace(EmbeddedModel):
+            point = PointField()
+
+            class Meta:
+                app_label = "schema_"
+
         class Place(EmbeddedModel):
             name = models.CharField(max_length=10)
             location = PointField()
+            subplace = EmbeddedModelField(Subplace)
 
             class Meta:
                 app_label = "schema_"
@@ -575,12 +582,72 @@ class GISTests(TestMixin, TransactionTestCase):
             # Create the table
             editor.create_model(Author)
             self.assertTableExists(Author)
-            # The embedded GEO indexes is created.
-            constraint_name = "schema__author_birthplace.location_id"
-            self.assertEqual(
-                self.get_constraints_for_columns(Author, ["birthplace.location"]),
-                [constraint_name],
-            )
-            self.assertIndexOrder(Author._meta.db_table, constraint_name, ["GEO"])
-            editor.delete_model(Author)
+            try:
+                # The embedded GEO index is created.
+                constraint_name = "schema__author_birthplace.location_id"
+                self.assertEqual(
+                    self.get_constraints_for_columns(Author, ["birthplace.location"]),
+                    [constraint_name],
+                )
+                self.assertIndexOrder(Author._meta.db_table, constraint_name, ["GEO"])
+                # The nested GEO index is created.
+                constraint_name = "schema__author_birthplace.subplace.point_id"
+                self.assertEqual(
+                    self.get_constraints_for_columns(Author, ["birthplace.subplace.point"]),
+                    [constraint_name],
+                )
+                self.assertIndexOrder(Author._meta.db_table, constraint_name, ["GEO"])
+            finally:
+                editor.delete_model(Author)
+        self.assertTableNotExists(Author)
+
+    @isolate_apps("schema_")
+    def test_add_field(self):
+        """
+        Spatial indexes for embedded GIS fields are created when an
+        EmbeddedModelField is added.
+        """
+        from django.contrib.gis.db.models import PointField  # noqa: PLC0415
+
+        class Subplace(EmbeddedModel):
+            point = PointField()
+
+            class Meta:
+                app_label = "schema_"
+
+        class Place(EmbeddedModel):
+            name = models.CharField(max_length=10)
+            location = PointField()
+            subplace = EmbeddedModelField(Subplace)
+
+            class Meta:
+                app_label = "schema_"
+
+        class Author(models.Model):
+            class Meta:
+                app_label = "schema_"
+
+        with connection.schema_editor() as editor:
+            editor.create_model(Author)
+            self.assertTableExists(Author)
+            try:
+                new_field = EmbeddedModelField(Place)
+                new_field.set_attributes_from_name("birthplace")
+                editor.add_field(Author, new_field)
+                # The embedded GEO index is created.
+                constraint_name = "schema__author_birthplace.location_id"
+                self.assertEqual(
+                    self.get_constraints_for_columns(Author, ["birthplace.location"]),
+                    [constraint_name],
+                )
+                self.assertIndexOrder(Author._meta.db_table, constraint_name, ["GEO"])
+                # The nested GEO index is created.
+                constraint_name = "schema__author_birthplace.subplace.point_id"
+                self.assertEqual(
+                    self.get_constraints_for_columns(Author, ["birthplace.subplace.point"]),
+                    [constraint_name],
+                )
+                self.assertIndexOrder(Author._meta.db_table, constraint_name, ["GEO"])
+            finally:
+                editor.delete_model(Author)
         self.assertTableNotExists(Author)
