@@ -247,6 +247,6 @@ buildvariants:
     display_name: Performance Tests
     run_on:
       - rhel90-dbx-perf-large
-    cron: '0 16 * * MON'  # Daily
+    cron: '0 16 * * *'  # Run daily at 16:00 UTC
     tasks:
       - name: run-performance-tests
