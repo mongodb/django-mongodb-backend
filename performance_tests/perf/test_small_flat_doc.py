@@ -1,4 +1,5 @@
 from pathlib import Path
+from time import time
 from unittest import TestCase
 
 from bson import encode, json_util
@@ -59,6 +60,7 @@ class TestSmallFlatDocUpdate(SmallFlatDocTest, TestCase):
         for model in self.models:
             model.field1 = "updated_value" + str(self.iteration)
             model.save()
+            time.sleep(0.001)
         self.iteration += 1
 
 
