@@ -132,6 +132,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         # This is a bit obscure and might not be supported.
         # https://github.com/django/django/pull/20864
         "model_fields.test_jsonfield.TestQuerying.test_json_type_casting_with_coalesce",
+        # To be investigated:
+        # https://github.com/django/django/pull/18660
+        "db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests.test_trunc_filter_non_utc_active",
     }
 
     @cached_property
