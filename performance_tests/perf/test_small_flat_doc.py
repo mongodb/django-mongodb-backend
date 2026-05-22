@@ -1,5 +1,5 @@
-from pathlib import Path
 import time
+from pathlib import Path
 from unittest import TestCase
 
 from bson import encode, json_util
