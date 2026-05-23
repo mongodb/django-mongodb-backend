@@ -12,6 +12,7 @@ from django_mongodb_backend.db.migrations.operations import (
     RemoveEmbeddedField,
     RenameEmbeddedField,
 )
+from django_mongodb_backend.fields import EmbeddedModelArrayField
 from django_mongodb_backend.indexes import FieldColumn
 
 _MISSING = object()
@@ -23,6 +24,9 @@ class MigrationAutodetector(BaseMigrationAutodetector):
 
         def get_old_embedded_paths(field, name_prefix=None, path_prefix=None):
             if hasattr(field, "embedded_model"):
+                if isinstance(field, EmbeddedModelArrayField):
+                    # EmbeddedModelArrayField isn't yet supported.
+                    return
                 if isinstance(field.embedded_model, str):
                     model_label = field.embedded_model
                 else:
@@ -61,6 +65,9 @@ class MigrationAutodetector(BaseMigrationAutodetector):
 
         def get_new_embedded_paths(field, name_prefix=None, path_prefix=None):
             if hasattr(field, "embedded_model"):
+                if isinstance(field, EmbeddedModelArrayField):
+                    # EmbeddedModelArrayField isn't yet supported.
+                    return
                 embedded_model = self.to_state.models[tuple(field.embedded_model.split("."))]
                 for subfield_name, subfield in embedded_model.fields.items():
                     subfield_column = subfield.get_attname_column()[1]
