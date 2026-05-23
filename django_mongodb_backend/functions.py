@@ -15,6 +15,7 @@ from django.db.models.functions.datetime import (
     ExtractIsoYear,
     ExtractMinute,
     ExtractMonth,
+    ExtractQuarter,
     ExtractSecond,
     ExtractWeek,
     ExtractWeekDay,
@@ -101,12 +102,22 @@ def cot(self, compiler, connection):
 
 def extract(self, compiler, connection):
     lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+    # ExtractQuarter lacks a built-in operator.
+    if self.lookup_name == "quarter":
+        return extract_quarter(self, compiler, connection)
     operator = EXTRACT_OPERATORS.get(self.lookup_name)
     if operator is None:
         raise NotSupportedError(f"{self.__class__.__name__} is not supported.")
     if timezone := self.get_tzname():
         lhs_mql = {"date": lhs_mql, "timezone": timezone}
     return {f"${operator}": lhs_mql}
+
+
+def extract_quarter(self, compiler, connection):
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+    if timezone := self.get_tzname():
+        lhs_mql = {"date": lhs_mql, "timezone": timezone}
+    return {"$ceil": {"$divide": [{"$month": lhs_mql}, 3]}}
 
 
 def func(self, compiler, connection):
@@ -329,6 +340,7 @@ def register_functions():
     ConcatPair.as_mql_expr = concat_pair
     Cot.as_mql_expr = cot
     Extract.as_mql_expr = extract
+    ExtractQuarter.as_mql_expr = extract_quarter
     Func.as_mql_expr = func
     Func.can_use_path = False
     JSONArray.as_mql_expr = partialmethod(process_lhs, as_expr=True)

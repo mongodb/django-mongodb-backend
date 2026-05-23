@@ -725,10 +725,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         (NotSupportedError, "TruncDate with tzinfo (Africa/Nairobi) isn't supported on MongoDB."): {
             "timezones.tests.NewDatabaseTests.test_query_convert_timezones",
         },
-        (NotSupportedError, "ExtractQuarter is not supported."): {
-            "db_functions.datetime.test_extract_trunc.DateFunctionTests.test_extract_quarter_func",
-            "db_functions.datetime.test_extract_trunc.DateFunctionTests.test_extract_quarter_func_boundaries",
-        },
         (NotSupportedError, "StringAgg is not supported."): {
             "aggregation.tests.AggregateTestCase.test_distinct_on_stringagg",
             "aggregation.tests.AggregateTestCase.test_string_agg_escapes_delimiter",
