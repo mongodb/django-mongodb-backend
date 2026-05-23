@@ -17,6 +17,9 @@ New features
   - :class:`~django.db.models.functions.Right`
   - :class:`~django.db.models.functions.SHA256` (requires MongoDB 8.3+)
 
+- Added support for fixed-offset ``tzinfo`` in the
+  :class:`~django.db.models.functions.Extract` database functions.
+
 - Added support for Django's warning when performing import-time queries.
 
 Bug fixes

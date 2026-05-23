@@ -100,6 +100,15 @@ def cot(self, compiler, connection):
     return {"$divide": [1, {"$tan": lhs_mql}]}
 
 
+def _get_extract_timezone(self):
+    tzname = self.get_tzname()
+    # Django formats fixed offset zones as "UTC+HH:MM" but MongoDB only accepts
+    # the bare offset form "+HH:MM" / "-HH:MM".
+    if tzname and tzname.startswith(("UTC+", "UTC-")):
+        return tzname[3:]
+    return tzname
+
+
 def extract(self, compiler, connection):
     lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
     # ExtractQuarter lacks a built-in operator.
@@ -108,14 +117,14 @@ def extract(self, compiler, connection):
     operator = EXTRACT_OPERATORS.get(self.lookup_name)
     if operator is None:
         raise NotSupportedError(f"{self.__class__.__name__} is not supported.")
-    if timezone := self.get_tzname():
+    if timezone := _get_extract_timezone(self):
         lhs_mql = {"date": lhs_mql, "timezone": timezone}
     return {f"${operator}": lhs_mql}
 
 
 def extract_quarter(self, compiler, connection):
     lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
-    if timezone := self.get_tzname():
+    if timezone := _get_extract_timezone(self):
         lhs_mql = {"date": lhs_mql, "timezone": timezone}
     return {"$ceil": {"$divide": [{"$month": lhs_mql}, 3]}}
 
