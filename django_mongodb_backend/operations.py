@@ -4,7 +4,7 @@ import re
 import uuid
 from decimal import Decimal
 
-from bson import Decimal128, Int64
+from bson import Decimal128, Int64, ObjectId
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import DataError, models
@@ -375,3 +375,9 @@ class DatabaseOperations(GISOperations, BaseDatabaseOperations):
 
     def time_trunc_sql(self, lookup_type, sql, params, tzname=None):
         return f"DATE_TRUNC(%s, {sql})::time", (lookup_type, *params)
+
+    def get_hardcoded_pk(self, value):
+        return ObjectId(f"{value:024}")
+
+    def get_nonexistent_pk(self, value):
+        return ObjectId()
