@@ -173,6 +173,7 @@ tasks:
       - func: "teardown csfle"
 
   - name: run-performance-tests
+    patchable: false
     commands:
       - func: "run performance tests"
       - func: "attach performance test results"
