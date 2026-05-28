@@ -258,7 +258,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "db_functions.tests.FunctionTests.test_func_transform_bilateral_multivalue",
         },
         "MongoDB does not support this database function.": {
-            "db_functions.math.test_sign.SignTests",
             "db_functions.text.test_chr.ChrTests",
             "db_functions.text.test_ord.OrdTests",
             "db_functions.text.test_pad.PadTests",
