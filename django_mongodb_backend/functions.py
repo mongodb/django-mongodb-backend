@@ -24,7 +24,17 @@ from django.db.models.functions.datetime import (
     TruncDate,
     TruncTime,
 )
-from django.db.models.functions.math import Ceil, Cot, Degrees, Log, Power, Radians, Random, Round
+from django.db.models.functions.math import (
+    Ceil,
+    Cot,
+    Degrees,
+    Log,
+    Power,
+    Radians,
+    Random,
+    Round,
+    Sign,
+)
 from django.db.models.functions.text import (
     MD5,
     SHA256,
@@ -219,6 +229,23 @@ def round_(self, compiler, connection):
     }
 
 
+def sign(self, compiler, connection):
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+    return {
+        "$cond": {
+            "if": {"$eq": [lhs_mql, None]},
+            "then": None,  # Return null for null input.
+            "else": {
+                "$cond": {
+                    "if": {"$eq": [lhs_mql, 0]},
+                    "then": 0,  # Return zero for zero input.
+                    "else": {"$cmp": [lhs_mql, 0]},  # Otherwise, +1 or -1.
+                },
+            },
+        }
+    }
+
+
 def str_index(self, compiler, connection):
     lhs = process_lhs(self, compiler, connection, as_expr=True)
     # StrIndex should be 0-indexed (not found) but it's -1-indexed on MongoDB.
@@ -345,6 +372,7 @@ def register_functions():
     Round.as_mql_expr = round_
     RTrim.as_mql_expr = trim("rtrim")
     SHA256.as_mql_expr = hash_func("sha256")
+    Sign.as_mql_expr = sign
     StrIndex.as_mql_expr = str_index
     Substr.as_mql_expr = substr
     Trim.as_mql_expr = trim("trim")
