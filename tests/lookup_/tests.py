@@ -4,7 +4,7 @@ from django.test import TestCase
 
 from django_mongodb_backend.test import MongoTestCaseMixin
 
-from .models import Book, Number
+from .models import Book, Number, UniqueAuthor, UniqueBook
 
 
 class NumericLookupTests(MongoTestCaseMixin, TestCase):
@@ -170,3 +170,41 @@ class LookupMQLTests(MongoTestCaseMixin, TestCase):
                 {"$sort": SON([("num", 1)])},
             ],
         )
+
+class PartialUniqueIndexLookupTests(TestCase):
+    def _find_ixscan(self, winning_plan):
+        plan = winning_plan
+        while plan:
+            if plan.get("stage") == "IXSCAN":
+                return plan
+            plan = plan.get("inputStage")
+        return None
+
+    def test_exact_lookup_uses_partial_unique_index(self):
+        UniqueAuthor.objects.create(name="JK Rowling")
+
+        plan = json_util.loads(
+            UniqueAuthor.objects.filter(name="JK Rowling").explain()
+        )["queryPlanner"]["winningPlan"]
+        ixscan = self._find_ixscan(plan)
+
+        self.assertIsNotNone(ixscan)
+        self.assertEqual(ixscan["keyPattern"], {"name": 1})
+        self.assertTrue(ixscan["isUnique"])
+        self.assertTrue(ixscan["isPartial"])
+
+    def test_compound_exact_lookup_uses_partial_unique_index(self):
+        author = UniqueAuthor.objects.create(name="JK Rowling")
+        UniqueBook.objects.create(author=author, version=3, name="Harry Potter")
+        UniqueBook.objects.create(author=author, version=4, name="Harry Potter")
+
+        plan = json_util.loads(
+            UniqueBook.objects.filter(version=3, name="Harry Potter").explain()
+        )["queryPlanner"]["winningPlan"]
+        ixscan = self._find_ixscan(plan)
+
+        self.assertIsNotNone(ixscan)
+        self.assertEqual(ixscan["indexName"], "unique_book_version")
+        self.assertEqual(ixscan["keyPattern"], {"version": 1, "name": 1})
+        self.assertTrue(ixscan["isUnique"])
+        self.assertTrue(ixscan["isPartial"])
