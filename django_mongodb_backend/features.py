@@ -264,7 +264,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "db_functions.text.test_pad.PadTests",
             "db_functions.text.test_repeat.RepeatTests",
             "db_functions.text.test_reverse.ReverseTests",
-            "db_functions.text.test_right.RightTests",
             "db_functions.text.test_sha1.SHA1Tests",
             "db_functions.text.test_sha224.SHA224Tests",
             "db_functions.text.test_sha384.SHA384Tests",

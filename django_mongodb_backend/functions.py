@@ -35,6 +35,7 @@ from django.db.models.functions.text import (
     Lower,
     LTrim,
     Replace,
+    Right,
     RTrim,
     StrIndex,
     Substr,
@@ -142,6 +143,23 @@ def hash_func(algorithm):
 
 def left(self, compiler, connection):
     return self.get_substr().as_mql(compiler, connection, as_expr=True)
+
+
+def right(self, compiler, connection):
+    expression, length = (
+        expr.as_mql(compiler, connection, as_expr=True) for expr in self.get_source_expressions()
+    )
+    # Calculate substring's start value by subtracting the requested length
+    # from the total length of the string.
+    start = {"$max": [{"$subtract": [{"$strLenCP": expression}, length]}, 0]}
+    return {
+        "$cond": {
+            "if": {"$eq": [length, None]},
+            # $substrCP returns "" for null length; return null instead.
+            "then": None,
+            "else": {"$substrCP": [expression, start, length]},
+        }
+    }
 
 
 def length(self, compiler, connection):
@@ -323,6 +341,7 @@ def register_functions():
     Now.as_mql_expr = now
     NullIf.as_mql_expr = null_if
     Replace.as_mql_expr = replace
+    Right.as_mql_expr = right
     Round.as_mql_expr = round_
     RTrim.as_mql_expr = trim("rtrim")
     SHA256.as_mql_expr = hash_func("sha256")
