@@ -22,6 +22,7 @@ class Number(models.Model):
 class UniqueAuthor(models.Model):
     name = models.TextField(unique=True)
 
+
 class UniqueBook(models.Model):
     author = models.ForeignKey(UniqueAuthor, on_delete=models.CASCADE)
     version = models.IntegerField()

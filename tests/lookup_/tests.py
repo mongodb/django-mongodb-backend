@@ -1,4 +1,4 @@
-from bson import SON
+from bson import SON, json_util
 from django.db.models import Sum
 from django.test import TestCase
 
@@ -171,6 +171,7 @@ class LookupMQLTests(MongoTestCaseMixin, TestCase):
             ],
         )
 
+
 class PartialUniqueIndexLookupTests(TestCase):
     def _find_ixscan(self, winning_plan):
         plan = winning_plan
@@ -183,9 +184,9 @@ class PartialUniqueIndexLookupTests(TestCase):
     def test_exact_lookup_uses_partial_unique_index(self):
         UniqueAuthor.objects.create(name="JK Rowling")
 
-        plan = json_util.loads(
-            UniqueAuthor.objects.filter(name="JK Rowling").explain()
-        )["queryPlanner"]["winningPlan"]
+        plan = json_util.loads(UniqueAuthor.objects.filter(name="JK Rowling").explain())[
+            "queryPlanner"
+        ]["winningPlan"]
         ixscan = self._find_ixscan(plan)
 
         self.assertIsNotNone(ixscan)
@@ -198,9 +199,9 @@ class PartialUniqueIndexLookupTests(TestCase):
         UniqueBook.objects.create(author=author, version=3, name="Harry Potter")
         UniqueBook.objects.create(author=author, version=4, name="Harry Potter")
 
-        plan = json_util.loads(
-            UniqueBook.objects.filter(version=3, name="Harry Potter").explain()
-        )["queryPlanner"]["winningPlan"]
+        plan = json_util.loads(UniqueBook.objects.filter(version=3, name="Harry Potter").explain())[
+            "queryPlanner"
+        ]["winningPlan"]
         ixscan = self._find_ixscan(plan)
 
         self.assertIsNotNone(ixscan)
