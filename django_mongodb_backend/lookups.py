@@ -2,7 +2,6 @@ from django.db import NotSupportedError
 from django.db.models.fields.related_lookups import In, RelatedIn
 from django.db.models.lookups import (
     BuiltinLookup,
-    Exact,
     FieldGetDbPrepValueIterableMixin,
     IsNull,
     LessThan,
@@ -25,32 +24,6 @@ def builtin_lookup_path(self, compiler, connection):
     lhs_mql = process_lhs(self, compiler, connection)
     value = process_rhs(self, compiler, connection)
     return connection.mongo_operators[self.lookup_name](lhs_mql, value)
-
-
-def _type_filter_for_partial_unique_index(self, compiler, connection):
-    """
-    Return a $type predicate matching the backend-generated partial unique index
-    filter for simple exact lookups, or None if it can't be determined.
-    """
-    lhs_mql = process_lhs(self, compiler, connection)
-
-    output_field = getattr(self.lhs, "output_field", None)
-    if output_field is None:
-        return None
-
-    db_type = output_field.db_type(connection)
-    if db_type is None:
-        return None
-
-    return {lhs_mql: {"$type": db_type}}
-
-
-def exact_path(self, compiler, connection):
-    query = builtin_lookup_path(self, compiler, connection)
-    type_filter = _type_filter_for_partial_unique_index(self, compiler, connection)
-    if type_filter is None:
-        return query
-    return {"$and": [query, type_filter]}
 
 
 _field_resolve_expression_parameter = FieldGetDbPrepValueIterableMixin.resolve_expression_parameter
@@ -199,7 +172,6 @@ def uuid_text_mixin(self, compiler, connection, as_expr=False):  # noqa: ARG001
 def register_lookups():
     BuiltinLookup.as_mql_expr = builtin_lookup_expr
     BuiltinLookup.as_mql_path = builtin_lookup_path
-    Exact.as_mql_path = exact_path
     FieldGetDbPrepValueIterableMixin.resolve_expression_parameter = (
         field_resolve_expression_parameter
     )
@@ -214,3 +186,4 @@ def register_lookups():
     PatternLookup.as_mql_expr = pattern_lookup_expr
     PatternLookup.as_mql_path = pattern_lookup_path
     UUIDTextMixin.as_mql = uuid_text_mixin
+    

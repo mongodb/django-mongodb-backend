@@ -1,3 +1,4 @@
+import datetime
 from collections import defaultdict
 
 from django.core import checks
@@ -8,6 +9,41 @@ from pymongo.operations import IndexModel
 
 from .fields import EmbeddedModelArrayField, PolymorphicEmbeddedModelArrayField
 from .indexes import EmbeddedFieldIndexMixin, _get_condition_mql, get_field
+
+def _get_partial_unique_filter(field, connection):
+    db_type = field.db_type(connection)
+    if db_type is None:
+        return {"$exists": True}
+
+    match db_type:
+        case "string":
+            return {"$gte": ""}
+        case "int":
+            return {"$gte": -2147483648, "$lte": 2147483647}
+        case "long":
+            return {
+                "$gte": -9223372036854775808,
+                "$lte": 9223372036854775807,
+            }
+        case "decimal":
+            return {
+                "$gte": -9223372036854775808,
+                "$lte": 9223372036854775807,
+            }
+        case "double":
+            return {
+                "$gte": -9223372036854775808,
+                "$lte": 9223372036854775807,
+            }
+        case "bool":
+            return {"$in": [True, False]}
+        case "date":
+            return {
+                "$gte": datetime.datetime.min,
+                "$lte": datetime.datetime.max,
+            }
+        case _:
+            return {"$exists": True}
 
 
 def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefix=""):
@@ -25,12 +61,14 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefi
         # Field(unique=True) or Meta.unique_together.
         if field:
             column = column_prefix + field.column
-            filter_expression[column].update({"$type": field.db_type(schema_editor.connection)})
+            filter_expression[column].update(
+                _get_partial_unique_filter(field, schema_editor.connection)
+            )
         else:
             for field_name in self.fields:
                 field_ = get_field(model, field_name)
                 filter_expression[field_.column].update(
-                    {"$type": field_.field.db_type(schema_editor.connection)}
+                    _get_partial_unique_filter(field_, schema_editor.connection)
                 )
     if filter_expression:
         kwargs["partialFilterExpression"] = filter_expression
