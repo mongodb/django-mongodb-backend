@@ -26,6 +26,8 @@ from django.db.models.functions.datetime import (
 )
 from django.db.models.functions.math import Ceil, Cot, Degrees, Log, Power, Radians, Random, Round
 from django.db.models.functions.text import (
+    MD5,
+    SHA256,
     Concat,
     ConcatPair,
     Left,
@@ -112,6 +114,30 @@ def func(self, compiler, connection):
         raise NotSupportedError(f"{self.__class__.__name__} may need an as_mql() method.")
     operator = MONGO_OPERATORS.get(self.__class__, self.function.lower())
     return {f"${operator}": lhs_mql}
+
+
+def hash_func(algorithm):
+    def wrapped(self, compiler, connection):
+        if not connection.features.is_mongodb_8_3:
+            raise NotSupportedError(f"{self.__class__.__name__} requires MongoDB 8.3+.")
+        lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+        return {
+            "$cond": {
+                "if": {"$eq": [lhs_mql, None]},
+                "then": None,  # Return null for null input.
+                "else": {
+                    "$toLower": {
+                        "$convert": {
+                            "input": {"$hash": {"input": lhs_mql, "algorithm": algorithm}},
+                            "to": "string",
+                            "format": "hex",
+                        }
+                    }
+                },
+            }
+        }
+
+    return wrapped
 
 
 def left(self, compiler, connection):
@@ -293,11 +319,13 @@ def register_functions():
     Log.as_mql_expr = log
     Lower.as_mql_expr = preserve_null("toLower")
     LTrim.as_mql_expr = trim("ltrim")
+    MD5.as_mql_expr = hash_func("md5")
     Now.as_mql_expr = now
     NullIf.as_mql_expr = null_if
     Replace.as_mql_expr = replace
     Round.as_mql_expr = round_
     RTrim.as_mql_expr = trim("rtrim")
+    SHA256.as_mql_expr = hash_func("sha256")
     StrIndex.as_mql_expr = str_index
     Substr.as_mql_expr = substr
     Trim.as_mql_expr = trim("trim")

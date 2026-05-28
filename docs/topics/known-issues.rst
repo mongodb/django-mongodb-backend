@@ -79,14 +79,12 @@ Database functions
   - :class:`~django.db.models.functions.ExtractQuarter`
   - :class:`~django.db.models.functions.LPad`,
     :class:`~django.db.models.functions.RPad`
-  - :class:`~django.db.models.functions.MD5`
   - :class:`~django.db.models.functions.Ord`
   - :class:`~django.db.models.functions.Repeat`
   - :class:`~django.db.models.functions.Reverse`
   - :class:`~django.db.models.functions.Right`
   - :class:`~django.db.models.functions.SHA1`,
     :class:`~django.db.models.functions.SHA224`,
-    :class:`~django.db.models.functions.SHA256`,
     :class:`~django.db.models.functions.SHA384`,
     :class:`~django.db.models.functions.SHA512`
   - :class:`~django.db.models.functions.Sign`

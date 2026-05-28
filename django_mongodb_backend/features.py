@@ -260,7 +260,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "MongoDB does not support this database function.": {
             "db_functions.math.test_sign.SignTests",
             "db_functions.text.test_chr.ChrTests",
-            "db_functions.text.test_md5.MD5Tests",
             "db_functions.text.test_ord.OrdTests",
             "db_functions.text.test_pad.PadTests",
             "db_functions.text.test_repeat.RepeatTests",
@@ -268,7 +267,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "db_functions.text.test_right.RightTests",
             "db_functions.text.test_sha1.SHA1Tests",
             "db_functions.text.test_sha224.SHA224Tests",
-            "db_functions.text.test_sha256.SHA256Tests",
             "db_functions.text.test_sha384.SHA384Tests",
             "db_functions.text.test_sha512.SHA512Tests",
         },
@@ -460,6 +458,15 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     def django_test_skips(self):
         skips = super().django_test_skips
         skips.update(self._django_test_skips)
+        if not self.is_mongodb_8_3:
+            skips.update(
+                {
+                    "This database function requires MongoDB 8.3+.": {
+                        "db_functions.text.test_md5.MD5Tests",
+                        "db_functions.text.test_sha256.SHA256Tests",
+                    }
+                }
+            )
         return skips
 
     # Tests that are expected to raise certain exceptions:
@@ -766,6 +773,10 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     @cached_property
     def is_mongodb_8_0(self):
         return self.mongodb_version >= (8, 0)
+
+    @cached_property
+    def is_mongodb_8_3(self):
+        return self.mongodb_version >= (8, 3)
 
     @cached_property
     def supports_search(self):
