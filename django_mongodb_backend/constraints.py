@@ -10,7 +10,9 @@ from pymongo.operations import IndexModel
 from .fields import EmbeddedModelArrayField, PolymorphicEmbeddedModelArrayField
 from .indexes import EmbeddedFieldIndexMixin, _get_condition_mql, get_field
 
+
 def _get_partial_unique_filter(field, connection):
+    field = getattr(field, "field", field)
     db_type = field.db_type(connection)
     if db_type is None:
         return {"$exists": True}

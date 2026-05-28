@@ -186,4 +186,3 @@ def register_lookups():
     PatternLookup.as_mql_expr = pattern_lookup_expr
     PatternLookup.as_mql_path = pattern_lookup_path
     UUIDTextMixin.as_mql = uuid_text_mixin
-    
