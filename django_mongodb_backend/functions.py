@@ -47,6 +47,7 @@ from django.db.models.functions.text import (
     LTrim,
     Repeat,
     Replace,
+    Reverse,
     Right,
     RTrim,
     StrIndex,
@@ -259,6 +260,30 @@ def replace(self, compiler, connection):
     return {"$replaceAll": {"input": expression, "find": text, "replacement": replacement}}
 
 
+def reverse(self, compiler, connection):
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+    chars = {
+        "$map": {
+            "input": {"$range": [0, {"$strLenCP": lhs_mql}]},
+            "as": "i",
+            "in": {"$substrCP": [lhs_mql, "$$i", 1]},
+        }
+    }
+    return {
+        "$cond": {
+            "if": {"$eq": [lhs_mql, None]},
+            "then": None,  # Return null for null input.
+            "else": {
+                "$reduce": {
+                    "input": {"$reverseArray": chars},
+                    "initialValue": "",
+                    "in": {"$concat": ["$$value", "$$this"]},
+                }
+            },
+        }
+    }
+
+
 def round_(self, compiler, connection):
     # Round needs its own function because it's a special case that inherits
     # from Transform but has two arguments.
@@ -411,6 +436,7 @@ def register_functions():
     NullIf.as_mql_expr = null_if
     Repeat.as_mql_expr = repeat
     Replace.as_mql_expr = replace
+    Reverse.as_mql_expr = reverse
     Right.as_mql_expr = right
     Round.as_mql_expr = round_
     RTrim.as_mql_expr = trim("rtrim")

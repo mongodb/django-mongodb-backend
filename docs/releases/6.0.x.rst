@@ -15,6 +15,7 @@ New features
   - :class:`~django.db.models.functions.ExtractQuarter`
   - :class:`~django.db.models.functions.MD5` (requires MongoDB 8.3+)
   - :class:`~django.db.models.functions.Repeat`
+  - :class:`~django.db.models.functions.Reverse`
   - :class:`~django.db.models.functions.Right`
   - :class:`~django.db.models.functions.SHA256` (requires MongoDB 8.3+)
   - :class:`~django.db.models.functions.Sign`
