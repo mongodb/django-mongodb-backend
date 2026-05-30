@@ -45,6 +45,7 @@ from django.db.models.functions.text import (
     Length,
     Lower,
     LTrim,
+    Repeat,
     Replace,
     Right,
     RTrim,
@@ -233,6 +234,26 @@ def preserve_null(operator):
     return wrapped
 
 
+def repeat(self, compiler, connection):
+    expression, number = process_lhs(self, compiler, connection, as_expr=True)
+    return {
+        "$cond": {
+            "if": {"$or": [{"$eq": [expression, None]}, {"$eq": [number, None]}]},
+            "then": None,  # Return null if any inputs are null.
+            "else": {
+                "$reduce": {
+                    # $ifNull needed because $range fails during MongoDB
+                    # pipeline optimization when number is null, even inside a
+                    # $cond "else" branch.
+                    "input": {"$range": [0, {"$ifNull": [number, 0]}]},
+                    "initialValue": "",
+                    "in": {"$concat": ["$$value", expression]},
+                }
+            },
+        }
+    }
+
+
 def replace(self, compiler, connection):
     expression, text, replacement = process_lhs(self, compiler, connection, as_expr=True)
     return {"$replaceAll": {"input": expression, "find": text, "replacement": replacement}}
@@ -388,6 +409,7 @@ def register_functions():
     MD5.as_mql_expr = hash_func("md5")
     Now.as_mql_expr = now
     NullIf.as_mql_expr = null_if
+    Repeat.as_mql_expr = repeat
     Replace.as_mql_expr = replace
     Right.as_mql_expr = right
     Round.as_mql_expr = round_
