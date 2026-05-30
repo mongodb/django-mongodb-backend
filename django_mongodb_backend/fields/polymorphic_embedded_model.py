@@ -3,12 +3,20 @@ import contextlib
 from django.apps import apps
 from django.core import checks
 from django.core.exceptions import FieldDoesNotExist, ValidationError
+from django.core.serializers import register_field_serializer
 from django.db import models
 from django.db.models.fields.related import lazy_related_operation
 from django.utils.functional import cached_property
 
 from .embedded_model import EmbeddedModelTransformFactory
-from .utils import get_mongodb_connection, serialize_model_reference
+from .utils import (
+    deserialize_from_python,
+    deserialize_from_xml,
+    get_mongodb_connection,
+    serialize_model_reference,
+    serialize_to_python,
+    serialize_to_xml,
+)
 
 
 class PolymorphicEmbeddedModelField(models.Field):
@@ -200,4 +208,35 @@ class PolymorphicEmbeddedModelField(models.Field):
         raise NotImplementedError("PolymorphicEmbeddedModelField does not support forms.")
 
     def _get_model_from_label(self, label):
-        return next(model for model in self.embedded_models if model._meta.label == label)
+        return next(
+            model for model in self.embedded_models if model._meta.label.lower() == label.lower()
+        )
+
+
+@register_field_serializer("python", PolymorphicEmbeddedModelField)
+class PythonSerializer:
+    @classmethod
+    def serialize(cls, field, obj, serializer):
+        value = field.value_from_object(obj)
+        if value is None:
+            return None
+        return serialize_to_python(value, serializer, polymorphic=True)
+
+    @classmethod
+    def deserialize(cls, field, value, deserializer):
+        if value is None:
+            return None
+        return deserialize_from_python(value, deserializer, field=field)
+
+
+@register_field_serializer("xml", PolymorphicEmbeddedModelField)
+class XMLSerializer:
+    @classmethod
+    def serialize(cls, field, obj, serializer):
+        value = field.value_from_object(obj)
+        serialize_to_xml(value, serializer)
+        return ""
+
+    @classmethod
+    def deserialize(cls, field, field_node, deserializer):
+        return deserialize_from_xml(field_node, deserializer, field=field)[0]
