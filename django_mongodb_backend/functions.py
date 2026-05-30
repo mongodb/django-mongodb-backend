@@ -44,11 +44,13 @@ from django.db.models.functions.text import (
     Left,
     Length,
     Lower,
+    LPad,
     LTrim,
     Repeat,
     Replace,
     Reverse,
     Right,
+    RPad,
     RTrim,
     StrIndex,
     Substr,
@@ -217,6 +219,55 @@ def null_if(self, compiler, connection):
         expr.as_mql(compiler, connection, as_expr=True) for expr in self.get_source_expressions()
     )
     return {"$cond": {"if": {"$eq": [expr1, expr2]}, "then": None, "else": expr1}}
+
+
+def pad(is_left=False):
+    def wrapped(self, compiler, connection):
+        expression, length, fill_text = process_lhs(self, compiler, connection, as_expr=True)
+        # Use $ifNull to avoid $strLenCP failing on null during pipeline
+        # optimization.
+        str_len = {"$strLenCP": {"$ifNull": [expression, ""]}}
+        pad_needed = {"$subtract": [length, str_len]}
+        # Repeat fill_text enough times to cover the padding, then trim to
+        # pad_needed characters using $substrCP.
+        repeated_fill = {
+            "$reduce": {
+                "input": {
+                    "$range": [
+                        0,
+                        {
+                            "$toInt": {
+                                "$ceil": {
+                                    "$divide": [
+                                        pad_needed,
+                                        {"$max": [{"$strLenCP": {"$ifNull": [fill_text, " "]}}, 1]},
+                                    ]
+                                }
+                            }
+                        },
+                    ]
+                },
+                "initialValue": "",
+                "in": {"$concat": ["$$value", fill_text]},
+            }
+        }
+        padding = {"$substrCP": [repeated_fill, 0, pad_needed]}
+        padded = {"$concat": [padding, expression] if is_left else [expression, padding]}
+        return {
+            "$cond": {
+                "if": {"$or": [{"$eq": [expression, None]}, {"$eq": [length, None]}]},
+                "then": None,  # Return null for null inputs.
+                "else": {
+                    "$cond": {
+                        "if": {"$gte": [str_len, length]},
+                        "then": {"$substrCP": [expression, 0, length]},
+                        "else": padded,
+                    }
+                },
+            }
+        }
+
+    return wrapped
 
 
 def preserve_null(operator):
@@ -430,6 +481,7 @@ def register_functions():
     Length.as_mql_expr = length
     Log.as_mql_expr = log
     Lower.as_mql_expr = preserve_null("toLower")
+    LPad.as_mql_expr = pad(is_left=True)
     LTrim.as_mql_expr = trim("ltrim")
     MD5.as_mql_expr = hash_func("md5")
     Now.as_mql_expr = now
@@ -439,6 +491,7 @@ def register_functions():
     Reverse.as_mql_expr = reverse
     Right.as_mql_expr = right
     Round.as_mql_expr = round_
+    RPad.as_mql_expr = pad(is_left=False)
     RTrim.as_mql_expr = trim("rtrim")
     SHA256.as_mql_expr = hash_func("sha256")
     Sign.as_mql_expr = sign

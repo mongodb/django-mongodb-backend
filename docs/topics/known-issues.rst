@@ -76,8 +76,6 @@ Database functions
 - Some of Django's built-in database functions aren't supported by MongoDB:
 
   - :class:`~django.db.models.functions.Chr`
-  - :class:`~django.db.models.functions.LPad`,
-    :class:`~django.db.models.functions.RPad`
   - :class:`~django.db.models.functions.Ord`
   - :class:`~django.db.models.functions.SHA1`,
     :class:`~django.db.models.functions.SHA224`,
