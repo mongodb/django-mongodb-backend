@@ -52,6 +52,8 @@ class MongoQuery:
         self.project_fields = None
         self.aggregation_pipeline = compiler.aggregation_pipeline
         self.search_pipeline = compiler.search_pipeline
+        self.window_pipeline = None
+        self.qualify_mql = None
         self.extra_fields = None
         self.combinator_pipeline = None
         # $lookup stage that encapsulates the pipeline for performing a nested
@@ -93,6 +95,10 @@ class MongoQuery:
             pipeline.append({"$match": self.match_mql})
         if self.aggregation_pipeline:
             pipeline.extend(self.aggregation_pipeline)
+        if self.window_pipeline:
+            pipeline.extend(self.window_pipeline)
+        if self.qualify_mql:
+            pipeline.append({"$match": self.qualify_mql})
         if self.needs_wrap_aggregation:
             if self.compiler.connection.client_encryption:
                 # Automatic encryption doesn't support $unionWith, so use

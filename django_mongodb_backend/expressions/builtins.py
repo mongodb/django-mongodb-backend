@@ -24,6 +24,7 @@ from django.db.models.expressions import (
     Subquery,
     Value,
     When,
+    Window,
 )
 from django.db.models.sql import Query
 
@@ -157,6 +158,16 @@ def query(self, compiler, connection, get_wrapping_pipeline=None, as_expr=False)
         else:
             if subquery.aggregation_pipeline is None:
                 subquery.aggregation_pipeline = []
+            # Window stages must precede the wrapping pipeline so the $group
+            # can reference the window function outputs.
+            if subquery.window_pipeline:
+                subquery.aggregation_pipeline.extend(subquery.window_pipeline)
+                subquery.window_pipeline = None
+            # Qualify ($match on window results) must come after window stages
+            # but before the wrapping pipeline's $group stage.
+            if subquery.qualify_mql:
+                subquery.aggregation_pipeline.append({"$match": subquery.qualify_mql})
+                subquery.qualify_mql = None
             subquery.aggregation_pipeline.extend(wrapping_result_pipeline)
         # Erase project_fields since the required value is projected above.
         subquery.project_fields = None
@@ -209,6 +220,10 @@ def when(self, compiler, connection):
     return self.condition.as_mql(compiler, connection, as_expr=True)
 
 
+def window(self, compiler, connection):  # noqa: ARG001
+    raise NotSupportedError("Window expressions must be used as annotations.")
+
+
 def value(self, compiler, connection, as_expr=False):  # noqa: ARG001
     value = self.value
     if isinstance(value, (list, int, str, dict, tuple)) and as_expr:
@@ -258,3 +273,4 @@ def register_expressions():
     Subquery.as_mql_path = partialmethod(subquery, as_expr=False)
     When.as_mql_expr = when
     Value.as_mql = value
+    Window.as_mql_expr = window

@@ -10,6 +10,8 @@ Django MongoDB Backend 6.0.x
 New features
 ------------
 
+- Added support for :ref:`window functions <django:window-functions>`.
+
 - Added support for the following database functions:
 
   - :class:`~django.db.models.functions.ExtractQuarter`
