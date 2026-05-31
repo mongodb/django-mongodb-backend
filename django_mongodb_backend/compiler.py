@@ -1,4 +1,5 @@
 import itertools
+import json
 from collections import defaultdict
 
 from bson import SON, ObjectId, json_util
@@ -6,9 +7,22 @@ from django.core.exceptions import EmptyResultSet, FieldError, FullResultSet
 from django.db import IntegrityError, NotSupportedError
 from django.db.models import Count
 from django.db.models.aggregates import Aggregate, Variance
-from django.db.models.expressions import Case, Col, OrderBy, Ref, Value, When
+from django.db.models.expressions import Case, Col, OrderBy, Ref, RowRange, Value, When, Window
 from django.db.models.functions.comparison import Coalesce
 from django.db.models.functions.math import Power
+from django.db.models.functions.window import (
+    CumeDist,
+    DenseRank,
+    FirstValue,
+    Lag,
+    LastValue,
+    Lead,
+    NthValue,
+    Ntile,
+    PercentRank,
+    Rank,
+    RowNumber,
+)
 from django.db.models.lookups import IsNull
 from django.db.models.sql import compiler
 from django.db.models.sql.constants import GET_ITERATOR_CHUNK_SIZE, MULTI, SINGLE
@@ -38,6 +52,8 @@ class SQLCompiler(compiler.SQLCompiler):
         self.subqueries = []
         # Search stage.
         self.search_pipeline = []
+        # Window function pipeline stages ($setWindowFields + post-addfields).
+        self.window_pipeline = None
         # Does the aggregation have no GROUP BY fields and need wrapping?
         self.needs_wrap_aggregation = False
         # The MQL equivalent to a SQL HAVING clause.
@@ -308,7 +324,8 @@ class SQLCompiler(compiler.SQLCompiler):
         extra_select, order_by, group_by = super().pre_sql_setup(with_col_aliases=with_col_aliases)
         search_replacements = self._prepare_search_query_for_aggregation_pipeline(order_by)
         group, group_replacements = self._prepare_annotations_for_aggregation_pipeline(order_by)
-        all_replacements = {**search_replacements, **group_replacements}
+        window_stages, window_replacements = self._prepare_window_annotations_for_pipeline()
+        all_replacements = {**search_replacements, **group_replacements, **window_replacements}
         self.search_pipeline = self._compound_searches_queries(search_replacements)
         # query.group_by is either:
         # - None: no GROUP BY
@@ -329,6 +346,7 @@ class SQLCompiler(compiler.SQLCompiler):
                 self.subqueries = []
                 pipeline.append({"$match": having})
             self.aggregation_pipeline = pipeline
+        self.window_pipeline = window_stages
         self.annotations = {
             target: expr.replace_expressions(all_replacements)
             for target, expr in self.query.annotation_select.items()
@@ -336,6 +354,10 @@ class SQLCompiler(compiler.SQLCompiler):
         self.order_by_objs = [expr.replace_expressions(all_replacements) for expr, _ in order_by]
         if (where := self.get_where()) and search_replacements:
             self.set_where(where.replace_expressions(search_replacements))
+        # Apply window/annotation replacements to the qualify clause so that
+        # Window expressions are replaced by their pre-computed field Refs.
+        if getattr(self, "qualify", None) and window_replacements:
+            self.qualify = self.qualify.replace_expressions(all_replacements)
         return extra_select, order_by, group_by
 
     def get_project_columns(self, columns):
@@ -493,6 +515,12 @@ class SQLCompiler(compiler.SQLCompiler):
         if extra_fields:
             query.extra_fields = self.get_project_fields(extra_fields, force_expression=True)
         query.subqueries = self.subqueries
+        query.window_pipeline = getattr(self, "window_pipeline", None)
+        if getattr(self, "qualify", None):
+            try:
+                query.qualify_mql = self.qualify.as_mql(self, self.connection)
+            except FullResultSet:
+                query.qualify_mql = {}
         return query
 
     @cached_property
@@ -800,6 +828,9 @@ class SQLCompiler(compiler.SQLCompiler):
     def _get_search_expressions(self, expr):
         return self._get_all_expressions_of_type(expr, SearchExpression)
 
+    def _get_window_expressions(self, expr):
+        return self._get_all_expressions_of_type(expr, Window)
+
     def _get_all_expressions_of_type(self, expr, target_type):
         stack = [expr]
         while stack:
@@ -808,6 +839,337 @@ class SQLCompiler(compiler.SQLCompiler):
                 yield expr
             elif hasattr(expr, "get_source_expressions"):
                 stack.extend(expr.get_source_expressions())
+
+    def _compile_window_partition_by(self, partition_by):
+        """Compile Window.partition_by to a MongoDB partitionBy expression."""
+        if partition_by is None:
+            return None
+        exprs = partition_by.get_source_expressions()
+        if not exprs:
+            return None
+        if len(exprs) == 1:
+            return exprs[0].as_mql(self, self.connection, as_expr=True)
+        return {str(i): e.as_mql(self, self.connection, as_expr=True) for i, e in enumerate(exprs)}
+
+    def _compile_window_sort_by(self, order_by_list):
+        """Compile Window.order_by to a MongoDB sortBy document and any pre-sort addFields."""
+        if order_by_list is None:
+            return {}, {}
+        exprs = order_by_list.get_source_expressions()
+        if not exprs:
+            return {}, {}
+        sort_doc = {}
+        pre_addfields = {}
+        sort_idx = itertools.count(start=1)
+        for item in exprs:
+            if isinstance(item, OrderBy):
+                direction = DESCENDING if item.descending else ASCENDING
+                expr = item.expression
+            else:
+                # Plain expression without OrderBy wrapper (e.g., from string resolution).
+                direction = ASCENDING
+                expr = item
+            if isinstance(expr, (Col, Ref)):
+                field_name = expr.as_mql(self, self.connection, as_expr=False)
+            else:
+                field_name = f"__wsort{next(sort_idx)}"
+                pre_addfields[field_name] = expr.as_mql(self, self.connection, as_expr=True)
+            sort_doc[field_name] = direction
+        return sort_doc, pre_addfields
+
+    @staticmethod
+    def _sort_subset_of_partition(sort_doc, pre_addfields, partition_mql):
+        """Return True if all sort fields are derived from the partition expressions.
+
+        When sort == partition, all rows in the partition are tied in sort order,
+        so the correct SQL RANGE window is the full partition (unbounded both ways).
+        """
+        if not partition_mql or not sort_doc:
+            return False
+
+        def canonical(expr):
+            return json.dumps(expr, sort_keys=True, default=str)
+
+        if isinstance(partition_mql, dict) and not any(k.startswith("$") for k in partition_mql):
+            partition_set = {canonical(v) for v in partition_mql.values()}
+        else:
+            partition_set = {canonical(partition_mql)}
+
+        sort_set = set()
+        for field in sort_doc:
+            if field in pre_addfields:
+                sort_set.add(canonical(pre_addfields[field]))
+            else:
+                sort_set.add(canonical(f"${field}"))
+
+        return sort_set.issubset(partition_set)
+
+    def _window_function_output(self, alias, window, idx, use_full_partition=False):
+        """
+        Build $setWindowFields output entries and post-addfields for a Window
+        expression.
+
+        Return (output_entries, post_addfields) where output_entries goes into
+        $setWindowFields.output and post_addfields uses those results for
+        complex functions.
+        """
+        source = window.source_expression
+        frame = window.frame
+        has_order_by = bool(
+            window.order_by is not None and window.order_by.get_source_expressions()
+        )
+
+        def frame_mql():
+            if frame is None:
+                return None
+
+            if frame.exclusion is not None:
+                raise NotSupportedError("This backend does not support window frame exclusions.")
+
+            def boundary(v):
+                if v is None:
+                    return "unbounded"
+                if v == 0:
+                    return "current"
+                return v
+
+            bounds = [boundary(frame.start.value), boundary(frame.end.value)]
+            return {"documents": bounds} if isinstance(frame, RowRange) else {"range": bounds}
+
+        def default_frame():
+            if frame is not None:
+                return frame_mql()
+            if has_order_by and not use_full_partition:
+                return {"documents": ["unbounded", "current"]}
+            return {"documents": ["unbounded", "unbounded"]}
+
+        output = {}
+        post = {}
+
+        if isinstance(source, DenseRank):
+            output[alias] = {"$denseRank": {}}
+        elif isinstance(source, Rank):
+            output[alias] = {"$rank": {}}
+        elif isinstance(source, RowNumber):
+            output[alias] = {"$documentNumber": {}}
+        elif isinstance(source, (Lag, Lead)):
+            is_lead = isinstance(source, Lead)
+            exprs = [e for e in source.get_source_expressions() if e is not None]
+            expr_mql = exprs[0].as_mql(self, self.connection, as_expr=True)
+            offset = exprs[1].value if len(exprs) > 1 else 1
+            by = offset if is_lead else -offset
+            shift = {"output": expr_mql, "by": by}
+            if len(exprs) > 2:
+                shift["default"] = exprs[2].as_mql(self, self.connection, as_expr=True)
+            output[alias] = {"$shift": shift}
+        elif isinstance(source, FirstValue):
+            exprs = source.get_source_expressions()
+            expr_mql = exprs[0].as_mql(self, self.connection, as_expr=True)
+            entry = {"$first": expr_mql, "window": default_frame()}
+            output[alias] = entry
+        elif isinstance(source, LastValue):
+            exprs = source.get_source_expressions()
+            expr_mql = exprs[0].as_mql(self, self.connection, as_expr=True)
+            entry = {"$last": expr_mql, "window": default_frame()}
+            output[alias] = entry
+        elif isinstance(source, NthValue):
+            exprs = source.get_source_expressions()
+            expr_mql = exprs[0].as_mql(self, self.connection, as_expr=True)
+            nth = exprs[1].value
+            push_alias = f"__wtemp{next(idx)}"
+            output[push_alias] = {
+                "$push": expr_mql,
+                "window": {"documents": ["unbounded", "current"]},
+            }
+            post[alias] = {
+                "$cond": {
+                    "if": {"$gte": [{"$size": f"${push_alias}"}, nth]},
+                    "then": {"$arrayElemAt": [f"${push_alias}", nth - 1]},
+                    "else": None,
+                }
+            }
+        elif isinstance(source, PercentRank):
+            # Use document-position rank ($sum:1 docs unbounded-to-current)
+            # instead of $rank, which MongoDB limits to a single sort field.
+            row_num_alias = f"__wtemp{next(idx)}"
+            count_alias = f"__wtemp{next(idx)}"
+            output[row_num_alias] = {"$sum": 1, "window": {"documents": ["unbounded", "current"]}}
+            output[count_alias] = {"$sum": 1, "window": {"documents": ["unbounded", "unbounded"]}}
+            post[alias] = {
+                "$cond": {
+                    "if": {"$lte": [f"${count_alias}", 1]},
+                    "then": {"$literal": 0.0},
+                    "else": {
+                        "$divide": [
+                            {"$subtract": [f"${row_num_alias}", 1]},
+                            {"$subtract": [f"${count_alias}", 1]},
+                        ]
+                    },
+                }
+            }
+        elif isinstance(source, CumeDist):
+            # CumeDist = (rank + group_size - 1) / total.
+            # Use $rank for the base rank (1-based, same value for ties),
+            # range:[0,0] for group_size (count of all rows with identical sort
+            # key value), and full-partition sum for total.
+            rank_alias = f"__wtemp{next(idx)}"
+            group_size_alias = f"__wtemp{next(idx)}"
+            total_alias = f"__wtemp{next(idx)}"
+            output[rank_alias] = {"$rank": {}}
+            output[group_size_alias] = {"$sum": 1, "window": {"range": [0, 0]}}
+            output[total_alias] = {"$sum": 1, "window": {"documents": ["unbounded", "unbounded"]}}
+            post[alias] = {
+                "$divide": [
+                    {"$subtract": [{"$add": [f"${rank_alias}", f"${group_size_alias}"]}, 1]},
+                    f"${total_alias}",
+                ]
+            }
+        elif isinstance(source, Ntile):
+            num_buckets = source.get_source_expressions()[0].value
+            docnum_alias = f"__wtemp{next(idx)}"
+            total_alias = f"__wtemp{next(idx)}"
+            output[docnum_alias] = {"$documentNumber": {}}
+            output[total_alias] = {"$sum": 1, "window": {"documents": ["unbounded", "unbounded"]}}
+            post[alias] = {
+                "$toInt": {
+                    "$ceil": {
+                        "$divide": [
+                            {"$multiply": [f"${docnum_alias}", num_buckets]},
+                            f"${total_alias}",
+                        ]
+                    }
+                }
+            }
+        elif isinstance(source, Aggregate):
+            operator = source.function.lower()
+            src_exprs = [e for e in source.get_source_expressions() if e is not None]
+            inner_mql = src_exprs[0].as_mql(self, self.connection, as_expr=True) if src_exprs else 1
+            entry = {f"${operator}": inner_mql, "window": default_frame()}
+            output[alias] = entry
+        else:
+            raise NotSupportedError(
+                f"Window function {source.__class__.__name__} is not supported on MongoDB."
+            )
+
+        return output, post
+
+    def _prepare_window_annotations_for_pipeline(self):
+        """
+        Build $setWindowFields pipeline stages for window annotations.
+
+        Returns (stages, replacements) where stages is a list of pipeline dicts
+        and replacements maps Window sub-expressions and full over-clause
+        annotations to Ref objects for use in $project.
+        """
+        # Step 1: Collect all Window sub-expressions and their aliases.
+        # Process all annotations (including .alias() ones not in
+        # annotation_select) and any Window expressions used directly in the
+        # qualify (filter) clause.
+        seen_ids = set()
+        window_list = []  # list of (alias, window_expr)
+        idx = itertools.count(start=1)
+        window_replacements = {}  # Window instance -> Ref
+
+        def _collect_windows_from_expr(expr, target=None):
+            for window in self._get_window_expressions(expr):
+                if id(window) in seen_ids:
+                    continue
+                seen_ids.add(id(window))
+                alias = target if (target and window is expr) else f"__window{next(idx)}"
+                window_list.append((alias, window))
+                window_replacements[window] = Ref(alias, window)
+
+        for target, expr in self.query.annotations.items():
+            if not expr.contains_over_clause:
+                continue
+            _collect_windows_from_expr(expr, target)
+
+        # Also scan the qualify clause for Windows used directly in filters
+        # (e.g., Employee.objects.filter(Exact(Window(...), 1))).
+        qualify = getattr(self, "qualify", None)
+        if qualify and qualify.contains_over_clause:
+            _collect_windows_from_expr(qualify)
+
+        if not window_list:
+            return [], {}
+
+        # Step 2: Group windows by (partition_key, sort_key) for
+        # $setWindowFields.
+        groups = {}
+        all_pre_addfields = {}
+        for alias, window in window_list:
+            partition_mql = self._compile_window_partition_by(window.partition_by)
+            sort_doc, pre_addfields = self._compile_window_sort_by(window.order_by)
+            all_pre_addfields.update(pre_addfields)
+            p_key = (
+                json.dumps(partition_mql, default=str, sort_keys=True)
+                if partition_mql is not None
+                else "null"
+            )
+            s_key = json.dumps(sort_doc, default=str, sort_keys=True)
+            group_key = (p_key, s_key)
+            if group_key not in groups:
+                groups[group_key] = {"partition": partition_mql, "sort": sort_doc, "windows": []}
+            groups[group_key]["windows"].append((alias, window))
+
+        # Step 3: Build $setWindowFields stages with all outputs.
+        stages = []
+        if all_pre_addfields:
+            stages.append({"$addFields": all_pre_addfields})
+
+        all_post_addfields = {}
+        for _group_key, group_info in groups.items():
+            swf_output = {}
+            # Determine if sort fields are covered by partition fields (all
+            # rows tied). In that case use the full-partition window instead of
+            # current-row window.
+            use_full_partition = self._sort_subset_of_partition(
+                group_info["sort"],
+                all_pre_addfields,
+                group_info["partition"],
+            )
+            for alias, window in group_info["windows"]:
+                output_entries, post_entries = self._window_function_output(
+                    alias, window, idx, use_full_partition
+                )
+                swf_output.update(output_entries)
+                all_post_addfields.update(post_entries)
+            # $documentNumber requires exactly one sortBy field; add _id as
+            # default.
+            sort_doc = group_info["sort"]
+            if not sort_doc and any(
+                isinstance(v, dict) and "$documentNumber" in v for v in swf_output.values()
+            ):
+                sort_doc = {"_id": 1}
+            swf = {"output": swf_output}
+            if group_info["partition"] is not None:
+                swf["partitionBy"] = group_info["partition"]
+            if sort_doc:
+                swf["sortBy"] = sort_doc
+            stages.append({"$setWindowFields": swf})
+
+        if all_post_addfields:
+            stages.append({"$addFields": all_post_addfields})
+
+        # Step 4: Compute all over-clause annotations in an intermediate
+        # $addFields so they're available for the qualify $match (including
+        # .alias() annotations).
+        intermediate_addfields = {}
+        annotation_replacements = {}
+        for target, expr in self.query.annotations.items():
+            if not expr.contains_over_clause:
+                continue
+            replaced_expr = expr.replace_expressions(window_replacements)
+            intermediate_addfields[target] = replaced_expr.as_mql(
+                self, self.connection, as_expr=True
+            )
+            annotation_replacements[expr] = Ref(target, expr)
+
+        if intermediate_addfields:
+            stages.append({"$addFields": intermediate_addfields})
+
+        all_replacements = {**window_replacements, **annotation_replacements}
+        return stages, all_replacements
 
     def get_project_fields(self, columns=None, ordering=None, force_expression=False):
         if not columns:
@@ -922,6 +1284,11 @@ class SQLInsertCompiler(SQLCompiler):
                         f"You can't set {field.name} (a non-nullable field) to None."
                     )
                 if hasattr(value, "as_mql"):
+                    if getattr(value, "contains_over_clause", False):
+                        raise FieldError(
+                            f"Window expressions are not allowed in this query "
+                            f"({field.name}={value!r})."
+                        )
                     raise NotSupportedError(
                         f"MongoDB does not support creating models with "
                         f"expressions: got {value} for field {field.name}."
@@ -988,7 +1355,8 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
                     )
                 if value.contains_over_clause:
                     raise FieldError(
-                        f"Window expressions are not allowed in this query ({field.name}={value})."
+                        "Window expressions are not allowed in this query "
+                        f"({field.name}={value!r})."
                     )
             elif hasattr(value, "prepare_database_save"):
                 if field.remote_field:

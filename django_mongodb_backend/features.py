@@ -38,6 +38,8 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     # BSON Date type doesn't support microsecond precision.
     supports_microsecond_precision = False
     supports_nulls_distinct_unique_constraints = True
+    supports_frame_range_fixed_distance = True
+    supports_over_clause = True
     supports_paramstyle_pyformat = False
     supports_sequence_reset = False
     supports_slicing_ordering_in_compound = True
@@ -55,6 +57,10 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     _django_test_expected_failures = {
         # $concat only supports strings, not int
         "db_functions.text.test_concat.ConcatTests.test_concat_non_str",
+        # Heterogeneous filter mixing window and aggregate conditions requires further work.
+        "expressions_window.tests.WindowFunctionTests.test_heterogeneous_filter",
+        # Subquery with window function inside a __in filter generates a null result.
+        "expressions_window.tests.WindowFunctionTests.test_window_expression_within_subquery",
         # QuerySet.order_by() with annotation transform doesn't work:
         # "Expression $mod takes exactly 2 arguments. 1 were passed in"
         # https://github.com/django/django/commit/b0ad41198b3e333f57351e3fce5a1fb47f23f376
@@ -539,6 +545,10 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "prefetch_related.tests.LookupOrderingTest.test_order",
             "prefetch_related.tests.MultiDbTests.test_using_is_honored_m2m",
             "prefetch_related.tests.MultiTableInheritanceTest.test_m2m_to_inheriting_model",
+            "prefetch_related.tests.PrefetchLimitTests.test_empty_order",
+            "prefetch_related.tests.PrefetchLimitTests.test_m2m_forward",
+            "prefetch_related.tests.PrefetchLimitTests.test_m2m_reverse",
+            "prefetch_related.tests.PrefetchLimitTests.test_reverse_ordering",
             "prefetch_related.tests.PrefetchRelatedMTICacheTests.test_add_clears_prefetched_objects_in_grandparent",
             "prefetch_related.tests.PrefetchRelatedMTICacheTests.test_add_clears_prefetched_objects_in_parent",
             "prefetch_related.tests.PrefetchRelatedMTICacheTests.test_grandparent_m2m_available_in_child",
