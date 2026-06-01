@@ -10,12 +10,9 @@ from pymongo.operations import IndexModel
 from .fields import EmbeddedModelArrayField, PolymorphicEmbeddedModelArrayField
 from .indexes import EmbeddedFieldIndexMixin, _get_condition_mql, get_field
 
-
 def _get_partial_unique_filter(field, connection):
     field = getattr(field, "field", field)
     db_type = field.db_type(connection)
-    if db_type is None:
-        return {"$exists": True}
 
     match db_type:
         case "string":
@@ -23,16 +20,6 @@ def _get_partial_unique_filter(field, connection):
         case "int":
             return {"$gte": -2147483648, "$lte": 2147483647}
         case "long":
-            return {
-                "$gte": -9223372036854775808,
-                "$lte": 9223372036854775807,
-            }
-        case "decimal":
-            return {
-                "$gte": -9223372036854775808,
-                "$lte": 9223372036854775807,
-            }
-        case "double":
             return {
                 "$gte": -9223372036854775808,
                 "$lte": 9223372036854775807,
@@ -45,8 +32,7 @@ def _get_partial_unique_filter(field, connection):
                 "$lte": datetime.datetime.max,
             }
         case _:
-            return {"$exists": True}
-
+            return {"$type": db_type}
 
 def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefix=""):
     """Return a pymongo IndexModel for this UniqueConstraint."""
@@ -84,7 +70,6 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefi
     )
     return IndexModel(index_orders, name=self.name, unique=True, **kwargs)
 
-
 class EmbeddedFieldUniqueConstraint(EmbeddedFieldIndexMixin, UniqueConstraint):
     meta_option_name = "constraints"
 
@@ -102,7 +87,7 @@ class EmbeddedFieldUniqueConstraint(EmbeddedFieldIndexMixin, UniqueConstraint):
                     field = model._meta.get_field(local_field_name)
                 except FieldDoesNotExist:
                     continue
-                if isinstance(field, (EmbeddedModelArrayField, PolymorphicEmbeddedModelArrayField)):
+                if isinstance(field,(EmbeddedModelArrayField, PolymorphicEmbeddedModelArrayField)):
                     errors.append(
                         checks.Error(
                             f"EmbeddedFieldUniqueConstraint {self.name!r} must "
@@ -113,7 +98,6 @@ class EmbeddedFieldUniqueConstraint(EmbeddedFieldIndexMixin, UniqueConstraint):
                         )
                     )
         return errors
-
 
 def register_constraints():
     UniqueConstraint.get_pymongo_index_model = get_pymongo_index_model

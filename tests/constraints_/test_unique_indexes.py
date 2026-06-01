@@ -2,7 +2,6 @@ from django.db import connection, models
 from django.test import SimpleTestCase
 from django.test.utils import isolate_apps
 
-
 @isolate_apps("constraints_")
 class UniqueIndexTests(SimpleTestCase):
     def test_single_field_unique_index_filter(self):
@@ -23,7 +22,7 @@ class UniqueIndexTests(SimpleTestCase):
             )
 
         self.assertEqual(
-            index.document["partialFilterExpression"],
+            dict(index.document["partialFilterExpression"]),
             {"name": {"$gte": ""}},
         )
 
@@ -47,11 +46,11 @@ class UniqueIndexTests(SimpleTestCase):
             index = constraint.get_pymongo_index_model(Book, schema_editor=editor)
 
         self.assertEqual(
-            index.document["partialFilterExpression"],
+            dict(index.document["partialFilterExpression"]),
             {
                 "version": {
-                    "$gte": -2147483648,
-                    "$lte": 2147483647,
+                    "$gte": -9223372036854775808,
+                    "$lte": 9223372036854775807,
                 },
                 "name": {"$gte": ""},
             },
