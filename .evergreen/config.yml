@@ -224,20 +224,20 @@ buildvariants:
       - name: run-tests
 
   - name: tests-8-qe-local
-    display_name: Run Tests 8.2 QE local KMS
+    display_name: Run Tests 8.3 QE local KMS
     run_on: rhel87-small
     expansions:
-      MONGODB_VERSION: "8.2"
+      MONGODB_VERSION: "8.3"
       TOPOLOGY: replica_set
       DJANGO_SETTINGS_MODULE: "encrypted_settings"
     tasks:
       - name: run-encryption-tests
 
   - name: tests-8-qe-aws
-    display_name: Run Tests 8.2 QE AWS KMS
+    display_name: Run Tests 8.3 QE AWS KMS
     run_on: rhel87-small
     expansions:
-      MONGODB_VERSION: "8.2"
+      MONGODB_VERSION: "8.3"
       TOPOLOGY: replica_set
       DJANGO_SETTINGS_MODULE: "encrypted_aws_settings"
     tasks:

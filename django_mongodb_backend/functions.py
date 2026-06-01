@@ -15,6 +15,7 @@ from django.db.models.functions.datetime import (
     ExtractIsoYear,
     ExtractMinute,
     ExtractMonth,
+    ExtractQuarter,
     ExtractSecond,
     ExtractWeek,
     ExtractWeekDay,
@@ -26,6 +27,8 @@ from django.db.models.functions.datetime import (
 )
 from django.db.models.functions.math import Ceil, Cot, Degrees, Log, Power, Radians, Random, Round
 from django.db.models.functions.text import (
+    MD5,
+    SHA256,
     Concat,
     ConcatPair,
     Left,
@@ -33,6 +36,7 @@ from django.db.models.functions.text import (
     Lower,
     LTrim,
     Replace,
+    Right,
     RTrim,
     StrIndex,
     Substr,
@@ -96,14 +100,33 @@ def cot(self, compiler, connection):
     return {"$divide": [1, {"$tan": lhs_mql}]}
 
 
+def _get_extract_timezone(self):
+    tzname = self.get_tzname()
+    # Django formats fixed offset zones as "UTC+HH:MM" but MongoDB only accepts
+    # the bare offset form "+HH:MM" / "-HH:MM".
+    if tzname and tzname.startswith(("UTC+", "UTC-")):
+        return tzname[3:]
+    return tzname
+
+
 def extract(self, compiler, connection):
     lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+    # ExtractQuarter lacks a built-in operator.
+    if self.lookup_name == "quarter":
+        return extract_quarter(self, compiler, connection)
     operator = EXTRACT_OPERATORS.get(self.lookup_name)
     if operator is None:
         raise NotSupportedError(f"{self.__class__.__name__} is not supported.")
-    if timezone := self.get_tzname():
+    if timezone := _get_extract_timezone(self):
         lhs_mql = {"date": lhs_mql, "timezone": timezone}
     return {f"${operator}": lhs_mql}
+
+
+def extract_quarter(self, compiler, connection):
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+    if timezone := _get_extract_timezone(self):
+        lhs_mql = {"date": lhs_mql, "timezone": timezone}
+    return {"$ceil": {"$divide": [{"$month": lhs_mql}, 3]}}
 
 
 def func(self, compiler, connection):
@@ -114,8 +137,49 @@ def func(self, compiler, connection):
     return {f"${operator}": lhs_mql}
 
 
+def hash_func(algorithm):
+    def wrapped(self, compiler, connection):
+        if not connection.features.is_mongodb_8_3:
+            raise NotSupportedError(f"{self.__class__.__name__} requires MongoDB 8.3+.")
+        lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+        return {
+            "$cond": {
+                "if": {"$eq": [lhs_mql, None]},
+                "then": None,  # Return null for null input.
+                "else": {
+                    "$toLower": {
+                        "$convert": {
+                            "input": {"$hash": {"input": lhs_mql, "algorithm": algorithm}},
+                            "to": "string",
+                            "format": "hex",
+                        }
+                    }
+                },
+            }
+        }
+
+    return wrapped
+
+
 def left(self, compiler, connection):
     return self.get_substr().as_mql(compiler, connection, as_expr=True)
+
+
+def right(self, compiler, connection):
+    expression, length = (
+        expr.as_mql(compiler, connection, as_expr=True) for expr in self.get_source_expressions()
+    )
+    # Calculate substring's start value by subtracting the requested length
+    # from the total length of the string.
+    start = {"$max": [{"$subtract": [{"$strLenCP": expression}, length]}, 0]}
+    return {
+        "$cond": {
+            "if": {"$eq": [length, None]},
+            # $substrCP returns "" for null length; return null instead.
+            "then": None,
+            "else": {"$substrCP": [expression, start, length]},
+        }
+    }
 
 
 def length(self, compiler, connection):
@@ -285,6 +349,7 @@ def register_functions():
     ConcatPair.as_mql_expr = concat_pair
     Cot.as_mql_expr = cot
     Extract.as_mql_expr = extract
+    ExtractQuarter.as_mql_expr = extract_quarter
     Func.as_mql_expr = func
     Func.can_use_path = False
     JSONArray.as_mql_expr = partialmethod(process_lhs, as_expr=True)
@@ -293,11 +358,14 @@ def register_functions():
     Log.as_mql_expr = log
     Lower.as_mql_expr = preserve_null("toLower")
     LTrim.as_mql_expr = trim("ltrim")
+    MD5.as_mql_expr = hash_func("md5")
     Now.as_mql_expr = now
     NullIf.as_mql_expr = null_if
     Replace.as_mql_expr = replace
+    Right.as_mql_expr = right
     Round.as_mql_expr = round_
     RTrim.as_mql_expr = trim("rtrim")
+    SHA256.as_mql_expr = hash_func("sha256")
     StrIndex.as_mql_expr = str_index
     Substr.as_mql_expr = substr
     Trim.as_mql_expr = trim("trim")

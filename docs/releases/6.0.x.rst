@@ -10,6 +10,16 @@ Django MongoDB Backend 6.0.x
 New features
 ------------
 
+- Added support for the following database functions:
+
+  - :class:`~django.db.models.functions.ExtractQuarter`
+  - :class:`~django.db.models.functions.MD5` (requires MongoDB 8.3+)
+  - :class:`~django.db.models.functions.Right`
+  - :class:`~django.db.models.functions.SHA256` (requires MongoDB 8.3+)
+
+- Added support for fixed-offset ``tzinfo`` in the
+  :class:`~django.db.models.functions.Extract` database functions.
+
 - Added support for Django's warning when performing import-time queries.
 
 Bug fixes
