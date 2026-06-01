@@ -2,6 +2,7 @@ from django.db import connection, models
 from django.test import SimpleTestCase
 from django.test.utils import isolate_apps
 
+
 @isolate_apps("constraints_")
 class UniqueIndexTests(SimpleTestCase):
     def test_single_field_unique_index_filter(self):
