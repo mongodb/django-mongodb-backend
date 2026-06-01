@@ -11,8 +11,8 @@ from .fields import EmbeddedModelArrayField, PolymorphicEmbeddedModelArrayField
 from .indexes import EmbeddedFieldIndexMixin, _get_condition_mql, get_field
 
 
-def _get_partial_unique_filter(field, connection):
-    field = getattr(field, "field", field)
+def _get_partial_unique_filter(field_or_field_column, connection):
+    field = getattr(field_or_field_column, "field", field_or_field_column)
     db_type = field.db_type(connection)
 
     match db_type:
@@ -36,6 +36,13 @@ def _get_partial_unique_filter(field, connection):
             return {"$type": db_type}
 
 
+def _add_nullable_unique_filter(filter_expression, field_or_field_column, connection, column):
+    field = getattr(field_or_field_column, "field", field_or_field_column)
+    if not field.null:
+        return
+    filter_expression[column].update(_get_partial_unique_filter(field_or_field_column, connection))
+
+
 def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefix=""):
     """Return a pymongo IndexModel for this UniqueConstraint."""
     if self.contains_expressions:
@@ -45,20 +52,17 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefi
     if self.condition:
         filter_expression.update(self._get_condition_mql(model, schema_editor))
     if self.nulls_distinct is None or self.nulls_distinct:
-        # Indexing on $type matches the value of most SQL databases by allowing
-        # multiple null values for the unique constraint. nulls_distinct will
-        # be True or False for a UniqueConstraint, or None for
-        # Field(unique=True) or Meta.unique_together.
         if field:
             column = column_prefix + field.column
-            filter_expression[column].update(
-                _get_partial_unique_filter(field, schema_editor.connection)
-            )
+            _add_nullable_unique_filter(filter_expression, field, schema_editor.connection, column)
         else:
             for field_name in self.fields:
                 field_ = get_field(model, field_name)
-                filter_expression[field_.column].update(
-                    _get_partial_unique_filter(field_, schema_editor.connection)
+                _add_nullable_unique_filter(
+                    filter_expression,
+                    field_,
+                    schema_editor.connection,
+                    field_.column,
                 )
     if filter_expression:
         kwargs["partialFilterExpression"] = filter_expression
@@ -84,13 +88,15 @@ class EmbeddedFieldUniqueConstraint(EmbeddedFieldIndexMixin, UniqueConstraint):
         # index doesn't need to be created with a partialFilterExpression).
         if self.nulls_distinct is not False:
             for field_name in self.fields:
-                # Get the top-level field, removing paths to embedded fields.
                 local_field_name, *_ = field_name.split(".")
                 try:
                     field = model._meta.get_field(local_field_name)
                 except FieldDoesNotExist:
                     continue
-                if isinstance(field, (EmbeddedModelArrayField, PolymorphicEmbeddedModelArrayField)):
+                if isinstance(
+                    field,
+                    (EmbeddedModelArrayField, PolymorphicEmbeddedModelArrayField),
+                ):
                     errors.append(
                         checks.Error(
                             f"EmbeddedFieldUniqueConstraint {self.name!r} must "
