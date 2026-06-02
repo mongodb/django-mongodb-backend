@@ -5,7 +5,7 @@ from django.test.utils import isolate_apps
 
 @isolate_apps("constraints_")
 class UniqueIndexTests(SimpleTestCase):
-    def test_single_field_unique_index_has_no_partial_filter_when_not_nullable(self):
+    def test_single_field_unique_index_filter(self):
         class Author(models.Model):
             name = models.TextField(unique=True)
 
@@ -22,9 +22,12 @@ class UniqueIndexTests(SimpleTestCase):
                 field=field,
             )
 
-        self.assertNotIn("partialFilterExpression", index.document)
+        self.assertEqual(
+            dict(index.document["partialFilterExpression"]),
+            {"name": {"$gte": ""}},
+        )
 
-    def test_multi_field_unique_index_has_no_partial_filter_when_not_nullable(self):
+    def test_multi_field_unique_index_filter(self):
         class Book(models.Model):
             version = models.IntegerField()
             name = models.TextField()
@@ -43,26 +46,13 @@ class UniqueIndexTests(SimpleTestCase):
         with connection.schema_editor() as editor:
             index = constraint.get_pymongo_index_model(Book, schema_editor=editor)
 
-        self.assertNotIn("partialFilterExpression", index.document)
-
-    def test_nullable_unique_index_uses_partial_filter(self):
-        class Place(models.Model):
-            code = models.TextField(unique=True, null=True)
-
-            class Meta:
-                app_label = "constraints_"
-
-        field = Place._meta.get_field("code")
-        constraint = models.UniqueConstraint(fields=["code"], name="place_code_uniq")
-
-        with connection.schema_editor() as editor:
-            index = constraint.get_pymongo_index_model(
-                Place,
-                schema_editor=editor,
-                field=field,
-            )
-
         self.assertEqual(
             dict(index.document["partialFilterExpression"]),
-            {"code": {"$gte": ""}},
+            {
+                "version": {
+                    "$gte": -9223372036854775808,
+                    "$lte": 9223372036854775807,
+                },
+                "name": {"$gte": ""},
+            },
         )

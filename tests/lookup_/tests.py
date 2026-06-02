@@ -172,7 +172,7 @@ class LookupMQLTests(MongoTestCaseMixin, TestCase):
         )
 
 
-class UniqueIndexLookupTests(TestCase):
+class PartialUniqueIndexLookupTests(TestCase):
     def _find_ixscan(self, winning_plan):
         plan = winning_plan
         while plan:
@@ -181,7 +181,7 @@ class UniqueIndexLookupTests(TestCase):
             plan = plan.get("inputStage")
         return None
 
-    def test_exact_lookup_uses_unique_index(self):
+    def test_exact_lookup_uses_partial_unique_index(self):
         UniqueAuthor.objects.create(name="JK Rowling")
 
         plan = json_util.loads(UniqueAuthor.objects.filter(name="JK Rowling").explain())[
@@ -192,8 +192,9 @@ class UniqueIndexLookupTests(TestCase):
         self.assertIsNotNone(ixscan)
         self.assertEqual(ixscan["keyPattern"], {"name": 1})
         self.assertTrue(ixscan["isUnique"])
+        self.assertTrue(ixscan["isPartial"])
 
-    def test_compound_exact_lookup_uses_unique_index(self):
+    def test_compound_exact_lookup_uses_partial_unique_index(self):
         author = UniqueAuthor.objects.create(name="JK Rowling")
         UniqueBook.objects.create(author=author, version=3, name="Harry Potter")
         UniqueBook.objects.create(author=author, version=4, name="Harry Potter")
@@ -207,3 +208,4 @@ class UniqueIndexLookupTests(TestCase):
         self.assertEqual(ixscan["indexName"], "unique_book_version")
         self.assertEqual(ixscan["keyPattern"], {"version": 1, "name": 1})
         self.assertTrue(ixscan["isUnique"])
+        self.assertTrue(ixscan["isPartial"])
