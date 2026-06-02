@@ -2,6 +2,7 @@ from django.db import NotSupportedError
 from django.db.models.fields.related_lookups import In, RelatedIn
 from django.db.models.lookups import (
     BuiltinLookup,
+    Exact,
     FieldGetDbPrepValueIterableMixin,
     IsNull,
     LessThan,
@@ -12,6 +13,30 @@ from django.db.models.lookups import (
 )
 
 from .query_utils import is_constant_value, process_lhs, process_rhs
+
+
+def _exact_partial_filter(self, compiler, connection):
+    if self.rhs is None:
+        return None
+
+    output_field = getattr(self.lhs, "output_field", None)
+    if output_field is None:
+        return None
+
+    db_type = output_field.db_type(connection)
+    if db_type != "string":
+        return None
+
+    lhs_mql = process_lhs(self, compiler, connection)
+    return {lhs_mql: {"$type": "string"}}
+
+
+def exact_path(self, compiler, connection):
+    query = builtin_lookup_path(self, compiler, connection)
+    partial_filter = _exact_partial_filter(self, compiler, connection)
+    if partial_filter is None:
+        return query
+    return {"$and": [query, partial_filter]}
 
 
 def builtin_lookup_expr(self, compiler, connection):
@@ -172,6 +197,7 @@ def uuid_text_mixin(self, compiler, connection, as_expr=False):  # noqa: ARG001
 def register_lookups():
     BuiltinLookup.as_mql_expr = builtin_lookup_expr
     BuiltinLookup.as_mql_path = builtin_lookup_path
+    Exact.as_mql_path = exact_path
     FieldGetDbPrepValueIterableMixin.resolve_expression_parameter = (
         field_resolve_expression_parameter
     )
