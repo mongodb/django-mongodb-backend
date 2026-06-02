@@ -8,6 +8,11 @@ from django_mongodb_backend.models import EmbeddedModel
 from .models import Embed
 
 
+class TestMeta(SimpleTestCase):
+    def test_managed(self):
+        self.assertIs(Embed()._meta.managed, False)
+
+
 class TestMethods(SimpleTestCase):
     def test_save(self):
         e = Embed()

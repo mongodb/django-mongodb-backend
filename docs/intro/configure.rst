@@ -180,6 +180,16 @@ normal models by :djadmin:`dumpdata`::
 (If you've used the :djadmin:`startproject` template, this line is already
 present.)
 
+Configuring the ``INSTALLED_APPS`` setting
+==========================================
+
+Add ``'django_mongodb_backend'`` to the :setting:`INSTALLED_APPS` setting. This
+makes the package's :doc:`management commands </ref/django-admin>` and form
+widget templates available to your project.
+
+(Again, if you've used the :djadmin:`startproject` template, this line is
+already present.)
+
 Congratulations, your project is ready to go!
 
 .. seealso::

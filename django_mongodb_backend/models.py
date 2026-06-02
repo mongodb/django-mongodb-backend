@@ -9,6 +9,7 @@ class EmbeddedModel(models.Model):
 
     class Meta:
         abstract = True
+        managed = False
 
     @classmethod
     def check(self, **kwargs):

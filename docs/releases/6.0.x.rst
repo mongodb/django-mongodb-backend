@@ -37,6 +37,37 @@ Bug fixes
 
 - Added debug logging of ``QuerySet.explain()`` queries.
 
+Backwards incompatible changes
+------------------------------
+
+- Subclasses of :class:`~django_mongodb_backend.models.EmbeddedModel` are now
+  treated as unmanaged, that is they have the
+  :attr:`~django.db.models.Options.managed` ``Meta`` option set to ``False``.
+
+  Existing embedded models will have an ``AlterModelOptions`` migration
+  operation added when you run :djadmin:`makemigrations`. Alternatively, you
+  can edit your migrations and add add ``'managed': False`` to each model's
+  ``CreateModel`` operation under ``'abstract': False``:
+
+  .. code-block:: python
+    :emphasize-lines: 7
+
+    operations = [
+        migrations.CreateModel(
+            name="...",
+            fields=[...],
+            options={
+                "abstract": False,
+                "managed": False,
+            },
+        ),
+        ...,
+    ]
+
+- You must include ``'django_mongodb_backend'`` in the
+  :setting:`INSTALLED_APPS` setting in order to generate migration operations
+  for embedded models.
+
 6.0.3
 =====
 
