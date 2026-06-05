@@ -484,16 +484,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "db_functions.math.test_round.RoundTests.test_decimal_with_precision",
             "db_functions.math.test_round.RoundTests.test_float_with_precision",
         },
-        (NotSupportedError, "Pattern lookups on UUIDField are not supported."): {
-            "model_fields.test_uuid.TestQuerying.test_contains",
-            "model_fields.test_uuid.TestQuerying.test_endswith",
-            "model_fields.test_uuid.TestQuerying.test_filter_with_expr",
-            "model_fields.test_uuid.TestQuerying.test_icontains",
-            "model_fields.test_uuid.TestQuerying.test_iendswith",
-            "model_fields.test_uuid.TestQuerying.test_iexact",
-            "model_fields.test_uuid.TestQuerying.test_istartswith",
-            "model_fields.test_uuid.TestQuerying.test_startswith",
-        },
         (
             CommandError,
             "Unable to serialize database: QuerySet.prefetch_related() is not "
