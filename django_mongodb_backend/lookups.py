@@ -1,4 +1,3 @@
-from django.db import NotSupportedError
 from django.db.models.fields.related_lookups import In, RelatedIn
 from django.db.models.lookups import (
     BuiltinLookup,
@@ -165,8 +164,19 @@ def pattern_lookup_path(self, compiler, connection):
     return connection.mongo_operators[self.lookup_name](lhs_mql, value)
 
 
-def uuid_text_mixin(self, compiler, connection, as_expr=False):  # noqa: ARG001
-    raise NotSupportedError("Pattern lookups on UUIDField are not supported.")
+def uuid_text_mixin_as_mql_expr(self, compiler, connection):
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+    rhs_mql = self.rhs.as_mql(compiler, connection, as_expr=True)
+    # For expression RHS (column reference), use $replaceAll to strip hyphens.
+    value = {"$replaceAll": {"input": rhs_mql, "find": "-", "replacement": ""}}
+    return connection.mongo_expr_operators[self.lookup_name](lhs_mql, value)
+
+
+def uuid_text_mixin_as_mql_path(self, compiler, connection):
+    lhs_mql = process_lhs(self, compiler, connection)
+    # Strip hyphens from lookup value since UUIDField is stored without them.
+    value = self.rhs.replace("-", "")
+    return connection.mongo_operators[self.lookup_name](lhs_mql, value)
 
 
 def register_lookups():
@@ -185,4 +195,5 @@ def register_lookups():
     Lookup.can_use_path = lookup_can_use_path
     PatternLookup.as_mql_expr = pattern_lookup_expr
     PatternLookup.as_mql_path = pattern_lookup_path
-    UUIDTextMixin.as_mql = uuid_text_mixin
+    UUIDTextMixin.as_mql_expr = uuid_text_mixin_as_mql_expr
+    UUIDTextMixin.as_mql_path = uuid_text_mixin_as_mql_path
