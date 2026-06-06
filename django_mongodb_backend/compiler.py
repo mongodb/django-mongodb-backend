@@ -10,19 +10,6 @@ from django.db.models.aggregates import Aggregate, Variance
 from django.db.models.expressions import Case, Col, OrderBy, Ref, RowRange, Value, When, Window
 from django.db.models.functions.comparison import Coalesce
 from django.db.models.functions.math import Power
-from django.db.models.functions.window import (
-    CumeDist,
-    DenseRank,
-    FirstValue,
-    Lag,
-    LastValue,
-    Lead,
-    NthValue,
-    Ntile,
-    PercentRank,
-    Rank,
-    RowNumber,
-)
 from django.db.models.lookups import IsNull
 from django.db.models.sql import compiler
 from django.db.models.sql.constants import GET_ITERATOR_CHUNK_SIZE, MULTI, SINGLE
@@ -888,19 +875,19 @@ class SQLCompiler(compiler.SQLCompiler):
         if not partition_mql or not sort_doc:
             return False
 
-        def canonical(expr):
-            return json.dumps(expr, sort_keys=True, default=str)
+        def dump(expr):
+            return json.dumps(expr, sort_keys=True)
 
         if isinstance(partition_mql, dict) and not any(k.startswith("$") for k in partition_mql):
-            partition_set = {canonical(v) for v in partition_mql.values()}
+            partition_set = {dump(v) for v in partition_mql.values()}
         else:
-            partition_set = {canonical(partition_mql)}
+            partition_set = {dump(partition_mql)}
         sort_set = set()
         for field in sort_doc:
             if field in pre_add_fields:
-                sort_set.add(canonical(pre_add_fields[field]))
+                sort_set.add(dump(pre_add_fields[field]))
             else:
-                sort_set.add(canonical(f"${field}"))
+                sort_set.add(dump(f"${field}"))
         return sort_set.issubset(partition_set)
 
     def _window_function_output(self, alias, window, idx, use_full_partition=False):
@@ -912,11 +899,9 @@ class SQLCompiler(compiler.SQLCompiler):
         $setWindowFields.output and $addFields uses those results for complex
         functions.
         """
-        source = window.source_expression
+        expr = window.source_expression
         frame = window.frame
-        has_order_by = bool(
-            window.order_by is not None and window.order_by.get_source_expressions()
-        )
+        has_order_by = bool(window.order_by and window.order_by.get_source_expressions())
 
         def frame_mql():
             if frame is None:
@@ -941,113 +926,11 @@ class SQLCompiler(compiler.SQLCompiler):
                 return {"documents": ["unbounded", "current"]}
             return {"documents": ["unbounded", "unbounded"]}
 
-        output = {}
-        add_fields = {}
-        if isinstance(source, DenseRank):
-            output[alias] = {"$denseRank": {}}
-        elif isinstance(source, Rank):
-            output[alias] = {"$rank": {}}
-        elif isinstance(source, RowNumber):
-            output[alias] = {"$documentNumber": {}}
-        elif isinstance(source, (Lag, Lead)):
-            is_lead = isinstance(source, Lead)
-            exprs = [e for e in source.get_source_expressions() if e is not None]
-            expr_mql = exprs[0].as_mql(self, self.connection, as_expr=True)
-            offset = exprs[1].value if len(exprs) > 1 else 1
-            by = offset if is_lead else -offset
-            shift = {"output": expr_mql, "by": by}
-            if len(exprs) > 2:
-                shift["default"] = exprs[2].as_mql(self, self.connection, as_expr=True)
-            output[alias] = {"$shift": shift}
-        elif isinstance(source, FirstValue):
-            exprs = source.get_source_expressions()
-            expr_mql = exprs[0].as_mql(self, self.connection, as_expr=True)
-            entry = {"$first": expr_mql, "window": default_frame()}
-            output[alias] = entry
-        elif isinstance(source, LastValue):
-            exprs = source.get_source_expressions()
-            expr_mql = exprs[0].as_mql(self, self.connection, as_expr=True)
-            entry = {"$last": expr_mql, "window": default_frame()}
-            output[alias] = entry
-        elif isinstance(source, NthValue):
-            exprs = source.get_source_expressions()
-            expr_mql = exprs[0].as_mql(self, self.connection, as_expr=True)
-            nth = exprs[1].value
-            push_alias = f"__wtemp{next(idx)}"
-            output[push_alias] = {
-                "$push": expr_mql,
-                "window": {"documents": ["unbounded", "current"]},
-            }
-            add_fields[alias] = {
-                "$cond": {
-                    "if": {"$gte": [{"$size": f"${push_alias}"}, nth]},
-                    "then": {"$arrayElemAt": [f"${push_alias}", nth - 1]},
-                    "else": None,
-                }
-            }
-        elif isinstance(source, PercentRank):
-            # Use document-position rank ($sum:1 docs unbounded-to-current)
-            # instead of $rank, which MongoDB limits to a single sort field.
-            row_num_alias = f"__wtemp{next(idx)}"
-            count_alias = f"__wtemp{next(idx)}"
-            output[row_num_alias] = {"$sum": 1, "window": {"documents": ["unbounded", "current"]}}
-            output[count_alias] = {"$sum": 1, "window": {"documents": ["unbounded", "unbounded"]}}
-            add_fields[alias] = {
-                "$cond": {
-                    "if": {"$lte": [f"${count_alias}", 1]},
-                    "then": {"$literal": 0.0},
-                    "else": {
-                        "$divide": [
-                            {"$subtract": [f"${row_num_alias}", 1]},
-                            {"$subtract": [f"${count_alias}", 1]},
-                        ]
-                    },
-                }
-            }
-        elif isinstance(source, CumeDist):
-            # CumeDist = (rank + group_size - 1) / total.
-            # Use $rank for the base rank (1-based, same value for ties),
-            # range:[0,0] for group_size (count of all rows with identical sort
-            # key value), and full-partition sum for total.
-            rank_alias = f"__wtemp{next(idx)}"
-            group_size_alias = f"__wtemp{next(idx)}"
-            total_alias = f"__wtemp{next(idx)}"
-            output[rank_alias] = {"$rank": {}}
-            output[group_size_alias] = {"$sum": 1, "window": {"range": [0, 0]}}
-            output[total_alias] = {"$sum": 1, "window": {"documents": ["unbounded", "unbounded"]}}
-            add_fields[alias] = {
-                "$divide": [
-                    {"$subtract": [{"$add": [f"${rank_alias}", f"${group_size_alias}"]}, 1]},
-                    f"${total_alias}",
-                ]
-            }
-        elif isinstance(source, Ntile):
-            num_buckets = source.get_source_expressions()[0].value
-            docnum_alias = f"__wtemp{next(idx)}"
-            total_alias = f"__wtemp{next(idx)}"
-            output[docnum_alias] = {"$documentNumber": {}}
-            output[total_alias] = {"$sum": 1, "window": {"documents": ["unbounded", "unbounded"]}}
-            add_fields[alias] = {
-                "$toInt": {
-                    "$ceil": {
-                        "$divide": [
-                            {"$multiply": [f"${docnum_alias}", num_buckets]},
-                            f"${total_alias}",
-                        ]
-                    }
-                }
-            }
-        elif isinstance(source, Aggregate):
-            operator = source.function.lower()
-            src_exprs = [e for e in source.get_source_expressions() if e is not None]
-            inner_mql = src_exprs[0].as_mql(self, self.connection, as_expr=True) if src_exprs else 1
-            entry = {f"${operator}": inner_mql, "window": default_frame()}
-            output[alias] = entry
-        else:
+        if not hasattr(expr, "get_window_mql"):
             raise NotSupportedError(
-                f"Window function {source.__class__.__name__} is not supported on MongoDB."
+                f"Window function {expr.__class__.__name__} is not supported on MongoDB."
             )
-        return output, add_fields
+        return expr.get_window_mql(self, self.connection, alias, idx, default_frame)
 
     def _prepare_window_annotations_for_pipeline(self):
         """
