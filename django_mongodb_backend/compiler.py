@@ -215,6 +215,11 @@ class SQLCompiler(compiler.SQLCompiler):
         having_group_by = self.having.get_group_by_cols() if self.having else ()
         for expr in having_group_by:
             expressions.add(expr)
+        # Include partition/sort columns from window annotations so that
+        # $setWindowFields can partition the grouped data.
+        for expr in self.query.annotations.values():
+            if expr.contains_over_clause:
+                expressions |= set(expr.get_group_by_cols())
         return expressions
 
     def _get_group_id_expressions(self, order_by):

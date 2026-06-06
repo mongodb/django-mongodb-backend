@@ -57,8 +57,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     _django_test_expected_failures = {
         # $concat only supports strings, not int
         "db_functions.text.test_concat.ConcatTests.test_concat_non_str",
-        # Heterogeneous filter mixing window and aggregate conditions requires further work.
-        "expressions_window.tests.WindowFunctionTests.test_heterogeneous_filter",
         # QuerySet.order_by() with annotation transform doesn't work:
         # "Expression $mod takes exactly 2 arguments. 1 were passed in"
         # https://github.com/django/django/commit/b0ad41198b3e333f57351e3fce5a1fb47f23f376
