@@ -36,13 +36,14 @@ class GISFeatures(BaseSpatialFeatures):
                     "gis_tests.geoapp.test_expressions.GeoExpressionsTests.test_update_from_other_field",
                     "gis_tests.layermap.tests.LayerMapTest.test_encoded_name",
                     "gis_tests.relatedapp.tests.RelatedGeoModelTest.test06_f_expressions",
-                    # SouthTexasCity fixture objects use SRID 2278 which is ignored
-                    # by the patched version of loaddata in the Django fork.
+                    # SouthTexasCity uses SRID 2278, which is ignored by
+                    # the patched version of loaddata in the Django fork.
                     "gis_tests.distapp.tests.DistanceTest.test_init",
                 },
                 "ImproperlyConfigured isn't raised when using RasterField": {
-                    # Normally RasterField.db_type() raises an error, but MongoDB
-                    # migrations don't need to call it, so the check doesn't happen.
+                    # Normally RasterField.db_type() raises an error, but
+                    # MongoDB migrations don't need to call it, so the check
+                    # doesn't happen.
                     "gis_tests.gis_migrations.test_operations.NoRasterSupportTests",
                 },
                 "GeoJSONSerializer doesn't support ObjectId.": {

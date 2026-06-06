@@ -181,7 +181,7 @@ class QueryingTests(TestCase):
         )
 
     def test_nested(self):
-        # Cat and Dog both have favorite_toy = PolymorphicEmbeddedModelField(...)
+        # Cat and Dog both have favorite_toy = PolymorphicEmbeddedModelField()
         # but with different models. It's possible to query the fields of the
         # Dog's favorite_toy because it's the first model in Person.pet.
         self.assertCountEqual(
@@ -281,7 +281,9 @@ class CheckTests(SimpleTestCase):
         )
 
     def test_clashing_fields_of_same_type(self):
-        """Fields of different type don't clash if they use the same db_type."""
+        """
+        Fields of different types don't clash if they have the same db_type.
+        """
 
         class Target1(EmbeddedModel):
             clash = models.TextField()

@@ -64,11 +64,11 @@ class SearchUtilsMixin(TransactionTestCase):
 
     """
     These assertions include a small delay to account for MongoDB Search's
-    eventual consistency and indexing latency. Data inserted into MongoDB is not
-    immediately available for $search queries because search indexes are
-    updated asynchronously via change streams. While this is usually fast, delays
-    can occur due to replication lag, system load, index complexity, or a high
-    number of search indexes.
+    eventual consistency and indexing latency. Data inserted into MongoDB
+    is not immediately available for $search queries because search indexes
+    are updated asynchronously via change streams. While this is usually
+    fast, delays can occur due to replication lag, system load, index
+    complexity, or a high number of search indexes.
     """
     assertCountEqual = _delayed_assertion(timeout=2)(TransactionTestCase.assertCountEqual)
     assertListEqual = _delayed_assertion(timeout=2)(TransactionTestCase.assertListEqual)
@@ -828,7 +828,7 @@ class CompoundSearchTests(SearchUtilsMixin):
 
         qs = Article.objects.annotate(score=expr).order_by("-score")
         self.assertListEqual(lambda: list(qs.all()), [self.exoplanet, self.mars_mission])
-        # Returns mars_mission (score≈1) and exoplanet (score≈2) then; exoplanet first.
+        # Returns exoplanet (score≈2) first, mars_mission (score≈1) second.
         self.assertEqual(qs.first(), self.exoplanet)
 
     def test_multiple_search(self):
