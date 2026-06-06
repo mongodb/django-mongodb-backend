@@ -158,6 +158,11 @@ def query(self, compiler, connection, get_wrapping_pipeline=None, as_expr=False)
         else:
             if subquery.aggregation_pipeline is None:
                 subquery.aggregation_pipeline = []
+            # Window stages must precede the wrapping pipeline so the $group
+            # can reference the window function outputs.
+            if subquery.window_pipeline:
+                subquery.aggregation_pipeline.extend(subquery.window_pipeline)
+                subquery.window_pipeline = None
             subquery.aggregation_pipeline.extend(wrapping_result_pipeline)
         # Erase project_fields since the required value is projected above.
         subquery.project_fields = None

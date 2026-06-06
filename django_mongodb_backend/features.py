@@ -59,8 +59,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "db_functions.text.test_concat.ConcatTests.test_concat_non_str",
         # Heterogeneous filter mixing window and aggregate conditions requires further work.
         "expressions_window.tests.WindowFunctionTests.test_heterogeneous_filter",
-        # Subquery with window function inside a __in filter generates a null result.
-        "expressions_window.tests.WindowFunctionTests.test_window_expression_within_subquery",
         # QuerySet.order_by() with annotation transform doesn't work:
         # "Expression $mod takes exactly 2 arguments. 1 were passed in"
         # https://github.com/django/django/commit/b0ad41198b3e333f57351e3fce5a1fb47f23f376
