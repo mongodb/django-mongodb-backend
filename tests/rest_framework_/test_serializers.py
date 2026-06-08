@@ -1,3 +1,10 @@
+import unittest
+
+try:
+    import rest_framework  # noqa: F401
+except ImportError:
+    raise unittest.SkipTest("djangorestframework not installed") from None
+
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.test import SimpleTestCase

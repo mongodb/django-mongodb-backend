@@ -1,3 +1,10 @@
+import unittest
+
+try:
+    import rest_framework  # noqa: F401
+except ImportError:
+    raise unittest.SkipTest("djangorestframework not installed") from None
+
 from django.test import TestCase
 
 from django_mongodb_backend.rest_framework import MongoModelSerializer
