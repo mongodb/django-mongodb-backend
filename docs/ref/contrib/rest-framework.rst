@@ -77,6 +77,8 @@ generates the correct DRF fields for:
 * :class:`~django_mongodb_backend.fields.EmbeddedModelField`
 * :class:`~django_mongodb_backend.fields.EmbeddedModelArrayField`
 * :class:`~django_mongodb_backend.fields.ArrayField`
+* :class:`~django_mongodb_backend.fields.PolymorphicEmbeddedModelField` (read-only)
+* :class:`~django_mongodb_backend.fields.PolymorphicEmbeddedModelArrayField` (read-only)
 * :class:`~django_mongodb_backend.fields.ObjectIdField`
 * :class:`~django_mongodb_backend.fields.ObjectIdAutoField`
 
@@ -164,10 +166,42 @@ The ``tags`` field is represented as a JSON array of objects::
     # GET response body
     {"id": "...", "title": "Hello", "tags": [{"label": "python"}, {"label": "mongodb"}]}
 
-Limitations
-===========
+Polymorphic embedded model fields
+----------------------------------
 
-* :class:`~django_mongodb_backend.fields.PolymorphicEmbeddedModelField` and
-  :class:`~django_mongodb_backend.fields.PolymorphicEmbeddedModelArrayField`
-  are not supported by auto-generation. Declare these fields manually on the
-  serializer.
+:class:`~django_mongodb_backend.fields.PolymorphicEmbeddedModelField` and
+:class:`~django_mongodb_backend.fields.PolymorphicEmbeddedModelArrayField`
+are serialized automatically by
+:class:`~django_mongodb_backend.rest_framework.PolymorphicEmbeddedModelSerializer`,
+which dispatches to the correct concrete
+:class:`~django_mongodb_backend.rest_framework.EmbeddedModelSerializer` based
+on the runtime type of each instance::
+
+    from django_mongodb_backend.fields import PolymorphicEmbeddedModelField
+    from django_mongodb_backend.models import EmbeddedModel
+
+    class Dog(EmbeddedModel):
+        name = models.CharField(max_length=100)
+        barks = models.BooleanField(default=True)
+
+    class Cat(EmbeddedModel):
+        name = models.CharField(max_length=100)
+        purrs = models.BooleanField(default=True)
+
+    class PetOwner(models.Model):
+        name = models.CharField(max_length=100)
+        pet = PolymorphicEmbeddedModelField([Dog, Cat], null=True)
+
+    class PetOwnerSerializer(MongoModelSerializer):
+        class Meta:
+            model = PetOwner
+            fields = "__all__"
+
+Serializing a ``PetOwner`` with a ``Dog`` instance::
+
+    owner = PetOwner.objects.get(pk=...)
+    data = PetOwnerSerializer(owner).data
+    # data = {"id": "...", "name": "Alice", "pet": {"name": "Rex", "barks": true}}
+
+Because ``PolymorphicEmbeddedModelField`` is not editable, the serialized field
+is read-only. To accept writes, declare the field manually on the serializer.

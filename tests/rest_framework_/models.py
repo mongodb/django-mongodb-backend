@@ -1,6 +1,12 @@
 from django.db import models
 
-from django_mongodb_backend.fields import ArrayField, EmbeddedModelArrayField, EmbeddedModelField
+from django_mongodb_backend.fields import (
+    ArrayField,
+    EmbeddedModelArrayField,
+    EmbeddedModelField,
+    PolymorphicEmbeddedModelArrayField,
+    PolymorphicEmbeddedModelField,
+)
 from django_mongodb_backend.models import EmbeddedModel
 
 
@@ -19,6 +25,22 @@ class Country(EmbeddedModel):
 class CityWithUniqueCode(EmbeddedModel):
     name = models.CharField(max_length=100)
     code = models.CharField(max_length=10, unique=True)
+
+
+class Dog(EmbeddedModel):
+    name = models.CharField(max_length=100)
+    barks = models.BooleanField(default=True)
+
+
+class Cat(EmbeddedModel):
+    name = models.CharField(max_length=100)
+    purrs = models.BooleanField(default=True)
+
+
+class PetOwner(models.Model):
+    name = models.CharField(max_length=100)
+    pet = PolymorphicEmbeddedModelField([Dog, Cat], null=True, blank=True)
+    pets = PolymorphicEmbeddedModelArrayField([Dog, Cat], null=True, blank=True)
 
 
 class Continent(models.Model):

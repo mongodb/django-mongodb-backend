@@ -1,5 +1,9 @@
 try:
-    from .serializers import EmbeddedModelSerializer, MongoModelSerializer
+    from .serializers import (
+        EmbeddedModelSerializer,
+        MongoModelSerializer,
+        PolymorphicEmbeddedModelSerializer,
+    )
 except ModuleNotFoundError as exc:
     if exc.name == "rest_framework":
         raise ModuleNotFoundError(
@@ -8,4 +12,4 @@ except ModuleNotFoundError as exc:
         ) from exc
     raise
 
-__all__ = ["EmbeddedModelSerializer", "MongoModelSerializer"]
+__all__ = ["EmbeddedModelSerializer", "MongoModelSerializer", "PolymorphicEmbeddedModelSerializer"]

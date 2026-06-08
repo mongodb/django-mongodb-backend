@@ -43,16 +43,23 @@ def _build_embedded_field(
     field_mapping: ClassLookupDict | None = None,
 ) -> tuple[type[Any], dict[str, Any]] | None:
     """Return (field_class, kwargs) for MongoDB-specific fields, or None for standard fields."""
-    if isinstance(model_field, (PolymorphicEmbeddedModelField, PolymorphicEmbeddedModelArrayField)):
-        raise NotImplementedError(
-            f"Field '{model_field.name}' uses a polymorphic embedded field type which is not "
-            "supported automatically. Declare the field manually on the serializer."
-        )
+    # PolymorphicEmbeddedModelArrayField before ArrayField — subclass check must come first.
+    if isinstance(model_field, PolymorphicEmbeddedModelArrayField):
+        kwargs: dict[str, Any] = {"many": True, "read_only": True}
+        if model_field.null:
+            kwargs["allow_null"] = True
+        return PolymorphicEmbeddedModelSerializer, kwargs
+
+    if isinstance(model_field, PolymorphicEmbeddedModelField):
+        kwargs = {"read_only": True}
+        if model_field.null:
+            kwargs["allow_null"] = True
+        return PolymorphicEmbeddedModelSerializer, kwargs
 
     # EmbeddedModelArrayField before ArrayField — subclass check must come first.
     if isinstance(model_field, EmbeddedModelArrayField):
         child_cls = _make_embedded_serializer(model_field.embedded_model)
-        kwargs: dict[str, Any] = {"many": True}
+        kwargs = {"many": True}
         if model_field.null:
             kwargs["allow_null"] = True
         return child_cls, kwargs
@@ -107,6 +114,34 @@ def _get_serializer_field(
             v for v in field_kwargs["validators"] if not isinstance(v, UniqueValidator)
         ]
     return field_class(**field_kwargs)
+
+
+class PolymorphicEmbeddedModelSerializer(serializers.BaseSerializer):
+    """
+    Read-only serializer for :class:`~django_mongodb_backend.fields.PolymorphicEmbeddedModelField`
+    values.
+
+    Serializes each instance using an auto-generated
+    :class:`EmbeddedModelSerializer` for its concrete type. Write operations
+    are not supported because ``PolymorphicEmbeddedModelField`` is not editable.
+    """
+
+    def to_representation(self, instance: Any) -> Any:
+        if instance is None:
+            return None
+        return _make_embedded_serializer(type(instance))(instance, context=self.context).data
+
+    def to_internal_value(self, data: Any) -> Any:
+        raise NotImplementedError(
+            f"{self.__class__.__name__} is read-only. "
+            "Declare the field manually on the serializer to support writes."
+        )
+
+    def create(self, validated_data: Any) -> Any:
+        raise NotImplementedError(f"{self.__class__.__name__} is read-only.")
+
+    def update(self, instance: Any, validated_data: Any) -> Any:
+        raise NotImplementedError(f"{self.__class__.__name__} is read-only.")
 
 
 class EmbeddedModelSerializer(serializers.Serializer):
