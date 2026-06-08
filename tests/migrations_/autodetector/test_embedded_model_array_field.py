@@ -17,11 +17,7 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
     """Test the autodetector with EmbeddedModelArrayField."""
 
     def test_add_embedded_field(self):
-        """
-        Detection of new embedded fields (Author.age). No AddEmbeddedField is
-        generated since EmbeddedModelArrayField isn't supported by the
-        embedded-path autodetector logic.
-        """
+        """Detection of new embedded fields (Author.age)."""
         changes = self.get_changes(
             [
                 ModelState(
@@ -66,12 +62,16 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
             ],
         )
         self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["AddField"])
+        self.assertOperationTypes(changes, "testapp", 0, ["AddField", "AddEmbeddedField"])
         self.assertOperationAttributes(changes, "testapp", 0, 0, model_name="author", name="age")
+        self.assertOperationAttributes(
+            changes, "testapp", 0, 1, model_name="book", name="author.$[].age"
+        )
 
     def test_add_embedded_field_db_column(self):
         """
-        No AddEmbeddedField is generated even when subfields use db_column.
+        AddEmbeddedField's name uses each field's db_column in embedded
+        paths.
         """
         changes = self.get_changes(
             [
@@ -117,8 +117,11 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
             ],
         )
         self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["AddField"])
+        self.assertOperationTypes(changes, "testapp", 0, ["AddField", "AddEmbeddedField"])
         self.assertOperationAttributes(changes, "testapp", 0, 0, model_name="author", name="age")
+        self.assertOperationAttributes(
+            changes, "testapp", 0, 1, model_name="book", name="author.$[].the_age"
+        )
 
     @mock.patch(
         "django.db.migrations.questioner.MigrationQuestioner.ask_not_null_addition",
@@ -171,7 +174,9 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
             ],
         )
         self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["AddField"] * 3)
+        self.assertOperationTypes(
+            changes, "testapp", 0, ["AddField"] * 3 + ["AddEmbeddedField"] * 3
+        )
         self.assertOperationAttributes(changes, "testapp", 0, 0, name="date", preserve_default=True)
         self.assertOperationFieldAttributes(changes, "testapp", 0, 0, auto_now=True)
         self.assertOperationFieldAttributes(changes, "testapp", 0, 1, auto_now=True)
@@ -230,7 +235,9 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
             ],
         )
         self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["AddField"] * 3)
+        self.assertOperationTypes(
+            changes, "testapp", 0, ["AddField"] * 3 + ["AddEmbeddedField"] * 3
+        )
         self.assertOperationAttributes(
             changes, "testapp", 0, 0, name="date", preserve_default=False
         )
@@ -240,9 +247,21 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
         self.assertOperationAttributes(
             changes, "testapp", 0, 2, name="time", preserve_default=False
         )
+        self.assertOperationAttributes(
+            changes, "testapp", 0, 3, name="author.$[].date", preserve_default=False
+        )
+        self.assertOperationAttributes(
+            changes, "testapp", 0, 4, name="author.$[].datetime", preserve_default=False
+        )
+        self.assertOperationAttributes(
+            changes, "testapp", 0, 5, name="author.$[].time", preserve_default=False
+        )
         self.assertOperationFieldAttributes(changes, "testapp", 0, 0, auto_now_add=True)
         self.assertOperationFieldAttributes(changes, "testapp", 0, 1, auto_now_add=True)
         self.assertOperationFieldAttributes(changes, "testapp", 0, 2, auto_now_add=True)
+        self.assertOperationFieldAttributes(changes, "testapp", 0, 3, auto_now_add=True)
+        self.assertOperationFieldAttributes(changes, "testapp", 0, 4, auto_now_add=True)
+        self.assertOperationFieldAttributes(changes, "testapp", 0, 5, auto_now_add=True)
 
     @mock.patch("django.db.migrations.questioner.MigrationQuestioner.ask_auto_now_add_addition")
     def test_add_date_fields_with_auto_now_add_asking_for_default(self, mocked_ask_method):
@@ -292,7 +311,9 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
             ],
         )
         self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["AddField"] * 3)
+        self.assertOperationTypes(
+            changes, "testapp", 0, ["AddField"] * 3 + ["AddEmbeddedField"] * 3
+        )
         self.assertOperationAttributes(
             changes, "testapp", 0, 0, name="date", preserve_default=False
         )
@@ -310,7 +331,6 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
     def test_add_nested_embedded_field(self):
         """
         Detection of new nested embedded fields (Book.author[*].bio.title).
-        No AddEmbeddedField is generated for the array field container.
         """
         changes = self.get_changes(
             [
@@ -374,8 +394,11 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
             ],
         )
         self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["AddField"])
+        self.assertOperationTypes(changes, "testapp", 0, ["AddField", "AddEmbeddedField"])
         self.assertOperationAttributes(changes, "testapp", 0, 0, model_name="bio", name="title")
+        self.assertOperationAttributes(
+            changes, "testapp", 0, 1, model_name="book", name="author.$[].bio.title"
+        )
 
     def test_add_embedded_model_field(self):
         """Detection of new EmbeddedModelArrayField (Book.author)."""
@@ -426,8 +449,7 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
 
     def test_add_nested_embedded_model_field(self):
         """
-        Adding a nested EmbeddedModelField inside an embedded-array Author
-        generates only AddField for the Author-level field.
+        Adding a nested EmbeddedModelField inside an embedded-array Author.
         """
         changes = self.get_changes(
             [
@@ -491,14 +513,14 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
             ],
         )
         self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["AddField"])
+        self.assertOperationTypes(changes, "testapp", 0, ["AddField", "AddEmbeddedField"])
         self.assertOperationAttributes(changes, "testapp", 0, 0, model_name="author", name="bio")
+        self.assertOperationAttributes(
+            changes, "testapp", 0, 1, model_name="book", name="author.$[].bio"
+        )
 
     def test_remove_embedded_field(self):
-        """
-        Tests autodetection of removed fields. No RemoveEmbeddedField is
-        generated.
-        """
+        """Detection of removed embedded fields."""
         changes = self.get_changes(
             [
                 ModelState(
@@ -542,14 +564,14 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
             ],
         )
         self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["RemoveField"])
+        self.assertOperationTypes(changes, "testapp", 0, ["RemoveField", "RemoveEmbeddedField"])
         self.assertOperationAttributes(changes, "testapp", 0, 0, name="name")
+        self.assertOperationAttributes(
+            changes, "testapp", 0, 1, model_name="book", name="author.name"
+        )
 
     def test_remove_nested_embedded_field(self):
-        """
-        Detection of removed nested embedded fields. No RemoveEmbeddedField is
-        generated for the array field container.
-        """
+        """Detection of removed nested embedded fields."""
         changes = self.get_changes(
             [
                 ModelState(
@@ -613,13 +635,14 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
             ],
         )
         self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["RemoveField"])
+        self.assertOperationTypes(changes, "testapp", 0, ["RemoveField", "RemoveEmbeddedField"])
         self.assertOperationAttributes(changes, "testapp", 0, 0, model_name="bio", name="title")
+        self.assertOperationAttributes(
+            changes, "testapp", 0, 1, model_name="book", name="author.bio.title"
+        )
 
     def test_alter_embedded_field(self):
-        """
-        Detection of db_column change. No AlterEmbeddedField is generated.
-        """
+        """Detection of db_column change generates AlterEmbeddedField."""
         changes = self.get_changes(
             [
                 ModelState(
@@ -663,13 +686,15 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
             ],
         )
         self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["AlterField"])
+        self.assertOperationTypes(changes, "testapp", 0, ["AlterField", "AlterEmbeddedField"])
         self.assertOperationAttributes(changes, "testapp", 0, 0, model_name="author", name="name")
+        self.assertOperationAttributes(
+            changes, "testapp", 0, 1, model_name="book", name="author.name"
+        )
 
     def test_rename_embedded_field(self):
         """
-        Detection of renamed embedded fields. No RenameEmbeddedField is
-        generated for the array field container.
+        Detection of renamed embedded fields generates RenameEmbeddedField.
         """
         changes = self.get_changes(
             [
@@ -715,9 +740,18 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
             MigrationQuestioner({"ask_rename": True}),
         )
         self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["RenameField"])
+        self.assertOperationTypes(changes, "testapp", 0, ["RenameField", "RenameEmbeddedField"])
         self.assertOperationAttributes(
             changes, "testapp", 0, 0, model_name="author", old_name="name", new_name="full_name"
+        )
+        self.assertOperationAttributes(
+            changes,
+            "testapp",
+            0,
+            1,
+            model_name="book",
+            old_name="author.name",
+            new_name="author.full_name",
         )
 
     def test_alter_embbedded_field_max_length(self):
@@ -927,9 +961,7 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
         self.assertOperationFieldAttributes(changes, "testapp", 0, 0, default="Some Name")
 
     def test_rename_field(self):
-        """
-        Renaming a field generates only RenameField, not RenameEmbeddedField.
-        """
+        """Renaming a field generates RenameField and RenameEmbeddedField."""
         changes = self.get_changes(
             [
                 ModelState(
@@ -972,15 +1004,24 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
             MigrationQuestioner({"ask_rename": True}),
         )
         self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["RenameField"])
+        self.assertOperationTypes(changes, "testapp", 0, ["RenameField", "RenameEmbeddedField"])
         self.assertOperationAttributes(
             changes, "testapp", 0, 0, model_name="author", old_name="name", new_name="names"
+        )
+        self.assertOperationAttributes(
+            changes,
+            "testapp",
+            0,
+            1,
+            model_name="book",
+            old_name="author.name",
+            new_name="author.names",
         )
 
     def test_rename_field_preserved_db_column(self):
         """
-        RenameField is used if a field is renamed and db_column equal to the
-        old field's column is added. No RenameEmbeddedField is generated.
+        RenameField and RenameEmbeddedField are used if a field is renamed and
+        db_column equal to the old field's column is added.
         """
         before = [
             ModelState(
@@ -1022,7 +1063,9 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
         ]
         changes = self.get_changes(before, after, MigrationQuestioner({"ask_rename": True}))
         self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["AlterField", "RenameField"])
+        self.assertOperationTypes(
+            changes, "testapp", 0, ["AlterField", "RenameField", "RenameEmbeddedField"]
+        )
         self.assertOperationAttributes(
             changes,
             "testapp",
@@ -1049,9 +1092,20 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
             old_name="field",
             new_name="renamed_field",
         )
+        self.assertOperationAttributes(
+            changes,
+            "testapp",
+            0,
+            2,
+            model_name="book",
+            old_name="author.field",
+            new_name="author.renamed_field",
+        )
 
     def test_add_field_with_default(self):
-        """Adding a field with a default generates only AddField."""
+        """
+        Adding a field with a default generates AddField and AddEmbeddedField.
+        """
         before = [
             ModelState(
                 "testapp",
@@ -1091,8 +1145,11 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
         ]
         changes = self.get_changes(before, after)
         self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["AddField"])
+        self.assertOperationTypes(changes, "testapp", 0, ["AddField", "AddEmbeddedField"])
         self.assertOperationAttributes(changes, "testapp", 0, 0, name="name")
+        self.assertOperationAttributes(
+            changes, "testapp", 0, 1, model_name="book", name="author.$[].name"
+        )
 
     @mock.patch(
         "django.db.migrations.questioner.MigrationQuestioner.ask_not_null_addition",
@@ -1143,13 +1200,15 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
         ]
         changes = self.get_changes(before, after)
         self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["AddField", "AddField"])
+        self.assertOperationTypes(
+            changes, "testapp", 0, ["AddField", "AddField", "AddEmbeddedField", "AddEmbeddedField"]
+        )
 
     @mock.patch("django.db.migrations.questioner.MigrationQuestioner.ask_not_null_addition")
     def test_add_non_blank_textfield_and_charfield(self, mocked_ask_method):
         """
         Adding a NOT NULL and non-blank CharField or TextField without default
-        should prompt for a default once per field (no AddEmbeddedField calls).
+        prompts once per field; AddEmbeddedField reuses the same default.
         """
         before = [
             ModelState(
@@ -1192,4 +1251,6 @@ class EmbeddedModelArrayFieldAutodetectorTests(BaseAutodetectorTests):
         changes = self.get_changes(before, after)
         self.assertEqual(mocked_ask_method.call_count, 2)
         self.assertNumberMigrations(changes, "testapp", 1)
-        self.assertOperationTypes(changes, "testapp", 0, ["AddField", "AddField"])
+        self.assertOperationTypes(
+            changes, "testapp", 0, ["AddField", "AddField", "AddEmbeddedField", "AddEmbeddedField"]
+        )

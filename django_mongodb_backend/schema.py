@@ -537,16 +537,82 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
 
     # Embedded field operations
     def add_embedded_field(self, model, name, field):
-        # Set default value on existing documents.
-        self.get_collection(model._meta.db_table).update_many(
-            {}, [{"$set": {name: self.effective_default(field)}}]
-        )
+        default = self.effective_default(field)
+        if "$[]" in name:
+            # Aggregation pipeline $set doesn't support $[] positional
+            # operator.
+            self.get_collection(model._meta.db_table).update_many({}, {"$set": {name: default}})
+        else:
+            self.get_collection(model._meta.db_table).update_many({}, [{"$set": {name: default}}])
 
     def alter_embedded_field(self, model, old_name, new_name):
         if old_name != new_name:
-            self.get_collection(model._meta.db_table).update_many(
-                {}, {"$rename": {old_name: new_name}}
-            )
+            if "$[]" in old_name:
+                # $rename doesn't support the $[] positional operator.
+                self.get_collection(model._meta.db_table).update_many(
+                    {}, [self._build_array_rename_stage(old_name, new_name)]
+                )
+            else:
+                self.get_collection(model._meta.db_table).update_many(
+                    {}, {"$rename": {old_name: new_name}}
+                )
+
+    @staticmethod
+    def _build_array_rename_stage(old_name, new_name):
+        """
+        Build an aggregation pipeline $set stage that renames a field inside
+        array elements, handling arbitrary nesting after the $[] marker.
+        """
+        arr_prefix, old_inner = old_name.split(".$[].", 1)
+        new_inner = new_name.split(".$[].", 1)[1]
+        old_parts = old_inner.split(".")
+        old_leaf = old_parts[-1]
+        new_leaf = new_inner.split(".")[-1]
+        parent_parts = old_parts[:-1]
+
+        item_var = "item"
+        if parent_parts:
+            parent_path = ".".join(parent_parts)
+            inner_expr = {
+                "$unsetField": {
+                    "field": old_leaf,
+                    "input": {
+                        "$mergeObjects": [
+                            f"$${item_var}.{parent_path}",
+                            {new_leaf: f"$${item_var}.{old_inner}"},
+                        ]
+                    },
+                }
+            }
+            # Wrap outward from the parent leaf up to $$item.
+            for i in range(len(parent_parts) - 1, -1, -1):
+                ancestor_parts = parent_parts[:i]
+                ancestor_ref = (
+                    f"$${item_var}.{'.'.join(ancestor_parts)}"
+                    if ancestor_parts
+                    else f"$${item_var}"
+                )
+                inner_expr = {"$mergeObjects": [ancestor_ref, {parent_parts[i]: inner_expr}]}
+        else:
+            inner_expr = {
+                "$unsetField": {
+                    "field": old_leaf,
+                    "input": {
+                        "$mergeObjects": [f"$${item_var}", {new_leaf: f"$${item_var}.{old_inner}"}]
+                    },
+                }
+            }
+        return {
+            "$set": {
+                arr_prefix: {
+                    "$map": {
+                        "input": f"${arr_prefix}",
+                        "as": item_var,
+                        "in": inner_expr,
+                    }
+                }
+            }
+        }
 
     def remove_embedded_field(self, model, name):
         # Remove field from existing documents.
