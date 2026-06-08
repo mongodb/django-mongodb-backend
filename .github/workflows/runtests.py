@@ -47,6 +47,7 @@ test_apps = [
     "empty_models",
     "expressions",
     "expressions_case",
+    "expressions_window",
     "field_defaults",
     "file_storage",
     "file_uploads",
