@@ -21,9 +21,6 @@ class MigrationAutodetector(BaseMigrationAutodetector):
 
         def get_old_embedded_paths(field, name_prefix=None, path_prefix=None):
             if hasattr(field, "embedded_model"):
-                if isinstance(field, EmbeddedModelArrayField):
-                    # EmbeddedModelArrayField isn't yet supported.
-                    return
                 if isinstance(field.embedded_model, str):
                     model_label = field.embedded_model
                 else:
@@ -33,6 +30,7 @@ class MigrationAutodetector(BaseMigrationAutodetector):
                     app_label,
                     self.renamed_models.get(model_lookup, model_lookup[1]),
                 ]
+                is_array = isinstance(field, EmbeddedModelArrayField)
                 for subfield_name, subfield in embedded_model.fields.items():
                     if name_prefix:
                         name = f"{name_prefix}.{subfield_name}"
@@ -43,7 +41,10 @@ class MigrationAutodetector(BaseMigrationAutodetector):
                         path = f"{path_prefix}.{subfield_column}"
                     else:
                         field_column = field.get_attname_column()[1]
-                        path = f"{field_column}.{subfield_column}"
+                        if is_array:
+                            path = f"{field_column}.$[].{subfield_column}"
+                        else:
+                            path = f"{field_column}.{subfield_column}"
                     self.old_embedded_field_keys[(app_label, model_name, name)] = path
                     # Check for nested embeds.
                     get_old_embedded_paths(subfield, name, path)
@@ -62,10 +63,8 @@ class MigrationAutodetector(BaseMigrationAutodetector):
 
         def get_new_embedded_paths(field, name_prefix=None, path_prefix=None):
             if hasattr(field, "embedded_model"):
-                if isinstance(field, EmbeddedModelArrayField):
-                    # EmbeddedModelArrayField isn't yet supported.
-                    return
                 embedded_model = self.to_state.models[tuple(field.embedded_model.split("."))]
+                is_array = isinstance(field, EmbeddedModelArrayField)
                 for subfield_name, subfield in embedded_model.fields.items():
                     subfield_column = subfield.get_attname_column()[1]
                     if name_prefix:
@@ -76,7 +75,10 @@ class MigrationAutodetector(BaseMigrationAutodetector):
                         path = f"{path_prefix}.{subfield_column}"
                     else:
                         field_column = field.get_attname_column()[1]
-                        path = f"{field_column}.{subfield_column}"
+                        if is_array:
+                            path = f"{field_column}.$[].{subfield_column}"
+                        else:
+                            path = f"{field_column}.{subfield_column}"
                     self.new_embedded_field_keys[(app_label, model_name, name)] = path
                     get_new_embedded_paths(subfield, name, path)
 
@@ -96,7 +98,6 @@ class MigrationAutodetector(BaseMigrationAutodetector):
         self.new_model_keys |= self.new_unmanaged_keys
         self.new_unmanaged_keys = set()
         super().generate_renamed_models()
-
 
     def generate_removed_fields(self):
         super().generate_removed_fields()
@@ -164,8 +165,12 @@ class MigrationAutodetector(BaseMigrationAutodetector):
         )
 
     def generate_renamed_embedded_fields(self):
-        """Make RenameEmbeddedField operations for renamed embedded leaf fields."""
-        # Build inverse of renamed_fields: (app_label, model_name, old_name) -> new_name.
+        """
+        Make RenameEmbeddedField operations for renamed embedded leaf
+        fields.
+        """
+        # Build inverse of renamed_fields:
+        # (app_label, model_name, old_name) -> new_name.
         renamed_field_inverse = {
             (al, mn, old): new for (al, mn, new), old in self.renamed_fields.items()
         }
@@ -173,7 +178,8 @@ class MigrationAutodetector(BaseMigrationAutodetector):
             set(self.old_embedded_field_keys) - set(self.new_embedded_field_keys)
         ):
             *parents, leaf_field_name = old_attr_path.split(".")
-            # Navigate the from_state to find the model containing the leaf field.
+            # Navigate the from_state to find the model containing the
+            # leaf field.
             current_app_label = app_label
             current_model_name = model_name
             for part in parents:
@@ -244,7 +250,10 @@ class MigrationAutodetector(BaseMigrationAutodetector):
         )
 
     def generate_altered_embedded_fields(self):
-        """Make AlterEmbeddedField operations when an embedded column path changes."""
+        """
+        Make AlterEmbeddedField operations when an embedded column path
+        changes.
+        """
         common = set(self.old_embedded_field_keys) & set(self.new_embedded_field_keys)
         for app_label, model_name, field_name in sorted(common):
             old_path = self.old_embedded_field_keys[app_label, model_name, field_name]
@@ -254,7 +263,8 @@ class MigrationAutodetector(BaseMigrationAutodetector):
 
     def _generate_altered_embedded_field(self, app_label, model_name, field_name):
         field = self.get_field(self.to_state.models[app_label, model_name], field_name)
-        # Navigate the path to locate the leaf embedded model for the ALTER dependency.
+        # Navigate the path to locate the leaf embedded model for the
+        # ALTER dependency.
         *parents, leaf_field_name = field_name.split(".")
         current_app_label = app_label
         current_model_name = model_name
@@ -287,7 +297,8 @@ class MigrationAutodetector(BaseMigrationAutodetector):
 
     def get_field(self, model, field_name):
         """
-        A version of ModelState.get_field() that can retrieve embedded model fields.
+        A version of ModelState.get_field() that can retrieve embedded
+        model fields.
         """
         path = []
         base_model = model

@@ -1,6 +1,7 @@
 from django.db.migrations.operations import AddField, AlterField, RemoveField, RenameField
 from django.db.models import NOT_PROVIDED
 
+from django_mongodb_backend.fields import EmbeddedModelArrayField
 from django_mongodb_backend.indexes import get_field
 
 
@@ -37,7 +38,9 @@ class AddEmbeddedField(AddField):
 def _embedded_column_path(state, app_label, model_name, attr_path):
     """
     Resolve a dotted Python attribute path to a dotted db_column path using
-    state.models directly, avoiding stale class references from the app registry.
+    state.models directly, avoiding stale class references from the app
+    registry. For EmbeddedModelArrayField segments, inserts '$[]' to target
+    all array elements.
     """
     columns = []
     current_app_label = app_label
@@ -45,7 +48,12 @@ def _embedded_column_path(state, app_label, model_name, attr_path):
     for part in attr_path.split("."):
         model_state = state.models[current_app_label, current_model_name]
         field = model_state.fields[part]
-        columns.append(field.db_column or part)
+        col = field.db_column or part
+        if isinstance(field, EmbeddedModelArrayField):
+            columns.append(col)
+            columns.append("$[]")
+        else:
+            columns.append(col)
         if hasattr(field, "embedded_model"):
             emb = field.embedded_model
             if not isinstance(emb, str):
@@ -119,14 +127,15 @@ class RemoveEmbeddedField(RemoveField):
     def database_forwards(self, app_label, schema_editor, from_state, to_state):
         from_model = from_state.apps.get_model(app_label, self.model_name)
         if self.allow_migrate_model(schema_editor.connection.alias, from_model):
-            # TODO: Does "self.name" account for db_column?
-            schema_editor.remove_embedded_field(from_model, self.name)
+            col_path = _embedded_column_path(from_state, app_label, self.model_name, self.name)
+            schema_editor.remove_embedded_field(from_model, col_path)
 
     def database_backwards(self, app_label, schema_editor, from_state, to_state):
         model = to_state.apps.get_model(app_label, self.model_name)
         if self.allow_migrate_model(schema_editor.connection.alias, model):
+            col_path = _embedded_column_path(to_state, app_label, self.model_name, self.name)
             field = get_field(model, self.name).field
-            schema_editor.add_embedded_field(model, self.name, field)
+            schema_editor.add_embedded_field(model, col_path, field)
 
     def describe(self):
         return f"Remove embedded field {self.name} from {self.model_name}"
