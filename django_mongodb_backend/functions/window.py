@@ -16,16 +16,15 @@ from django.db.models.functions.window import (
 
 def aggregate(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG001
     operator = self.function.lower()
-    src_exprs = [e for e in self.get_source_expressions() if e is not None]
-    inner_mql = src_exprs[0].as_mql(compiler, connection, as_expr=True) if src_exprs else 1
-    return {alias: {f"${operator}": inner_mql, "window": default_frame()}}, {}
+    exprs = self.get_source_expressions()
+    mql = exprs[0].as_mql(compiler, connection, as_expr=True)
+    return {alias: {f"${operator}": mql, "window": default_frame()}}, {}
 
 
 def cume_dist(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG001
-    # CumeDist = (rank + group_size - 1) / total.
-    # Use $rank for the base rank (1-based, same value for ties),
-    # range:[0,0] for group_size (count of all rows with identical sort
-    # key value), and full-partition sum for total.
+    # CumeDist = (rank + group_size - 1) / total. Use $rank for the base rank
+    # (1-based, same value for ties), range:[0, 0] for group_size (count of all
+    # rows with identical sort key value), and full-partition sum for total.
     rank_alias = f"__wtemp{next(idx)}"
     group_size_alias = f"__wtemp{next(idx)}"
     total_alias = f"__wtemp{next(idx)}"
@@ -50,43 +49,43 @@ def dense_rank(self, compiler, connection, alias, idx, default_frame):  # noqa: 
 
 
 def first_value(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG001
-    exprs = self.get_source_expressions()
-    expr_mql = exprs[0].as_mql(compiler, connection, as_expr=True)
-    return {alias: {"$first": expr_mql, "window": default_frame()}}, {}
+    expr = self.get_source_expressions()[0]
+    mql = expr.as_mql(compiler, connection, as_expr=True)
+    return {alias: {"$first": mql, "window": default_frame()}}, {}
 
 
 def lag(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG001
-    exprs = [e for e in self.get_source_expressions() if e is not None]
+    exprs = self.get_source_expressions()
     expr_mql = exprs[0].as_mql(compiler, connection, as_expr=True)
-    offset = exprs[1].value if len(exprs) > 1 else 1
-    shift = {"output": expr_mql, "by": -offset}
+    offset = exprs[1].value
+    mql = {"output": expr_mql, "by": -offset}
     if len(exprs) > 2:
-        shift["default"] = exprs[2].as_mql(compiler, connection, as_expr=True)
-    return {alias: {"$shift": shift}}, {}
+        mql["default"] = exprs[2].as_mql(compiler, connection, as_expr=True)
+    return {alias: {"$shift": mql}}, {}
 
 
 def last_value(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG001
-    exprs = self.get_source_expressions()
-    expr_mql = exprs[0].as_mql(compiler, connection, as_expr=True)
-    return {alias: {"$last": expr_mql, "window": default_frame()}}, {}
+    expr = self.get_source_expressions()[0]
+    mql = expr.as_mql(compiler, connection, as_expr=True)
+    return {alias: {"$last": mql, "window": default_frame()}}, {}
 
 
 def lead(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG001
-    exprs = [e for e in self.get_source_expressions() if e is not None]
+    exprs = self.get_source_expressions()
     expr_mql = exprs[0].as_mql(compiler, connection, as_expr=True)
-    offset = exprs[1].value if len(exprs) > 1 else 1
-    shift = {"output": expr_mql, "by": offset}
+    offset = exprs[1].value
+    mql = {"output": expr_mql, "by": offset}
     if len(exprs) > 2:
-        shift["default"] = exprs[2].as_mql(compiler, connection, as_expr=True)
-    return {alias: {"$shift": shift}}, {}
+        mql["default"] = exprs[2].as_mql(compiler, connection, as_expr=True)
+    return {alias: {"$shift": mql}}, {}
 
 
 def nth_value(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG001
-    exprs = self.get_source_expressions()
-    expr_mql = exprs[0].as_mql(compiler, connection, as_expr=True)
-    nth = exprs[1].value
+    expr, nth_expr = self.get_source_expressions()
+    mql = expr.as_mql(compiler, connection, as_expr=True)
+    nth = nth_expr.value
     push_alias = f"__wtemp{next(idx)}"
-    output = {push_alias: {"$push": expr_mql, "window": {"documents": ["unbounded", "current"]}}}
+    output = {push_alias: {"$push": mql, "window": {"documents": ["unbounded", "current"]}}}
     add_fields = {
         alias: {
             "$cond": {

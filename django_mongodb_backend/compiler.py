@@ -834,8 +834,6 @@ class SQLCompiler(compiler.SQLCompiler):
         if partition_by is None:
             return None
         exprs = partition_by.get_source_expressions()
-        if not exprs:
-            return None
         if len(exprs) == 1:
             return exprs[0].as_mql(self, self.connection, as_expr=True)
         return {str(i): e.as_mql(self, self.connection, as_expr=True) for i, e in enumerate(exprs)}
@@ -853,12 +851,12 @@ class SQLCompiler(compiler.SQLCompiler):
         sort_idx = itertools.count(start=1)
         for item in exprs:
             if isinstance(item, OrderBy):
-                direction = DESCENDING if item.descending else ASCENDING
                 expr = item.expression
+                direction = DESCENDING if item.descending else ASCENDING
             else:
-                # Plain expression without OrderBy wrapper.
-                direction = ASCENDING
+                # item an an expression without an OrderBy wrapper.
                 expr = item
+                direction = ASCENDING
             if isinstance(expr, (Col, Ref)):
                 field_name = expr.as_mql(self, self.connection, as_expr=False)
             else:
@@ -911,7 +909,7 @@ class SQLCompiler(compiler.SQLCompiler):
         def frame_mql():
             if frame is None:
                 return None
-            if frame.exclusion is not None:
+            if frame.exclusion:
                 raise NotSupportedError("This backend does not support window frame exclusions.")
 
             def boundary(v):
@@ -925,16 +923,12 @@ class SQLCompiler(compiler.SQLCompiler):
             return {"documents": bounds} if isinstance(frame, RowRange) else {"range": bounds}
 
         def default_frame():
-            if frame is not None:
+            if frame:
                 return frame_mql()
             if has_order_by and not use_full_partition:
                 return {"documents": ["unbounded", "current"]}
             return {"documents": ["unbounded", "unbounded"]}
 
-        if not hasattr(expr, "get_window_mql"):
-            raise NotSupportedError(
-                f"Window function {expr.__class__.__name__} is not supported on MongoDB."
-            )
         return expr.get_window_mql(self, self.connection, alias, idx, default_frame)
 
     def _prepare_window_annotations_for_pipeline(self):
@@ -969,7 +963,7 @@ class SQLCompiler(compiler.SQLCompiler):
         # Scan the qualify clause for Windows used directly in filters (e.g.,
         # Employee.objects.filter(Exact(Window(...), 1))).
         qualify = getattr(self, "qualify", None)
-        if qualify and qualify.contains_over_clause:
+        if qualify:
             _collect_windows_from_expr(qualify)
         if not window_list:
             return [], {}
