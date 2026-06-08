@@ -43,6 +43,11 @@ Bug fixes
 
 - Added debug logging of ``QuerySet.explain()`` queries.
 
+- Fixed crash when saving a model with
+  :class:`~django_mongodb_backend.fields.PolymorphicEmbeddedModelField` or
+  :class:`~django_mongodb_backend.fields.PolymorphicEmbeddedModelArrayField`
+  that specifies ``embedded_models`` as a list of concrete models.
+
 Backwards incompatible changes
 ------------------------------
 
