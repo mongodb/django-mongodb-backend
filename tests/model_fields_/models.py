@@ -271,6 +271,15 @@ class Cat(EmbeddedModel):
         return self.name
 
 
+class ConcretePerson(models.Model):
+    name = models.CharField(max_length=100)
+    # `embedded_models` is a list of concrete classes, not string references.
+    pet = PolymorphicEmbeddedModelField([Dog, Cat], blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+
 class Bone(EmbeddedModel):
     brand = models.CharField(max_length=100)
 
@@ -289,6 +298,15 @@ class Mouse(EmbeddedModel):
 class Owner(models.Model):
     name = models.CharField(max_length=100)
     pets = PolymorphicEmbeddedModelArrayField(("Dog", "Cat"), blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+
+class ConcreteOwner(models.Model):
+    name = models.CharField(max_length=100)
+    # `embedded_models` is a list of concrete classes, not string references.
+    pets = PolymorphicEmbeddedModelArrayField([Dog, Cat], blank=True, null=True)
 
     def __str__(self):
         return self.name

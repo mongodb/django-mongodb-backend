@@ -20,7 +20,8 @@ class PolymorphicEmbeddedModelField(models.Field):
         Like other relational fields, each model may also be passed as a
         string.
         """
-        self.embedded_models = embedded_models
+        # For consistency, cast list to tuple, if necessary.
+        self.embedded_models = tuple(embedded_models)
         kwargs["editable"] = False
         super().__init__(*args, **kwargs)
 
