@@ -140,7 +140,7 @@ class PolymorphicEmbeddedModelField(models.Field):
         """
         if embedded_instance is None:
             return None
-        if not isinstance(embedded_instance, self.embedded_models):
+        if not isinstance(embedded_instance, tuple(self.embedded_models)):
             raise TypeError(
                 f"Expected instance of type {self.embedded_models!r}, not "
                 f"{type(embedded_instance)!r}."
