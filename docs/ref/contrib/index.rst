@@ -8,3 +8,4 @@ Notes for Django's :doc:`django:ref/contrib/index` live here.
    :maxdepth: 1
 
    gis
+   rest-framework

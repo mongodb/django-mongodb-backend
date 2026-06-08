@@ -42,6 +42,9 @@ encryption = [
     "pymongo>=4.16.0",
     "pymongo[encryption]",
 ]
+rest_framework = [
+    "djangorestframework>=3.14",
+]
 
 [project.urls]
 Homepage = "https://www.mongodb.org"
