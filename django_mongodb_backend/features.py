@@ -218,6 +218,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "expressions.tests.BasicExpressionsTests.test_ticket_18375_kwarg_ordering",
             "expressions.tests.BasicExpressionsTests.test_ticket_18375_kwarg_ordering_2",
             "expressions_case.tests.CaseExpressionTests.test_m2m_reuse",
+            "filtered_relation.tests.FilteredRelationTests.test_internal_queryset_alias_mapping",
             "generic_relations_regress.tests.GenericRelationTests.test_join_reuse",
             "lookup.tests.LookupTests.test_in_keeps_value_ordering",
             "model_forms.tests.ModelMultipleChoiceFieldTests.test_clean_does_deduplicate_values",
@@ -355,13 +356,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "cache.tests.CreateCacheTableForDBCacheTests",
             "cache.tests.DBCacheTests",
             "cache.tests.DBCacheWithTimeZoneTests",
-        },
-        "FilteredRelation not supported.": {
-            # https://github.com/mongodb/django-mongodb-backend/issues/157
-            "filtered_relation.tests.FilteredRelationAggregationTests",
-            "filtered_relation.tests.FilteredRelationAnalyticalAggregationTests",
-            "filtered_relation.tests.FilteredRelationTests",
-            "queryset_pickle.tests.PickleabilityTestCase.test_pickle_filteredrelation",
         },
         "Broken test.": {
             # This test uses a database router that only allows the auth_user
@@ -624,6 +618,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "defer.tests.DeferTests.test_defer_extra",
             "delete_regress.tests.Ticket19102Tests.test_ticket_19102_extra",
             "extra_regress.tests.ExtraRegressTests",
+            "filtered_relation.tests.FilteredRelationTests.test_extra",
             "lookup.tests.LookupTests.test_values",
             "lookup.tests.LookupTests.test_values_list",
             "ordering.tests.OrderingTests.test_extra_ordering",

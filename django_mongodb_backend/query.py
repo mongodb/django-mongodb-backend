@@ -1,3 +1,4 @@
+import contextlib
 from functools import reduce, wraps
 from operator import add as add_operator
 
@@ -170,6 +171,16 @@ def extra_where(self, compiler, connection, as_expr=False):  # noqa: ARG001
     raise NotSupportedError("QuerySet.extra() is not supported on MongoDB.")
 
 
+def _get_cols(expression):
+    """Recursively yield all Col instances within an expression tree."""
+    if isinstance(expression, Col):
+        yield expression
+        return
+    for source in expression.get_source_expressions():
+        if source:
+            yield from _get_cols(source)
+
+
 def join(self, compiler, connection, pushed_filter_expression=None):
     """
     Generate a MongoDB $lookup stage for a join.
@@ -184,22 +195,20 @@ def join(self, compiler, connection, pushed_filter_expression=None):
         if not expression:
             return None
         columns = []
-        for expr in expression.leaves():
-            # Determine whether the column needs to be transformed or rerouted
-            # as part of the subquery.
-            for hand_side in ["lhs", "rhs"]:
-                hand_side_value = getattr(expr, hand_side, None)
-                if isinstance(hand_side_value, Col):
-                    # If the column is not part of the joined table, add it to
-                    # lhs_fields.
-                    if hand_side_value.alias != self.table_alias:
-                        pos = len(lhs_fields)
-                        lhs_fields.append(
-                            hand_side_value.as_mql(compiler, connection, as_expr=True)
-                        )
-                    else:
-                        pos = None
-                    columns.append((hand_side_value, pos))
+        # Determine whether each column needs to be transformed or rerouted as
+        # part of the subquery. Columns may be nested inside expressions such
+        # as Case or ExpressionWrapper (e.g. for FilteredRelation conditions),
+        # so the whole expression tree is traversed rather than just leaf
+        # lookups.
+        for col in _get_cols(expression):
+            # If the column isn't part of the joined table, add it to
+            # lhs_fields.
+            if col.alias != self.table_alias:
+                pos = len(lhs_fields)
+                lhs_fields.append(col.as_mql(compiler, connection, as_expr=True))
+            else:
+                pos = None
+            columns.append((col, pos))
         # Replace columns in the extra conditions with new column references
         # based on their rerouted positions in the join pipeline.
         replacements = {}
@@ -248,6 +257,14 @@ def join(self, compiler, connection, pushed_filter_expression=None):
         extra_conditions.append(
             extra.replace_expressions(replacements).as_mql(compiler, connection)
         )
+    # FilteredRelation adds an extra condition to the join's ON clause.
+    if self.filtered_relation:
+        condition = self.filtered_relation.resolved_condition
+        replacements = _get_reroot_replacements(condition)
+        with contextlib.suppress(FullResultSet):
+            extra_conditions.append(
+                condition.replace_expressions(replacements).as_mql(compiler, connection)
+            )
     # pushed_filter_expression is a Where expression from the outer WHERE
     # clause that involves fields from the joined (right-hand) table and
     # possibly the outer (left-hand) table. If it can be safely evaluated

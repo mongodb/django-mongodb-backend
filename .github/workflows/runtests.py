@@ -50,6 +50,7 @@ test_apps = [
     "field_defaults",
     "file_storage",
     "file_uploads",
+    "filtered_relation",
     "fixtures",
     "fixtures_model_package",
     "fixtures_regress",

@@ -33,6 +33,8 @@ New features
   :lookup:`regex`, and :lookup:`iregex`) on
   :class:`~django.db.models.UUIDField`.
 
+- Added support for :class:`~django.db.models.FilteredRelation`.
+
 Bug fixes
 ---------
 
