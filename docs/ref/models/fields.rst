@@ -374,8 +374,8 @@ These indexes use 0-based indexing.
 
     .. attribute:: embedded_models
 
-        This is a required argument that specifies a list of model classes
-        that may be embedded.
+        This is a required argument that specifies a tuple or list of model
+        classes that may be embedded.
 
         Each model class reference works just like
         :attr:`.EmbeddedModelField.embedded_model`.
