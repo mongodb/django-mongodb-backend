@@ -27,6 +27,14 @@ class CityWithUniqueCode(EmbeddedModel):
     code = models.CharField(max_length=10, unique=True)
 
 
+STATUS_CHOICES = [(1, "Active"), (2, "Inactive")]
+
+
+class StatusTag(EmbeddedModel):
+    label = models.CharField(max_length=50)
+    status = models.IntegerField(choices=STATUS_CHOICES)
+
+
 class Dog(EmbeddedModel):
     name = models.CharField(max_length=100)
     barks = models.BooleanField(default=True)

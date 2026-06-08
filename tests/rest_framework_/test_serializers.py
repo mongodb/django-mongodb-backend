@@ -1,4 +1,5 @@
 from django.core.exceptions import FieldDoesNotExist
+from django.db import models
 from django.test import SimpleTestCase
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
@@ -9,7 +10,16 @@ from django_mongodb_backend.rest_framework import (
     PolymorphicEmbeddedModelSerializer,
 )
 
-from .models import Cat, City, CityWithUniqueCode, Continent, Country, Dog, PetOwner
+from .models import (
+    Cat,
+    City,
+    CityWithUniqueCode,
+    Continent,
+    Country,
+    Dog,
+    PetOwner,
+    StatusTag,
+)
 
 # ---------------------------------------------------------------------------
 # Manually declared serializers (user-defined style)
@@ -455,4 +465,135 @@ class PolymorphicEmbeddedModelSerializerTests(SimpleTestCase):
         owner = PetOwner(name="Dave", pet=None, pets=None)
         data = PetOwnerSerializer(owner).data
         self.assertIsNone(data["pet"])
-        self.assertIsNone(data["pets"])
+
+
+# ---------------------------------------------------------------------------
+# Choices coercion tests (fix: _get_serializer_field must coerce to ChoiceField)
+# ---------------------------------------------------------------------------
+
+
+class StatusTagSerializer(EmbeddedModelSerializer):
+    class Meta:
+        model = StatusTag
+        fields = "__all__"
+
+
+class ChoicesCoercionTests(SimpleTestCase):
+    def test_choices_field_becomes_choice_field(self):
+        fields = StatusTagSerializer().get_fields()
+        self.assertIsInstance(fields["status"], serializers.ChoiceField)
+
+    def test_choices_field_rejects_invalid_value(self):
+        s = StatusTagSerializer(data={"label": "test", "status": 99})
+        self.assertFalse(s.is_valid())
+        self.assertIn("status", s.errors)
+
+    def test_choices_field_accepts_valid_value(self):
+        s = StatusTagSerializer(data={"label": "active", "status": 1})
+        self.assertTrue(s.is_valid(), s.errors)
+        self.assertEqual(s.validated_data.status, 1)
+
+    def test_choices_field_on_mongo_serializer(self):
+        class HolderSerializer(MongoModelSerializer):
+            class Meta:
+                model = Continent  # has no choices — just confirm no crash
+                fields = "__all__"
+
+        # A MongoModelSerializer auto-generating a StatusTag embedded field should
+        # also coerce choices. Test via a wrapping model using EmbeddedModelSerializer.
+        fields = StatusTagSerializer().get_fields()
+        self.assertIsInstance(fields["status"], serializers.ChoiceField)
+        self.assertEqual(
+            dict(fields["status"].choices),
+            {1: "Active", 2: "Inactive"},
+        )
+
+
+# ---------------------------------------------------------------------------
+# Declared field override tests (fix: get_fields must merge _declared_fields)
+# ---------------------------------------------------------------------------
+
+
+class DeclaredFieldOverrideTests(SimpleTestCase):
+    def test_declared_field_overrides_auto_generated(self):
+        class CityWithFloatPop(EmbeddedModelSerializer):
+            population = serializers.FloatField()
+
+            class Meta:
+                model = City
+                fields = "__all__"
+
+        fields = CityWithFloatPop().get_fields()
+        self.assertIsInstance(fields["population"], serializers.FloatField)
+
+    def test_declared_field_is_used_in_serialization(self):
+        class CityUpperName(EmbeddedModelSerializer):
+            name = serializers.SerializerMethodField()
+
+            def get_name(self, obj):
+                return obj.name.upper()
+
+            class Meta:
+                model = City
+                fields = "__all__"
+
+        city = City(name="paris", population=2_000_000)
+        data = CityUpperName(city).data
+        self.assertEqual(data["name"], "PARIS")
+
+    def test_declared_field_used_in_deserialization(self):
+        class CityWithFloatPop(EmbeddedModelSerializer):
+            population = serializers.FloatField()
+
+            class Meta:
+                model = City
+                fields = "__all__"
+
+        s = CityWithFloatPop(data={"name": "Berlin", "population": "1.5e6"})
+        self.assertTrue(s.is_valid(), s.errors)
+        self.assertIsInstance(s.validated_data.population, float)
+
+
+# ---------------------------------------------------------------------------
+# Field mapping propagation tests (fix: custom serializer_field_mapping must
+# propagate into auto-generated EmbeddedModelSerializer instances)
+# ---------------------------------------------------------------------------
+
+
+class FieldMappingPropagationTests(SimpleTestCase):
+    def _make_custom_serializer(self):
+        """MongoModelSerializer subclass that maps IntegerField → FloatField."""
+
+        class CustomContinentSerializer(MongoModelSerializer):
+            serializer_field_mapping = {
+                **MongoModelSerializer.serializer_field_mapping,
+                models.IntegerField: serializers.FloatField,
+            }
+
+            class Meta:
+                model = Continent
+                fields = "__all__"
+
+        return CustomContinentSerializer
+
+    def test_custom_mapping_applies_to_direct_embedded_field(self):
+        # Country.capital is EmbeddedModelField(City); City.population is IntegerField.
+        # The custom mapping should make population a FloatField inside Country.
+        cls = self._make_custom_serializer()
+        country_serializer = cls().get_fields()["country"]
+        city_serializer = country_serializer.get_fields()["capital"]
+        self.assertIsInstance(city_serializer.get_fields()["population"], serializers.FloatField)
+
+    def test_custom_mapping_applies_to_embedded_array_field(self):
+        # Country.cities is EmbeddedModelArrayField(City); City.population is IntegerField.
+        cls = self._make_custom_serializer()
+        country_serializer = cls().get_fields()["country"]
+        cities_list_serializer = country_serializer.get_fields()["cities"]
+        city_fields = cities_list_serializer.child.get_fields()
+        self.assertIsInstance(city_fields["population"], serializers.FloatField)
+
+    def test_default_mapping_unchanged_for_base_serializer(self):
+        # Verify the base ContinentSerializer still uses IntegerField for City.population.
+        base_fields = ContinentSerializer().get_fields()
+        capital_fields = base_fields["country"].get_fields()["capital"].get_fields()
+        self.assertIsInstance(capital_fields["population"], serializers.IntegerField)

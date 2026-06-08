@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+import functools
 from typing import Any
 
 from django.core.exceptions import FieldDoesNotExist
@@ -20,22 +22,39 @@ from django_mongodb_backend.fields import (
     PolymorphicEmbeddedModelField,
 )
 
-# Built once at import time; callers may pass a custom mapping to override.
-_FIELD_MAPPING: ClassLookupDict = ClassLookupDict(
-    {
-        **serializers.ModelSerializer.serializer_field_mapping,
-        ObjectIdAutoField: serializers.CharField,
-        ObjectIdField: serializers.CharField,
+# Single source of truth for the MongoDB-extended field mapping.
+# EmbeddedModelSerializer uses this via _FIELD_MAPPING; MongoModelSerializer
+# inherits it directly as serializer_field_mapping, keeping both in sync.
+_MONGO_FIELD_MAPPING: dict[type, type] = {
+    **serializers.ModelSerializer.serializer_field_mapping,
+    ObjectIdAutoField: serializers.CharField,
+    ObjectIdField: serializers.CharField,
+}
+
+# ClassLookupDict wrapper used by _get_serializer_field (EmbeddedModelSerializer path).
+_FIELD_MAPPING: ClassLookupDict = ClassLookupDict(_MONGO_FIELD_MAPPING)
+
+
+def _make_embedded_serializer(
+    embedded_model: type[Any],
+    field_mapping: ClassLookupDict | None = None,
+) -> type[EmbeddedModelSerializer]:
+    attrs: dict[str, Any] = {
+        "Meta": type("Meta", (), {"model": embedded_model, "fields": "__all__"}),
     }
-)
-
-
-def _make_embedded_serializer(embedded_model: type[Any]) -> type[EmbeddedModelSerializer]:
+    if field_mapping is not None:
+        attrs["_field_mapping"] = field_mapping
     return type(
         f"{embedded_model.__name__}Serializer",
         (EmbeddedModelSerializer,),
-        {"Meta": type("Meta", (), {"model": embedded_model, "fields": "__all__"})},
+        attrs,
     )
+
+
+@functools.cache
+def _cached_polymorphic_serializer(embedded_model: type[Any]) -> type[EmbeddedModelSerializer]:
+    """Return a cached auto-generated EmbeddedModelSerializer for a concrete polymorphic type."""
+    return _make_embedded_serializer(embedded_model)
 
 
 def _build_embedded_field(
@@ -58,14 +77,14 @@ def _build_embedded_field(
 
     # EmbeddedModelArrayField before ArrayField — subclass check must come first.
     if isinstance(model_field, EmbeddedModelArrayField):
-        child_cls = _make_embedded_serializer(model_field.embedded_model)
+        child_cls = _make_embedded_serializer(model_field.embedded_model, field_mapping)
         kwargs = {"many": True}
         if model_field.null:
             kwargs["allow_null"] = True
         return child_cls, kwargs
 
     if isinstance(model_field, EmbeddedModelField):
-        field_cls = _make_embedded_serializer(model_field.embedded_model)
+        field_cls = _make_embedded_serializer(model_field.embedded_model, field_mapping)
         kwargs = {}
         if model_field.null:
             kwargs["allow_null"] = True
@@ -102,6 +121,9 @@ def _get_serializer_field(
     except KeyError:
         return None
     field_kwargs: dict[str, Any] = get_field_kwargs(model_field.name, model_field)
+    # Coerce any field with choices to ChoiceField (mirrors DRF's build_standard_field).
+    if field_kwargs.get("choices"):
+        field_class = serializers.ChoiceField
     # model_field is only valid for DRF's ModelField fallback; strip it for all others.
     if not issubclass(field_class, ModelField):
         field_kwargs.pop("model_field", None)
@@ -129,7 +151,8 @@ class PolymorphicEmbeddedModelSerializer(serializers.BaseSerializer):
     def to_representation(self, instance: Any) -> Any:
         if instance is None:
             return None
-        return _make_embedded_serializer(type(instance))(instance, context=self.context).data
+        concrete_type: type = type(instance)
+        return _cached_polymorphic_serializer(concrete_type)(instance, context=self.context).data
 
     def to_internal_value(self, data: Any) -> Any:
         raise NotImplementedError(
@@ -157,8 +180,8 @@ class EmbeddedModelSerializer(serializers.Serializer):
 
     ``EmbeddedModelSerializer`` auto-generates DRF fields from the embedded
     model's field definitions, including nested ``EmbeddedModelField`` and
-    ``EmbeddedModelArrayField``. ``PolymorphicEmbeddedModelField`` fields must
-    be declared explicitly.
+    ``EmbeddedModelArrayField``. Explicitly declared fields on a subclass
+    take priority over auto-generated ones.
     """
 
     class Meta:
@@ -187,8 +210,16 @@ class EmbeddedModelSerializer(serializers.Serializer):
                 f"{self.__class__.__name__}.Meta.fields must be '__all__' or a list/tuple."
             )
 
+        # Explicitly declared fields take priority over auto-generated ones.
+        declared = copy.deepcopy(self._declared_fields)
+        # A custom mapping may be set by _make_embedded_serializer on auto-generated classes.
+        field_mapping: ClassLookupDict | None = getattr(type(self), "_field_mapping", None)
+
         result: dict[str, Field[Any, Any, Any, Any]] = {}
         for name in field_names:
+            if name in declared:
+                result[name] = declared[name]
+                continue
             model_field = all_fields.get(name)
             if model_field is None:
                 raise FieldDoesNotExist(f"Field '{name}' not found on {embedded_model.__name__}.")
@@ -198,7 +229,7 @@ class EmbeddedModelSerializer(serializers.Serializer):
                     f"{self.__class__.__name__}.Meta.fields. "
                     "EmbeddedModelSerializer excludes primary keys automatically."
                 )
-            drf_field = _get_serializer_field(model_field)
+            drf_field = _get_serializer_field(model_field, field_mapping)
             if drf_field is not None:
                 result[name] = drf_field
         return result
@@ -219,9 +250,9 @@ class MongoModelSerializer(serializers.ModelSerializer):
     """
     ``ModelSerializer`` with automatic support for MongoDB-specific fields.
 
-    ``EmbeddedModelField``, ``EmbeddedModelArrayField``, and ``ArrayField``
-    are detected automatically. ``PolymorphicEmbeddedModelField`` fields must
-    be declared explicitly::
+    ``EmbeddedModelField``, ``EmbeddedModelArrayField``, ``ArrayField``,
+    ``PolymorphicEmbeddedModelField``, and ``PolymorphicEmbeddedModelArrayField``
+    are detected automatically::
 
         class BookSerializer(MongoModelSerializer):
             class Meta:
@@ -238,11 +269,7 @@ class MongoModelSerializer(serializers.ModelSerializer):
                 fields = '__all__'
     """
 
-    serializer_field_mapping = {
-        **serializers.ModelSerializer.serializer_field_mapping,
-        ObjectIdAutoField: serializers.CharField,
-        ObjectIdField: serializers.CharField,
-    }
+    serializer_field_mapping = _MONGO_FIELD_MAPPING
 
     def build_field(
         self,
