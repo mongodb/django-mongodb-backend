@@ -8,18 +8,10 @@ except ImportError:
 from django.test import SimpleTestCase
 from rest_framework import serializers
 
-from django_mongodb_backend.rest_framework import (
-    MongoModelSerializer,
-    PolymorphicEmbeddedModelSerializer,
-)
+from django_mongodb_backend.rest_framework import PolymorphicEmbeddedModelSerializer
 
 from .models import Cat, Dog, PetOwner
-
-
-class PetOwnerSerializer(MongoModelSerializer):
-    class Meta:
-        model = PetOwner
-        fields = "__all__"
+from .serializers import PetOwnerSerializer
 
 
 class PolymorphicEmbeddedModelSerializerTests(SimpleTestCase):

@@ -7,15 +7,8 @@ except ImportError:
 
 from django.test import TestCase
 
-from django_mongodb_backend.rest_framework import MongoModelSerializer
-
 from .models import City, Continent, Country
-
-
-class ContinentSerializer(MongoModelSerializer):
-    class Meta:
-        model = Continent
-        fields = "__all__"
+from .serializers import ContinentSerializer
 
 
 class MongoModelSerializerCreateTests(TestCase):

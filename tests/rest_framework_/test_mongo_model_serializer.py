@@ -12,18 +12,7 @@ from rest_framework import serializers
 from django_mongodb_backend.rest_framework import EmbeddedModelSerializer, MongoModelSerializer
 
 from .models import City, Continent, Country
-
-
-class CitySerializer(EmbeddedModelSerializer):
-    class Meta:
-        model = City
-        fields = "__all__"
-
-
-class ContinentSerializer(MongoModelSerializer):
-    class Meta:
-        model = Continent
-        fields = "__all__"
+from .serializers import CitySerializer, ContinentSerializer
 
 
 class MongoModelSerializerAutoFieldTests(SimpleTestCase):

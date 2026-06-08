@@ -12,25 +12,8 @@ from rest_framework.validators import UniqueValidator
 
 from django_mongodb_backend.rest_framework import EmbeddedModelSerializer, MongoModelSerializer
 
-from .models import City, CityWithUniqueCode, Continent, Country, StatusTag
-
-
-class CitySerializer(EmbeddedModelSerializer):
-    class Meta:
-        model = City
-        fields = "__all__"
-
-
-class CountrySerializer(EmbeddedModelSerializer):
-    class Meta:
-        model = Country
-        fields = "__all__"
-
-
-class StatusTagSerializer(EmbeddedModelSerializer):
-    class Meta:
-        model = StatusTag
-        fields = "__all__"
+from .models import City, CityWithUniqueCode, Continent, Country
+from .serializers import CitySerializer, CountrySerializer, StatusTagSerializer
 
 
 class EmbeddedModelSerializerToRepresentationTests(SimpleTestCase):
