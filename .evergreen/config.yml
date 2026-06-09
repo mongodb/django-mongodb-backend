@@ -1,3 +1,8 @@
+ignore:
+  - "docs/**"
+  - "*.md"
+  - "*.rst"
+
 exec_timeout_secs: 3600
 
 # Mark a failure as a system/bootstrap failure (purple box) rather then a task
