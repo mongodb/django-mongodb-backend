@@ -188,7 +188,6 @@ class IndexLookupTests(TestCase):
         plan = json_util.loads(UniqueAuthor.objects.filter(name="JK Rowling").explain())[
             "queryPlanner"
         ]["winningPlan"]
-        print("plan:", plan)
 
         self.assertTrue(self._plan_contains_ixscan(plan))
 
