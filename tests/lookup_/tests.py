@@ -187,6 +187,7 @@ class PartialUniqueIndexLookupTests(TestCase):
         plan = json_util.loads(UniqueAuthor.objects.filter(name="JK Rowling").explain())[
             "queryPlanner"
         ]["winningPlan"]
+        print("plan:", plan) 
         ixscan = self._find_ixscan(plan)
 
         self.assertIsNotNone(ixscan)
