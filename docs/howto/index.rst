@@ -12,3 +12,11 @@ Project configuration
 
    contrib-apps
    queryable-encryption
+
+Third-party integrations
+========================
+
+.. toctree::
+   :maxdepth: 1
+
+   rest-framework

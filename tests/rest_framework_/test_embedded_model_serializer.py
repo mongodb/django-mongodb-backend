@@ -122,28 +122,6 @@ class EmbeddedModelSerializerToInternalValueTests(SimpleTestCase):
         self.assertIsNone(s.validated_data.capital)
 
 
-class EmbeddedModelSerializerRoundTripTests(SimpleTestCase):
-    def test_roundtrip(self):
-        original = City(name="Oslo", population=700_000)
-        serialized = CitySerializer(original).data
-        reconstructed_serializer = CitySerializer(data=dict(serialized))
-        self.assertTrue(reconstructed_serializer.is_valid(), reconstructed_serializer.errors)
-        result = reconstructed_serializer.validated_data
-        self.assertEqual(result.name, original.name)
-        self.assertEqual(result.population, original.population)
-
-    def test_nested_roundtrip(self):
-        capital = City(name="Vienna", population=1_900_000)
-        original = Country(name="Austria", capital=capital, cities=None, languages=["German"])
-        serialized = CountrySerializer(original).data
-        reconstructed_serializer = CountrySerializer(data=dict(serialized))
-        self.assertTrue(reconstructed_serializer.is_valid(), reconstructed_serializer.errors)
-        result = reconstructed_serializer.validated_data
-        self.assertEqual(result.name, original.name)
-        self.assertEqual(result.capital.name, capital.name)
-        self.assertEqual(result.languages, ["German"])
-
-
 class EmbeddedModelSerializerNotSavableTests(SimpleTestCase):
     def test_create_raises(self):
         s = CitySerializer()

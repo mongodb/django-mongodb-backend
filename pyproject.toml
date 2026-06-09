@@ -37,6 +37,7 @@ docs = [
     "sphinx>=7",
     "furo>=2025.7.19",
     "sphinx-copybutton",
+    "djangorestframework>=3.14",
 ]
 encryption = [
     "pymongo>=4.16.0",

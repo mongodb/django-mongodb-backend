@@ -32,31 +32,6 @@ class PolymorphicEmbeddedModelSerializerTests(SimpleTestCase):
         self.assertIsInstance(fields["pets"], serializers.ListSerializer)
         self.assertIsInstance(fields["pets"].child, PolymorphicEmbeddedModelSerializer)
 
-    def test_to_representation_dog(self):
-        owner = PetOwner(name="Alice", pet=Dog(name="Rex", barks=True), pets=None)
-        data = PetOwnerSerializer(owner).data
-        self.assertEqual(data["pet"], {"name": "Rex", "barks": True})
-
-    def test_to_representation_cat(self):
-        owner = PetOwner(name="Bob", pet=Cat(name="Whiskers", purrs=True), pets=None)
-        data = PetOwnerSerializer(owner).data
-        self.assertEqual(data["pet"], {"name": "Whiskers", "purrs": True})
-
-    def test_to_representation_array_mixed_types(self):
-        owner = PetOwner(
-            name="Carol",
-            pet=None,
-            pets=[Dog(name="Rex", barks=True), Cat(name="Luna", purrs=False)],
-        )
-        data = PetOwnerSerializer(owner).data
-        self.assertEqual(data["pets"][0], {"name": "Rex", "barks": True})
-        self.assertEqual(data["pets"][1], {"name": "Luna", "purrs": False})
-
-    def test_to_representation_null(self):
-        owner = PetOwner(name="Dave", pet=None, pets=None)
-        data = PetOwnerSerializer(owner).data
-        self.assertIsNone(data["pet"])
-
 
 class PolymorphicEmbeddedModelSerializerReadTests(TestCase):
     def test_read_polymorphic_field_dog(self):

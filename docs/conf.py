@@ -33,12 +33,19 @@ toc_object_entries = False
 
 extensions = [
     "djangodocs",
+    "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
     "sphinx_copybutton",
 ]
 
 # templates_path = ["_templates"]
 exclude_patterns = []
+
+# Unresolvable cross-references from DRF type annotations pulled in by autodoc.
+nitpick_ignore = [
+    ("py:class", "rest_framework.fields.Field"),
+    ("py:class", "django.db.models.base.Model"),
+]
 
 intersphinx_mapping = {
     "django": (

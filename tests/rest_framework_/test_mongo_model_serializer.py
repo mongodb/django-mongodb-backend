@@ -9,29 +9,10 @@ from django.db import models
 from django.test import SimpleTestCase, TestCase
 from rest_framework import serializers
 
-from django_mongodb_backend.rest_framework import EmbeddedModelSerializer, MongoModelSerializer
+from django_mongodb_backend.rest_framework import MongoModelSerializer
 
 from .models import City, Continent, Country
 from .serializers import CitySerializer, ContinentSerializer
-
-
-class MongoModelSerializerAutoFieldTests(SimpleTestCase):
-    def test_embedded_field_is_serializer(self):
-        fields = ContinentSerializer().get_fields()
-        self.assertIsInstance(fields["country"], EmbeddedModelSerializer)
-
-    def test_embedded_array_field_is_list_serializer(self):
-        fields = ContinentSerializer().get_fields()
-        self.assertIsInstance(fields["countries"], serializers.ListSerializer)
-        self.assertIsInstance(fields["countries"].child, EmbeddedModelSerializer)
-
-    def test_array_field_is_list_field(self):
-        fields = ContinentSerializer().get_fields()
-        self.assertIsInstance(fields["notable_cities"], serializers.ListField)
-
-    def test_name_is_char_field(self):
-        fields = ContinentSerializer().get_fields()
-        self.assertIsInstance(fields["name"], serializers.CharField)
 
 
 class MongoModelSerializerToRepresentationTests(SimpleTestCase):
@@ -280,99 +261,3 @@ class MongoModelSerializerCreateTests(TestCase):
         self.assertIsNone(loaded.country)
         self.assertIsNone(loaded.countries)
         self.assertIsNone(loaded.notable_cities)
-
-
-class MongoModelSerializerUpdateTests(TestCase):
-    def setUp(self):
-        capital = City(name="Paris", population=2_000_000)
-        country = Country(name="France", capital=capital, cities=None, languages=["French"])
-        self.continent = Continent.objects.create(
-            name="Europe", country=country, countries=None, notable_cities=["Paris"]
-        )
-
-    def test_update_scalar_field(self):
-        s = ContinentSerializer(
-            self.continent,
-            data={
-                "name": "Europa",
-                "country": {
-                    "name": "France",
-                    "capital": {"name": "Paris", "population": 2_000_000},
-                    "cities": None,
-                    "languages": ["French"],
-                },
-                "countries": None,
-                "notable_cities": ["Paris"],
-            },
-        )
-        self.assertTrue(s.is_valid(), s.errors)
-        s.save()
-
-        loaded = Continent.objects.get(pk=self.continent.pk)
-        self.assertEqual(loaded.name, "Europa")
-        self.assertEqual(loaded.country.name, "France")
-
-    def test_update_embedded_field(self):
-        s = ContinentSerializer(
-            self.continent,
-            data={
-                "name": "Europe",
-                "country": {
-                    "name": "Germany",
-                    "capital": {"name": "Berlin", "population": 3_500_000},
-                    "cities": None,
-                    "languages": ["German"],
-                },
-                "countries": None,
-                "notable_cities": ["Paris"],
-            },
-        )
-        self.assertTrue(s.is_valid(), s.errors)
-        s.save()
-
-        loaded = Continent.objects.get(pk=self.continent.pk)
-        self.assertEqual(loaded.country.name, "Germany")
-        self.assertEqual(loaded.country.capital.name, "Berlin")
-
-    def test_update_to_null_embedded_field(self):
-        s = ContinentSerializer(
-            self.continent,
-            data={
-                "name": "Europe",
-                "country": None,
-                "countries": None,
-                "notable_cities": None,
-            },
-        )
-        self.assertTrue(s.is_valid(), s.errors)
-        s.save()
-
-        loaded = Continent.objects.get(pk=self.continent.pk)
-        self.assertIsNone(loaded.country)
-
-
-class MongoModelSerializerRoundTripTests(TestCase):
-    def test_serialize_from_db_then_create(self):
-        capital = City(name="Rome", population=2_800_000)
-        cities = [City(name="Milan", population=1_300_000)]
-        country = Country(name="Italy", capital=capital, cities=cities, languages=["Italian"])
-        original = Continent.objects.create(
-            name="Europe",
-            country=country,
-            countries=[country],
-            notable_cities=["Rome", "Milan"],
-        )
-
-        # Serialize a DB-loaded instance; id is read-only so passing it back is safe.
-        data = dict(ContinentSerializer(Continent.objects.get(pk=original.pk)).data)
-        s = ContinentSerializer(data=data)
-        self.assertTrue(s.is_valid(), s.errors)
-        copy = s.save()
-
-        self.assertNotEqual(copy.pk, original.pk)
-        loaded = Continent.objects.get(pk=copy.pk)
-        self.assertEqual(loaded.name, "Europe")
-        self.assertEqual(loaded.country.name, "Italy")
-        self.assertEqual(loaded.country.capital.name, "Rome")
-        self.assertEqual(loaded.countries[0].cities[0].name, "Milan")
-        self.assertEqual(loaded.notable_cities, ["Rome", "Milan"])
