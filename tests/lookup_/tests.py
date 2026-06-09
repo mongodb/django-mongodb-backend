@@ -175,7 +175,7 @@ class LookupMQLTests(MongoTestCaseMixin, TestCase):
 class IndexLookupTests(TestCase):
     def _plan_contains_ixscan(self, plan):
         if isinstance(plan, dict):
-            if plan.get("stage") == "IXSCAN":
+            if "IXSCAN" in (plan.get("stage") or ""):
                 return True
             return any(self._plan_contains_ixscan(value) for value in plan.values())
         if isinstance(plan, list):
