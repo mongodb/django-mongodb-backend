@@ -11,14 +11,18 @@ serializer classes provided in :mod:`django_mongodb_backend.rest_framework`.
 Installation
 ============
 
-Install the optional dependency::
+Install the optional dependency:
+
+.. code-block:: console
 
     pip install "django-mongodb-backend[rest_framework]"
 
-Add ``rest_framework`` to :setting:`INSTALLED_APPS`::
+Add ``rest_framework`` to :setting:`INSTALLED_APPS`:
+
+.. code-block:: python
 
     INSTALLED_APPS = [
-        ...
+        # ...
         "rest_framework",
     ]
 
@@ -31,9 +35,12 @@ Usage
 Subclass :class:`~django_mongodb_backend.rest_framework.EmbeddedModelSerializer`
 for each :class:`~django_mongodb_backend.models.EmbeddedModel` you want to
 serialize. Set ``Meta.model`` and ``Meta.fields`` just like Django's
-``ModelForm``::
+``ModelForm``:
+
+.. code-block:: python
 
     from django_mongodb_backend.rest_framework import EmbeddedModelSerializer
+
 
     class AddressSerializer(EmbeddedModelSerializer):
         class Meta:
@@ -62,9 +69,12 @@ models must be saved through their parent model.
 ------------------------
 
 Subclass :class:`~django_mongodb_backend.rest_framework.MongoModelSerializer`
-for regular Django models that contain MongoDB-specific fields::
+for regular Django models that contain MongoDB-specific fields:
+
+.. code-block:: python
 
     from django_mongodb_backend.rest_framework import MongoModelSerializer
+
 
     class BookSerializer(MongoModelSerializer):
         class Meta:
@@ -82,7 +92,9 @@ generates the correct DRF fields for:
 * :class:`~django_mongodb_backend.fields.ObjectIdField`
 * :class:`~django_mongodb_backend.fields.ObjectIdAutoField`
 
-Explicit field declarations override the auto-generated ones::
+Explicit field declarations override the auto-generated ones:
+
+.. code-block:: python
 
     class BookSerializer(MongoModelSerializer):
         author = AuthorSerializer()  # override the auto-generated field
@@ -97,7 +109,7 @@ Examples
 Single embedded model field
 ----------------------------
 
-::
+.. code-block:: python
 
     from django.db import models
     from django_mongodb_backend.fields import EmbeddedModelField
@@ -107,31 +119,39 @@ Single embedded model field
         MongoModelSerializer,
     )
 
+
     class Address(EmbeddedModel):
         city = models.CharField(max_length=100)
         zip_code = models.CharField(max_length=20)
 
+
     class Person(models.Model):
         name = models.CharField(max_length=100)
         address = EmbeddedModelField(Address)
+
 
     class AddressSerializer(EmbeddedModelSerializer):
         class Meta:
             model = Address
             fields = "__all__"
 
+
     class PersonSerializer(MongoModelSerializer):
         class Meta:
             model = Person
             fields = "__all__"
 
-Serializing a ``Person`` instance::
+Serializing a ``Person`` instance:
+
+.. code-block:: python
 
     person = Person.objects.get(pk=...)
     data = PersonSerializer(person).data
     # data = {"id": "...", "name": "Alice", "address": {"city": "Berlin", "zip_code": "10115"}}
 
-Deserializing and saving::
+Deserializing and saving:
+
+.. code-block:: python
 
     serializer = PersonSerializer(data=request.data)
     if serializer.is_valid():
@@ -140,30 +160,35 @@ Deserializing and saving::
 Array of embedded models
 ------------------------
 
-::
+.. code-block:: python
 
     from django_mongodb_backend.fields import EmbeddedModelArrayField
+
 
     class Tag(EmbeddedModel):
         label = models.CharField(max_length=50)
 
+
     class Article(models.Model):
         title = models.CharField(max_length=200)
         tags = EmbeddedModelArrayField(Tag, null=True)
+
 
     class TagSerializer(EmbeddedModelSerializer):
         class Meta:
             model = Tag
             fields = "__all__"
 
+
     class ArticleSerializer(MongoModelSerializer):
         class Meta:
             model = Article
             fields = "__all__"
 
-The ``tags`` field is represented as a JSON array of objects::
+The ``tags`` field is represented as a JSON array of objects:
 
-    # GET response body
+.. code-block:: json
+
     {"id": "...", "title": "Hello", "tags": [{"label": "python"}, {"label": "mongodb"}]}
 
 Polymorphic embedded model fields
@@ -175,29 +200,37 @@ are serialized automatically by
 :class:`~django_mongodb_backend.rest_framework.PolymorphicEmbeddedModelSerializer`,
 which dispatches to the correct concrete
 :class:`~django_mongodb_backend.rest_framework.EmbeddedModelSerializer` based
-on the runtime type of each instance::
+on the runtime type of each instance:
+
+.. code-block:: python
 
     from django_mongodb_backend.fields import PolymorphicEmbeddedModelField
     from django_mongodb_backend.models import EmbeddedModel
+
 
     class Dog(EmbeddedModel):
         name = models.CharField(max_length=100)
         barks = models.BooleanField(default=True)
 
+
     class Cat(EmbeddedModel):
         name = models.CharField(max_length=100)
         purrs = models.BooleanField(default=True)
 
+
     class PetOwner(models.Model):
         name = models.CharField(max_length=100)
         pet = PolymorphicEmbeddedModelField([Dog, Cat], null=True)
+
 
     class PetOwnerSerializer(MongoModelSerializer):
         class Meta:
             model = PetOwner
             fields = "__all__"
 
-Serializing a ``PetOwner`` with a ``Dog`` instance::
+Serializing a ``PetOwner`` with a ``Dog`` instance:
+
+.. code-block:: python
 
     owner = PetOwner.objects.get(pk=...)
     data = PetOwnerSerializer(owner).data
