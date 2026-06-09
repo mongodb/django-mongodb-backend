@@ -23,4 +23,4 @@ to quickly get up and running.
     Another excellent tutorial that covers Django in more detail is the
     :doc:`official Django tutorial <django:intro/tutorial01>`.
 
-    .. _Django: https://www.djangoproject.org/
+    .. _Django: https://www.djangoproject.com/
