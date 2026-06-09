@@ -24,7 +24,7 @@ class UniqueIndexTests(SimpleTestCase):
 
         self.assertEqual(
             dict(index.document["partialFilterExpression"]),
-            {"name": {"$gte": ""}},
+            {"name": {"$gte": "", "$exists": True}},
         )
 
     def test_multi_field_unique_index_filter(self):
@@ -53,6 +53,6 @@ class UniqueIndexTests(SimpleTestCase):
                     "$gte": -9223372036854775808,
                     "$lte": 9223372036854775807,
                 },
-                "name": {"$gte": ""},
+                "name": {"$gte": "", "$exists": True},
             },
         )
