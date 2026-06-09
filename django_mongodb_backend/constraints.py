@@ -17,7 +17,7 @@ def _get_partial_unique_filter(field, connection):
 
     match db_type:
         case "string":
-            return {"$type": "string"}
+            return {"$gte": ""}
         case "int":
             return {"$gte": -2147483648, "$lte": 2147483647}
         case "long":
