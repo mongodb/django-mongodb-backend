@@ -99,8 +99,8 @@ class GISOperations(BaseSpatialOperations):
                 )
             if issubclass(geom_class, geos.GeometryCollection):
                 sub_geom_class = geom_class._allowed
-                # MultiLineString allows both LineString and LinearRing but should be
-                # initialized with LineString.
+                # MultiLineString allows both LineString and LinearRing
+                # but should be initialized with LineString.
                 if isinstance(sub_geom_class, tuple):
                     sub_geom_class = sub_geom_class[0]
                 return geom_class(

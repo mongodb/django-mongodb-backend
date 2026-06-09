@@ -46,8 +46,8 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     # MongoDB stores datetimes in UTC.
     supports_timezones = False
     # While MongoDB supports transactions in some configurations (see
-    # DatabaseFeatures._supports_transactions), django.db.transaction.atomic() is a
-    # no-op on this backend.
+    # DatabaseFeatures._supports_transactions),
+    # django.db.transaction.atomic() is a no-op on this backend.
     supports_transactions = False
     supports_unspecified_pk = True
     uses_savepoints = False
@@ -91,8 +91,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "auth_tests.test_views.LoginTest.test_login_session_without_hash_session_key",
         # GenericRelation.value_to_string() assumes integer pk.
         "contenttypes_tests.test_fields.GenericRelationTests.test_value_to_string",
-        # ArrayField's contained_by lookup crashes with Exists: "both operands "
-        # of $setIsSubset must be arrays. Second argument is of type: null"
+        # ArrayField's contained_by lookup crashes with Exists:
+        # "both operands of $setIsSubset must be arrays. Second argument
+        # is of type: null"
         # https://jira.mongodb.org/browse/SERVER-99186
         "model_fields_.test_arrayfield.QueryingTests.test_contained_by_subquery",
         # Value.as_mql() doesn't call output_field.get_db_prep_save():
@@ -419,8 +420,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "MongoDB does not support cursor.execute().": {
             # Test catches another exception with assertRaises.
             "backends.tests.BackendTestCase.test_duplicate_table_error",
-            # AssertionError: <django_mongodb_backend.base.Cursor object at 0x77a8c8b24350>
-            # is not an instance of <class 'django.db.backends.utils.CursorWrapper'>
+            # AssertionError: <django_mongodb_backend.base.Cursor object>
+            # is not an instance of
+            # <class 'django.db.backends.utils.CursorWrapper'>
             "backends.tests.BackendTestCase.test_cursor_contextmanager",
             # Many test methods that don't all need to be added to
             # django_test_expected_raises.
@@ -483,16 +485,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "expressions.tests.BasicExpressionsTests.test_object_update_unsaved_objects",
             "db_functions.math.test_round.RoundTests.test_decimal_with_precision",
             "db_functions.math.test_round.RoundTests.test_float_with_precision",
-        },
-        (NotSupportedError, "Pattern lookups on UUIDField are not supported."): {
-            "model_fields.test_uuid.TestQuerying.test_contains",
-            "model_fields.test_uuid.TestQuerying.test_endswith",
-            "model_fields.test_uuid.TestQuerying.test_filter_with_expr",
-            "model_fields.test_uuid.TestQuerying.test_icontains",
-            "model_fields.test_uuid.TestQuerying.test_iendswith",
-            "model_fields.test_uuid.TestQuerying.test_iexact",
-            "model_fields.test_uuid.TestQuerying.test_istartswith",
-            "model_fields.test_uuid.TestQuerying.test_startswith",
         },
         (
             CommandError,
@@ -787,8 +779,8 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     def _supports_transactions(self):
         """
         Transactions are enabled if MongoDB is configured as a replica set or a
-        sharded cluster. This is a MongoDB-specific feature flag distinct from Django's
-        supports_transactions (without the underscore prefix).
+        sharded cluster. This is a MongoDB-specific feature flag distinct
+        from Django's supports_transactions (without the underscore prefix).
         """
         self.connection.ensure_connection()
         client = self.connection.connection.admin

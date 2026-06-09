@@ -101,7 +101,9 @@ class MongoDbshellTests(SimpleTestCase):
         )
 
     def test_sigint_handler(self):
-        """SIGINT is ignored in Python and passed to Mongodb to abort queries."""
+        """
+        SIGINT is ignored in Python and passed to MongoDB to abort queries.
+        """
 
         def _mock_subprocess_run(*args, **kwargs):  # noqa: ARG001
             handler = signal.getsignal(signal.SIGINT)

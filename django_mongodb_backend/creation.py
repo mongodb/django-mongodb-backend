@@ -76,7 +76,7 @@ class DatabaseCreation(BaseDatabaseCreation):
             for test_name in tests:
                 module_or_class_name, _, name_to_mark = test_name.rpartition(".")
                 test_app = test_name.split(".")[0]
-                # Importing a test app that isn't installed raises RuntimeError.
+                # Importing an uninstalled test app raises RuntimeError.
                 if test_app in settings.INSTALLED_APPS:
                     try:
                         test_frame = import_string(module_or_class_name)

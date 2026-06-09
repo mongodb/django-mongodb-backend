@@ -64,13 +64,13 @@ class ObjectIdTests(TestCase):
         self.assertSequenceEqual(qs, [self.t3, self.t4])
 
     def test_filter_parent_by_children_values_str(self):
-        """Query to select parents of children with specific string group_id."""
+        """Select parents of children with a specific string group_id."""
         child_ids = Tag.objects.filter(group_id=self.group_id_str_1).values_list("id", flat=True)
         parent_qs = Tag.objects.filter(children__id__in=child_ids).distinct().order_by("name")
         self.assertSequenceEqual(parent_qs, [self.t1])
 
     def test_filter_parent_by_children_values_obj(self):
-        """Query to select parents of children with specific ObjectId group_id."""
+        """Select parents of children with a specific ObjectId group_id."""
         child_ids = Tag.objects.filter(group_id=self.group_id_obj_1).values_list("id", flat=True)
         parent_qs = Tag.objects.filter(children__id__in=child_ids).distinct().order_by("name")
         self.assertSequenceEqual(parent_qs, [self.t1])

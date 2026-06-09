@@ -109,6 +109,9 @@ unfixable = []
 exclude = []
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?)|dummy.*)$"
 
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 79
+
 [tool.coverage.report]
 exclude_lines = [
     "if (.*and +)*_use_c( and.*)*:",

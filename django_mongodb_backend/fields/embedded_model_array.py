@@ -27,8 +27,8 @@ class EmbeddedModelArrayField(NoEncryptedEmbeddedFieldsMixin, ArrayField):
         super().contribute_to_class(cls, name, private_only=private_only, **kwargs)
 
         if not cls._meta.abstract:
-            # If embedded_models contains any strings, replace them with the actual
-            # model classes.
+            # If embedded_models contains any strings, replace them with
+            # the actual model classes.
             def _resolve_lookup(_, resolved_model):
                 self.embedded_model = resolved_model
 

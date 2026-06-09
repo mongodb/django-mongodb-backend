@@ -10,7 +10,8 @@ def is_direct_value(node):
 
 def process_lhs(node, compiler, connection, as_expr=False):
     if not hasattr(node, "lhs"):
-        # node is a Func or Expression, possibly with multiple source expressions.
+        # node is a Func or Expression, possibly with multiple source
+        # expressions.
         result = []
         for expr in node.get_source_expressions():
             if expr is None:
