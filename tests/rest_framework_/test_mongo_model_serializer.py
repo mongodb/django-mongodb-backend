@@ -146,7 +146,7 @@ class MongoModelSerializerExplicitFieldTests(SimpleTestCase):
 
 class FieldMappingPropagationTests(SimpleTestCase):
     def _make_custom_serializer(self):
-        """MongoModelSerializer subclass that maps IntegerField → FloatField."""
+        """MongoModelSerializer subclass mapping IntegerField to FloatField."""
 
         class CustomContinentSerializer(MongoModelSerializer):
             serializer_field_mapping = {
@@ -161,15 +161,17 @@ class FieldMappingPropagationTests(SimpleTestCase):
         return CustomContinentSerializer
 
     def test_custom_mapping_applies_to_direct_embedded_field(self):
-        # Country.capital is EmbeddedModelField(City); City.population is IntegerField.
-        # The custom mapping should make population a FloatField inside Country.
+        # Country.capital is EmbeddedModelField(City); City.population is
+        # IntegerField. The custom mapping should make population a FloatField
+        # inside Country.
         cls = self._make_custom_serializer()
         country_serializer = cls().get_fields()["country"]
         city_serializer = country_serializer.get_fields()["capital"]
         self.assertIsInstance(city_serializer.get_fields()["population"], serializers.FloatField)
 
     def test_custom_mapping_applies_to_embedded_array_field(self):
-        # Country.cities is EmbeddedModelArrayField(City); City.population is IntegerField.
+        # Country.cities is EmbeddedModelArrayField(City); City.population
+        # is IntegerField.
         cls = self._make_custom_serializer()
         country_serializer = cls().get_fields()["country"]
         cities_list_serializer = country_serializer.get_fields()["cities"]
@@ -177,7 +179,8 @@ class FieldMappingPropagationTests(SimpleTestCase):
         self.assertIsInstance(city_fields["population"], serializers.FloatField)
 
     def test_default_mapping_unchanged_for_base_serializer(self):
-        # Verify the base ContinentSerializer still uses IntegerField for City.population.
+        # Verify the base ContinentSerializer still uses IntegerField for
+        # City.population.
         base_fields = ContinentSerializer().get_fields()
         capital_fields = base_fields["country"].get_fields()["capital"].get_fields()
         self.assertIsInstance(capital_fields["population"], serializers.IntegerField)

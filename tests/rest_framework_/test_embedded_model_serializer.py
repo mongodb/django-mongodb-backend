@@ -178,7 +178,10 @@ class EmbeddedModelSerializerMetaValidationTests(SimpleTestCase):
 
 
 class UniqueValidatorStrippingTests(SimpleTestCase):
-    """UniqueValidator must be removed for EmbeddedModel fields (manager cannot be queried)."""
+    """
+    UniqueValidator must be removed for EmbeddedModel fields (manager
+    cannot be queried).
+    """
 
     def test_unique_field_is_valid_without_crash(self):
         class UniqueCodeSerializer(EmbeddedModelSerializer):
@@ -187,7 +190,8 @@ class UniqueValidatorStrippingTests(SimpleTestCase):
                 fields = "__all__"
 
         s = UniqueCodeSerializer(data={"name": "NYC", "code": "NYC"})
-        # Would raise NotSupportedError before the fix if UniqueValidator was not stripped.
+        # Would raise NotSupportedError before the fix if UniqueValidator
+        # was not stripped.
         self.assertTrue(s.is_valid(), s.errors)
 
     def test_unique_field_has_no_unique_validator(self):
@@ -225,8 +229,9 @@ class ChoicesCoercionTests(SimpleTestCase):
                 model = Continent  # has no choices — just confirm no crash
                 fields = "__all__"
 
-        # A MongoModelSerializer auto-generating a StatusTag embedded field should
-        # also coerce choices. Test via a wrapping model using EmbeddedModelSerializer.
+        # A MongoModelSerializer auto-generating a StatusTag embedded field
+        # should also coerce choices. Test via a wrapping model using
+        # EmbeddedModelSerializer.
         fields = StatusTagSerializer().get_fields()
         self.assertIsInstance(fields["status"], serializers.ChoiceField)
         self.assertEqual(
