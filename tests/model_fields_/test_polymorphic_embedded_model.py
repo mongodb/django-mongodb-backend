@@ -9,7 +9,7 @@ from django.test.utils import isolate_apps
 from django_mongodb_backend.fields import PolymorphicEmbeddedModelField
 from django_mongodb_backend.models import EmbeddedModel
 
-from .models import Bone, Cat, Dog, Library, Mouse, Person
+from .models import Bone, Cat, ConcretePerson, Dog, Library, Mouse, Person
 from .utils import truncate_ms
 
 
@@ -28,7 +28,7 @@ class MethodTests(SimpleTestCase):
         self.assertEqual(name, "field_name")
         self.assertEqual(path, "django_mongodb_backend.fields.PolymorphicEmbeddedModelField")
         self.assertEqual(args, [])
-        self.assertEqual(kwargs, {"embedded_models": ["Data"], "null": True})
+        self.assertEqual(kwargs, {"embedded_models": ("Data",), "null": True})
 
     def test_get_db_prep_save_invalid(self):
         msg = (
@@ -78,6 +78,12 @@ class ModelTests(TestCase):
         Person.objects.create(pet=None)
         obj = Person.objects.get()
         self.assertIsNone(obj.pet)
+
+    def test_save_load_concrete(self):
+        ConcretePerson.objects.create(name="Jim", pet=Dog(name="Woofer"))
+        obj = ConcretePerson.objects.get()
+        self.assertIsInstance(obj.pet, Dog)
+        self.assertEqual(obj.pet.name, "Woofer")
 
     def test_save_load_decimal(self):
         obj = Person.objects.create(pet=Cat(name="Phoebe", weight="5.5"))

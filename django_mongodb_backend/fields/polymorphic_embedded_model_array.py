@@ -19,7 +19,8 @@ class PolymorphicEmbeddedModelArrayField(ArrayField):
             raise ValueError("PolymorphicEmbeddedModelArrayField does not support size.")
         kwargs["editable"] = False
         super().__init__(PolymorphicEmbeddedModelField(embedded_models), **kwargs)
-        self.embedded_models = embedded_models
+        # For consistency, cast list to tuple, if necessary.
+        self.embedded_models = tuple(embedded_models)
 
     def contribute_to_class(self, cls, name, private_only=False, **kwargs):
         super().contribute_to_class(cls, name, private_only=private_only, **kwargs)
