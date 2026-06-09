@@ -26,9 +26,6 @@ class GISFeatures(BaseSpatialFeatures):
         skips = super().django_test_skips
         skips.update(
             {
-                "inspectdb not supported.": {
-                    "gis_tests.inspectapp.tests.InspectDbTests",
-                },
                 "MongoDB doesn't support the SRID used in this test.": {
                     # Error messages:
                     # - Can't extract geo keys
