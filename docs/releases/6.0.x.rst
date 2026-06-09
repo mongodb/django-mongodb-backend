@@ -10,6 +10,11 @@ Django MongoDB Backend 6.0.x
 New features
 ------------
 
+- Added :doc:`Django REST Framework support </howto/rest-framework>` for
+  :class:`~django_mongodb_backend.models.EmbeddedModel` fields via the
+  optional ``django-mongodb-backend[rest_framework]`` extra, including
+  serializers for embedded models, arrays, and polymorphic fields.
+
 - Added support for the following database functions:
 
   - :class:`~django.db.models.functions.ExtractQuarter`
