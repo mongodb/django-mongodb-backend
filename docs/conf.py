@@ -55,6 +55,11 @@ intersphinx_mapping = {
     "sphinx": ("https://www.sphinx-doc.org/en/master", None),
 }
 
+# Some pages use JavaScript and anchors won't work right away.
+linkcheck_ignore = [
+    "https://www.mongodb.com/docs/vector-search/index/vector-search-type/#std-label-avs-similarity-functions",
+]
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 

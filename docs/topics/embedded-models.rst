@@ -3,8 +3,7 @@ Embedded models
 
 Use :class:`~django_mongodb_backend.fields.EmbeddedModelField` and
 :class:`~django_mongodb_backend.fields.EmbeddedModelArrayField` to structure
-your data using `embedded documents
-<https://www.mongodb.com/docs/manual/data-modeling/#embedded-data>`_.
+your data using :doc:`embedded documents <manual:data-modeling/embedding>`.
 
 .. _embedded-model-field-example:
 
