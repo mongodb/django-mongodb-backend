@@ -13,7 +13,8 @@ from django.db.models.sql.where import WhereNode
 
 from django_mongodb_backend.expressions import Remove
 
-# Aggregates whose MongoDB aggregation name differ from Aggregate.function.lower().
+# Aggregates whose MongoDB aggregation name differs from
+# Aggregate.function.lower().
 MONGO_AGGREGATIONS = {Count: "sum"}
 
 

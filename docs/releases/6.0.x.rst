@@ -13,14 +13,25 @@ New features
 - Added support for the following database functions:
 
   - :class:`~django.db.models.functions.ExtractQuarter`
+  - :class:`~django.db.models.functions.LPad`,
+    :class:`~django.db.models.functions.RPad`
   - :class:`~django.db.models.functions.MD5` (requires MongoDB 8.3+)
+  - :class:`~django.db.models.functions.Repeat`
+  - :class:`~django.db.models.functions.Reverse`
   - :class:`~django.db.models.functions.Right`
   - :class:`~django.db.models.functions.SHA256` (requires MongoDB 8.3+)
+  - :class:`~django.db.models.functions.Sign`
 
 - Added support for fixed-offset ``tzinfo`` in the
   :class:`~django.db.models.functions.Extract` database functions.
 
 - Added support for Django's warning when performing import-time queries.
+
+- Added support for pattern matching lookups (:lookup:`iexact`,
+  :lookup:`startswith`, :lookup:`istartswith`, :lookup:`endswith`,
+  :lookup:`iendswith`, :lookup:`contains`, :lookup:`icontains`,
+  :lookup:`regex`, and :lookup:`iregex`) on
+  :class:`~django.db.models.UUIDField`.
 
 Bug fixes
 ---------
@@ -32,16 +43,48 @@ Bug fixes
 
 - Added debug logging of ``QuerySet.explain()`` queries.
 
+- Fixed crash when saving a model with
+  :class:`~django_mongodb_backend.fields.PolymorphicEmbeddedModelField` or
+  :class:`~django_mongodb_backend.fields.PolymorphicEmbeddedModelArrayField`
+  that specifies ``embedded_models`` as a list of concrete models.
+
 - Ensure unique indexes for ``string``, ``int``, ``long``, ``double``,
-  ``decimal``, ``bool``, and ``date`` fieldsare being used by the query planner.
+  ``decimal``, ``bool``, and ``date`` fields are being used by the query planner.
 
 Backwards incompatible changes
 ------------------------------
 
+- Subclasses of :class:`~django_mongodb_backend.models.EmbeddedModel` are now
+  treated as unmanaged, that is they have the
+  :attr:`~django.db.models.Options.managed` ``Meta`` option set to ``False``.
+
+  Existing embedded models will have an ``AlterModelOptions`` migration
+  operation added when you run :djadmin:`makemigrations`. Alternatively, you
+  can edit your migrations and add add ``'managed': False`` to each model's
+  ``CreateModel`` operation under ``'abstract': False``:
+
+  .. code-block:: python
+    :emphasize-lines: 7
+
+    operations = [
+        migrations.CreateModel(
+            name="...",
+            fields=[...],
+            options={
+                "abstract": False,
+                "managed": False,
+            },
+        ),
+        ...,
+    ]
+
+- You must include ``'django_mongodb_backend'`` in the
+  :setting:`INSTALLED_APPS` setting in order to generate migration operations
+  for embedded models.
+
 - Users will need to drop and recreate unique indexes on ``string``, ``int``,
   ``long``, ``double``, ``decimal``, ``bool``, and ``date`` fields in order to
-  benefit from the more optimized unique constraint filters added in 6.0.4.
-
+  benefit from the more optimized unique constraint filters.
 
 6.0.3
 =====

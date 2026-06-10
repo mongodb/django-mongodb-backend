@@ -274,7 +274,10 @@ class SchemaTests(TestMixin, TransactionTestCase):
     # SchemaEditor.add_field() / remove_field() tests
     @isolate_apps("schema_")
     def test_add_remove_field_db_index_and_unique(self):
-        """AddField/RemoveField + EmbeddedModelField + Field(db_index=True) & Field(unique=True)."""
+        """
+        AddField/RemoveField + EmbeddedModelField + Field(db_index=True) &
+        Field(unique=True).
+        """
 
         class Book(models.Model):
             name = models.CharField(max_length=100)
@@ -553,8 +556,8 @@ class GISTests(TestMixin, TransactionTestCase):
     @isolate_apps("schema_")
     def test_create_model(self):
         """
-        Spatial indexes for embedded GIS fields are created when the collections are
-        created.
+        Spatial indexes for embedded GIS fields are created when the
+        collections are created.
         """
         from django.contrib.gis.db.models import PointField  # noqa: PLC0415
 

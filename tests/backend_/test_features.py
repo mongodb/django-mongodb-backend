@@ -85,7 +85,9 @@ class SupportsQueryableEncryptionTests(TestCase):
             self.assertIs(connection.features.supports_queryable_encryption, True)
 
     def test_supported_on_enterprise(self):
-        """Supported on MongoDB 8.0+ Enterprise replica set or sharded cluster."""
+        """
+        Supported on MongoDB 8.0+ Enterprise replica set or sharded cluster.
+        """
         with (
             patch("pymongo.synchronous.database.Database.command", wraps=self.enterprise_response),
             patch("django.db.connection.features.supports_search", False),

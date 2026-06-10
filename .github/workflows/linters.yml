@@ -12,7 +12,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
         with:
           persist-credentials: false
       - uses: actions/setup-python@v6
@@ -32,7 +32,7 @@ jobs:
     name: Docs Checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
         with:
           persist-credentials: false
       - uses: actions/setup-python@v6
@@ -48,5 +48,27 @@ jobs:
         run: |
           cd docs
           make html
+    permissions:
+        contents: read
+  linkcheck:
+    name: Docs Link Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml'
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          pip install -U pip
+          pip install -e ".[docs]"
+      - name: Check links
+        run: |
+          cd docs
+          make linkcheck
     permissions:
         contents: read

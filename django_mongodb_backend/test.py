@@ -32,7 +32,9 @@ class MongoTestCaseMixin:
     def assertUpdateQuery(self, query, expected_collection, expected_condition, expected_set):
         """
         Assert that the logged query is equal to:
-            db.{expected_collection}.update_many({expected_condition}, {expected_set})
+            db.{expected_collection}.update_many(
+                {expected_condition}, {expected_set}
+            )
         """
         prefix, pipeline = query.split("(", 1)
         _, collection, operator = prefix.split(".")
@@ -45,7 +47,9 @@ class MongoTestCaseMixin:
     def assertUpdateOneQuery(self, query, expected_collection, expected_condition, expected_set):
         """
         Assert that the logged query is equal to:
-            db.{expected_collection}.update_one({expected_condition}, {expected_set})
+            db.{expected_collection}.update_one(
+                {expected_condition}, {expected_set}
+            )
         """
         prefix, pipeline = query.split("(", 1)
         _, collection, operator = prefix.split(".")

@@ -301,7 +301,10 @@ class DatabaseOperations(GISOperations, BaseDatabaseOperations):
                 rhs_expr = Cast(rhs_expr, output_field=TextField())
         return lhs_expr, rhs_expr
 
-    """Django uses these methods to generate SQL queries before it generates MQL queries."""
+    """
+    Django uses these methods to generate SQL queries before it generates
+    MQL queries.
+    """
 
     # EXTRACT format cannot be passed in parameters.
     _extract_format_re = _lazy_re_compile(r"[A-Z_]+")

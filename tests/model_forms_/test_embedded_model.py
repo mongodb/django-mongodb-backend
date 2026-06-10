@@ -292,7 +292,7 @@ class NestedFormTests(TestCase):
         )
 
     def test_all_missing_data(self):
-        """An embedded model with all data missing triggers a required error."""
+        """An embedded model missing all data triggers a required error."""
         book = Book.objects.create(
             title="Learning MongoDB",
             publisher=Publisher(

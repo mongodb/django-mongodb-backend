@@ -14,8 +14,8 @@ class ExplainTests(TestCase):
 
     def test_object_id(self):
         """
-        The json is dumped with bson.json_util() so that BSON types like ObjectID are
-        specially encoded.
+        The json is dumped with bson.json_util() so that BSON types like
+        ObjectID are specially encoded.
         """
         id = ObjectId()
         result = Author.objects.filter(id=id).explain()

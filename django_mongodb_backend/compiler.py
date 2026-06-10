@@ -478,7 +478,8 @@ class SQLCompiler(compiler.SQLCompiler):
                 # Otherwise, project fields without grouping.
                 query.project_fields = self.get_project_fields(columns, ordering_fields)
             # If columns is None, then get_project_fields() won't add
-            # ordering_fields to $project. Use $addFields (extra_fields) instead.
+            # ordering_fields to $project. Use $addFields (extra_fields)
+            # instead.
             if columns is None:
                 extra_fields += ordering_fields
             query.lookup_pipeline = self.get_lookup_pipeline()

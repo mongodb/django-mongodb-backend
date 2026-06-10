@@ -416,8 +416,8 @@ class SearchRegex(SearchExpression):
     Args:
         path: The document path to match (as string or expression).
         query: The regular expression pattern to apply.
-        allow_analyzed_field: Whether to allow matching against analyzed fields.
-                              The server's default is False.
+        allow_analyzed_field: Whether to allow matching against analyzed
+            fields. The server's default is False.
         score: Optional[SearchScore] expression to modify the relevance score.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/regex/
@@ -464,7 +464,7 @@ class SearchText(SearchExpression):
         path: The document path to search (as string or expression).
         query: The search term or phrase.
         fuzzy: Optional dictionary to configure fuzzy matching parameters.
-        match_criteria: Optional criteria for term matching (e.g., "all" or "any").
+        match_criteria: Optional term-matching criteria (e.g., "all" or "any").
         synonyms: Optional name of a synonym mapping defined in a search index.
         score: Optional[SearchScore] expression to adjust the relevance score.
 
@@ -512,8 +512,8 @@ class SearchWildcard(SearchExpression):
     Args:
         path: The document path to search (as string or expression).
         query: The wildcard pattern to match.
-        allow_analyzed_field: Whether to allow matching against analyzed fields.
-                              The server's default is False.
+        allow_analyzed_field: Whether to allow matching against analyzed
+            fields. The server's default is False.
         score: Optional[SearchScore] expression to modify the relevance score.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/wildcard/
@@ -831,13 +831,18 @@ class SearchVector(SearchExpression):
     nearest-neighbor search.
 
     Example:
-        SearchVector("embedding", [0.1, 0.2, 0.3], limit=10, num_candidates=100)
+        SearchVector(
+            "embedding",
+            [0.1, 0.2, 0.3],
+            limit=10,
+            num_candidates=100,
+        )
 
     Args:
         path: The document path to the vector field (as string or expression).
         query_vector: The query vector to compare against.
         limit: Maximum number of matching documents to return.
-        num_candidates: Optional number of candidates to consider during search.
+        num_candidates: Optional number of candidates to consider.
         exact: Optional flag to enforce exact matching. The server's default is
                False, meaning approximate matching.
         filter: Optional MQL filter expression to narrow candidate documents.

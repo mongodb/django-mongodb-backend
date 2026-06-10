@@ -149,7 +149,7 @@ class AtomicTests(TransactionTestCase):
             pass
 
     def test_failure_on_commit_transaction(self):
-        """transaction.atomic() re-raises an error during transaction commit."""
+        """transaction.atomic() re-raises errors during transaction commit."""
         msg = "commit failed"
         with (
             mock.patch.object(connection, "commit_mongo", side_effect=DatabaseError(msg)),

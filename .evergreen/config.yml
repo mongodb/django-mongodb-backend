@@ -1,3 +1,8 @@
+ignore:
+  - "docs/**"
+  - "*.md"
+  - "*.rst"
+
 exec_timeout_secs: 3600
 
 # Mark a failure as a system/bootstrap failure (purple box) rather then a task
@@ -173,6 +178,7 @@ tasks:
       - func: "teardown csfle"
 
   - name: run-performance-tests
+    patchable: false
     commands:
       - func: "run performance tests"
       - func: "attach performance test results"
