@@ -17,15 +17,28 @@ def _get_partial_unique_filter(field, connection):
 
     match db_type:
         case "string":
-            return {"$gte": ""}
+            return {"$gte": ""}  # Matches all strings including empty string
         case "int":
-            return {"$gte": -2147483648, "$lte": 2147483647}
+            return {
+                "$gte": -2147483648,  # Min 32-bit integer
+                "$lte": 2147483647,  # Max 32-bit integer
+            }
         case "long":
             return {
-                "$gte": -9223372036854775808,
-                "$lte": 9223372036854775807,
+                "$gte": -9223372036854775808,  # Min 64-bit integer
+                "$lte": 9223372036854775807,  # Max 64-bit integer
             }
-        case "bool":
+        case "decimal":
+            return {
+                "$gte": -9223372036854775808,  # Min 64-bit integer
+                "$lte": 9223372036854775807,  # Max 64-bit integer
+            }
+        case "double":
+            return {
+                "$gte": -9223372036854775808,  # Min 64-bit integer
+                "$lte": 9223372036854775807,  # Max 64-bit integer
+            }
+        case "bool":  # For consistency
             return {"$in": [True, False]}
         case "date":
             return {
