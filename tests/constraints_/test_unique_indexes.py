@@ -1,5 +1,7 @@
 import datetime
+import sys
 
+from bson.decimal128 import Decimal128
 from django.db import connection, models
 from django.test import SimpleTestCase
 from django.test.utils import isolate_apps
@@ -52,8 +54,8 @@ class UniqueIndexTests(SimpleTestCase):
             dict(index.document["partialFilterExpression"]),
             {
                 "version": {
-                    "$gte": -9223372036854775808,
-                    "$lte": 9223372036854775807,
+                    "$gte": -sys.float_info.max,
+                    "$lte": sys.float_info.max,
                 },
                 "name": {"$gte": ""},
             },
@@ -107,8 +109,8 @@ class UniqueIndexTests(SimpleTestCase):
             dict(index.document["partialFilterExpression"]),
             {
                 "value": {
-                    "$gte": -9223372036854775808,
-                    "$lte": 9223372036854775807,
+                    "$gte": -sys.float_info.max,
+                    "$lte": sys.float_info.max,
                 }
             },
         )
@@ -134,8 +136,8 @@ class UniqueIndexTests(SimpleTestCase):
             dict(index.document["partialFilterExpression"]),
             {
                 "amount": {
-                    "$gte": -9223372036854775808,
-                    "$lte": 9223372036854775807,
+                    "$gte": Decimal128("-9999999999999999999999999999999999E6111"),
+                    "$lte": Decimal128("9999999999999999999999999999999999E6111"),
                 }
             },
         )

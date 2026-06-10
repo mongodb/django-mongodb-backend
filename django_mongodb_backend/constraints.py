@@ -1,6 +1,8 @@
 import datetime
+import sys
 from collections import defaultdict
 
+from bson.decimal128 import Decimal128
 from django.core import checks
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import UniqueConstraint
@@ -20,23 +22,23 @@ def _get_partial_unique_filter(field, connection):
             return {"$gte": ""}  # Matches all strings including empty string
         case "int":
             return {
-                "$gte": -2147483648,  # Min 32-bit integer
-                "$lte": 2147483647,  # Max 32-bit integer
+                "$gte": -2147483648,
+                "$lte": 2147483647,
             }
         case "long":
             return {
-                "$gte": -9223372036854775808,  # Min 64-bit integer
-                "$lte": 9223372036854775807,  # Max 64-bit integer
-            }
-        case "decimal":
-            return {
-                "$gte": -9223372036854775808,  # Min 64-bit integer
-                "$lte": 9223372036854775807,  # Max 64-bit integer
+                "$gte": -sys.float_info.max,
+                "$lte": sys.float_info.max,
             }
         case "double":
             return {
-                "$gte": -9223372036854775808,  # Min 64-bit integer
-                "$lte": 9223372036854775807,  # Max 64-bit integer
+                "$gte": -sys.float_info.max,
+                "$lte": sys.float_info.max,
+            }
+        case "decimal":
+            return {
+                "$gte": Decimal128("-9999999999999999999999999999999999E6111"),
+                "$lte": Decimal128("9999999999999999999999999999999999E6111"),
             }
         case "bool":  # For consistency
             return {"$in": [True, False]}
