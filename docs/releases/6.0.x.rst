@@ -32,6 +32,17 @@ Bug fixes
 
 - Added debug logging of ``QuerySet.explain()`` queries.
 
+- Ensure unique indexes for ``string``, ``int``, ``long``, ``double``,
+  ``decimal``, ``bool``, and ``date`` fieldsare being used by the query planner.
+
+Backwards incompatible changes
+------------------------------
+
+- Users will need to drop and recreate unique indexes on ``string``, ``int``,
+  ``long``, ``double``, ``decimal``, ``bool``, and ``date`` fields in order to
+  benefit from the more optimized unique constraint filters added in 6.0.4.
+
+
 6.0.3
 =====
 
