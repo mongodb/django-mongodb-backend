@@ -18,6 +18,12 @@ If you wish to only allow one document with a ``NULL`` value, use a
 :class:`~django.db.models.UniqueConstraint` with
 :attr:`~django.db.models.UniqueConstraint.nulls_distinct` set to ``False``.
 
+The MongoDB query planner will use unique constraints to avoid a collection
+scan for queries of all built-in fields except
+:class:`~django_mongodb_backend.fields.ArrayField`,
+:class:`~django.db.models.BinaryField`, and
+:class:`~django.db.models.JSONField`.
+
 .. versionadded:: 6.0.2
 
     Support for :attr:`UniqueConstraint.nulls_distinct
@@ -25,9 +31,10 @@ If you wish to only allow one document with a ``NULL`` value, use a
 
 .. versionchanged:: 6.0.4
 
-    Unique constraint filters for exact lookups were added, allowing the query
-    planner to use indexes for scoped fields. Unique constraints that rely on
-    ``$type`` filters are still not used by the query planner.
+    The query planner won't use unique constraints created using older versions
+    of Django MongoDB Backend to avoid a collection scan. If you have a
+    constraint created using an older version, you'll need to drop and
+    re-create it if you want to take advantage of the new constraint format.
 
 MongoDB-specific constraints
 ============================

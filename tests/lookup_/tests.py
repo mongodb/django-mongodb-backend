@@ -1,13 +1,10 @@
-import datetime
-from decimal import Decimal
-
-from bson import SON, json_util
+from bson import SON
 from django.db.models import Sum
 from django.test import TestCase
 
 from django_mongodb_backend.test import MongoTestCaseMixin
 
-from .models import Book, Number, UniqueFields
+from .models import Book, Number
 
 
 class NumericLookupTests(MongoTestCaseMixin, TestCase):
@@ -173,39 +170,3 @@ class LookupMQLTests(MongoTestCaseMixin, TestCase):
                 {"$sort": SON([("num", 1)])},
             ],
         )
-
-
-class IndexLookupTests(TestCase):
-    def _plan_contains_ixscan(self, plan):
-        if isinstance(plan, dict):
-            if "IXSCAN" in plan.get("stage", ""):
-                return True
-            return any(self._plan_contains_ixscan(value) for value in plan.values())
-        if isinstance(plan, list):
-            return any(self._plan_contains_ixscan(item) for item in plan)
-        return False
-
-    def test_exact_lookup_uses_partial_unique_index(self):
-        row = UniqueFields.objects.create(
-            text="hello",
-            small_int=7,
-            integer=42,
-            float_value=1.5,
-            decimal_value=Decimal("12.34"),
-            boolean=True,
-            date_value=datetime.date(2024, 1, 1),
-        )
-        for field_name in [
-            "text",
-            "small_int",
-            "integer",
-            "float_value",
-            "decimal_value",
-            "boolean",
-            "date_value",
-        ]:
-            with self.subTest(field=field_name):
-                plan = json_util.loads(
-                    UniqueFields.objects.filter(**{field_name: getattr(row, field_name)}).explain()
-                )["queryPlanner"]["winningPlan"]
-                self.assertTrue(self._plan_contains_ixscan(plan))

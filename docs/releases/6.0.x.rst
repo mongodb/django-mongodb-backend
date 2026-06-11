@@ -79,9 +79,13 @@ Backwards incompatible changes
   :setting:`INSTALLED_APPS` setting in order to generate migration operations
   for embedded models.
 
-- You will need to drop and recreate unique indexes on scoped fields in order to
-  ensure unique indexes are used by the query planner. Unique constraints that
-  rely on ``$type`` filters still are not used by the query planner.
+- Unique constraints are now created in a way that allows the MongoDB query
+  planner to avoid a collection scan for queries of all built-in fields except
+  :class:`~django_mongodb_backend.fields.ArrayField`,
+  :class:`~django.db.models.BinaryField`, and
+  :class:`~django.db.models.JSONField`. You'll have to drop and recreate
+  constraints created using older versions of Django MongoDB Backend if you
+  want to take advantage of this.
 
 6.0.3
 =====

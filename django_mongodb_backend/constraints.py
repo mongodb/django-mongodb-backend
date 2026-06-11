@@ -2,6 +2,7 @@ import datetime
 import sys
 from collections import defaultdict
 
+from bson import ObjectId
 from bson.decimal128 import Decimal128
 from django.core import checks
 from django.core.exceptions import FieldDoesNotExist
@@ -14,39 +15,49 @@ from .indexes import EmbeddedFieldIndexMixin, _get_condition_mql, get_field
 
 
 def _get_partial_unique_filter(field, connection):
-    field = getattr(field, "field", field)
+    """
+    Create unique constraints in a way that the query planner can use to avoid
+    a collection scan. Works for all of the built-in field types except array,
+    binData, and object.
+    """
     db_type = field.db_type(connection)
     match db_type:
-        case "string":
-            return {"$gte": ""}  # Matches all strings including empty string
-        case "int":
-            return {
-                "$gte": -2147483648,
-                "$lte": 2147483647,
-            }
-        case "long":
-            return {
-                "$gte": -9223372036854775808,
-                "$lte": 9223372036854775807,
-            }
-        case "double":
-            return {
-                "$gte": -sys.float_info.max,
-                "$lte": sys.float_info.max,
-            }
-        case "decimal":
-            return {
-                "$gte": Decimal128("-9999999999999999999999999999999999E6111"),
-                "$lte": Decimal128("9999999999999999999999999999999999E6111"),
-            }
-        case "bool":  # For consistency
+        case "bool":
             return {"$in": [True, False]}
         case "date":
             return {
                 "$gte": datetime.datetime.min,
                 "$lte": datetime.datetime.max,
             }
-        case _:
+        case "decimal":
+            return {
+                "$gte": Decimal128("-9999999999999999999999999999999999E6111"),
+                "$lte": Decimal128("9999999999999999999999999999999999E6111"),
+            }
+        case "double":
+            return {
+                "$gte": -sys.float_info.max,
+                "$lte": sys.float_info.max,
+            }
+        case "int":
+            return {
+                "$gte": -2147483648,  # 32 bit integer range
+                "$lte": 2147483647,
+            }
+        case "long":
+            return {
+                "$gte": -9223372036854775808,  # 64 bit integer range
+                "$lte": 9223372036854775807,
+            }
+        case "objectId":
+            return {
+                "$gte": ObjectId("000000000000000000000000"),
+                "$lte": ObjectId("ffffffffffffffffffffffff"),
+            }
+        case "string":
+            return {"$gte": ""}  # Match all strings, including empty string.
+        case _:  # e.g. array, binData, object
+            # $type isn't used by the query planner.
             return {"$type": db_type}
 
 
@@ -72,7 +83,7 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefi
             for field_name in self.fields:
                 field_ = get_field(model, field_name)
                 filter_expression[field_.column].update(
-                    _get_partial_unique_filter(field_, schema_editor.connection)
+                    _get_partial_unique_filter(field_.field, schema_editor.connection)
                 )
     if filter_expression:
         kwargs["partialFilterExpression"] = filter_expression
