@@ -1,10 +1,15 @@
+import datetime
+from decimal import Decimal
+
 from bson import SON, json_util
+from bson.decimal128 import Decimal128
+from django.db import models
 from django.db.models import Sum
 from django.test import TestCase
 
 from django_mongodb_backend.test import MongoTestCaseMixin
 
-from .models import Book, Number, UniqueAuthor, UniqueBook
+from .models import Book, Number
 
 
 class NumericLookupTests(MongoTestCaseMixin, TestCase):
@@ -183,21 +188,44 @@ class IndexLookupTests(TestCase):
         return False
 
     def test_exact_lookup_uses_partial_unique_index(self):
-        UniqueAuthor.objects.create(name="JK Rowling")
+        class UniqueFields(models.Model):
+            text = models.TextField(unique=True, null=True)
+            small_int = models.SmallIntegerField(unique=True, null=True)
+            integer = models.IntegerField(unique=True, null=True)
+            float_value = models.FloatField(unique=True, null=True)
+            decimal_value = models.DecimalField(
+                max_digits=6,
+                decimal_places=2,
+                unique=True,
+                null=True,
+            )
+            boolean = models.BooleanField(unique=True, null=True)
+            date_value = models.DateField(unique=True, null=True)
 
-        plan = json_util.loads(UniqueAuthor.objects.filter(name="JK Rowling").explain())[
-            "queryPlanner"
-        ]["winningPlan"]
+            class Meta:
+                app_label = "lookup_"
 
-        self.assertTrue(self._plan_contains_ixscan(plan))
-
-    def test_compound_exact_lookup_uses_partial_unique_index(self):
-        author = UniqueAuthor.objects.create(name="JK Rowling")
-        UniqueBook.objects.create(author=author, version=3, name="Harry Potter")
-        UniqueBook.objects.create(author=author, version=4, name="Harry Potter")
-
-        plan = json_util.loads(UniqueBook.objects.filter(version=3, name="Harry Potter").explain())[
-            "queryPlanner"
-        ]["winningPlan"]
-
-        self.assertTrue(self._plan_contains_ixscan(plan))
+        row = UniqueFields.objects.create(
+            text="hello",
+            small_int=7,
+            integer=42,
+            float_value=1.5,
+            decimal_value=Decimal("12.34"),
+            boolean=True,
+            date_value=datetime.date(2024, 1, 1),
+        )
+        cases = [
+            ("text", "hello"),
+            ("small_int", 7),
+            ("integer", 42),
+            ("float_value", 1.5),
+            ("decimal_value", Decimal128("12.34")),
+            ("boolean", True),
+            ("date_value", datetime.date(2024, 1, 1)),
+        ]
+        for field_name in cases:
+            with self.subTest(field=field_name):
+                plan = json_util.loads(
+                    UniqueFields.objects.filter(**{field_name: getattr(row, field_name)}).explain()
+                )["queryPlanner"]["winningPlan"]
+                self.assertTrue(self._plan_contains_ixscan(plan))

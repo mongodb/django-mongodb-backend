@@ -25,8 +25,8 @@ If you wish to only allow one document with a ``NULL`` value, use a
 
 .. versionchanged:: 6.0.4
 
-    Unique constraint filters for exact lookups were added, allowing the query 
-    planner to use indexes for scoped fields. Unique constraints that rely on 
+    Unique constraint filters for exact lookups were added, allowing the query
+    planner to use indexes for scoped fields. Unique constraints that rely on
     ``$type`` filters are still not used by the query planner.
 
 MongoDB-specific constraints

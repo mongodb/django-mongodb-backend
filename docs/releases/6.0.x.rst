@@ -80,7 +80,7 @@ Backwards incompatible changes
   for embedded models.
 
 - You will need to drop and recreate unique indexes on scoped fields in order to
-  ensure unique indexes are used by the query planner. Unique constraints that 
+  ensure unique indexes are used by the query planner. Unique constraints that
   rely on ``$type`` filters still are not used by the query planner.
 
 6.0.3
