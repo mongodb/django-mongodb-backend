@@ -16,7 +16,6 @@ from .indexes import EmbeddedFieldIndexMixin, _get_condition_mql, get_field
 def _get_partial_unique_filter(field, connection):
     field = getattr(field, "field", field)
     db_type = field.db_type(connection)
-
     match db_type:
         case "string":
             return {"$gte": ""}  # Matches all strings including empty string
@@ -27,8 +26,8 @@ def _get_partial_unique_filter(field, connection):
             }
         case "long":
             return {
-                "$gte": -sys.float_info.max,
-                "$lte": sys.float_info.max,
+                "$gte": -9223372036854775808,
+                "$lte": 9223372036854775807,
             }
         case "double":
             return {
