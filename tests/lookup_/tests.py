@@ -2,7 +2,6 @@ import datetime
 from decimal import Decimal
 
 from bson import SON, json_util
-from bson.decimal128 import Decimal128
 from django.db import models
 from django.db.models import Sum
 from django.test import TestCase
@@ -194,10 +193,7 @@ class IndexLookupTests(TestCase):
             integer = models.IntegerField(unique=True, null=True)
             float_value = models.FloatField(unique=True, null=True)
             decimal_value = models.DecimalField(
-                max_digits=6,
-                decimal_places=2,
-                unique=True,
-                null=True,
+                max_digits=6, decimal_places=2, unique=True, null=True
             )
             boolean = models.BooleanField(unique=True, null=True)
             date_value = models.DateField(unique=True, null=True)
@@ -214,16 +210,15 @@ class IndexLookupTests(TestCase):
             boolean=True,
             date_value=datetime.date(2024, 1, 1),
         )
-        cases = [
-            ("text", "hello"),
-            ("small_int", 7),
-            ("integer", 42),
-            ("float_value", 1.5),
-            ("decimal_value", Decimal128("12.34")),
-            ("boolean", True),
-            ("date_value", datetime.date(2024, 1, 1)),
-        ]
-        for field_name in cases:
+        for field_name in [
+            "text",
+            "small_int",
+            "integer",
+            "float_value",
+            "decimal_value",
+            "boolean",
+            "date_value",
+        ]:
             with self.subTest(field=field_name):
                 plan = json_util.loads(
                     UniqueFields.objects.filter(**{field_name: getattr(row, field_name)}).explain()
