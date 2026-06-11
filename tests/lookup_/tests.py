@@ -2,13 +2,12 @@ import datetime
 from decimal import Decimal
 
 from bson import SON, json_util
-from django.db import models
 from django.db.models import Sum
 from django.test import TestCase
 
 from django_mongodb_backend.test import MongoTestCaseMixin
 
-from .models import Book, Number
+from .models import Book, Number, UniqueFields
 
 
 class NumericLookupTests(MongoTestCaseMixin, TestCase):
@@ -187,20 +186,6 @@ class IndexLookupTests(TestCase):
         return False
 
     def test_exact_lookup_uses_partial_unique_index(self):
-        class UniqueFields(models.Model):
-            text = models.TextField(unique=True, null=True)
-            small_int = models.SmallIntegerField(unique=True, null=True)
-            integer = models.IntegerField(unique=True, null=True)
-            float_value = models.FloatField(unique=True, null=True)
-            decimal_value = models.DecimalField(
-                max_digits=6, decimal_places=2, unique=True, null=True
-            )
-            boolean = models.BooleanField(unique=True, null=True)
-            date_value = models.DateField(unique=True, null=True)
-
-            class Meta:
-                app_label = "lookup_"
-
         row = UniqueFields.objects.create(
             text="hello",
             small_int=7,

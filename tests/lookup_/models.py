@@ -17,3 +17,21 @@ class Number(models.Model):
 
     def __str__(self):
         return str(self.num)
+
+
+class UniqueFields(models.Model):
+    text = models.TextField(unique=True, null=True)
+    small_int = models.SmallIntegerField(unique=True, null=True)
+    integer = models.IntegerField(unique=True, null=True)
+    float_value = models.FloatField(unique=True, null=True)
+    decimal_value = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        unique=True,
+        null=True,
+    )
+    boolean = models.BooleanField(unique=True, null=True)
+    date_value = models.DateField(unique=True, null=True)
+
+    class Meta:
+        app_label = "lookup_"
