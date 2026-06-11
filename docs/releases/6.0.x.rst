@@ -48,9 +48,6 @@ Bug fixes
   :class:`~django_mongodb_backend.fields.PolymorphicEmbeddedModelArrayField`
   that specifies ``embedded_models`` as a list of concrete models.
 
-- Ensure unique indexes for ``string``, ``int``, ``long``, ``double``,
-  ``decimal``, ``bool``, and ``date`` fields are being used by the query planner.
-
 Backwards incompatible changes
 ------------------------------
 
@@ -82,9 +79,9 @@ Backwards incompatible changes
   :setting:`INSTALLED_APPS` setting in order to generate migration operations
   for embedded models.
 
-- Users will need to drop and recreate unique indexes on ``string``, ``int``,
-  ``long``, ``double``, ``decimal``, ``bool``, and ``date`` fields in order to
-  benefit from the more optimized unique constraint filters.
+- You will need to drop and recreate unique indexes on scoped fields in order to
+  ensure unique indexes are used by the query planner. Unique constraints that 
+  rely on ``$type`` filters still are not used by the query planner.
 
 6.0.3
 =====

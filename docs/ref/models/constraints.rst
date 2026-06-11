@@ -25,11 +25,9 @@ If you wish to only allow one document with a ``NULL`` value, use a
 
 .. versionchanged:: 6.0.4
 
-    More optimized unique constraint filters for exact lookups were added,
-    allowing the query planner to use indexes for ``string``, ``int``,
-    ``long``, ``double``, ``decimal``, ``bool``, and ``date`` fields. Unique
-    constraints that rely on ``$type`` filters aren't used by the query planner.
-
+    Unique constraint filters for exact lookups were added, allowing the query 
+    planner to use indexes for scoped fields. Unique constraints that rely on 
+    ``$type`` filters are still not used by the query planner.
 
 MongoDB-specific constraints
 ============================
