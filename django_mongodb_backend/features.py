@@ -64,17 +64,8 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         # BaseExpression.convert_value() crashes with Decimal128.
         "aggregation.tests.AggregateTestCase.test_combine_different_types",
         "annotations.tests.NonAggregateAnnotationTestCase.test_combined_f_expression_annotation_with_aggregation",
-        # Pattern lookups that use regexMatch don't work on JSONField:
-        # Unsupported conversion from array to string in $convert
-        "model_fields.test_jsonfield.TestQuerying.test_icontains",
         # Unexpected alias_refcount in alias_map.
         "queries.tests.Queries1Tests.test_order_by_tables",
-        # Pattern lookups (startswith, regex, etc.) don't work on non-string
-        # fields: https://jira.mongodb.org/browse/INTPYTHON-734
-        "admin_changelist.tests.ChangeListTests.test_pk_in_search_fields",
-        "admin_changelist.tests.ChangeListTests.test_related_field_multiple_search_terms",
-        "lookup.tests.LookupTests.test_lookup_int_as_str",
-        "lookup.tests.LookupTests.test_regex_non_string",
         # The $sum aggregation returns 0 instead of None for null.
         "aggregation.test_filter_argument.FilteredAggregateTests.test_plain_annotate",
         "aggregation.tests.AggregateTestCase.test_aggregation_default_passed_another_aggregate",
@@ -116,6 +107,13 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     def django_test_expected_failures(self):
         expected_failures = super().django_test_expected_failures
         expected_failures.update(self._django_test_expected_failures)
+        if not self.is_mongodb_8_3:
+            expected_failures.update(
+                {
+                    # $convert supports array to string in MongoDB 8.3+.
+                    "model_fields.test_jsonfield.TestQuerying.test_icontains",
+                }
+            )
         return expected_failures
 
     _django_test_skips = {
