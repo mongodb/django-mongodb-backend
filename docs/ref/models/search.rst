@@ -8,7 +8,7 @@ Search expressions
 ==================
 
 Search expressions ease the use of MongoDB Search's :doc:`full text and vector
-search engine <atlas:atlas-search>`.
+search engine <search:index>`.
 
 For the examples in this document, we'll use the following models::
 
@@ -36,8 +36,8 @@ For the examples in this document, we'll use the following models::
 
 Matches documents where a field is equal to a given value.
 
-Uses the :doc:`equals operator<atlas:atlas-search/operators-collectors/equals>`
-to perform exact matches on fields indexed in a MongoDB Search index.
+Uses the :doc:`equals operator<search:query/operators-collectors/equals>` to
+perform exact matches on fields indexed in a MongoDB Search index.
 
 .. code-block:: pycon
 
@@ -59,9 +59,9 @@ to perform exact matches on fields indexed in a MongoDB Search index.
 Enables autocomplete behavior on string fields.
 
 Uses the :doc:`autocomplete operator
-<atlas:atlas-search/operators-collectors/autocomplete>` to match the input
-query against a field indexed with ``"type": "autocomplete"`` in a MongoDB
-Search index.
+<search:query/operators-collectors/autocomplete>` to match the input query
+against a field indexed with ``"type": "autocomplete"`` in a MongoDB Search
+index.
 
 .. code-block:: pycon
 
@@ -88,8 +88,8 @@ Search index.
 
 Matches documents where a field exists.
 
-Uses the :doc:`exists operator<atlas:atlas-search/operators-collectors/exists>`
-to check whether the specified path is present in the document. It's useful for
+Uses the :doc:`exists operator<search:query/operators-collectors/exists>` to
+check whether the specified path is present in the document. It's useful for
 filtering documents that include (or exclude) optional fields.
 
 .. code-block:: pycon
@@ -113,8 +113,8 @@ filtering documents that include (or exclude) optional fields.
 
 Matches documents where a field's value is in a given list.
 
-Uses the :doc:`in operator <atlas:atlas-search/operators-collectors/in>` to
-match documents whose field contains a value from the provided array.
+Uses the :doc:`in operator <search:query/operators-collectors/in>` to match
+documents whose field contains a value from the provided array.
 
 .. code-block:: pycon
 
@@ -138,8 +138,8 @@ match documents whose field contains a value from the provided array.
 
 Matches a phrase in the specified field.
 
-Uses the :doc:`phrase operator<atlas:atlas-search/operators-collectors/phrase>`
-to find exact or near-exact sequences of terms. It supports optional slop (term
+Uses the :doc:`phrase operator<search:query/operators-collectors/phrase>` to
+find exact or near-exact sequences of terms. It supports optional slop (term
 distance) and synonym mappings defined in the MongoDB Search index.
 
 .. code-block:: pycon
@@ -170,9 +170,9 @@ distance) and synonym mappings defined in the MongoDB Search index.
 Matches using a Lucene-style query string.
 
 Uses the :doc:`queryString operator
-<atlas:atlas-search/operators-collectors/queryString>` to parse and execute
-full-text queries written in a simplified Lucene syntax. It supports features
-like boolean operators, wildcards, and field-specific terms.
+<search:query/operators-collectors/queryString>` to parse and execute full-text
+queries written in a simplified Lucene syntax. It supports features like
+boolean operators, wildcards, and field-specific terms.
 
 .. code-block:: pycon
 
@@ -199,8 +199,8 @@ like boolean operators, wildcards, and field-specific terms.
 
 Filters documents within a specified range of values.
 
-Uses the :doc:`range operator <atlas:atlas-search/operators-collectors/range>`
-to match numeric, date, or other comparable fields based on upper and/or lower
+Uses the :doc:`range operator <search:query/operators-collectors/range>` to
+match numeric, date, or other comparable fields based on upper and/or lower
 bounds.
 
 .. code-block:: pycon
@@ -228,8 +228,8 @@ bounds.
 
 Matches string fields using a regular expression.
 
-Uses the :doc:`regex operator <atlas:atlas-search/operators-collectors/regex>`
-to match a regular expression pattern to the contents of a specified field.
+Uses the :doc:`regex operator <search:query/operators-collectors/regex>` to
+match a regular expression pattern to the contents of a specified field.
 
 .. code-block:: pycon
 
@@ -254,7 +254,7 @@ to match a regular expression pattern to the contents of a specified field.
 .. class:: SearchText(path, query, *, fuzzy=None, match_criteria=None, synonyms=None, score=None)
 
 Performs full-text search using the :doc:`text operator
-<atlas:atlas-search/operators-collectors/text>`.
+<search:query/operators-collectors/text>`.
 
 Matches terms in the specified field. Supports fuzzy matching, match criteria,
 and synonym mappings.
@@ -291,9 +291,9 @@ and synonym mappings.
 Matches strings using wildcard patterns.
 
 Uses the :doc:`wildcard operator
-<atlas:atlas-search/operators-collectors/wildcard>` to search for terms
-matching a pattern with ``*`` (any sequence of characters) and ``?`` (any
-single character) wildcards.
+<search:query/operators-collectors/wildcard>` to search for terms matching a
+pattern with ``*`` (any sequence of characters) and ``?`` (any single
+character) wildcards.
 
 .. code-block:: pycon
 
@@ -321,9 +321,9 @@ single character) wildcards.
 
 Filters documents based on spatial relationships with a geometry.
 
-Uses the :doc:`geoShape operator
-<atlas:atlas-search/operators-collectors/geoShape>` to match documents where a
-geo field has a specified spatial relation to a given GeoJSON geometry.
+Uses the :doc:`geoShape operator <search:query/operators-collectors/geoShape>`
+to match documents where a geo field has a specified spatial relation to a
+given GeoJSON geometry.
 
 .. code-block:: pycon
 
@@ -352,9 +352,9 @@ geo field has a specified spatial relation to a given GeoJSON geometry.
 
 Filters documents with geo fields contained within a specified shape.
 
-Uses the :doc:`geoWithin operator
-<atlas:atlas-search/operators-collectors/geoWithin>` to match documents where
-the geo field lies entirely within the provided GeoJSON geometry.
+Uses the :doc:`geoWithin operator<search:query/operators-collectors/geoWithin>`
+to match documents where the geo field lies entirely within the provided
+GeoJSON geometry.
 
 .. code-block:: pycon
 
@@ -384,8 +384,8 @@ the geo field lies entirely within the provided GeoJSON geometry.
 Finds documents similar to the provided examples.
 
 Uses the :doc:`moreLikeThis operator
-<atlas:atlas-search/operators-collectors/morelikethis>` to retrieve documents
-that resemble one or more example documents.
+<search:query/operators-collectors/morelikethis>` to retrieve documents that
+resemble one or more example documents.
 
 .. code-block:: pycon
 
@@ -414,11 +414,10 @@ that resemble one or more example documents.
 
 Compound expression that combines multiple search clauses using boolean logic.
 
-Uses the :doc:`compound operator
-<atlas:atlas-search/operators-collectors/compound>` to combine sub-expressions
-with ``must``, ``must_not``, ``should``, and ``filter`` clauses. It enables
-fine-grained control over how multiple conditions contribute to document
-matching and scoring.
+Uses the :doc:`compound operator <search:query/operators-collectors/compound>`
+to combine sub-expressions with ``must``, ``must_not``, ``should``, and
+``filter`` clauses. It enables fine-grained control over how multiple
+conditions contribute to document matching and scoring.
 
 .. code-block:: pycon
 
@@ -523,7 +522,7 @@ Controls the relevance score in a search expression.
 It can be passed to most search expressions through the ``score`` argument to
 customize how MongoDB calculates and applies scoring.
 
-It directly maps to the :doc:`score option <atlas:atlas-search/scoring>` of
+It directly maps to the :doc:`score option <search:query/score/overview>` of
 the relevant MongoDB Search operator.
 
 .. code-block:: pycon
@@ -545,7 +544,7 @@ The ``search`` lookup
 
 Use the ``search`` lookup on :class:`~django.db.models.CharField` and
 :class:`~django.db.models.TextField` to perform full-text searches using the
-:doc:`text operator <atlas:atlas-search/operators-collectors/text>`:
+:doc:`text operator <search:query/operators-collectors/text>`:
 
 .. code-block:: pycon
 

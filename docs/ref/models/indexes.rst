@@ -53,17 +53,17 @@ minutes, depending on the size of the collection.
 
 .. class:: SearchIndex(fields=(), field_mappings=None, name=None, analyzer=None, search_analyzer=None)
 
-    Creates a basic :doc:`search index <atlas:atlas-search/index-definitions>`
-    on the given field(s).
+    Creates a basic :doc:`search index <search:index/index-definitions>` on the
+    given field(s).
 
     Some fields such as :class:`~django.db.models.DecimalField` aren't
-    supported. See the :ref:`Search documentation <atlas:bson-data-chart>` for
+    supported. See the :ref:`Search documentation <search:bson-data-chart>` for
     a complete list of unsupported data types.
 
     Use ``field_mappings`` (instead of ``fields``) to create a complex search
     index. ``field_mappings`` is a dictionary that maps field names to index
     options. It corresponds to ``definition["mappings"]["fields"]`` in the
-    :ref:`atlas:fts-static-mapping-examples`.
+    :ref:`search:fts-static-mapping-examples`.
 
     If ``name`` isn't provided, one will be generated automatically. If you
     need to reference the name in your search query and don't provide your own
@@ -72,10 +72,11 @@ minutes, depending on the size of the collection.
     your model has multiple indexes).
 
     Use ``analyzer`` and ``search_analyzer`` to configure the indexing and
-    searching :doc:`analyzer <atlas:atlas-search/analyzers>`. If these options
-    aren't provided, the server defaults to ``lucene.standard``. It corresponds
-    to ``definition["analyzer"]`` and ``definition["searchAnalyzer"]`` in the
-    :ref:`atlas:fts-static-mapping-examples`.
+    searching :doc:`analyzer <search:index/analyzers/overview>`. If these
+    options aren't provided, the server defaults to ``lucene.standard``. It
+    corresponds to ``definition["analyzer"]`` and
+    ``definition["searchAnalyzer"]`` in the
+    :ref:`search:fts-static-mapping-examples`.
 
     .. versionchanged:: 5.2.2
 
