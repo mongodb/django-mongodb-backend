@@ -2,7 +2,7 @@
 Configuring a project to use Django MongoDB Backend
 ===================================================
 
-Aftering :doc:`installing Django MongoDB Backend <install>`, you must take some
+After :doc:`installing Django MongoDB Backend <install>`, you must take some
 additional steps to configure your project.
 
 .. _specifying the-default-pk-field:

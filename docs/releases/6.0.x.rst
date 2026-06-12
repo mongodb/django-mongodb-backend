@@ -59,7 +59,7 @@ Backwards incompatible changes
 
   Existing embedded models will have an ``AlterModelOptions`` migration
   operation added when you run :djadmin:`makemigrations`. Alternatively, you
-  can edit your migrations and add add ``'managed': False`` to each model's
+  can edit your migrations and add ``'managed': False`` to each model's
   ``CreateModel`` operation under ``'abstract': False``:
 
   .. code-block:: python
