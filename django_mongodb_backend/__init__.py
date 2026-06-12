@@ -2,9 +2,9 @@ __version__ = "5.2.4.dev0"
 
 # Check Django compatibility before other imports which may fail if the
 # wrong version of Django is installed.
-from .utils import check_django_compatability, parse_uri
+from .utils import check_django_compatibility, parse_uri
 
-check_django_compatability()
+check_django_compatibility()
 
 from .aggregates import register_aggregates  # noqa: E402
 from .checks import register_checks  # noqa: E402

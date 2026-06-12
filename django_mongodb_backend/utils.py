@@ -13,7 +13,7 @@ from django.utils.version import get_version_tuple
 from pymongo.uri_parser import parse_uri as pymongo_parse_uri
 
 
-def check_django_compatability():
+def check_django_compatibility():
     """
     Verify that this version of django-mongodb-backend is compatible with the
     installed version of Django. For example, any django-mongodb-backend 5.0.x is

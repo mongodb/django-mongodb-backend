@@ -155,7 +155,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             if old_field_unique and new_field_unique:
                 self._remove_field_unique(model, old_field)
                 self._add_field_unique(model, new_field)
-        # Replace NULL with the field default if the field and was changed from
+        # Replace NULL with the field default if the field was changed from
         # NULL to NOT NULL.
         if new_field.has_default() and old_field.null and not new_field.null:
             column = new_field.column
