@@ -212,7 +212,7 @@ Nested ``EmbeddedModelArrayField``\s
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If your models use nested ``EmbeddedModelArrayField``\s, you can't use double
-underscores to query into the the second level.
+underscores to query into the second level.
 
 For example, if the ``Tag`` model had an ``EmbeddedModelArrayField`` called
 ``colors``:
