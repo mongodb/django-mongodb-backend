@@ -1,12 +1,33 @@
 from django.db import models
 
 from django_mongodb_backend.fields import (
+    ArrayField,
     EmbeddedModelArrayField,
     EmbeddedModelField,
+    ObjectIdField,
     PolymorphicEmbeddedModelArrayField,
     PolymorphicEmbeddedModelField,
 )
 from django_mongodb_backend.models import EmbeddedModel
+
+
+class UniqueFields(models.Model):
+    array_value = ArrayField(models.IntegerField(), unique=True, null=True)
+    binary = models.BinaryField(unique=True, null=True)
+    boolean = models.BooleanField(unique=True, null=True)
+    data = models.JSONField(unique=True, default=dict)
+    date_value = models.DateField(unique=True, null=True)
+    decimal_value = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        unique=True,
+        null=True,
+    )
+    float_value = models.FloatField(unique=True, null=True)
+    integer = models.IntegerField(unique=True, null=True)
+    object_id = ObjectIdField(unique=True, null=True)
+    small_int = models.SmallIntegerField(unique=True, null=True)
+    text = models.TextField(unique=True, null=True)
 
 
 class Data(EmbeddedModel):
