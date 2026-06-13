@@ -2,11 +2,13 @@ from django.db.models.fields.related_lookups import In, RelatedIn
 from django.db.models.lookups import (
     BuiltinLookup,
     FieldGetDbPrepValueIterableMixin,
+    IExact,
     IsNull,
     LessThan,
     LessThanOrEqual,
     Lookup,
     PatternLookup,
+    Regex,
     UUIDTextMixin,
 )
 
@@ -144,8 +146,14 @@ def _strip_percent_signs(lookup_name, value):
 
 def pattern_lookup_expr(self, compiler, connection):
     lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+    # Cast the LHS to string if needed.
+    if self.lhs.output_field.db_type(connection) != "string":
+        lhs_mql = {"$toString": lhs_mql}
     value = process_rhs(self, compiler, connection, as_expr=True)
     if hasattr(self.rhs, "as_mql"):
+        # Cast RHS to string if needed.
+        if self.rhs.output_field.db_type(connection) != "string":
+            value = {"$toString": value}
         # If value is a column reference, escape $regexMatch special chars.
         # Analogous to PatternLookup.get_rhs_op() / pattern_esc.
         for find, replacement in REGEX_MATCH_ESCAPE_CHARS:
@@ -157,10 +165,57 @@ def pattern_lookup_expr(self, compiler, connection):
     return connection.mongo_expr_operators[self.lookup_name](lhs_mql, value)
 
 
+def _supports_regex_path(output_field, connection):
+    """
+    Return whether the $regex query operator can match `output_field` directly.
+
+    It applies to string fields and, thanks to MongoDB's implicit array
+    traversal, to arrays of strings as well.
+    """
+    if output_field.db_type(connection) == "string":
+        return True
+    base_field = getattr(output_field, "base_field", None)
+    return base_field is not None and base_field.db_type(connection) == "string"
+
+
 def pattern_lookup_path(self, compiler, connection):
+    # $regex can't operate on a non-string field; fall back to $expr with
+    # $toString.
+    if not _supports_regex_path(self.lhs.output_field, connection):
+        return {"$expr": pattern_lookup_expr(self, compiler, connection)}
     lhs_mql = process_lhs(self, compiler, connection)
     value = process_rhs(self, compiler, connection)
     value = _strip_percent_signs(self.lookup_name, value)
+    return connection.mongo_operators[self.lookup_name](lhs_mql, value)
+
+
+def regex_expr(self, compiler, connection):
+    """
+    Used by iexact, regex, and iregex. Pattern lookups, handled by
+    pattern_lookup_expr(), have similar logic to cast LHS/RHS as needed.
+    """
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+    # Cast the LHS to string if needed.
+    if self.lhs.output_field.db_type(connection) != "string":
+        lhs_mql = {"$toString": lhs_mql}
+    value = process_rhs(self, compiler, connection, as_expr=True)
+    # Cast the RHS to string if needed.
+    if hasattr(self.rhs, "as_mql") and self.rhs.output_field.db_type(connection) != "string":
+        value = {"$toString": value}
+    return connection.mongo_expr_operators[self.lookup_name](lhs_mql, value)
+
+
+def regex_path(self, compiler, connection):
+    """
+    Used by iexact, regex, and iregex. Pattern lookups, handled by
+    pattern_lookup_path(), have similar logic to cast LHS/RHS as needed.
+    """
+    # $regex can't operate on a non-string field; fall back to $expr with
+    # $toString.
+    if not _supports_regex_path(self.lhs.output_field, connection):
+        return {"$expr": regex_expr(self, compiler, connection)}
+    lhs_mql = process_lhs(self, compiler, connection)
+    value = process_rhs(self, compiler, connection)
     return connection.mongo_operators[self.lookup_name](lhs_mql, value)
 
 
@@ -185,6 +240,8 @@ def register_lookups():
     FieldGetDbPrepValueIterableMixin.resolve_expression_parameter = (
         field_resolve_expression_parameter
     )
+    IExact.as_mql_expr = regex_expr
+    IExact.as_mql_path = regex_path
     In.as_mql_expr = RelatedIn.as_mql_expr = wrap_in(builtin_lookup_expr)
     In.as_mql_path = RelatedIn.as_mql_path = wrap_in(builtin_lookup_path)
     In.get_subquery_wrapping_pipeline = get_subquery_wrapping_pipeline
@@ -195,5 +252,7 @@ def register_lookups():
     Lookup.can_use_path = lookup_can_use_path
     PatternLookup.as_mql_expr = pattern_lookup_expr
     PatternLookup.as_mql_path = pattern_lookup_path
+    Regex.as_mql_expr = regex_expr
+    Regex.as_mql_path = regex_path
     UUIDTextMixin.as_mql_expr = uuid_text_mixin_as_mql_expr
     UUIDTextMixin.as_mql_path = uuid_text_mixin_as_mql_path

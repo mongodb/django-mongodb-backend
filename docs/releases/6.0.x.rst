@@ -50,6 +50,11 @@ Bug fixes
   :class:`~django_mongodb_backend.fields.PolymorphicEmbeddedModelArrayField`
   that specifies ``embedded_models`` as a list of concrete models.
 
+- Fixed queries for pattern matching lookups (:lookup:`iexact`,
+  :lookup:`startswith`, :lookup:`istartswith`, :lookup:`endswith`,
+  :lookup:`iendswith`, :lookup:`contains`, :lookup:`icontains`,
+  :lookup:`regex`, and :lookup:`iregex`) on non-string fields.
+
 Backwards incompatible changes
 ------------------------------
 
