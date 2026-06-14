@@ -38,7 +38,7 @@ class ModelFormTests(TestCase):
         }
         form = AuthorForm(data, instance=author)
         self.assertFalse(form.is_valid())
-        self.assertEqual(form.errors["address"], ["Enter all required values."])
+        self.assertEqual(form.errors["address"], ["This field is required."])
 
     def test_invalid_field_data(self):
         """A field's data (state) is too long."""
@@ -59,7 +59,7 @@ class ModelFormTests(TestCase):
             form.errors["address"],
             [
                 "Ensure this value has at most 2 characters (it has 8).",
-                "Enter all required values.",
+                "This field is required.",
             ],
         )
 
@@ -172,7 +172,7 @@ class NestedFormTests(TestCase):
         }
         form = BookForm(data, instance=book)
         self.assertFalse(form.is_valid())
-        self.assertEqual(form.errors["publisher"], ["Enter all required values."])
+        self.assertEqual(form.errors["publisher"], ["This field is required."])
         self.assertHTMLEqual(
             str(form),
             """
@@ -182,11 +182,8 @@ class NestedFormTests(TestCase):
                 required id="id_title">
             </div>
             <div>
-              <fieldset aria-describedby="id_publisher_error">
-                <legend>Publisher:</legend>
-                <ul class="errorlist" id="id_publisher_error">
-                  <li>Enter all required values.</li>
-                </ul>
+              <fieldset>
+                <legend for="id_publisher">Publisher:</legend>
                 <div>
                   <label for="id_publisher-name">Name:</label>
                   <input type="text" name="publisher-name" value="Random House!" maxlength="50"
@@ -194,7 +191,7 @@ class NestedFormTests(TestCase):
                 </div>
                 <div>
                   <fieldset>
-                    <legend>Address:</legend>
+                    <legend for="id_publisher-address">Address:</legend>
                     <div>
                       <label for="id_publisher-address-po_box">PO Box:</label>
                       <input type="text" name="publisher-address-po_box" maxlength="50"
@@ -212,8 +209,13 @@ class NestedFormTests(TestCase):
                     </div>
                     <div>
                       <label for="id_publisher-address-zip_code">Zip code:</label>
-                      <input type="number" name="publisher-address-zip_code"
-                        required id="id_publisher-address-zip_code">
+                      <ul class="errorlist" id="id_publisher-address-zip_code_error">
+                        <li>This field is required.</li>
+                      </ul>
+                      <input type="number" name="publisher-address-zip_code" required
+                        aria-invalid="true"
+                        aria-describedby="id_publisher-address-zip_code_error"
+                        id="id_publisher-address-zip_code">
                     </div>
                   </fieldset>
                 </div>
@@ -252,11 +254,8 @@ class NestedFormTests(TestCase):
                 maxlength="50" required id="id_title">
             </div>
             <div>
-              <fieldset aria-describedby="id_publisher_error">
-                <legend>Publisher:</legend>
-                <ul class="errorlist" id="id_publisher_error">
-                  <li>Ensure this value has at most 2 characters (it has 8).</li>
-                </ul>
+              <fieldset>
+                <legend for="id_publisher">Publisher:</legend>
                 <div>
                   <label for="id_publisher-name">Name:</label>
                   <input type="text" name="publisher-name" value="Random House!"
@@ -264,7 +263,7 @@ class NestedFormTests(TestCase):
                 </div>
                 <div>
                   <fieldset>
-                    <legend>Address:</legend>
+                    <legend for="id_publisher-address">Address:</legend>
                     <div>
                       <label for="id_publisher-address-po_box">PO Box:</label>
                       <input type="text" name="publisher-address-po_box"
@@ -277,8 +276,13 @@ class NestedFormTests(TestCase):
                     </div>
                     <div>
                       <label for="id_publisher-address-state">State:</label>
+                      <ul class="errorlist" id="id_publisher-address-state_error">
+                        <li>Ensure this value has at most 2 characters (it has 8).</li>
+                      </ul>
                       <input type="text" name="publisher-address-state" value="TOO LONG"
-                        maxlength="2" required id="id_publisher-address-state">
+                        maxlength="2" required aria-invalid="true"
+                        aria-describedby="id_publisher-address-state_error"
+                        id="id_publisher-address-state">
                     </div>
                     <div>
                       <label for="id_publisher-address-zip_code">Zip code:</label>
@@ -323,7 +327,7 @@ class NestedFormTests(TestCase):
             </div>
             <div>
               <fieldset>
-                <legend>Address:</legend>
+                <legend for="id_publisher-address">Address:</legend>
                 <div>
                   <label for="id_publisher-address-po_box">PO Box:</label>
                   <input type="text" name="publisher-address-po_box" maxlength="50"

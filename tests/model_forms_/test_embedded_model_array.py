@@ -565,9 +565,6 @@ class NestedFormTests(TestCase):
 </div>
 <div>
   <label for="id_products">Products:</label>
-  <ul class="errorlist" id="id_products_error">
-    <li>This field is required.</li>
-  </ul>
   <table>
     <tbody>
       <tr>
@@ -580,9 +577,6 @@ class NestedFormTests(TestCase):
       <tr>
         <th><label for="id_products-0-reviews">Reviews:</label></th>
         <td>
-          <ul class="errorlist" id="id_products-0-reviews_error">
-            <li>This field is required.</li>
-          </ul>
           <table>
             <tbody>
               <tr>

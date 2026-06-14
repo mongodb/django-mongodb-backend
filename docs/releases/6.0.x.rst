@@ -59,6 +59,12 @@ Bug fixes
   :lookup:`iendswith`, :lookup:`contains`, :lookup:`icontains`,
   :lookup:`regex`, and :lookup:`iregex`) on non-string fields.
 
+- Fixed form rendering of
+  :class:`~django_mongodb_backend.fields.EmbeddedModelField`
+  and :class:`~django_mongodb_backend.fields.EmbeddedModelArrayField` so that
+  a validation error is shown next to the subfield that caused it rather than
+  being repeated on the parent field.
+
 Backwards incompatible changes
 ------------------------------
 
