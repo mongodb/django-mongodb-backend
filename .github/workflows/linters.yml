@@ -52,6 +52,8 @@ jobs:
           make html
     permissions:
         contents: read
+  # Run linkcheck nightly rather than on every PR: links change infrequently
+  # and the check can be slow/flaky, so there's no need to block PRs on it.
   linkcheck:
     name: Docs Link Check
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
@@ -72,6 +74,9 @@ jobs:
       - name: Check links
         run: |
           cd docs
+          # Pages on mongodb.com/docs/ can temporarily disappear (e.g. during
+          # doc rebuilds), so retry a few times before treating it as a real
+          # failure.
           for attempt in 1 2 3; do
             make linkcheck && exit 0
             [ $attempt -lt 3 ] && sleep 60
