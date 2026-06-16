@@ -2,6 +2,8 @@ name: Linters
 
 on:
   pull_request:
+  schedule:
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 concurrency:
@@ -52,6 +54,7 @@ jobs:
         contents: read
   linkcheck:
     name: Docs Link Check
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.3
@@ -69,6 +72,10 @@ jobs:
       - name: Check links
         run: |
           cd docs
-          make linkcheck
+          for attempt in 1 2 3; do
+            make linkcheck && exit 0
+            [ $attempt -lt 3 ] && sleep 60
+          done
+          exit 1
     permissions:
         contents: read
