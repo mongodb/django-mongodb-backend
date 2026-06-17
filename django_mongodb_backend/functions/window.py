@@ -1,4 +1,4 @@
-from django.db.models.aggregates import Aggregate
+from django.db.models.aggregates import Aggregate, Count, StdDev, Variance
 from django.db.models.functions.window import (
     CumeDist,
     DenseRank,
@@ -19,6 +19,14 @@ def aggregate(self, compiler, connection, alias, idx, default_frame):  # noqa: A
     exprs = self.get_source_expressions()
     mql = exprs[0].as_mql(compiler, connection, as_expr=True)
     return {alias: {f"${operator}": mql, "window": default_frame()}}, {}
+
+
+def count(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG001
+    # Count.as_mql_expr() returns {"$sum": lhs_mql} for non-distinct counts.
+    # MongoDB's $count is a pipeline stage (not a window accumulator), so use
+    # $sum instead.
+    agg_mql = self.as_mql_expr(compiler, connection)
+    return {alias: {**agg_mql, "window": default_frame()}}, {}
 
 
 def cume_dist(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG001
@@ -155,8 +163,25 @@ def row_number(self, compiler, connection, alias, idx, default_frame):  # noqa: 
     return {alias: {"$documentNumber": {}}}, {}
 
 
+def stddev(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG001
+    operator = "stdDevSamp" if self.function.endswith("_SAMP") else "stdDevPop"
+    mql = self.get_source_expressions()[0].as_mql(compiler, connection, as_expr=True)
+    return {alias: {f"${operator}": mql, "window": default_frame()}}, {}
+
+
+def variance(self, compiler, connection, alias, idx, default_frame):
+    # MongoDB has no $varPop/$varSamp window accumulator; compute as stdDev².
+    operator = "stdDevSamp" if self.function.endswith("_SAMP") else "stdDevPop"
+    mql = self.get_source_expressions()[0].as_mql(compiler, connection, as_expr=True)
+    stddev_alias = f"__wtemp{next(idx)}"
+    output = {stddev_alias: {f"${operator}": mql, "window": default_frame()}}
+    add_fields = {alias: {"$pow": [f"${stddev_alias}", 2]}}
+    return output, add_fields
+
+
 def register_window():
     Aggregate.get_window_mql = aggregate
+    Count.get_window_mql = count
     CumeDist.get_window_mql = cume_dist
     DenseRank.get_window_mql = dense_rank
     FirstValue.get_window_mql = first_value
@@ -168,3 +193,5 @@ def register_window():
     PercentRank.get_window_mql = percent_rank
     Rank.get_window_mql = rank
     RowNumber.get_window_mql = row_number
+    StdDev.get_window_mql = stddev
+    Variance.get_window_mql = variance
