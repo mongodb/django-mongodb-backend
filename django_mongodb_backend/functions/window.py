@@ -15,10 +15,8 @@ from django.db.models.functions.window import (
 
 
 def aggregate(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG001
-    operator = self.function.lower()
-    exprs = self.get_source_expressions()
-    mql = exprs[0].as_mql(compiler, connection, as_expr=True)
-    return {alias: {f"${operator}": mql, "window": default_frame()}}, {}
+    agg_mql = self.as_mql_expr(compiler, connection)
+    return {alias: {**agg_mql, "window": default_frame()}}, {}
 
 
 def count(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG001
@@ -164,17 +162,15 @@ def row_number(self, compiler, connection, alias, idx, default_frame):  # noqa: 
 
 
 def stddev(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG001
-    operator = "stdDevSamp" if self.function.endswith("_SAMP") else "stdDevPop"
-    mql = self.get_source_expressions()[0].as_mql(compiler, connection, as_expr=True)
-    return {alias: {f"${operator}": mql, "window": default_frame()}}, {}
+    agg_mql = self.as_mql_expr(compiler, connection)
+    return {alias: {**agg_mql, "window": default_frame()}}, {}
 
 
 def variance(self, compiler, connection, alias, idx, default_frame):
     # MongoDB has no $varPop/$varSamp window accumulator; compute as stdDev².
-    operator = "stdDevSamp" if self.function.endswith("_SAMP") else "stdDevPop"
-    mql = self.get_source_expressions()[0].as_mql(compiler, connection, as_expr=True)
+    agg_mql = self.as_mql_expr(compiler, connection)
     stddev_alias = f"__wtemp{next(idx)}"
-    output = {stddev_alias: {f"${operator}": mql, "window": default_frame()}}
+    output = {stddev_alias: {**agg_mql, "window": default_frame()}}
     add_fields = {alias: {"$pow": [f"${stddev_alias}", 2]}}
     return output, add_fields
 
