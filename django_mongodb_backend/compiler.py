@@ -838,17 +838,20 @@ class SQLCompiler(compiler.SQLCompiler):
             return exprs[0].as_mql(self, self.connection, as_expr=True)
         return {str(i): e.as_mql(self, self.connection, as_expr=True) for i, e in enumerate(exprs)}
 
-    def _compile_window_sort_by(self, order_by_list):
+    def _compile_window_sort_by(self, order_by_list, sort_fields):
         """
         Compile Window.order_by to a MongoDB sortBy document and any pre-sort
         $addFields.
+
+        sort_fields is a shared dict (expr_mql_key → field_name) across all
+        windows in the same query, so that identical expressions reuse the same
+        field name and different expressions get distinct names.
         """
         if order_by_list is None:
             return {}, {}
         exprs = order_by_list.get_source_expressions()
         sort_doc = {}
         pre_add_fields = {}
-        sort_idx = itertools.count(start=1)
         for item in exprs:
             if isinstance(item, OrderBy):
                 expr = item.expression
@@ -860,8 +863,12 @@ class SQLCompiler(compiler.SQLCompiler):
             if isinstance(expr, (Col, Ref)):
                 field_name = expr.as_mql(self, self.connection, as_expr=False)
             else:
-                field_name = f"__wsort{next(sort_idx)}"
-                pre_add_fields[field_name] = expr.as_mql(self, self.connection, as_expr=True)
+                expr_mql = expr.as_mql(self, self.connection, as_expr=True)
+                expr_key = json.dumps(expr_mql, sort_keys=True)
+                if expr_key not in sort_fields:
+                    sort_fields[expr_key] = f"__wsort{len(sort_fields) + 1}"
+                field_name = sort_fields[expr_key]
+                pre_add_fields[field_name] = expr_mql
             sort_doc[field_name] = direction
         return sort_doc, pre_add_fields
 
@@ -971,9 +978,10 @@ class SQLCompiler(compiler.SQLCompiler):
         # $setWindowFields.
         groups = {}
         pre_add_fields = {}
+        sort_fields = {}  # shared across all windows: expr_mql_key → field_name
         for alias, window in window_list:
             partition_mql = self._compile_window_partition_by(window.partition_by)
-            sort_doc, pre_add_fields_ = self._compile_window_sort_by(window.order_by)
+            sort_doc, pre_add_fields_ = self._compile_window_sort_by(window.order_by, sort_fields)
             pre_add_fields.update(pre_add_fields_)
             partition_key = json.dumps(partition_mql)
             sort_key = json.dumps(sort_doc)
