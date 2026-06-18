@@ -114,8 +114,6 @@ def ntile(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG00
     }
     # SQL NTILE: rows 1..extra*(per+1) go to the first `extra` buckets (each
     # gets per+1 rows); remaining rows are distributed evenly across the rest.
-    # `$max [$$per, 1]` guards against division by zero in the else branch when
-    # num_buckets > total (per==0), which is unreachable but may be evaluated.
     add_fields = {
         alias: {
             "$let": {
@@ -156,6 +154,9 @@ def ntile(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG00
                                                             {"$add": ["$$thr", 1]},
                                                         ]
                                                     },
+                                                    # Guard against division by
+                                                    # zero when num_buckets >
+                                                    # total (per==0).
                                                     {"$max": ["$$per", 1]},
                                                 ]
                                             }
@@ -174,8 +175,8 @@ def ntile(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG00
 
 
 def percent_rank(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG001
-    # Use document-position rank ($sum:1 docs unbounded-to-current)
-    # instead of $rank, which MongoDB limits to a single sort field.
+    # Use document-position rank ($sum:1 docs unbounded-to-current) instead of
+    # $rank, which MongoDB limits to a single sort field.
     row_num_alias = f"__wtemp{next(idx)}"
     count_alias = f"__wtemp{next(idx)}"
     output = {

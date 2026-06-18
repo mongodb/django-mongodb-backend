@@ -843,7 +843,7 @@ class SQLCompiler(compiler.SQLCompiler):
         Compile Window.order_by to a MongoDB sortBy document and any pre-sort
         $addFields.
 
-        sort_fields is a shared dict (expr_mql_key → field_name) across all
+        sort_fields is a shared dict {expr_mql_key: field_name} across all
         windows in the same query, so that identical expressions reuse the same
         field name and different expressions get distinct names.
         """
@@ -877,7 +877,7 @@ class SQLCompiler(compiler.SQLCompiler):
                 # so {ind: 0, val: v} vs {ind: 1, val: null} is decided by
                 # "ind" before "val", giving clean null positioning.
                 # null_ind=1 puts null AFTER non-null in ASC / BEFORE in DESC.
-                # nulls_last!=descending means we want null last in ASC or
+                # nulls_last != descending means nulls will be last in ASC or
                 # first in DESC — both require the higher ind value (1).
                 null_ind = int(bool(item.nulls_last) != bool(item.descending))
                 null_field = f"__wsort{len(sort_fields) + 1}"
@@ -961,7 +961,7 @@ class SQLCompiler(compiler.SQLCompiler):
         """
         Build $setWindowFields pipeline stages for window annotations.
 
-        Returns (stages, replacements) where stages is a list of pipeline dicts
+        Return (stages, replacements) where stages is a list of pipeline dicts
         and replacements maps Window sub-expressions and full over-clause
         annotations to Ref objects for use in $project.
         """
@@ -997,7 +997,7 @@ class SQLCompiler(compiler.SQLCompiler):
         # $setWindowFields.
         groups = {}
         pre_add_fields = {}
-        sort_fields = {}  # shared across all windows: expr_mql_key → field_name
+        sort_fields = {}  # shared across all windows, expr_mql_key: field_name
         for alias, window in window_list:
             partition_mql = self._compile_window_partition_by(window.partition_by)
             sort_doc, pre_add_fields_ = self._compile_window_sort_by(window.order_by, sort_fields)
