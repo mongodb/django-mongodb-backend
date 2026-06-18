@@ -112,15 +112,61 @@ def ntile(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG00
         doc_num_alias: {"$documentNumber": {}},
         total_alias: {"$sum": 1, "window": {"documents": ["unbounded", "unbounded"]}},
     }
+    # SQL NTILE: rows 1..extra*(per+1) go to the first `extra` buckets (each
+    # gets per+1 rows); remaining rows are distributed evenly across the rest.
+    # `$max [$$per, 1]` guards against division by zero in the else branch when
+    # num_buckets > total (per==0), which is unreachable but may be evaluated.
     add_fields = {
         alias: {
-            "$toInt": {
-                "$ceil": {
-                    "$divide": [
-                        {"$multiply": [f"${doc_num_alias}", num_buckets]},
-                        f"${total_alias}",
-                    ]
-                }
+            "$let": {
+                "vars": {
+                    "per": {"$floor": {"$divide": [f"${total_alias}", num_buckets]}},
+                    "xtra": {"$mod": [f"${total_alias}", num_buckets]},
+                },
+                "in": {
+                    "$let": {
+                        "vars": {
+                            "thr": {"$multiply": ["$$xtra", {"$add": ["$$per", 1]}]},
+                        },
+                        "in": {
+                            "$cond": {
+                                "if": {"$lte": [f"${doc_num_alias}", "$$thr"]},
+                                "then": {
+                                    "$add": [
+                                        {
+                                            "$floor": {
+                                                "$divide": [
+                                                    {"$subtract": [f"${doc_num_alias}", 1]},
+                                                    {"$add": ["$$per", 1]},
+                                                ]
+                                            }
+                                        },
+                                        1,
+                                    ]
+                                },
+                                "else": {
+                                    "$add": [
+                                        "$$xtra",
+                                        {
+                                            "$floor": {
+                                                "$divide": [
+                                                    {
+                                                        "$subtract": [
+                                                            f"${doc_num_alias}",
+                                                            {"$add": ["$$thr", 1]},
+                                                        ]
+                                                    },
+                                                    {"$max": ["$$per", 1]},
+                                                ]
+                                            }
+                                        },
+                                        1,
+                                    ]
+                                },
+                            }
+                        },
+                    }
+                },
             }
         }
     }
