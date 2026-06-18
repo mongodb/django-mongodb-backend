@@ -1029,14 +1029,22 @@ class SQLCompiler(compiler.SQLCompiler):
                 )
                 set_window_fields_output.update(output_entries)
                 post_add_fields.update(post_entries)
-            # $documentNumber requires exactly one sortBy field; add _id as
-            # the default.
+            # $documentNumber, $rank, and $denseRank each require exactly one
+            # sortBy field; add a default when none is specified.
+            # $rank/$denseRank with no ORDER BY means all rows are tied (rank
+            # 1), so sort by a constant. $documentNumber needs unique row
+            # numbers, so sort by _id.
             sort_doc = group_info["sort"]
-            if not sort_doc and any(
-                isinstance(v, dict) and "$documentNumber" in v
-                for v in set_window_fields_output.values()
-            ):
-                sort_doc = {"_id": 1}
+            if not sort_doc:
+                output_ops = {
+                    op for v in set_window_fields_output.values() if isinstance(v, dict) for op in v
+                }
+                if output_ops & {"$rank", "$denseRank"}:
+                    const_field = f"__wsort{len(sort_fields) + 1}"
+                    pre_add_fields[const_field] = {"$literal": 1}
+                    sort_doc = {const_field: 1}
+                elif "$documentNumber" in output_ops:
+                    sort_doc = {"_id": 1}
             set_window_fields = {"output": set_window_fields_output}
             if group_info["partition"]:
                 set_window_fields["partitionBy"] = group_info["partition"]
