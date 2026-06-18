@@ -862,14 +862,33 @@ class SQLCompiler(compiler.SQLCompiler):
                 direction = ASCENDING
             if isinstance(expr, (Col, Ref)):
                 field_name = expr.as_mql(self, self.connection, as_expr=False)
+                val_mql = expr.as_mql(self, self.connection, as_expr=True)
             else:
-                expr_mql = expr.as_mql(self, self.connection, as_expr=True)
-                expr_key = json.dumps(expr_mql, sort_keys=True)
+                val_mql = expr.as_mql(self, self.connection, as_expr=True)
+                expr_key = json.dumps(val_mql, sort_keys=True)
                 if expr_key not in sort_fields:
                     sort_fields[expr_key] = f"__wsort{len(sort_fields) + 1}"
                 field_name = sort_fields[expr_key]
-                pre_add_fields[field_name] = expr_mql
-            sort_doc[field_name] = direction
+                pre_add_fields[field_name] = val_mql
+            if isinstance(item, OrderBy) and (item.nulls_first or item.nulls_last):
+                # Encode null position into a sub-document so that a single
+                # sortBy field suffices ($rank etc. require exactly one field).
+                # MongoDB compares documents field-by-field in insertion order,
+                # so {ind: 0, val: v} vs {ind: 1, val: null} is decided by
+                # "ind" before "val", giving clean null positioning.
+                # null_ind=1 puts null AFTER non-null in ASC / BEFORE in DESC.
+                # nulls_last!=descending means we want null last in ASC or
+                # first in DESC — both require the higher ind value (1).
+                null_ind = int(bool(item.nulls_last) != bool(item.descending))
+                null_field = f"__wsort{len(sort_fields) + 1}"
+                sort_fields[f"__null_{null_field}"] = null_field
+                pre_add_fields[null_field] = {
+                    "ind": {"$cond": [{"$eq": [val_mql, None]}, null_ind, 1 - null_ind]},
+                    "val": val_mql,
+                }
+                sort_doc[null_field] = direction
+            else:
+                sort_doc[field_name] = direction
         return sort_doc, pre_add_fields
 
     @staticmethod
