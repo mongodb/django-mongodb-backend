@@ -67,21 +67,15 @@ class EmbeddedModelField(models.Field):
     def get_internal_type(self):
         return "EmbeddedModelField"
 
-    def _set_model(self, model):
-        """
-        Resolve embedded model class once the field knows the model it belongs
-        to. If __init__()'s embedded_model argument is a string, resolve it to
-        the actual model class, similar to relation fields.
-        """
-        self._model = model
-        if model is not None and isinstance(self.embedded_model, str):
-
+    def contribute_to_class(self, cls, name, **kwargs):
+        super().contribute_to_class(cls, name, **kwargs)
+        if not cls._meta.abstract and isinstance(self.embedded_model, str):
+            # If embedded_model is a string, resolve it to the actual model
+            # class, similar to relational fields.
             def _resolve_lookup(_, resolved_model):
                 self.embedded_model = resolved_model
 
-            lazy_related_operation(_resolve_lookup, model, self.embedded_model)
-
-    model = property(lambda self: self._model, _set_model)
+            lazy_related_operation(_resolve_lookup, cls, self.embedded_model)
 
     def from_db_value(self, value, expression, connection):
         return self.to_python(value)

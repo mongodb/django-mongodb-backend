@@ -31,6 +31,7 @@ class EmbeddedModelArrayField(NoEncryptedEmbeddedFieldsMixin, ArrayField):
             # the actual model classes.
             def _resolve_lookup(_, resolved_model):
                 self.embedded_model = resolved_model
+                self.base_field.embedded_model = resolved_model
 
             lazy_related_operation(_resolve_lookup, cls, self.embedded_model)
 

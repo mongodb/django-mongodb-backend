@@ -92,24 +92,15 @@ class PolymorphicEmbeddedModelField(models.Field):
     def get_internal_type(self):
         return "PolymorphicEmbeddedModelField"
 
-    def _set_model(self, model):
-        """
-        Resolve embedded model classes once the field knows the model it
-        belongs to. If any of the items in __init__()'s embedded_models
-        argument are strings, resolve each to the actual model class, similar
-        to relational fields.
-        """
-        self._model = model
-        if model is not None:
-            for embedded_model in self.embedded_models:
-                if isinstance(embedded_model, str):
+    def contribute_to_class(self, cls, name, **kwargs):
+        super().contribute_to_class(cls, name, **kwargs)
+        if not cls._meta.abstract and any(isinstance(m, str) for m in self.embedded_models):
+            # If any items in embedded_models are strings, resolve them to the
+            # actual model classes, similar to relational fields.
+            def _resolve_lookup(_, *resolved_models):
+                self.embedded_models = resolved_models
 
-                    def _resolve_lookup(_, *resolved_models):
-                        self.embedded_models = resolved_models
-
-                    lazy_related_operation(_resolve_lookup, model, *self.embedded_models)
-
-    model = property(lambda self: self._model, _set_model)
+            lazy_related_operation(_resolve_lookup, cls, *self.embedded_models)
 
     def from_db_value(self, value, expression, connection):
         return self.to_python(value)

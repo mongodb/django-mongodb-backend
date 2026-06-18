@@ -31,6 +31,7 @@ class PolymorphicEmbeddedModelArrayField(ArrayField):
             # the actual model classes.
             def _resolve_lookup(_, *resolved_models):
                 self.embedded_models = resolved_models
+                self.base_field.embedded_models = resolved_models
 
             lazy_related_operation(_resolve_lookup, cls, *self.embedded_models)
 
