@@ -23,8 +23,8 @@ class PolymorphicEmbeddedModelArrayField(ArrayField):
         # For consistency, cast list to tuple, if necessary.
         self.embedded_models = tuple(embedded_models)
 
-    def contribute_to_class(self, cls, name, private_only=False, **kwargs):
-        super().contribute_to_class(cls, name, private_only=private_only, **kwargs)
+    def contribute_to_class(self, cls, name, **kwargs):
+        super().contribute_to_class(cls, name, **kwargs)
 
         if not cls._meta.abstract:
             # If embedded_models contains any strings, replace them with

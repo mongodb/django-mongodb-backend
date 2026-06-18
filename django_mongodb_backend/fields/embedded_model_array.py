@@ -23,8 +23,8 @@ class EmbeddedModelArrayField(NoEncryptedEmbeddedFieldsMixin, ArrayField):
         super().__init__(EmbeddedModelField(embedded_model), **kwargs)
         self.embedded_model = embedded_model
 
-    def contribute_to_class(self, cls, name, private_only=False, **kwargs):
-        super().contribute_to_class(cls, name, private_only=private_only, **kwargs)
+    def contribute_to_class(self, cls, name, **kwargs):
+        super().contribute_to_class(cls, name, **kwargs)
 
         if not cls._meta.abstract:
             # If embedded_models contains any strings, replace them with
