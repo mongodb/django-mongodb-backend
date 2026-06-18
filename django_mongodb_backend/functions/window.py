@@ -86,12 +86,12 @@ def lead(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG001
     return {alias: {"$shift": mql}}, {}
 
 
-def nth_value(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG001
+def nth_value(self, compiler, connection, alias, idx, default_frame):
     expr, nth_expr = self.get_source_expressions()
     mql = expr.as_mql(compiler, connection, as_expr=True)
     nth = nth_expr.value
     push_alias = f"__wtemp{next(idx)}"
-    output = {push_alias: {"$push": mql, "window": {"documents": ["unbounded", "current"]}}}
+    output = {push_alias: {"$push": mql, "window": default_frame()}}
     add_fields = {
         alias: {
             "$cond": {
