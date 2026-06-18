@@ -163,6 +163,11 @@ def query(self, compiler, connection, get_wrapping_pipeline=None, as_expr=False)
             if subquery.window_pipeline:
                 subquery.aggregation_pipeline.extend(subquery.window_pipeline)
                 subquery.window_pipeline = None
+            # Qualify ($match on window results) must come after window stages
+            # but before the wrapping pipeline's $group stage.
+            if subquery.qualify_mql:
+                subquery.aggregation_pipeline.append({"$match": subquery.qualify_mql})
+                subquery.qualify_mql = None
             subquery.aggregation_pipeline.extend(wrapping_result_pipeline)
         # Erase project_fields since the required value is projected above.
         subquery.project_fields = None
