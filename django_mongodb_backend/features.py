@@ -78,13 +78,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "annotations.tests.NonAggregateAnnotationTestCase.test_combined_f_expression_annotation_with_aggregation",
         # Unexpected alias_refcount in alias_map.
         "queries.tests.Queries1Tests.test_order_by_tables",
-        # The $sum aggregation returns 0 instead of None for null.
-        "aggregation.test_filter_argument.FilteredAggregateTests.test_plain_annotate",
-        "aggregation.tests.AggregateTestCase.test_aggregation_default_passed_another_aggregate",
-        "aggregation.tests.AggregateTestCase.test_annotation_expressions",
-        "aggregation.tests.AggregateTestCase.test_reverse_fkey_annotate",
-        "aggregation_regress.tests.AggregationTests.test_annotation_disjunction",
-        "aggregation_regress.tests.AggregationTests.test_decimal_aggregate_annotation_filter",
         # subclasses of BaseDatabaseWrapper may require an is_usable() method
         "backends.tests.BackendTestCase.test_is_usable_after_database_disconnects",
         # Connection creation doesn't follow the usual Django API.

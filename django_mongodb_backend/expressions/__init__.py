@@ -1,4 +1,4 @@
-from .expressions import Remove
+from .expressions import NullSafeArraySum, Remove
 from .search import (
     CombinedSearchExpression,
     CompoundExpression,
@@ -22,6 +22,7 @@ from .search import (
 __all__ = [
     "CombinedSearchExpression",
     "CompoundExpression",
+    "NullSafeArraySum",
     "Remove",
     "SearchAutocomplete",
     "SearchEquals",

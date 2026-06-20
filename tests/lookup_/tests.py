@@ -108,11 +108,61 @@ class LookupMQLTests(MongoTestCaseMixin, TestCase):
             ctx.captured_queries[0]["sql"],
             "lookup__number",
             [
-                {"$group": {"_id": {"num": "$num"}, "total": {"$sum": "$num"}}},
+                {
+                    "$group": {
+                        "total": {
+                            "$push": {
+                                "$switch": {
+                                    "branches": [
+                                        {
+                                            "case": {
+                                                "$not": {
+                                                    "$or": [
+                                                        {"$eq": [{"$type": "$num"}, "missing"]},
+                                                        {"$eq": ["$num", None]},
+                                                    ]
+                                                }
+                                            },
+                                            "then": "$num",
+                                        }
+                                    ],
+                                    "default": "$$REMOVE",
+                                }
+                            }
+                        },
+                        "_id": {"num": "$num"},
+                    }
+                },
                 {"$addFields": {"num": "$_id.num"}},
                 {"$unset": "_id"},
-                {"$match": {"total": 1}},
-                {"$project": {"num": 1, "total": 1}},
+                {
+                    "$match": {
+                        "$expr": {
+                            "$eq": [
+                                {
+                                    "$cond": [
+                                        {"$eq": [{"$size": {"$ifNull": ["$total", []]}}, 0]},
+                                        None,
+                                        {"$sum": {"$ifNull": ["$total", []]}},
+                                    ]
+                                },
+                                1,
+                            ]
+                        }
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {
+                            "$cond": [
+                                {"$eq": [{"$size": {"$ifNull": ["$total", []]}}, 0]},
+                                None,
+                                {"$sum": {"$ifNull": ["$total", []]}},
+                            ]
+                        },
+                        "num": 1,
+                    }
+                },
                 {"$sort": SON([("num", 1)])},
             ],
         )

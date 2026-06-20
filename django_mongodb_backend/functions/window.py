@@ -1,4 +1,4 @@
-from django.db.models.aggregates import Aggregate, Count, StdDev, Variance
+from django.db.models.aggregates import Aggregate, Count, StdDev, Sum, Variance
 from django.db.models.functions.window import (
     CumeDist,
     DenseRank,
@@ -213,6 +213,25 @@ def stddev(self, compiler, connection, alias, idx, default_frame):  # noqa: ARG0
     return {alias: {**agg_mql, "window": default_frame()}}, {}
 
 
+def sum_window(self, compiler, connection, alias, idx, default_frame):
+    # Sum.as_mql_expr() uses $push (not $sum) so SQL SUM() null semantics can
+    # be honored. Collect the pushed values in the window, then reduce them to
+    # a null-safe sum in $addFields. Return None when no rows contribute.
+    agg_mql = self.as_mql_expr(compiler, connection)
+    push_alias = f"__wtemp{next(idx)}"
+    output = {push_alias: {**agg_mql, "window": default_frame()}}
+    add_fields = {
+        alias: {
+            "$cond": [
+                {"$eq": [{"$size": f"${push_alias}"}, 0]},
+                None,
+                {"$sum": f"${push_alias}"},
+            ]
+        }
+    }
+    return output, add_fields
+
+
 def variance(self, compiler, connection, alias, idx, default_frame):
     # MongoDB has no $varPop/$varSamp window accumulator; compute as stdDev².
     agg_mql = self.as_mql_expr(compiler, connection)
@@ -237,4 +256,5 @@ def register_window():
     Rank.get_window_mql = rank
     RowNumber.get_window_mql = row_number
     StdDev.get_window_mql = stddev
+    Sum.get_window_mql = sum_window
     Variance.get_window_mql = variance

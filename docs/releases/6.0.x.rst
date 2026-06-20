@@ -78,6 +78,9 @@ Bug fixes
 - Prevented aggregation queries from generating redundant accumulators in the
   ``$group`` stage.
 
+- Made the :class:`~django.db.models.Sum` aggregation function return ``None``
+  instead of ``0`` when no rows match, matching SQL semantics.
+
 Backwards incompatible changes
 ------------------------------
 
