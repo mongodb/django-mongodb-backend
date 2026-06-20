@@ -1,6 +1,5 @@
 import difflib
 
-from django.apps import apps
 from django.core import checks
 from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import models
@@ -125,19 +124,19 @@ class EmbeddedModelField(models.Field):
         embedded_instance._state.adding = False
         return field_values
 
-    @cached_property
-    def resolved_embedded_model(self):
-        # Since Field.deconstruct() serializes self.embedded_model as a string,
-        # it may need to be resolved after a Field.clone() in querying.
-        model = self.embedded_model
-        return apps.get_model(model) if isinstance(model, str) else model
-
     def get_transform(self, name):
         transform = super().get_transform(name)
         if transform:
             return transform
-        field = self.resolved_embedded_model._meta.get_field(name)
+        field = self.embedded_model._meta.get_field(name)
         return EmbeddedModelTransformFactory(field)
+
+    def copy_resolved_embedded_models(self, source):
+        # (Polymorphic)EmbeddedModelArrayFieldTransform clones the target field
+        # which makes the embedded_model attribute a string via
+        # Field.deconstruct(). The actual model class be must set on the cloned
+        # field.
+        self.embedded_model = source.embedded_model
 
     def validate(self, value, model_instance):
         super().validate(value, model_instance)

@@ -72,8 +72,13 @@ class EmbeddedModelArrayField(NoEncryptedEmbeddedFieldsMixin, ArrayField):
         transform = super().get_transform(name)
         if transform:
             return transform
-        field = self.base_field.resolved_embedded_model._meta.get_field(name)
+        field = self.base_field.embedded_model._meta.get_field(name)
         return EmbeddedModelArrayFieldTransformFactory(field)
+
+    def copy_resolved_embedded_models(self, source):
+        # Only the base field's embedded_model is read when querying, so the
+        # array field's own embedded_model attribute doesn't need to be copied.
+        self.base_field.copy_resolved_embedded_models(source.base_field)
 
     def _get_lookup(self, lookup_name):
         lookup = super()._get_lookup(lookup_name)
@@ -225,6 +230,11 @@ class EmbeddedModelArrayFieldTransform(Transform):
         column_name = f"${self.VIRTUAL_COLUMN_ITERABLE}.{field.column}"
         column_target.db_column = column_name
         column_target.set_attributes_from_name(column_name)
+        # Copy the resolved embedded_model/embedded_models attribute to the
+        # cloned field, replacing the strings set by field.clone() via
+        # deconstruct().
+        if hasattr(field, "copy_resolved_embedded_models"):
+            column_target.copy_resolved_embedded_models(field)
         self._field = field
         self._lhs = Col(None, column_target)
         self._sub_transform = None

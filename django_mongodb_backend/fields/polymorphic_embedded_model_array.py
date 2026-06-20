@@ -69,7 +69,7 @@ class PolymorphicEmbeddedModelArrayField(ArrayField):
         transform = super().get_transform(name)
         if transform:
             return transform
-        for model in self.base_field.resolved_embedded_models:
+        for model in self.base_field.embedded_models:
             with contextlib.suppress(FieldDoesNotExist):
                 field = model._meta.get_field(name)
                 break
@@ -78,6 +78,11 @@ class PolymorphicEmbeddedModelArrayField(ArrayField):
                 f"The models of field '{self.name}' have no field named '{name}'."
             )
         return PolymorphicArrayFieldTransformFactory(field)
+
+    def copy_resolved_embedded_models(self, source):
+        # Only the base field's embedded_models is read when querying, so the
+        # array field's own embedded_model attribute doesn't need to be copied.
+        self.base_field.copy_resolved_embedded_models(source.base_field)
 
     def _get_lookup(self, lookup_name):
         lookup = super()._get_lookup(lookup_name)
@@ -107,6 +112,11 @@ class PolymorphicArrayFieldTransform(EmbeddedModelArrayFieldTransform):
         column_target.name = f"{field.name}"
         column_target.db_column = column_name
         column_target.set_attributes_from_name(column_name)
+        # Copy the resolved embedded_model/embedded_models attribute to the
+        # cloned field, replacing the strings set by field.clone() via
+        # deconstruct().
+        if hasattr(field, "copy_resolved_embedded_models"):
+            column_target.copy_resolved_embedded_models(field)
         self._lhs = Col(None, column_target)
         self._sub_transform = None
 
