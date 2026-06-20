@@ -69,6 +69,10 @@ Bug fixes
   :class:`~django_mongodb_backend.fields.EmbeddedModelField` to a model with a
   :class:`~django_mongodb_backend.fields.EmbeddedModelArrayField`.
 
+- Fixed ``makemigrations`` to correctly order ``CreateModel`` operations. If
+  embedded models aren't created before models that reference them, ``migrate``
+  crashes with ``AttributeError: 'str' object has no attribute '_meta'``.
+
 Backwards incompatible changes
 ------------------------------
 
