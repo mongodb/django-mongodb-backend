@@ -83,6 +83,11 @@ Bug fixes
 - Made the :class:`~django.db.models.Sum` aggregation function return ``None``
   instead of ``0`` when no rows match, matching SQL semantics.
 
+- Made ``makemigrations`` correctly order ``CreateModel`` operations for
+  embedded models. If embedded models aren't created before models that
+  reference them, ``migrate`` crashes with ``AttributeError: 'str' object has
+  no attribute '_meta'``.
+
 Backwards incompatible changes
 ------------------------------
 
