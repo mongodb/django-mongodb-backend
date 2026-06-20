@@ -4,6 +4,7 @@ from django.db.models.aggregates import (
     Count,
     StdDev,
     StringAgg,
+    Sum,
     Variance,
 )
 from django.db.models.expressions import Case, Value, When
@@ -91,9 +92,40 @@ def string_agg(self, compiler, connection, resolve_inner_expression=False):  # n
     raise NotSupportedError("StringAgg is not supported.")
 
 
+def sum_aggregate(self, compiler, connection, resolve_inner_expression=False):
+    """
+    Use $push (not $sum) in the group stage so that _get_replace_expr can use
+    NullSafeArraySum in the project stage, returning None instead of 0 when no
+    rows contribute — matching SQL SUM() null semantics.
+
+    A null check is always added so that null values from outer joins are
+    excluded (pushed as $$REMOVE), allowing NullSafeArraySum to distinguish
+    "no non-null values" (None) from "values summing to 0" (0).
+    """
+    agg_expression, *_ = self.get_source_expressions()
+    lhs_mql = None
+    # Always check for nulls; add the filter condition when present.
+    conditions = [IsNull(agg_expression, False)]
+    if self.filter is not None:
+        try:
+            lhs_mql = self.filter.as_mql(compiler, connection, as_expr=True)
+        except NotSupportedError:
+            conditions.append(self.filter.condition)
+    if lhs_mql is None:
+        agg_expression = Case(
+            When(WhereNode(conditions), then=agg_expression),
+            default=Remove(),
+        )
+        lhs_mql = agg_expression.as_mql(compiler, connection, as_expr=True)
+    if resolve_inner_expression:
+        return lhs_mql
+    return {"$push": lhs_mql}
+
+
 def register_aggregates():
     Aggregate.as_mql_expr = aggregate
     Count.as_mql_expr = count
     StdDev.as_mql_expr = stddev_variance
     StringAgg.as_mql_expr = string_agg
+    Sum.as_mql_expr = sum_aggregate
     Variance.as_mql_expr = stddev_variance

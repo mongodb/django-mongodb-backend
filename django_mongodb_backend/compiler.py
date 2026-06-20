@@ -5,7 +5,7 @@ from bson import SON, ObjectId, json_util
 from django.core.exceptions import EmptyResultSet, FieldError, FullResultSet
 from django.db import IntegrityError, NotSupportedError
 from django.db.models import Count
-from django.db.models.aggregates import Aggregate, Variance
+from django.db.models.aggregates import Aggregate, Sum, Variance
 from django.db.models.expressions import Case, Col, OrderBy, Ref, Value, When
 from django.db.models.functions.comparison import Coalesce
 from django.db.models.functions.math import Power
@@ -17,6 +17,7 @@ from django.db.models.sql.where import AND, OR, XOR, ExtraWhere, NothingNode, Wh
 from django.utils.functional import cached_property
 from pymongo import ASCENDING, DESCENDING
 
+from .expressions import NullSafeArraySum
 from .expressions.search import SearchExpression, SearchVector
 from .query import MongoQuery, wrap_database_errors
 from .query_utils import is_constant_value, is_direct_value
@@ -77,11 +78,22 @@ class SQLCompiler(compiler.SQLCompiler):
                 self, self.connection, resolve_inner_expression=True, as_expr=True
             )
             group[alias] = {"$addToSet": rhs}
-            replacing_expr = sub_expr.copy()
-            replacing_expr.set_source_expressions([inner_column, None])
+            if isinstance(sub_expr, Sum):
+                # The group stage collects distinct non-null values via
+                # $addToSet; the project stage computes the null-safe sum.
+                replacing_expr = NullSafeArraySum(inner_column)
+            else:
+                replacing_expr = sub_expr.copy()
+                replacing_expr.set_source_expressions([inner_column, None])
         else:
             group[alias] = sub_expr.as_mql(self, self.connection, as_expr=True)
-            replacing_expr = inner_column
+            if isinstance(sub_expr, Sum):
+                # sum_aggregate() always uses $push so NullSafeArraySum can
+                # return None (not 0) when no non-null values are accumulated,
+                # matching SQL SUM() null semantics.
+                replacing_expr = NullSafeArraySum(inner_column)
+            else:
+                replacing_expr = inner_column
         # Count must return 0 rather than null.
         if isinstance(sub_expr, Count):
             replacing_expr = Coalesce(replacing_expr, 0)

@@ -110,15 +110,84 @@ class LookupMQLTests(MongoTestCaseMixin, TestCase):
             [
                 {
                     "$group": {
-                        "__aggregation1": {"$sum": "$num"},
+                        "total": {
+                            "$push": {
+                                "$switch": {
+                                    "branches": [
+                                        {
+                                            "case": {
+                                                "$not": {
+                                                    "$or": [
+                                                        {"$eq": [{"$type": "$num"}, "missing"]},
+                                                        {"$eq": ["$num", None]},
+                                                    ]
+                                                }
+                                            },
+                                            "then": "$num",
+                                        }
+                                    ],
+                                    "default": "$$REMOVE",
+                                }
+                            }
+                        },
+                        "__aggregation1": {
+                            "$push": {
+                                "$switch": {
+                                    "branches": [
+                                        {
+                                            "case": {
+                                                "$not": {
+                                                    "$or": [
+                                                        {"$eq": [{"$type": "$num"}, "missing"]},
+                                                        {"$eq": ["$num", None]},
+                                                    ]
+                                                }
+                                            },
+                                            "then": "$num",
+                                        }
+                                    ],
+                                    "default": "$$REMOVE",
+                                }
+                            }
+                        },
                         "_id": {"num": "$num"},
-                        "total": {"$sum": "$num"},
                     }
                 },
                 {"$addFields": {"num": "$_id.num"}},
                 {"$unset": "_id"},
-                {"$match": {"__aggregation1": 1}},
-                {"$project": {"num": 1, "total": "$__aggregation1"}},
+                {
+                    "$match": {
+                        "$expr": {
+                            "$eq": [
+                                {
+                                    "$cond": [
+                                        {
+                                            "$eq": [
+                                                {"$size": {"$ifNull": ["$__aggregation1", []]}},
+                                                0,
+                                            ]
+                                        },
+                                        None,
+                                        {"$sum": {"$ifNull": ["$__aggregation1", []]}},
+                                    ]
+                                },
+                                1,
+                            ]
+                        }
+                    }
+                },
+                {
+                    "$project": {
+                        "total": {
+                            "$cond": [
+                                {"$eq": [{"$size": {"$ifNull": ["$__aggregation1", []]}}, 0]},
+                                None,
+                                {"$sum": {"$ifNull": ["$__aggregation1", []]}},
+                            ]
+                        },
+                        "num": 1,
+                    }
+                },
                 {"$sort": SON([("num", 1)])},
             ],
         )
