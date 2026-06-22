@@ -1,7 +1,7 @@
 from django.test import TestCase
 
-from .forms import AuthorForm, BookForm
-from .models import Address, Author, Book, Publisher
+from .forms import AuthorForm, BookForm, RetailerForm
+from .models import Address, Author, Book, Product, Publisher, Retailer, Review
 
 
 class ModelFormTests(TestCase):
@@ -350,4 +350,205 @@ class NestedFormTests(TestCase):
                 </div>
               </fieldset>
             </div>""",
+        )
+
+
+class NestedEmbeddedArrayFormTests(TestCase):
+    """
+    Tests for EmbeddedModelField → EmbeddedModel with EmbeddedModelArrayField
+    (Retailer → Product → [Review]).
+    """
+
+    def test_create(self):
+        data = {
+            "name": "Acme Retail",
+            "product-name": "TV",
+            "product-reviews-0-title": "Great",
+            "product-reviews-0-rating": "9",
+            "product-reviews-TOTAL_FORMS": 2,
+            "product-reviews-INITIAL_FORMS": 0,
+        }
+        form = RetailerForm(data)
+        self.assertTrue(form.is_valid())
+        retailer = form.save()
+        self.assertEqual(retailer.name, "Acme Retail")
+        self.assertEqual(retailer.product.name, "TV")
+        self.assertEqual(len(retailer.product.reviews), 1)
+        self.assertEqual(retailer.product.reviews[0].title, "Great")
+        self.assertEqual(retailer.product.reviews[0].rating, 9)
+
+    def test_update(self):
+        retailer = Retailer.objects.create(
+            name="Acme Retail",
+            product=Product(name="TV", reviews=[Review(title="Great", rating=9)]),
+        )
+        data = {
+            "name": "Acme Retail!",
+            "product-name": "TV!",
+            "product-reviews-0-title": "Great!",
+            "product-reviews-0-rating": "10",
+            "product-reviews-TOTAL_FORMS": 2,
+            "product-reviews-INITIAL_FORMS": 1,
+        }
+        form = RetailerForm(data, instance=retailer)
+        self.assertTrue(form.is_valid())
+        form.save()
+        retailer.refresh_from_db()
+        self.assertEqual(retailer.name, "Acme Retail!")
+        self.assertEqual(retailer.product.name, "TV!")
+        self.assertEqual(len(retailer.product.reviews), 1)
+        self.assertEqual(retailer.product.reviews[0].title, "Great!")
+        self.assertEqual(retailer.product.reviews[0].rating, 10)
+
+    def test_some_missing_data(self):
+        """A required field (Review.title) is missing."""
+        retailer = Retailer.objects.create(
+            name="Acme Retail",
+            product=Product(name="TV", reviews=[Review(title="Great", rating=9)]),
+        )
+        data = {
+            "name": "Acme Retail",
+            "product-name": "TV",
+            "product-reviews-0-title": "",
+            "product-reviews-0-rating": "9",
+            "product-reviews-TOTAL_FORMS": 2,
+            "product-reviews-INITIAL_FORMS": 1,
+        }
+        form = RetailerForm(data, instance=retailer)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["product"], ["This field is required."])
+
+    def test_invalid_field_data(self):
+        """A field's data (Review.rating) is invalid."""
+        retailer = Retailer.objects.create(
+            name="Acme Retail",
+            product=Product(name="TV", reviews=[Review(title="Great", rating=9)]),
+        )
+        data = {
+            "name": "Acme Retail",
+            "product-name": "TV",
+            "product-reviews-0-title": "Great",
+            "product-reviews-0-rating": "not a number",
+            "product-reviews-TOTAL_FORMS": 2,
+            "product-reviews-INITIAL_FORMS": 1,
+        }
+        form = RetailerForm(data, instance=retailer)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["product"], ["Enter a whole number."])
+        self.assertHTMLEqual(
+            str(form),
+            """
+            <div>
+              <label for="id_name">Name:</label>
+              <input type="text" name="name" value="Acme Retail" maxlength="255"
+                required id="id_name">
+            </div>
+            <div>
+              <fieldset>
+                <legend for="id_product">Product:</legend>
+                <div>
+                  <label for="id_product-name">Name:</label>
+                  <input type="text" name="product-name" value="TV"
+                    maxlength="255" required id="id_product-name">
+                </div>
+                <div>
+                  <label for="id_product-reviews">Reviews:</label>
+                  <table>
+                    <tbody>
+                      <tr>
+                        <th>
+                          <label for="id_product-reviews-0-title">Title:</label>
+                        </th>
+                        <td>
+                          <input type="text" name="product-reviews-0-title"
+                            value="Great" maxlength="255"
+                            id="id_product-reviews-0-title">
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>
+                          <label for="id_product-reviews-0-rating">Rating:</label>
+                        </th>
+                        <td>
+                          <ul class="errorlist"
+                            id="id_product-reviews-0-rating_error">
+                            <li>Enter a whole number.</li>
+                          </ul>
+                          <input type="number" name="product-reviews-0-rating"
+                            value="not a number" aria-invalid="true"
+                            aria-describedby="id_product-reviews-0-rating_error"
+                            id="id_product-reviews-0-rating">
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>
+                          <label for="id_product-reviews-0-DELETE">Delete:</label>
+                        </th>
+                        <td>
+                          <input type="checkbox" name="product-reviews-0-DELETE"
+                            id="id_product-reviews-0-DELETE">
+                        </td>
+                      </tr>
+                    </tbody>
+                    <tbody>
+                      <tr>
+                        <th>
+                          <label for="id_product-reviews-1-title">Title:</label>
+                        </th>
+                        <td>
+                          <input type="text" name="product-reviews-1-title"
+                            maxlength="255" id="id_product-reviews-1-title">
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>
+                          <label for="id_product-reviews-1-rating">Rating:</label>
+                        </th>
+                        <td>
+                          <input type="number" name="product-reviews-1-rating"
+                            id="id_product-reviews-1-rating">
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>
+                          <label for="id_product-reviews-1-DELETE">Delete:</label>
+                        </th>
+                        <td>
+                          <input type="checkbox" name="product-reviews-1-DELETE"
+                            id="id_product-reviews-1-DELETE">
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <input type="hidden" name="product-reviews-TOTAL_FORMS"
+                    value="2" id="id_product-reviews-TOTAL_FORMS">
+                  <input type="hidden" name="product-reviews-INITIAL_FORMS"
+                    value="1" id="id_product-reviews-INITIAL_FORMS">
+                  <input type="hidden" name="product-reviews-MIN_NUM_FORMS"
+                    id="id_product-reviews-MIN_NUM_FORMS">
+                  <input type="hidden" name="product-reviews-MAX_NUM_FORMS"
+                    id="id_product-reviews-MAX_NUM_FORMS">
+                </div>
+              </fieldset>
+            </div>""",
+        )
+
+    def test_all_missing_data(self):
+        """All Review fields are empty."""
+        retailer = Retailer.objects.create(
+            name="Acme Retail",
+            product=Product(name="TV", reviews=[Review(title="Great", rating=9)]),
+        )
+        data = {
+            "name": "Acme Retail",
+            "product-name": "TV",
+            "product-reviews-0-title": "",
+            "product-reviews-0-rating": "",
+            "product-reviews-TOTAL_FORMS": 2,
+            "product-reviews-INITIAL_FORMS": 1,
+        }
+        form = RetailerForm(data, instance=retailer)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors["product"], ["This field is required.", "This field is required."]
         )

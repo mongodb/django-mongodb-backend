@@ -65,6 +65,10 @@ Bug fixes
   a validation error is shown next to the subfield that caused it rather than
   being repeated on the parent field.
 
+- Fixed crash when submitting a form that has an
+  :class:`~django_mongodb_backend.fields.EmbeddedModelField` to a model with a
+  :class:`~django_mongodb_backend.fields.EmbeddedModelArrayField`.
+
 Backwards incompatible changes
 ------------------------------
 

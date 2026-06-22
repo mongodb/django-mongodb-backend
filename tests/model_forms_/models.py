@@ -54,3 +54,8 @@ class Product(EmbeddedModel):
 class Store(models.Model):
     name = models.CharField(max_length=255)
     products = EmbeddedModelArrayField(Product)
+
+
+class Retailer(models.Model):
+    name = models.CharField(max_length=255)
+    product = EmbeddedModelField(Product)
