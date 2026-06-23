@@ -157,6 +157,43 @@ def key_transform_exact_path(self, compiler, connection):
     }
 
 
+def key_transform_exact_negated(self, compiler, connection, as_expr=False):
+    """
+    Return MQL for NOT(KeyTransformExact) using SQL three-valued semantics: a
+    row matches only when the key exists and its value differs from the RHS.
+
+    A missing key makes the comparison NULL in SQL (and NULL is not true), so
+    such rows must be excluded from the negated result. MongoDB's $not/$nor
+    would instead treat a missing key as "not equal" and wrongly include those
+    rows, so the key-existence check is applied explicitly here. Whole-field
+    null handling is contributed separately by the IsNull term that Django adds
+    alongside negated key lookups.
+    """
+    if not as_expr and getattr(self, "can_use_path", False):
+        lhs_mql = process_lhs(self, compiler, connection)
+        value = process_rhs(self, compiler, connection)
+        return {
+            "$and": [
+                _has_key_predicate(lhs_mql, None),
+                {lhs_mql: {"$ne": value}},
+            ]
+        }
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+    value = process_rhs(self, compiler, connection, as_expr=True)
+    # Traverse to the root column for the null check in _has_key_predicate().
+    previous = self.lhs
+    while isinstance(previous, KeyTransform):
+        previous = previous.lhs
+    root_column = previous.as_mql(compiler, connection, as_expr=True)
+    expr = {
+        "$and": [
+            _has_key_predicate(lhs_mql, root_column, as_expr=True),
+            {"$ne": [lhs_mql, value]},
+        ]
+    }
+    return expr if as_expr else {"$expr": expr}
+
+
 def key_transform_in_expr(self, compiler, connection):
     """
     Return MQL to check if a JSON path exists and that its values are in the
@@ -228,6 +265,7 @@ def register_json_field():
     KeyTransform.can_use_path = key_transform_is_simple_column
     KeyTransform.is_simple_column = key_transform_is_simple_column
     KeyTransformExact.as_mql_path = key_transform_exact_path
+    KeyTransformExact.as_mql_negated = key_transform_exact_negated
     KeyTransformIn.as_mql_expr = key_transform_in_expr
     KeyTransformIsNull.as_mql_expr = key_transform_is_null_expr
     KeyTransformIsNull.as_mql_path = key_transform_is_null_path
