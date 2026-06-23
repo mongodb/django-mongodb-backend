@@ -102,6 +102,29 @@ Typical commits in a ``djangoXY`` branch look like:
 - ``INTPYTHON-NNN Remove support for embedded indexes/constraints`` — drop
   functionality that depended on a Django API removed in this release
 
+.. _keeping-branches-in-sync:
+
+Keeping branches in sync
+========================
+
+The following process keeps ``django-mongodb-backend`` aligned with upstream
+Django on a regular cadence:
+
+1. **Review the rebase PR.** A weekly workflow in ``mongodb-forks/django``
+   automatically rebases each active fork branch (e.g. ``mongodb-6.0.x``) onto
+   its upstream counterpart (e.g. ``upstream/stable/6.0.x``) and opens a pull
+   request. Review the incoming commits for anything that affects the backend.
+
+2. **Open INTPYTHON tickets and fix the affected branches.** If an upstream
+   commit changes a Django database backend interface, adds tests that require
+   MongoDB-specific handling, or removes an API the backend relies on, open an
+   INTPYTHON ticket and make the corresponding fix in the relevant
+   ``django-mongodb-backend`` branch (``main``, ``5.2.x``, or a ``djangoXY``
+   pre-release branch).
+
+3. **Merge the PRs.** Once fixes are in place, merge the rebase PR in
+   ``mongodb-forks/django`` and the fix PRs in ``django-mongodb-backend``.
+
 .. _django-fork:
 
 The Django fork
