@@ -74,6 +74,11 @@ request, a branch is created off of main to track the previous feature release.
 For example, the 5.1.x branch is created shortly after the release of Django
 5.2, and main starts tracking the Django 5.2.x series.
 
+While a new Django feature release is in development, a ``djangoXY`` branch
+(e.g. ``django61``, ``django62``) is used to track the work-in-progress "Update
+to Django X.Y" pull request. These branches are based on ``main`` and are
+deleted once the pull request is merged.
+
 .. _django-fork:
 
 The Django fork
@@ -97,7 +102,8 @@ corresponding branch in the fork. For example, for Django 6.0, the branch is
 
 Periodically, each branch is rebased on the upstream Django branch to pickup
 the latest changes. For example, ``mongodb-6.0.x`` is rebased on Django's
-``stable/6.0.x`` branch.
+``stable/6.0.x`` branch. This rebasing is automated via a weekly GitHub Actions
+workflow in the fork repository.
 
 During the development of the next Django feature release, the fork's
 corresponding branch is rebased on Django's ``main`` branch. For example,
@@ -106,3 +112,25 @@ Django's ``main`` branch. The ``mongodb-6.1.x`` branch is used in the `"Update
 to Django 6.1" pull request
 <https://github.com/mongodb/django-mongodb-backend/pull/422>`_ to be merged
 upon the release of Django 6.1.
+
+The following table shows the current mapping between Django MongoDB Backend
+branches, the Django version they track, and the corresponding fork branch:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Django MongoDB Backend branch
+     - Django version
+     - Django fork branch
+   * - ``main``
+     - 6.0.x
+     - ``mongodb-6.0.x``
+   * - ``5.2.x``
+     - 5.2.x
+     - ``mongodb-5.2.x``
+   * - ``django61`` (in development)
+     - 6.1 pre-release
+     - ``mongodb-6.1.x``
+   * - ``django62`` (in development)
+     - 6.2 pre-release
+     - ``mongodb-6.2.x``
