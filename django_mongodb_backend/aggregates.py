@@ -7,7 +7,7 @@ from django.db.models.aggregates import (
     Sum,
     Variance,
 )
-from django.db.models.expressions import Case, Value, When
+from django.db.models.expressions import Case, OrderBy, Value, When
 from django.db.models.functions.comparison import Coalesce
 from django.db.models.lookups import IsNull
 from django.db.models.sql.where import WhereNode
@@ -88,8 +88,25 @@ def stddev_variance(self, compiler, connection):
     return aggregate(self, compiler, connection, operator=operator)
 
 
-def string_agg(self, compiler, connection, resolve_inner_expression=False):  # noqa: ARG001
-    raise NotSupportedError("StringAgg is not supported.")
+def string_agg(self, compiler, connection, resolve_inner_expression=False):
+    agg_expression, *_ = self.get_source_expressions()
+    if self.filter is not None:
+        agg_expression = Case(
+            When(self.filter.condition, then=agg_expression),
+            default=Remove(),
+        )
+    lhs_mql = agg_expression.as_mql(compiler, connection, as_expr=True)
+    if resolve_inner_expression:
+        return lhs_mql
+    if self.order_by:
+        # Push {v: value, k0: sort_key, ...} so StringAggJoin can sort the
+        # array in the post-group stage using $sortArray.
+        sort_keys = {}
+        for i, expr in enumerate(self.order_by.get_source_expressions()):
+            key_expr = expr.expression if isinstance(expr, OrderBy) else expr
+            sort_keys[f"k{i}"] = key_expr.as_mql(compiler, connection, as_expr=True)
+        return {"$push": {"v": lhs_mql, **sort_keys}}
+    return {"$push": lhs_mql}
 
 
 def sum_(self, compiler, connection, resolve_inner_expression=False):
