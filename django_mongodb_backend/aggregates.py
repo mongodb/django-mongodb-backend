@@ -6,7 +6,7 @@ from django.db.models.aggregates import (
     StringAgg,
     Variance,
 )
-from django.db.models.expressions import Case, Expression, Value, When
+from django.db.models.expressions import Case, Expression, OrderBy, Value, When
 from django.db.models.fields import TextField
 from django.db.models.functions.comparison import Coalesce
 from django.db.models.lookups import IsNull
@@ -93,12 +93,17 @@ class StringAggJoin(Expression):
     Post-group expression that joins a $push'd or $addToSet'd array with a
     delimiter using $reduce/$concat. Return null for empty arrays, consistent
     with SQL STRING_AGG behavior.
+
+    When sort_spec is provided (list of (field_name, direction) tuples), the
+    pushed array contains {v: value, k0: key, ...} objects. This class then
+    sorts by the key fields and extracts the values before joining.
     """
 
-    def __init__(self, array_expr, delimiter_wrapper):
+    def __init__(self, array_expr, delimiter_wrapper, sort_spec=None):
         super().__init__(output_field=TextField())
         self.array_expr = array_expr
         self.delimiter_wrapper = delimiter_wrapper
+        self.sort_spec = sort_spec  # e.g. [("k0", 1), ("k1", -1)] or None
 
     def get_source_expressions(self):
         return [self.array_expr, self.delimiter_wrapper]
@@ -112,15 +117,39 @@ class StringAggJoin(Expression):
         delimiter_mql = self.delimiter_wrapper.get_source_expressions()[0].as_mql(
             compiler, connection, as_expr=True
         )
-        # Guard against null (missing field from wrapping empty-result
-        # pipelines), and filter out null values (SQL STRING_AGG ignores
-        # nulls).
-        filtered = {
-            "$filter": {
-                "input": {"$ifNull": [array_mql, []]},
-                "cond": {"$ne": ["$$this", None]},
+        if self.sort_spec:
+            # Array contains {v: value, k0: key, ...} objects pushed by
+            # string_agg().
+            sorted_input = {
+                "$sortArray": {
+                    "input": {"$ifNull": [array_mql, []]},
+                    "sortBy": dict(self.sort_spec),
+                }
             }
-        }
+            # Extract v values; rows excluded by a filter have no v field so
+            # $$item.v is null — those are removed by the null check below.
+            filtered = {
+                "$filter": {
+                    "input": {
+                        "$map": {
+                            "input": sorted_input,
+                            "as": "item",
+                            "in": "$$item.v",
+                        }
+                    },
+                    "cond": {"$ne": ["$$this", None]},
+                }
+            }
+        else:
+            # Guard against null (missing field from wrapping empty-result
+            # pipelines), and filter out null values (SQL STRING_AGG ignores
+            # nulls).
+            filtered = {
+                "$filter": {
+                    "input": {"$ifNull": [array_mql, []]},
+                    "cond": {"$ne": ["$$this", None]},
+                }
+            }
         return {
             "$let": {
                 "vars": {"arr": filtered},
@@ -154,10 +183,6 @@ class StringAggJoin(Expression):
 
 
 def string_agg(self, compiler, connection, resolve_inner_expression=False):
-    if self.order_by and not connection.features.supports_aggregate_order_by_clause:
-        raise NotSupportedError(
-            "This database backend does not support specifying an order on aggregates."
-        )
     agg_expression, *_ = self.get_source_expressions()
     lhs_mql = None
     if self.filter is not None:
@@ -172,6 +197,14 @@ def string_agg(self, compiler, connection, resolve_inner_expression=False):
         lhs_mql = agg_expression.as_mql(compiler, connection, as_expr=True)
     if resolve_inner_expression:
         return lhs_mql
+    if self.order_by:
+        # Push {v: value, k0: sort_key, ...} so StringAggJoin can sort the
+        # array in the post-group stage using $sortArray.
+        sort_keys = {}
+        for i, expr in enumerate(self.order_by.get_source_expressions()):
+            key_expr = expr.expression if isinstance(expr, OrderBy) else expr
+            sort_keys[f"k{i}"] = key_expr.as_mql(compiler, connection, as_expr=True)
+        return {"$push": {"v": lhs_mql, **sort_keys}}
     return {"$push": lhs_mql}
 
 

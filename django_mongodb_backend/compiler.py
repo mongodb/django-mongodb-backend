@@ -92,7 +92,15 @@ class SQLCompiler(compiler.SQLCompiler):
         # StringAgg needs $reduce to join the accumulated array with the
         # delimiter.
         elif isinstance(sub_expr, StringAgg):
-            replacing_expr = StringAggJoin(inner_column, sub_expr.source_expressions[1])
+            sort_spec = None
+            if sub_expr.order_by:
+                sort_spec = [
+                    (f"k{i}", -1 if isinstance(expr, OrderBy) and expr.descending else 1)
+                    for i, expr in enumerate(sub_expr.order_by.get_source_expressions())
+                ]
+            replacing_expr = StringAggJoin(
+                inner_column, sub_expr.source_expressions[1], sort_spec=sort_spec
+            )
         return replacing_expr
 
     def _prepare_expressions_for_pipeline(self, expression, target, annotation_group_idx):
