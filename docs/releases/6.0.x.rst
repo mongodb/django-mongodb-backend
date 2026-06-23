@@ -39,6 +39,8 @@ New features
   :class:`~django_mongodb_backend.indexes.VectorSearchIndex`, which allows
   specifying ``"hnsw"`` (server default) or ``"flat"`` for each vector field.
 
+- Added support for the :class:`~django.db.models.StringAgg` aggregate.
+
 Bug fixes
 ---------
 

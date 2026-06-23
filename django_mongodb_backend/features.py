@@ -698,13 +698,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         (NotSupportedError, "TruncDate with tzinfo (Africa/Nairobi) isn't supported on MongoDB."): {
             "timezones.tests.NewDatabaseTests.test_query_convert_timezones",
         },
-        (NotSupportedError, "StringAgg is not supported."): {
-            "aggregation.tests.AggregateTestCase.test_distinct_on_stringagg",
-            "aggregation.tests.AggregateTestCase.test_string_agg_escapes_delimiter",
-            "aggregation.tests.AggregateTestCase.test_string_agg_filter",
-            "aggregation.tests.AggregateTestCase.test_string_agg_filter_in_subquery",
-            "aggregation.tests.AggregateTestCase.test_stringagg_default_value",
-        },
         (NotSupportedError, "ColPairs is not supported."): {
             "composite_pk.tests.CompositePKTests.test_in_bulk",
             "composite_pk.tests.CompositePKTests.test_in_bulk_batching",
