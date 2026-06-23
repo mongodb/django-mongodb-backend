@@ -86,6 +86,17 @@ interfaces introduced in that version — implementing new methods on
 ``DatabaseFeatures``, ``DatabaseOperations``, ``DatabaseCreation``, and similar
 internal classes, as well as dropping support for APIs removed in that release.
 
+Typical commits in a ``djangoXY`` branch look like:
+
+- ``Use DatabaseFeatures.supports_inspectdb`` — adopt a new feature flag Django
+  added so backends can declare support for a capability
+- ``Add DatabaseCreation.destroy_test_db_connection_close_method`` — implement
+  a new hook Django introduced in its test database lifecycle
+- ``Use DatabaseOperations.adapt_durationfield_value()`` — switch to a new
+  Django API that replaced an older one
+- ``Remove support for embedded indexes/constraints`` — drop functionality that
+  depended on a Django API removed in this release
+
 .. _django-fork:
 
 The Django fork
