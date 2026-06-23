@@ -75,7 +75,10 @@ For example, the 5.1.x branch is created shortly after the release of Django
 5.2, and main starts tracking the Django 5.2.x series.
 
 Stable branches (e.g. ``5.2.x``) receive backported bug fixes and security
-fixes from ``main``. New features are only added to ``main``.
+fixes from ``main``. New features are only added to ``main``. If a fix on
+``main`` should also apply to a stable branch, note it in the pull request
+description. Whoever merges the ``main`` PR is responsible for opening the
+backport PR against the stable branch.
 
 While a new Django feature release is in development, a ``djangoXY`` branch
 (e.g. ``django61``, ``django62``) is used to track the work-in-progress "Update
