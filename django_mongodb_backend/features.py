@@ -53,6 +53,16 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     uses_savepoints = False
 
     _django_test_expected_failures = {
+        # There is no way to distinguish between a JSON "null" (represented
+        # by Value(None, JSONField())) and a SQL null (queried using the
+        # isnull lookup). Both of these queries return both nulls.
+        "model_fields.test_jsonfield.TestSaveLoad.test_json_null_different_from_sql_null",
+        # Using JSONField keys in QuerySet.exclude() incorrectly treats
+        # documents with absent keys as satisfying the exclusion:
+        # https://jira.mongodb.org/browse/INTPYTHON-994.
+        "model_fields.test_jsonfield.TestQuerying.test_lookup_exclude",
+        "model_fields.test_jsonfield.TestQuerying.test_lookup_exclude_nonexistent_key",
+        "model_fields.test_jsonfield.TestQuerying.test_none_key_exclude",
         # $concat only supports strings, not int
         "db_functions.text.test_concat.ConcatTests.test_concat_non_str",
         # QuerySet.order_by() with annotation transform doesn't work:
@@ -293,24 +303,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "introspection.tests.IntrospectionTests.test_get_primary_key_column",
             "schema.tests.SchemaTests.test_alter_primary_key_the_same_name",
             "schema.tests.SchemaTests.test_primary_key",
-        },
-        "Known issue querying JSONField.": {
-            # An ExpressionWrapper annotation with KeyTransform followed by
-            # .filter(expr__isnull=False) doesn't use KeyTransformIsNull as it
-            # needs to.
-            "model_fields.test_jsonfield.TestQuerying.test_expression_wrapper_key_transform",
-            # There is no way to distinguish between a JSON "null" (represented
-            # by Value(None, JSONField())) and a SQL null (queried using the
-            # isnull lookup). Both of these queries return both nulls.
-            "model_fields.test_jsonfield.TestSaveLoad.test_json_null_different_from_sql_null",
-            # Some queries with Q objects, e.g. Q(value__foo="bar"), don't work
-            # properly, particularly with QuerySet.exclude().
-            "model_fields.test_jsonfield.TestQuerying.test_lookup_exclude",
-            "model_fields.test_jsonfield.TestQuerying.test_lookup_exclude_nonexistent_key",
-            # Queries like like QuerySet.filter(value__j=None) incorrectly
-            # returns objects where the key doesn't exist.
-            "model_fields.test_jsonfield.TestQuerying.test_none_key",
-            "model_fields.test_jsonfield.TestQuerying.test_none_key_exclude",
         },
         "Queries without a collection aren't supported on MongoDB.": {
             "queries.test_q.QCheckTests",
