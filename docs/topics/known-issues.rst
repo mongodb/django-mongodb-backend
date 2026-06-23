@@ -97,6 +97,4 @@ Due to the lack of ability to introspect MongoDB collection schema,
 Caching
 =======
 
-:ref:`Database caching <database-caching>` is not supported since Django's built-in
-database cache backend requires SQL. A custom cache backend for MongoDB may be provided
-in the future.
+:ref:`Database caching <database-caching>` is not supported.
