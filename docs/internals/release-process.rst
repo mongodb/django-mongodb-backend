@@ -74,10 +74,17 @@ request, a branch is created off of main to track the previous feature release.
 For example, the 5.1.x branch is created shortly after the release of Django
 5.2, and main starts tracking the Django 5.2.x series.
 
+Stable branches (e.g. ``5.2.x``) receive backported bug fixes and security
+fixes from ``main``. New features are only added to ``main``.
+
 While a new Django feature release is in development, a ``djangoXY`` branch
 (e.g. ``django61``, ``django62``) is used to track the work-in-progress "Update
 to Django X.Y" pull request. These branches are based on ``main`` and are
-deleted once the pull request is merged.
+deleted once the pull request is merged. The work in these branches consists
+primarily of adapting the backend to new or changed Django database backend
+interfaces introduced in that version — implementing new methods on
+``DatabaseFeatures``, ``DatabaseOperations``, ``DatabaseCreation``, and similar
+internal classes, as well as dropping support for APIs removed in that release.
 
 .. _django-fork:
 
