@@ -88,17 +88,19 @@ primarily of adapting the backend to new or changed Django database backend
 interfaces introduced in that version — implementing new methods on
 ``DatabaseFeatures``, ``DatabaseOperations``, ``DatabaseCreation``, and similar
 internal classes, as well as dropping support for APIs removed in that release.
+Each adaptation should have its own INTPYTHON ticket so that progress is
+visible and work can be distributed across the team.
 
 Typical commits in a ``djangoXY`` branch look like:
 
-- ``Use DatabaseFeatures.supports_inspectdb`` — adopt a new feature flag Django
-  added so backends can declare support for a capability
-- ``Add DatabaseCreation.destroy_test_db_connection_close_method`` — implement
-  a new hook Django introduced in its test database lifecycle
-- ``Use DatabaseOperations.adapt_durationfield_value()`` — switch to a new
-  Django API that replaced an older one
-- ``Remove support for embedded indexes/constraints`` — drop functionality that
-  depended on a Django API removed in this release
+- ``INTPYTHON-NNN Use DatabaseFeatures.supports_inspectdb`` — adopt a new
+  feature flag Django added so backends can declare support for a capability
+- ``INTPYTHON-NNN Add DatabaseCreation.destroy_test_db_connection_close_method``
+  — implement a new hook Django introduced in its test database lifecycle
+- ``INTPYTHON-NNN Use DatabaseOperations.adapt_durationfield_value()`` — switch
+  to a new Django API that replaced an older one
+- ``INTPYTHON-NNN Remove support for embedded indexes/constraints`` — drop
+  functionality that depended on a Django API removed in this release
 
 .. _django-fork:
 
