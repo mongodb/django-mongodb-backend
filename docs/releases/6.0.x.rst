@@ -24,6 +24,8 @@ New features
   - :class:`~django.db.models.functions.SHA256` (requires MongoDB 8.3+)
   - :class:`~django.db.models.functions.Sign`
 
+- Added support for the :class:`~django.db.models.StringAgg` aggregate.
+
 - Added support for fixed-offset ``tzinfo`` in the
   :class:`~django.db.models.functions.Extract` database functions.
 

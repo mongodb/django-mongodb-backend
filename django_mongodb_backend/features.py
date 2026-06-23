@@ -24,6 +24,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     has_json_object_function = False
     has_native_json_field = True
     rounds_to_even = True
+    supports_aggregate_order_by_clause = True
     supports_boolean_expr_in_select_clause = True
     supports_collation_on_charfield = False
     supports_column_check_constraints = False
@@ -110,6 +111,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         # connection TIME_ZONE before truncating:
         # https://jira.mongodb.org/browse/INTPYTHON-1009
         "timezones.tests.NewDatabaseTests.test_query_convert_timezones",
+        # Test relies on SQL grouping behavior:
+        # https://github.com/django/django/pull/19489#discussion_r3462766505
+        "aggregation.tests.AggregateTestCase.test_string_agg_filter_outerref",
     }
 
     @cached_property
@@ -691,13 +695,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "backends.tests.BackendTestCase.test_cursor_executemany",
             "backends.tests.BackendTestCase.test_cursor_executemany_with_empty_params_list",
             "backends.tests.BackendTestCase.test_cursor_executemany_with_iterator",
-        },
-        (NotSupportedError, "StringAgg is not supported."): {
-            "aggregation.tests.AggregateTestCase.test_distinct_on_stringagg",
-            "aggregation.tests.AggregateTestCase.test_string_agg_escapes_delimiter",
-            "aggregation.tests.AggregateTestCase.test_string_agg_filter",
-            "aggregation.tests.AggregateTestCase.test_string_agg_filter_in_subquery",
-            "aggregation.tests.AggregateTestCase.test_stringagg_default_value",
         },
         (NotSupportedError, "ColPairs is not supported."): {
             "composite_pk.tests.CompositePKTests.test_in_bulk",

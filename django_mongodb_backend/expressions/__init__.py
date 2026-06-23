@@ -1,4 +1,4 @@
-from .expressions import NullSafeArraySum, Remove
+from .expressions import NullSafeArraySum, Remove, StringAggJoin
 from .search import (
     CombinedSearchExpression,
     CompoundExpression,
@@ -39,4 +39,5 @@ __all__ = [
     "SearchText",
     "SearchVector",
     "SearchWildcard",
+    "StringAggJoin",
 ]
