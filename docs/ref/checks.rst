@@ -38,8 +38,8 @@ Indexes
   store vector data. If you want to perform search operations without vectors,
   use :class:`.SearchIndex` instead.
 * **mongodb.indexes.search.E007**:
-  :class:`.VectorSearchIndex` requires the same number of index methods and
-  vector fields; ``<model>`` has  ``<#>`` ``ArrayField``\(s) but index_methods
+  :class:`.VectorSearchIndex` requires the same number of indexing methods and
+  vector fields; ``<model>`` has  ``<#>`` ``ArrayField``\(s) but indexing_methods
   has ``<#>``  element(s).
 
 Fields
