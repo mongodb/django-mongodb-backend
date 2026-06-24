@@ -448,7 +448,9 @@ class VectorSearchIndex(SearchIndex):
                     }
                 )
                 if indexing_methods is not None:
-                    mappings["indexingMethod"] = next(indexing_methods)
+                    method = next(indexing_methods)
+                    if method != "hnsw":
+                        mappings["indexingMethod"] = method
             else:
                 mappings["type"] = "filter"
             fields.append(mappings)
