@@ -35,6 +35,10 @@ New features
 
 - Added support for :class:`~django.db.models.FilteredRelation`.
 
+- Added support for the ``indexing_methods`` keyword argument on
+  :class:`~django_mongodb_backend.indexes.VectorSearchIndex`, allowing
+  selection between ``"hnsw"`` (server default) and ``"flat"`` per vector field (requires MongoDB 8.3+).
+
 Bug fixes
 ---------
 

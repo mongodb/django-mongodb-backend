@@ -150,6 +150,33 @@ class InvalidVectorSearchIndexesTests(TestCase):
             ],
         )
 
+    def test_fields_and_indexing_methods_mismatch(self):
+        class Article(models.Model):
+            vector_a = ArrayField(models.FloatField(), size=10)
+            vector_b = ArrayField(models.FloatField(), size=10)
+
+            class Meta:
+                indexes = [
+                    VectorSearchIndex(
+                        fields=["vector_a", "vector_b"],
+                        similarities="cosine",
+                        indexing_methods=["flat"],
+                    )
+                ]
+
+        self.assertEqual(
+            Article.check(databases={"default"}),
+            [
+                checks.Error(
+                    "VectorSearchIndex requires the same number of indexing methods "
+                    "and vector fields; Article has 2 ArrayField(s) but indexing_methods "
+                    "has 1 element(s).",
+                    id="mongodb.indexes.search.E007",
+                    obj=Article,
+                ),
+            ],
+        )
+
     def test_simple(self):
         class Article(models.Model):
             vector = ArrayField(models.FloatField(), size=10)

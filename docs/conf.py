@@ -59,6 +59,7 @@ intersphinx_mapping = {
 linkcheck_ignore = [
     "https://www.mongodb.com/docs/manual/core/queryable-encryption/install-library/#std-label-qe-csfle-shared-library-download",
     "https://www.mongodb.com/docs/vector-search/index/vector-search-type/#std-label-avs-similarity-functions",
+    "https://www.mongodb.com/docs/vector-search/index/vector-search-type/#about-the-indexing-methods",
 ]
 
 # -- Options for HTML output -------------------------------------------------

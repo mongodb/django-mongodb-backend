@@ -86,7 +86,7 @@ minutes, depending on the size of the collection.
 ``VectorSearchIndex``
 ---------------------
 
-.. class:: VectorSearchIndex(*, fields=(), name=None, similarities)
+.. class:: VectorSearchIndex(*, fields=(), name=None, similarities, indexing_methods=None)
 
     A subclass of :class:`SearchIndex` that creates a :doc:`vector search index
     <vector-search:index/vector-search-type>` on the given field(s).
@@ -103,6 +103,18 @@ minutes, depending on the size of the collection.
     Available values for the required ``similarities`` keyword argument are
     ``"cosine"``, ``"dotProduct"``, and ``"euclidean"`` (see
     :ref:`vector-search:avs-similarity-functions` for how to choose). You can
-    provide this value either a string, in which case that value will be
+    provide this value either as a string, in which case that value will be
     applied to all vector fields, or a list or tuple of values with a
     similarity corresponding to each vector field.
+
+    The optional ``indexing_methods`` keyword argument selects the
+    :ref:`indexing method <vector-search:avs-vector-index-method>` for each
+    vector field. Available values are ``"hnsw"`` (the server's default if unspecified)
+    and ``"flat"``. You can provide this value
+    either as a string, in which case that value will be applied to all
+    vector fields, or as a list or tuple of values with an indexing method
+    corresponding to each vector field.
+
+    .. versionchanged:: 6.0.4
+
+        The ``indexing_methods`` argument was added.
