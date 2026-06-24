@@ -37,7 +37,7 @@ New features
 
 - Added support for the ``indexing_methods`` keyword argument on
   :class:`~django_mongodb_backend.indexes.VectorSearchIndex`, allowing
-  selection between ``"hnsw"`` (server default) and ``"flat"`` per vector field (requires MongoDB 8.3+).
+  selection between ``"hnsw"`` (server default) and ``"flat"`` per vector field (requires MongoDB 8.0+).
 
 Bug fixes
 ---------

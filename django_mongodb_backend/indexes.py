@@ -388,6 +388,16 @@ class VectorSearchIndex(SearchIndex):
                     id="mongodb.indexes.search.E005",
                 )
             )
+        if num_arrayfields == 0:
+            errors.append(
+                Error(
+                    "VectorSearchIndex requires at least one ArrayField to store vector data.",
+                    obj=model,
+                    id="mongodb.indexes.search.E006",
+                    hint="If you want to perform search operations without vectors, "
+                    "use SearchIndex instead.",
+                )
+            )
         if self._multiple_indexing_methods and num_arrayfields != len(self.indexing_methods):
             errors.append(
                 Error(
@@ -397,16 +407,6 @@ class VectorSearchIndex(SearchIndex):
                     f"has {len(self.indexing_methods)} element(s).",
                     obj=model,
                     id="mongodb.indexes.search.E007",
-                )
-            )
-        if num_arrayfields == 0:
-            errors.append(
-                Error(
-                    "VectorSearchIndex requires at least one ArrayField to store vector data.",
-                    obj=model,
-                    id="mongodb.indexes.search.E006",
-                    hint="If you want to perform search operations without vectors, "
-                    "use SearchIndex instead.",
                 )
             )
         return errors
@@ -426,11 +426,14 @@ class VectorSearchIndex(SearchIndex):
             if not self._multiple_similarities
             else iter(self.similarities)
         )
-        indexing_methods = (
-            itertools.cycle([self.indexing_methods])
-            if not self._multiple_indexing_methods
-            else iter(self.indexing_methods)
-        )
+        if self.indexing_methods is None:
+            indexing_methods = None
+        else:
+            indexing_methods = (
+                iter(self.indexing_methods)
+                if self._multiple_indexing_methods
+                else itertools.cycle([self.indexing_methods])
+            )
         fields = []
         for field_name, _ in self.fields_orders:
             field_ = model._meta.get_field(field_name)
@@ -444,9 +447,8 @@ class VectorSearchIndex(SearchIndex):
                         "similarity": next(similarities),
                     }
                 )
-                method = next(indexing_methods)
-                if method is not None:
-                    mappings["indexingMethod"] = method
+                if indexing_methods is not None:
+                    mappings["indexingMethod"] = next(indexing_methods)
             else:
                 mappings["type"] = "filter"
             fields.append(mappings)

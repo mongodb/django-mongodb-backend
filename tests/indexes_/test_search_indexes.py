@@ -452,7 +452,6 @@ class VectorSearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
                 editor.remove_index(index=index, model=SearchIndexTestModel)
 
     def test_indexing_methods_list(self):
-        self.maxDiff = None
         index = VectorSearchIndex(
             name="recent_test_idx",
             fields=["vector_float", "vector_integer"],

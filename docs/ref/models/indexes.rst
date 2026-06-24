@@ -113,7 +113,7 @@ minutes, depending on the size of the collection.
     and ``"flat"``. You can provide this value
     either as a string, in which case that value will be applied to all
     vector fields, or as a list or tuple of values with an indexing method
-    corresponding to each vector field.
+    corresponding to each vector field (requires MongoDB 8.0+).
 
     .. versionchanged:: 6.0.4
 
