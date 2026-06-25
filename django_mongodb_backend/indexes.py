@@ -323,10 +323,9 @@ class VectorSearchIndex(SearchIndex):
         self.indexing_methods = indexing_methods
         self._multiple_indexing_methods = isinstance(indexing_methods, (tuple, list))
         if indexing_methods is not None:
-            for method in (
-                indexing_methods if self._multiple_indexing_methods else (indexing_methods,)
-            ):
-                if method not in self.VALID_INDEXING_METHODS:
+            indexing_methods = indexing_methods if self._multiple_indexing_methods else (indexing_methods,)
+            for method in indexing_methods:
+                if not isinstance(method, str) or method not in self.VALID_INDEXING_METHODS:
                     raise ValueError(
                         f"'{method}' isn't a valid indexing method "
                         f"({', '.join(sorted(self.VALID_INDEXING_METHODS))})."
