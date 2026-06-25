@@ -75,6 +75,9 @@ Bug fixes
   :class:`~django_mongodb_backend.fields.EmbeddedModelField` to a model with a
   :class:`~django_mongodb_backend.fields.EmbeddedModelArrayField`.
 
+- Prevented aggregation queries from generating redundant accumulators in the
+  ``$group`` stage.
+
 Backwards incompatible changes
 ------------------------------
 

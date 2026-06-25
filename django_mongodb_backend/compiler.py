@@ -93,7 +93,13 @@ class SQLCompiler(compiler.SQLCompiler):
             replacing_expr = Power(replacing_expr, 2)
         return replacing_expr
 
-    def _prepare_expressions_for_pipeline(self, expression, target, annotation_group_idx):
+    def _prepare_expressions_for_pipeline(
+        self,
+        expression,
+        target,
+        annotation_group_idx,
+        existing_replacements=(),
+    ):
         """
         Prepare expressions for the aggregation pipeline.
 
@@ -109,10 +115,17 @@ class SQLCompiler(compiler.SQLCompiler):
         the aggregation first, then apply additional operations in a subsequent
         stage by replacing the aggregate expressions with new columns prefixed
         by `__aggregation`.
+
+        If existing_replacements is provided, sub-expressions already present
+        in it are skipped so they are not re-added to the group stage, avoiding
+        duplicate accumulators when the same aggregate object appears in both
+        an annotation and a having/ordering clause.
         """
         replacements = {}
         group = {}
         for sub_expr in self._get_aggregate_expressions(expression):
+            if sub_expr in existing_replacements:
+                continue
             alias = (
                 f"__aggregation{next(annotation_group_idx)}" if sub_expr != expression else target
             )
@@ -169,19 +182,25 @@ class SQLCompiler(compiler.SQLCompiler):
         for target, expr in self.query.annotation_select.items():
             if expr.contains_aggregate:
                 new_replacements, expr_group = self._prepare_expressions_for_pipeline(
-                    expr, target, annotation_group_idx
+                    expr, target, annotation_group_idx, existing_replacements=replacements
                 )
                 replacements.update(new_replacements)
                 group.update(expr_group)
         for expr, _ in order_by:
             if expr.contains_aggregate:
                 new_replacements, expr_group = self._prepare_expressions_for_pipeline(
-                    expr, None, annotation_group_idx
+                    expr,
+                    None,
+                    annotation_group_idx,
+                    existing_replacements=replacements,
                 )
                 replacements.update(new_replacements)
                 group.update(expr_group)
         having_replacements, having_group = self._prepare_expressions_for_pipeline(
-            self.having, None, annotation_group_idx
+            self.having,
+            None,
+            annotation_group_idx,
+            existing_replacements=replacements,
         )
         replacements.update(having_replacements)
         group.update(having_group)

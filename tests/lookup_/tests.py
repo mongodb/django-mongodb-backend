@@ -108,17 +108,11 @@ class LookupMQLTests(MongoTestCaseMixin, TestCase):
             ctx.captured_queries[0]["sql"],
             "lookup__number",
             [
-                {
-                    "$group": {
-                        "__aggregation1": {"$sum": "$num"},
-                        "_id": {"num": "$num"},
-                        "total": {"$sum": "$num"},
-                    }
-                },
+                {"$group": {"_id": {"num": "$num"}, "total": {"$sum": "$num"}}},
                 {"$addFields": {"num": "$_id.num"}},
                 {"$unset": "_id"},
-                {"$match": {"__aggregation1": 1}},
-                {"$project": {"num": 1, "total": "$__aggregation1"}},
+                {"$match": {"total": 1}},
+                {"$project": {"num": 1, "total": 1}},
                 {"$sort": SON([("num", 1)])},
             ],
         )
