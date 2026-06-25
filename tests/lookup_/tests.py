@@ -130,26 +130,6 @@ class LookupMQLTests(MongoTestCaseMixin, TestCase):
                                 }
                             }
                         },
-                        "__aggregation1": {
-                            "$push": {
-                                "$switch": {
-                                    "branches": [
-                                        {
-                                            "case": {
-                                                "$not": {
-                                                    "$or": [
-                                                        {"$eq": [{"$type": "$num"}, "missing"]},
-                                                        {"$eq": ["$num", None]},
-                                                    ]
-                                                }
-                                            },
-                                            "then": "$num",
-                                        }
-                                    ],
-                                    "default": "$$REMOVE",
-                                }
-                            }
-                        },
                         "_id": {"num": "$num"},
                     }
                 },
@@ -163,12 +143,12 @@ class LookupMQLTests(MongoTestCaseMixin, TestCase):
                                     "$cond": [
                                         {
                                             "$eq": [
-                                                {"$size": {"$ifNull": ["$__aggregation1", []]}},
+                                                {"$size": {"$ifNull": ["$total", []]}},
                                                 0,
                                             ]
                                         },
                                         None,
-                                        {"$sum": {"$ifNull": ["$__aggregation1", []]}},
+                                        {"$sum": {"$ifNull": ["$total", []]}},
                                     ]
                                 },
                                 1,
@@ -180,9 +160,9 @@ class LookupMQLTests(MongoTestCaseMixin, TestCase):
                     "$project": {
                         "total": {
                             "$cond": [
-                                {"$eq": [{"$size": {"$ifNull": ["$__aggregation1", []]}}, 0]},
+                                {"$eq": [{"$size": {"$ifNull": ["$total", []]}}, 0]},
                                 None,
-                                {"$sum": {"$ifNull": ["$__aggregation1", []]}},
+                                {"$sum": {"$ifNull": ["$total", []]}},
                             ]
                         },
                         "num": 1,
