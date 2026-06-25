@@ -31,12 +31,16 @@ Indexes
   string, uuid.
 * **mongodb.indexes.search.E005**:
   :class:`.VectorSearchIndex` requires the same number of similarities and
-  vector fields; ``<model>`` has  ``<#>`` ``ArrayField``\(s) but similarities
+  vector fields; ``<model>`` has  ``<#>`` ``ArrayField``\(s) but ``similarities``
   has ``<#>``  element(s).
 * **mongodb.indexes.search.E006**:
   :class:`.VectorSearchIndex` requires at least one :class:`.ArrayField` to
   store vector data. If you want to perform search operations without vectors,
   use :class:`.SearchIndex` instead.
+* **mongodb.indexes.search.E007**:
+  :class:`.VectorSearchIndex` requires the same number of indexing methods and
+  vector fields; ``<model>`` has ``<#>`` ``ArrayField``\(s) but ``indexing_methods``
+  has ``<#>`` element(s).
 
 Fields
 ======

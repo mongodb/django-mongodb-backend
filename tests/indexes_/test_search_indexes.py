@@ -128,15 +128,27 @@ class VectorSearchIndexTests(SimpleTestCase):
             VectorSearchIndex(name="recent_test_idx", fields=["number"])
 
     def test_deconstruct(self):
-        index = VectorSearchIndex(name="recent_test_idx", fields=["number"], similarities="cosine")
+        index = VectorSearchIndex(
+            name="recent_test_idx",
+            fields=["number"],
+            similarities="cosine",
+            indexing_methods="flat",
+        )
         name, args, kwargs = index.deconstruct()
         self.assertEqual(name, "django_mongodb_backend.indexes.VectorSearchIndex")
         self.assertEqual(args, ())
         self.assertEqual(
-            kwargs, {"name": "recent_test_idx", "fields": ["number"], "similarities": "cosine"}
+            kwargs,
+            {
+                "name": "recent_test_idx",
+                "fields": ["number"],
+                "similarities": "cosine",
+                "indexing_methods": "flat",
+            },
         )
         new = VectorSearchIndex(*args, **kwargs)
         self.assertEqual(new.similarities, index.similarities)
+        self.assertEqual(new.indexing_methods, index.indexing_methods)
 
     def test_invalid_similarity(self):
         msg = "'sum' isn't a valid similarity function (cosine, dotProduct, euclidean)."
@@ -154,6 +166,24 @@ class VectorSearchIndexTests(SimpleTestCase):
             VectorSearchIndex(
                 fields=["vector_data", "vector_data"],
                 similarities="dotProduct",
+            )
+
+    def test_invalid_indexing_method(self):
+        msg = "'abc' isn't a valid indexing method (flat, hnsw)."
+        with self.assertRaisesMessage(ValueError, msg):
+            VectorSearchIndex(
+                fields=["vector_data"],
+                similarities="cosine",
+                indexing_methods="abc",
+            )
+
+    def test_invalid_indexing_method_in_list(self):
+        msg = "'abc' isn't a valid indexing method (flat, hnsw)."
+        with self.assertRaisesMessage(ValueError, msg):
+            VectorSearchIndex(
+                fields=["vector_data"],
+                similarities="cosine",
+                indexing_methods=["flat", "abc"],
             )
 
 
@@ -404,6 +434,51 @@ class VectorSearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
                             "numDimensions": 10,
                             "path": "vector_integer",
                             "similarity": "euclidean",
+                            "type": "vector",
+                        },
+                    ]
+                },
+                "latestVersion": 0,
+                "name": "recent_test_idx",
+                "queryable": True,
+                "type": "vectorSearch",
+            }
+            self.assertCountEqual(index_info[index.name]["columns"], index.fields)
+            index_info[index.name]["options"].pop("id")
+            index_info[index.name]["options"].pop("status")
+            self.assertEqual(index_info[index.name]["options"], expected_options)
+        finally:
+            with connection.schema_editor() as editor:
+                editor.remove_index(index=index, model=SearchIndexTestModel)
+
+    def test_indexing_methods_list(self):
+        index = VectorSearchIndex(
+            name="recent_test_idx",
+            fields=["vector_float", "vector_integer"],
+            similarities="cosine",
+            indexing_methods=["flat", "hnsw"],
+        )
+        with connection.schema_editor() as editor:
+            editor.add_index(index=index, model=SearchIndexTestModel)
+        try:
+            index_info = connection.introspection.get_constraints(
+                cursor=None,
+                table_name=SearchIndexTestModel._meta.db_table,
+            )
+            expected_options = {
+                "latestDefinition": {
+                    "fields": [
+                        {
+                            "indexingMethod": "flat",
+                            "numDimensions": 10,
+                            "path": "vector_float",
+                            "similarity": "cosine",
+                            "type": "vector",
+                        },
+                        {
+                            "numDimensions": 10,
+                            "path": "vector_integer",
+                            "similarity": "cosine",
                             "type": "vector",
                         },
                     ]

@@ -308,8 +308,9 @@ class VectorSearchIndex(SearchIndex):
     suffix = "vsi"
     VALID_FIELD_TYPES = frozenset(("boolean", "date", "number", "objectId", "string", "uuid"))
     VALID_SIMILARITIES = frozenset(("cosine", "dotProduct", "euclidean"))
+    VALID_INDEXING_METHODS = frozenset(("hnsw", "flat"))
 
-    def __init__(self, *, fields=(), name=None, similarities):
+    def __init__(self, *, fields=(), name=None, similarities, indexing_methods=None):
         super().__init__(fields=fields, name=name)
         self.similarities = similarities
         self._multiple_similarities = isinstance(similarities, (tuple, list))
@@ -319,6 +320,18 @@ class VectorSearchIndex(SearchIndex):
                     f"'{func}' isn't a valid similarity function "
                     f"({', '.join(sorted(self.VALID_SIMILARITIES))})."
                 )
+        self.indexing_methods = indexing_methods
+        self._multiple_indexing_methods = isinstance(indexing_methods, (tuple, list))
+        if indexing_methods is not None:
+            indexing_methods = (
+                indexing_methods if self._multiple_indexing_methods else (indexing_methods,)
+            )
+            for method in indexing_methods:
+                if not isinstance(method, str) or method not in self.VALID_INDEXING_METHODS:
+                    raise ValueError(
+                        f"'{method}' isn't a valid indexing method "
+                        f"({', '.join(sorted(self.VALID_INDEXING_METHODS))})."
+                    )
         seen_fields = set()
         for field_name, _ in self.fields_orders:
             if field_name in seen_fields:
@@ -386,11 +399,24 @@ class VectorSearchIndex(SearchIndex):
                     "use SearchIndex instead.",
                 )
             )
+        if self._multiple_indexing_methods and num_arrayfields != len(self.indexing_methods):
+            errors.append(
+                Error(
+                    f"VectorSearchIndex requires the same number of indexing methods "
+                    f"and vector fields; {model._meta.object_name} has "
+                    f"{num_arrayfields} ArrayField(s) but indexing_methods "
+                    f"has {len(self.indexing_methods)} element(s).",
+                    obj=model,
+                    id="mongodb.indexes.search.E007",
+                )
+            )
         return errors
 
     def deconstruct(self):
         path, args, kwargs = super().deconstruct()
         kwargs["similarities"] = self.similarities
+        if self.indexing_methods is not None:
+            kwargs["indexing_methods"] = self.indexing_methods
         return path, args, kwargs
 
     def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefix=""):
@@ -401,6 +427,14 @@ class VectorSearchIndex(SearchIndex):
             if not self._multiple_similarities
             else iter(self.similarities)
         )
+        if self.indexing_methods is None:
+            indexing_methods = None
+        else:
+            indexing_methods = (
+                iter(self.indexing_methods)
+                if self._multiple_indexing_methods
+                else itertools.cycle([self.indexing_methods])
+            )
         fields = []
         for field_name, _ in self.fields_orders:
             field_ = model._meta.get_field(field_name)
@@ -414,6 +448,10 @@ class VectorSearchIndex(SearchIndex):
                         "similarity": next(similarities),
                     }
                 )
+                if indexing_methods is not None:
+                    method = next(indexing_methods)
+                    if method != "hnsw":
+                        mappings["indexingMethod"] = method
             else:
                 mappings["type"] = "filter"
             fields.append(mappings)
