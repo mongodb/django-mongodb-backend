@@ -15,17 +15,11 @@ class AggregationMQLTests(MongoTestCaseMixin, TestCase):
             ctx.captured_queries[0]["sql"],
             "aggregation__author",
             [
-                {
-                    "$group": {
-                        "__aggregation1": {"$avg": "$age"},
-                        "_id": {"name": "$name"},
-                        "avg_age": {"$avg": "$age"},
-                    }
-                },
+                {"$group": {"_id": {"name": "$name"}, "avg_age": {"$avg": "$age"}}},
                 {"$addFields": {"name": "$_id.name"}},
                 {"$unset": "_id"},
-                {"$match": {"__aggregation1": {"$gt": 10.0}}},
-                {"$project": {"avg_age": "$__aggregation1", "name": 1}},
+                {"$match": {"avg_age": {"$gt": 10.0}}},
+                {"$project": {"avg_age": 1, "name": 1}},
             ],
         )
 
@@ -36,16 +30,10 @@ class AggregationMQLTests(MongoTestCaseMixin, TestCase):
             ctx.captured_queries[0]["sql"],
             "aggregation__author",
             [
-                {
-                    "$group": {
-                        "__aggregation1": {"$avg": "$age"},
-                        "_id": {"name": "$name"},
-                        "avg_age": {"$avg": "$age"},
-                    }
-                },
+                {"$group": {"_id": {"name": "$name"}, "avg_age": {"$avg": "$age"}}},
                 {"$addFields": {"name": "$_id.name"}},
                 {"$unset": "_id"},
-                {"$project": {"avg_age": "$__aggregation1", "name": 1}},
+                {"$project": {"avg_age": 1, "name": 1}},
                 {"$sort": SON([("avg_age", 1)])},
             ],
         )
@@ -62,18 +50,11 @@ class AggregationMQLTests(MongoTestCaseMixin, TestCase):
             ctx.captured_queries[0]["sql"],
             "aggregation__author",
             [
-                {
-                    "$group": {
-                        "__aggregation1": {"$avg": "$age"},
-                        "__aggregation2": {"$avg": "$age"},
-                        "_id": {"name": "$name"},
-                        "avg_age": {"$avg": "$age"},
-                    }
-                },
+                {"$group": {"_id": {"name": "$name"}, "avg_age": {"$avg": "$age"}}},
                 {"$addFields": {"name": "$_id.name"}},
                 {"$unset": "_id"},
-                {"$match": {"__aggregation2": {"$gt": 10.0}}},
-                {"$project": {"avg_age": "$__aggregation2", "name": 1}},
+                {"$match": {"avg_age": {"$gt": 10.0}}},
+                {"$project": {"avg_age": 1, "name": 1}},
                 {"$sort": SON([("avg_age", 1)])},
             ],
         )
@@ -89,7 +70,6 @@ class AggregationMQLTests(MongoTestCaseMixin, TestCase):
                 {
                     "$group": {
                         "__aggregation1": {"$avg": "$age"},
-                        "__aggregation2": {"$avg": "$age"},
                         "_id": {"name": "$name"},
                     }
                 },
@@ -97,8 +77,8 @@ class AggregationMQLTests(MongoTestCaseMixin, TestCase):
                 {"$unset": "_id"},
                 {
                     "$project": {
-                        "avg_plus_1": {"$add": ["$__aggregation2", {"$literal": 1}]},
-                        "avg_plus_2": {"$add": ["$__aggregation2", {"$literal": 2}]},
+                        "avg_plus_1": {"$add": ["$__aggregation1", {"$literal": 1}]},
+                        "avg_plus_2": {"$add": ["$__aggregation1", {"$literal": 2}]},
                         "name": 1,
                     }
                 },
