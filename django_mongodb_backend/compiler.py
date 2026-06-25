@@ -79,8 +79,8 @@ class SQLCompiler(compiler.SQLCompiler):
             )
             group[alias] = {"$addToSet": rhs}
             if isinstance(sub_expr, Sum):
-                # The group stage collects distinct non-null values via
-                # $addToSet; the project stage computes the null-safe sum.
+                # NullSafeArraySum returns None instead of 0 when no values
+                # are accumulated.
                 replacing_expr = NullSafeArraySum(inner_column)
             else:
                 replacing_expr = sub_expr.copy()
@@ -88,9 +88,6 @@ class SQLCompiler(compiler.SQLCompiler):
         else:
             group[alias] = sub_expr.as_mql(self, self.connection, as_expr=True)
             if isinstance(sub_expr, Sum):
-                # sum_aggregate() always uses $push so NullSafeArraySum can
-                # return None (not 0) when no non-null values are accumulated,
-                # matching SQL SUM() null semantics.
                 replacing_expr = NullSafeArraySum(inner_column)
             else:
                 replacing_expr = inner_column

@@ -4,8 +4,8 @@ from django.db.models.expressions import Func
 class NullSafeArraySum(Func):
     """
     Compute the sum of an array column, returning None if the array is empty.
-    Used as the project-stage replacement for Sum with filter to match SQL
-    SUM() semantics (NULL for no rows, rather than MongoDB's $sum returning 0).
+    Used as the project-stage replacement for Sum to match SQL SUM() semantics
+    (NULL for no rows, rather than MongoDB's $sum returning 0).
     """
 
     def as_mql(self, compiler, connection, as_expr=False):

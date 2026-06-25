@@ -92,15 +92,16 @@ def string_agg(self, compiler, connection, resolve_inner_expression=False):  # n
     raise NotSupportedError("StringAgg is not supported.")
 
 
-def sum_aggregate(self, compiler, connection, resolve_inner_expression=False):
+def sum_(self, compiler, connection, resolve_inner_expression=False):
     """
-    Use $push (not $sum) in the group stage so that _get_replace_expr can use
+    Use $push (not $sum) in the group stage so that _get_replace_expr() can use
     NullSafeArraySum in the project stage, returning None instead of 0 when no
-    rows contribute — matching SQL SUM() null semantics.
+    rows contribute, matching SQL SUM() null semantics.
 
-    A null check is always added so that null values from outer joins are
-    excluded (pushed as $$REMOVE), allowing NullSafeArraySum to distinguish
-    "no non-null values" (None) from "values summing to 0" (0).
+    A null check is added so that null values produce $$REMOVE, causing $push
+    to skip them. This keeps the array empty when all values are null, letting
+    NullSafeArraySum distinguish "no non-null values" (None) from "values
+    summing to 0" (0).
     """
     agg_expression, *_ = self.get_source_expressions()
     lhs_mql = None
@@ -127,5 +128,5 @@ def register_aggregates():
     Count.as_mql_expr = count
     StdDev.as_mql_expr = stddev_variance
     StringAgg.as_mql_expr = string_agg
-    Sum.as_mql_expr = sum_aggregate
+    Sum.as_mql_expr = sum_
     Variance.as_mql_expr = stddev_variance
