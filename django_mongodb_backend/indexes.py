@@ -307,8 +307,8 @@ class SearchIndex(Index):
 class VectorSearchIndex(SearchIndex):
     suffix = "vsi"
     VALID_FIELD_TYPES = frozenset(("boolean", "date", "number", "objectId", "string", "uuid"))
-    VALID_SIMILARITIES = frozenset(("cosine", "dotProduct", "euclidean"))
     VALID_INDEXING_METHODS = frozenset(("hnsw", "flat"))
+    VALID_SIMILARITIES = frozenset(("cosine", "dotProduct", "euclidean"))
 
     def __init__(self, *, fields=(), name=None, similarities, indexing_methods=None):
         super().__init__(fields=fields, name=name)

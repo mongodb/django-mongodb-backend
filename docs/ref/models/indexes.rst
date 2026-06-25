@@ -109,11 +109,11 @@ minutes, depending on the size of the collection.
 
     The optional ``indexing_methods`` keyword argument selects the
     :ref:`indexing method <vector-search:avs-vector-index-method>` for each
-    vector field. Available values are ``"hnsw"`` (the server's default if unspecified)
-    and ``"flat"``. You can provide this value
-    either as a string, in which case that value will be applied to all
-    vector fields, or as a list or tuple of values with an indexing method
-    corresponding to each vector field (requires MongoDB 8.0+).
+    vector field. Available values are ``"hnsw"`` (the server's default if
+    unspecified) and ``"flat"``. You can provide this value either as a string,
+    in which case that value will be applied to all vector fields, or as a list
+    or tuple of values with an indexing method corresponding to each vector
+    field.
 
     .. versionchanged:: 6.0.4
 

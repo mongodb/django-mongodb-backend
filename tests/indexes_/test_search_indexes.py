@@ -451,6 +451,52 @@ class VectorSearchIndexSchemaTests(SchemaAssertionMixin, TestCase):
             with connection.schema_editor() as editor:
                 editor.remove_index(index=index, model=SearchIndexTestModel)
 
+    def test_indexing_methods_flat(self):
+        index = VectorSearchIndex(
+            name="recent_test_idx",
+            fields=["vector_float", "vector_integer"],
+            similarities="cosine",
+            indexing_methods="flat",
+        )
+        with connection.schema_editor() as editor:
+            editor.add_index(index=index, model=SearchIndexTestModel)
+        try:
+            index_info = connection.introspection.get_constraints(
+                cursor=None,
+                table_name=SearchIndexTestModel._meta.db_table,
+            )
+            expected_options = {
+                "latestDefinition": {
+                    "fields": [
+                        {
+                            "indexingMethod": "flat",
+                            "numDimensions": 10,
+                            "path": "vector_float",
+                            "similarity": "cosine",
+                            "type": "vector",
+                        },
+                        {
+                            "indexingMethod": "flat",
+                            "numDimensions": 10,
+                            "path": "vector_integer",
+                            "similarity": "cosine",
+                            "type": "vector",
+                        },
+                    ]
+                },
+                "latestVersion": 0,
+                "name": "recent_test_idx",
+                "queryable": True,
+                "type": "vectorSearch",
+            }
+            self.assertCountEqual(index_info[index.name]["columns"], index.fields)
+            index_info[index.name]["options"].pop("id")
+            index_info[index.name]["options"].pop("status")
+            self.assertEqual(index_info[index.name]["options"], expected_options)
+        finally:
+            with connection.schema_editor() as editor:
+                editor.remove_index(index=index, model=SearchIndexTestModel)
+
     def test_indexing_methods_list(self):
         index = VectorSearchIndex(
             name="recent_test_idx",
