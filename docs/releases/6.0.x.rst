@@ -59,6 +59,9 @@ Bug fixes
   :lookup:`iendswith`, :lookup:`contains`, :lookup:`icontains`,
   :lookup:`regex`, and :lookup:`iregex`) on non-string fields.
 
+- Prevented aggregation queries from generating redundant accumulators in the
+  ``$group`` stage.
+
 Backwards incompatible changes
 ------------------------------
 
