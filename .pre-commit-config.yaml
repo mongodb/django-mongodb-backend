@@ -63,8 +63,7 @@ repos:
     - id: doc8
       # D000 Invalid class attribute value for "class" directive when using
       #      * (keyword-only parameters separator).
-      # D001 line length
-      args: ["--ignore=D000,D001"]
+      args: ["--ignore=D000"]
       stages: [manual]
 
 - repo: https://github.com/sirosen/check-jsonschema

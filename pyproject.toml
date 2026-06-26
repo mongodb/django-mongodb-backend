@@ -126,5 +126,12 @@ partial_branches = ["if (.*and +)*not _use_c( and.*)*:"]
 [tool.coverage.html]
 directory = "htmlcov"
 
+[tool.doc8]
+max-line-length = 79
+# TODO: Once https://github.com/PyCQA/doc8/issues/162 is fixed, replace with:
+# ignore-path-errors = ["docs/faq.rst;D001"]
+# The FAQ has long questions as section headings which can't be wrapped.
+ignore-path = ["docs/faq.rst"]
+
 [tool.rstcheck]
 report_level = "WARNING"
