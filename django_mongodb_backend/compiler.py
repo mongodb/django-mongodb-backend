@@ -5,7 +5,7 @@ from bson import SON, ObjectId, json_util
 from django.core.exceptions import EmptyResultSet, FieldError, FullResultSet
 from django.db import IntegrityError, NotSupportedError
 from django.db.models import Count
-from django.db.models.aggregates import Aggregate, Variance
+from django.db.models.aggregates import Aggregate, StringAgg, Variance
 from django.db.models.expressions import Case, Col, OrderBy, Ref, Value, When
 from django.db.models.functions.comparison import Coalesce
 from django.db.models.functions.math import Power
@@ -17,6 +17,7 @@ from django.db.models.sql.where import AND, OR, XOR, ExtraWhere, NothingNode, Wh
 from django.utils.functional import cached_property
 from pymongo import ASCENDING, DESCENDING
 
+from .aggregates import StringAggJoin
 from .expressions.search import SearchExpression, SearchVector
 from .query import MongoQuery, wrap_database_errors
 from .query_utils import is_constant_value, is_direct_value
@@ -88,6 +89,28 @@ class SQLCompiler(compiler.SQLCompiler):
         # Variance = StdDev^2
         if isinstance(sub_expr, Variance):
             replacing_expr = Power(replacing_expr, 2)
+        # StringAgg needs $reduce to join the accumulated array with the
+        # delimiter.
+        elif isinstance(sub_expr, StringAgg):
+            sort_spec = None
+            scalar_sort = None
+            if sub_expr.order_by:
+                if getattr(sub_expr, "distinct", False):
+                    # The group stage used $addToSet, so the array holds plain
+                    # scalar values. Sort them using a scalar direction.
+                    first = sub_expr.order_by.get_source_expressions()[0]
+                    scalar_sort = -1 if isinstance(first, OrderBy) and first.descending else 1
+                else:
+                    sort_spec = [
+                        (f"k{i}", -1 if isinstance(expr, OrderBy) and expr.descending else 1)
+                        for i, expr in enumerate(sub_expr.order_by.get_source_expressions())
+                    ]
+            replacing_expr = StringAggJoin(
+                inner_column,
+                sub_expr.source_expressions[1],
+                sort_spec=sort_spec,
+                scalar_sort=scalar_sort,
+            )
         return replacing_expr
 
     def _prepare_expressions_for_pipeline(self, expression, target, annotation_group_idx):

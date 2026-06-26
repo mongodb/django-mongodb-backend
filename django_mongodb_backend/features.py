@@ -24,6 +24,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     has_json_object_function = False
     has_native_json_field = True
     rounds_to_even = True
+    supports_aggregate_order_by_clause = True
     supports_boolean_expr_in_select_clause = True
     supports_collation_on_charfield = False
     supports_column_check_constraints = False
@@ -111,6 +112,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_mixed_scenario",
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_respects_mixed_manual_order",
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_with_existing_children",
+        # Test relies on SQL grouping behavior:
+        # https://github.com/django/django/pull/19489#discussion_r3462766505
+        "aggregation.tests.AggregateTestCase.test_string_agg_filter_outerref",
     }
 
     @cached_property
@@ -697,13 +701,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         },
         (NotSupportedError, "TruncDate with tzinfo (Africa/Nairobi) isn't supported on MongoDB."): {
             "timezones.tests.NewDatabaseTests.test_query_convert_timezones",
-        },
-        (NotSupportedError, "StringAgg is not supported."): {
-            "aggregation.tests.AggregateTestCase.test_distinct_on_stringagg",
-            "aggregation.tests.AggregateTestCase.test_string_agg_escapes_delimiter",
-            "aggregation.tests.AggregateTestCase.test_string_agg_filter",
-            "aggregation.tests.AggregateTestCase.test_string_agg_filter_in_subquery",
-            "aggregation.tests.AggregateTestCase.test_stringagg_default_value",
         },
         (NotSupportedError, "ColPairs is not supported."): {
             "composite_pk.tests.CompositePKTests.test_in_bulk",

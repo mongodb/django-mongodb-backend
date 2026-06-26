@@ -6,7 +6,8 @@ from django.db.models.aggregates import (
     StringAgg,
     Variance,
 )
-from django.db.models.expressions import Case, Value, When
+from django.db.models.expressions import Case, Expression, OrderBy, Value, When
+from django.db.models.fields import TextField
 from django.db.models.functions.comparison import Coalesce
 from django.db.models.lookups import IsNull
 from django.db.models.sql.where import WhereNode
@@ -87,8 +88,125 @@ def stddev_variance(self, compiler, connection):
     return aggregate(self, compiler, connection, operator=operator)
 
 
-def string_agg(self, compiler, connection, resolve_inner_expression=False):  # noqa: ARG001
-    raise NotSupportedError("StringAgg is not supported.")
+class StringAggJoin(Expression):
+    """
+    Post-group expression that joins a $push'd or $addToSet'd array with a
+    delimiter using $reduce/$concat. Return null for empty arrays, consistent
+    with SQL STRING_AGG behavior.
+
+    When sort_spec is provided (list of (field_name, direction) tuples), the
+    pushed array contains {v: value, k0: key, ...} objects. This class then
+    sorts by the key fields and extracts the values before joining.
+
+    When scalar_sort is provided (1 or -1), the array contains plain scalar
+    values (from $addToSet for DISTINCT) and is sorted directly.
+    """
+
+    def __init__(self, array_expr, delimiter_wrapper, sort_spec=None, scalar_sort=None):
+        super().__init__(output_field=TextField())
+        self.array_expr = array_expr
+        self.delimiter_wrapper = delimiter_wrapper
+        self.sort_spec = sort_spec  # e.g. [("k0", 1), ("k1", -1)] or None
+        self.scalar_sort = scalar_sort  # 1 or -1 for DISTINCT + ORDER BY, or None
+
+    def get_source_expressions(self):
+        return [self.array_expr, self.delimiter_wrapper]
+
+    def set_source_expressions(self, exprs):
+        self.array_expr, self.delimiter_wrapper = exprs
+
+    def as_mql_expr(self, compiler, connection):
+        array_mql = self.array_expr.as_mql(compiler, connection, as_expr=True)
+        # StringAggDelimiter wraps the actual delimiter Value; unwrap it.
+        delimiter_mql = self.delimiter_wrapper.get_source_expressions()[0].as_mql(
+            compiler, connection, as_expr=True
+        )
+        if self.sort_spec:
+            # Array contains {v: value, k0: key, ...} objects pushed by
+            # string_agg().
+            sorted_input = {
+                "$sortArray": {
+                    "input": {"$ifNull": [array_mql, []]},
+                    "sortBy": dict(self.sort_spec),
+                }
+            }
+            # Extract v values; rows excluded by a filter have no v field so
+            # $$item.v is null — those are removed by the null check below.
+            filtered = {
+                "$filter": {
+                    "input": {
+                        "$map": {
+                            "input": sorted_input,
+                            "as": "item",
+                            "in": "$$item.v",
+                        }
+                    },
+                    "cond": {"$ne": ["$$this", None]},
+                }
+            }
+        elif self.scalar_sort is not None:
+            # Array contains plain scalar values from $addToSet (DISTINCT
+            # case). Sort the values directly.
+            filtered = {
+                "$filter": {
+                    "input": {
+                        "$sortArray": {
+                            "input": {"$ifNull": [array_mql, []]},
+                            "sortBy": self.scalar_sort,
+                        }
+                    },
+                    "cond": {"$ne": ["$$this", None]},
+                }
+            }
+        else:
+            # Guard against null (missing field from wrapping empty-result
+            # pipelines), and filter out null values (SQL STRING_AGG ignores
+            # nulls).
+            filtered = {
+                "$filter": {
+                    "input": {"$ifNull": [array_mql, []]},
+                    "cond": {"$ne": ["$$this", None]},
+                }
+            }
+        return {
+            "$let": {
+                "vars": {"arr": filtered},
+                "in": {
+                    "$cond": [
+                        {"$gt": [{"$size": "$$arr"}, 0]},
+                        {
+                            "$reduce": {
+                                "input": {"$slice": ["$$arr", 1, {"$size": "$$arr"}]},
+                                "initialValue": {"$arrayElemAt": ["$$arr", 0]},
+                                "in": {"$concat": ["$$value", delimiter_mql, "$$this"]},
+                            }
+                        },
+                        None,
+                    ]
+                },
+            }
+        }
+
+
+def string_agg(self, compiler, connection, resolve_inner_expression=False):
+    agg_expression, *_ = self.get_source_expressions()
+    if self.filter is not None:
+        agg_expression = Case(
+            When(self.filter.condition, then=agg_expression),
+            default=Remove(),
+        )
+    lhs_mql = agg_expression.as_mql(compiler, connection, as_expr=True)
+    if resolve_inner_expression:
+        return lhs_mql
+    if self.order_by:
+        # Push {v: value, k0: sort_key, ...} so StringAggJoin can sort the
+        # array in the post-group stage using $sortArray.
+        sort_keys = {}
+        for i, expr in enumerate(self.order_by.get_source_expressions()):
+            key_expr = expr.expression if isinstance(expr, OrderBy) else expr
+            sort_keys[f"k{i}"] = key_expr.as_mql(compiler, connection, as_expr=True)
+        return {"$push": {"v": lhs_mql, **sort_keys}}
+    return {"$push": lhs_mql}
 
 
 def register_aggregates():
