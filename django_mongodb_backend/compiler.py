@@ -1,4 +1,5 @@
 import itertools
+import json
 from collections import defaultdict
 
 from bson import SON, ObjectId, json_util
@@ -6,7 +7,7 @@ from django.core.exceptions import EmptyResultSet, FieldError, FullResultSet
 from django.db import IntegrityError, NotSupportedError
 from django.db.models import Count
 from django.db.models.aggregates import Aggregate, Variance
-from django.db.models.expressions import Case, Col, OrderBy, Ref, Value, When
+from django.db.models.expressions import Case, Col, OrderBy, Ref, RowRange, Value, When, Window
 from django.db.models.functions.comparison import Coalesce
 from django.db.models.functions.math import Power
 from django.db.models.lookups import IsNull
@@ -38,6 +39,8 @@ class SQLCompiler(compiler.SQLCompiler):
         self.subqueries = []
         # Search stage.
         self.search_pipeline = []
+        # Window function pipeline stages ($setWindowFields + post-$addFields).
+        self.window_pipeline = None
         # Does the aggregation have no GROUP BY fields and need wrapping?
         self.needs_wrap_aggregation = False
         # The MQL equivalent to a SQL HAVING clause.
@@ -212,6 +215,11 @@ class SQLCompiler(compiler.SQLCompiler):
         having_group_by = self.having.get_group_by_cols() if self.having else ()
         for expr in having_group_by:
             expressions.add(expr)
+        # Include partition/sort columns from window annotations so that
+        # $setWindowFields can partition the grouped data.
+        for expr in self.query.annotations.values():
+            if expr.contains_over_clause:
+                expressions |= set(expr.get_group_by_cols())
         return expressions
 
     def _get_group_id_expressions(self, order_by):
@@ -308,7 +316,8 @@ class SQLCompiler(compiler.SQLCompiler):
         extra_select, order_by, group_by = super().pre_sql_setup(with_col_aliases=with_col_aliases)
         search_replacements = self._prepare_search_query_for_aggregation_pipeline(order_by)
         group, group_replacements = self._prepare_annotations_for_aggregation_pipeline(order_by)
-        all_replacements = {**search_replacements, **group_replacements}
+        window_stages, window_replacements = self._prepare_window_annotations_for_pipeline()
+        all_replacements = {**search_replacements, **group_replacements, **window_replacements}
         self.search_pipeline = self._compound_searches_queries(search_replacements)
         # query.group_by is either:
         # - None: no GROUP BY
@@ -329,6 +338,7 @@ class SQLCompiler(compiler.SQLCompiler):
                 self.subqueries = []
                 pipeline.append({"$match": having})
             self.aggregation_pipeline = pipeline
+        self.window_pipeline = window_stages
         self.annotations = {
             target: expr.replace_expressions(all_replacements)
             for target, expr in self.query.annotation_select.items()
@@ -336,6 +346,10 @@ class SQLCompiler(compiler.SQLCompiler):
         self.order_by_objs = [expr.replace_expressions(all_replacements) for expr, _ in order_by]
         if (where := self.get_where()) and search_replacements:
             self.set_where(where.replace_expressions(search_replacements))
+        # Apply window/annotation replacements to the qualify clause so that
+        # Window expressions are replaced by their pre-computed field Refs.
+        if getattr(self, "qualify", None) and window_replacements:
+            self.qualify = self.qualify.replace_expressions(all_replacements)
         return extra_select, order_by, group_by
 
     def get_project_columns(self, columns):
@@ -493,6 +507,9 @@ class SQLCompiler(compiler.SQLCompiler):
         if extra_fields:
             query.extra_fields = self.get_project_fields(extra_fields, force_expression=True)
         query.subqueries = self.subqueries
+        query.window_pipeline = self.window_pipeline
+        if getattr(self, "qualify", None):
+            query.qualify_mql = self.qualify.as_mql(self, self.connection)
         return query
 
     @cached_property
@@ -800,6 +817,9 @@ class SQLCompiler(compiler.SQLCompiler):
     def _get_search_expressions(self, expr):
         return self._get_all_expressions_of_type(expr, SearchExpression)
 
+    def _get_window_expressions(self, expr):
+        return self._get_all_expressions_of_type(expr, Window)
+
     def _get_all_expressions_of_type(self, expr, target_type):
         stack = [expr]
         while stack:
@@ -808,6 +828,248 @@ class SQLCompiler(compiler.SQLCompiler):
                 yield expr
             elif hasattr(expr, "get_source_expressions"):
                 stack.extend(expr.get_source_expressions())
+
+    def _compile_window_partition_by(self, partition_by):
+        """Compile Window.partition_by to a MongoDB partitionBy expression."""
+        if partition_by is None:
+            return None
+        exprs = partition_by.get_source_expressions()
+        if len(exprs) == 1:
+            return exprs[0].as_mql(self, self.connection, as_expr=True)
+        return {str(i): e.as_mql(self, self.connection, as_expr=True) for i, e in enumerate(exprs)}
+
+    def _compile_window_sort_by(self, order_by_list, sort_fields):
+        """
+        Compile Window.order_by to a MongoDB sortBy document and any pre-sort
+        $addFields.
+
+        sort_fields is a shared dict {expr_mql_key: field_name} across all
+        windows in the same query, so that identical expressions reuse the same
+        field name and different expressions get distinct names.
+        """
+        if order_by_list is None:
+            return {}, {}
+        exprs = order_by_list.get_source_expressions()
+        sort_doc = {}
+        pre_add_fields = {}
+        for item in exprs:
+            if isinstance(item, OrderBy):
+                expr = item.expression
+                direction = DESCENDING if item.descending else ASCENDING
+            else:
+                # item an an expression without an OrderBy wrapper.
+                expr = item
+                direction = ASCENDING
+            if isinstance(expr, (Col, Ref)):
+                field_name = expr.as_mql(self, self.connection, as_expr=False)
+                val_mql = expr.as_mql(self, self.connection, as_expr=True)
+            else:
+                val_mql = expr.as_mql(self, self.connection, as_expr=True)
+                expr_key = json.dumps(val_mql, sort_keys=True)
+                if expr_key not in sort_fields:
+                    sort_fields[expr_key] = f"__wsort{len(sort_fields) + 1}"
+                field_name = sort_fields[expr_key]
+                pre_add_fields[field_name] = val_mql
+            if isinstance(item, OrderBy) and (item.nulls_first or item.nulls_last):
+                # Encode null position into a sub-document so that a single
+                # sortBy field suffices ($rank etc. require exactly one field).
+                # MongoDB compares documents field-by-field in insertion order,
+                # so {ind: 0, val: v} vs {ind: 1, val: null} is decided by
+                # "ind" before "val", giving clean null positioning.
+                # null_ind=1 puts null AFTER non-null in ASC / BEFORE in DESC.
+                # nulls_last != descending means nulls will be last in ASC or
+                # first in DESC — both require the higher ind value (1).
+                null_ind = int(bool(item.nulls_last) != bool(item.descending))
+                null_field = f"__wsort{len(sort_fields) + 1}"
+                sort_fields[f"__null_{null_field}"] = null_field
+                pre_add_fields[null_field] = {
+                    "ind": {"$cond": [{"$eq": [val_mql, None]}, null_ind, 1 - null_ind]},
+                    "val": val_mql,
+                }
+                sort_doc[null_field] = direction
+            else:
+                sort_doc[field_name] = direction
+        return sort_doc, pre_add_fields
+
+    @staticmethod
+    def _sort_subset_of_partition(sort_doc, pre_add_fields, partition_mql):
+        """
+        Return True if all sort fields are derived from the partition
+        expressions.
+
+        When sort == partition, all rows in the partition are tied in sort
+        order, so the correct SQL RANGE window is the full partition (unbounded
+        both ways).
+        """
+        if not partition_mql or not sort_doc:
+            return False
+
+        def dump(expr):
+            return json.dumps(expr, sort_keys=True)
+
+        if isinstance(partition_mql, dict) and not any(k.startswith("$") for k in partition_mql):
+            partition_set = {dump(v) for v in partition_mql.values()}
+        else:
+            partition_set = {dump(partition_mql)}
+        sort_set = set()
+        for field in sort_doc:
+            if field in pre_add_fields:
+                sort_set.add(dump(pre_add_fields[field]))
+            else:
+                sort_set.add(dump(f"${field}"))
+        return sort_set.issubset(partition_set)
+
+    def _window_function_output(self, alias, window, idx, use_full_partition=False):
+        """
+        Build $setWindowFields output entries and post-$addFields for a Window
+        expression.
+
+        Return (output_entries, add_fields) where output_entries goes into
+        $setWindowFields.output and $addFields uses those results for complex
+        functions.
+        """
+        expr = window.source_expression
+        frame = window.frame
+        has_order_by = bool(window.order_by and window.order_by.get_source_expressions())
+
+        def frame_mql():
+            if frame is None:
+                return None
+            if frame.exclusion:
+                raise NotSupportedError("This backend does not support window frame exclusions.")
+
+            def boundary(v):
+                if v is None:
+                    return "unbounded"
+                if v == 0:
+                    return "current"
+                return v
+
+            bounds = [boundary(frame.start.value), boundary(frame.end.value)]
+            return {"documents": bounds} if isinstance(frame, RowRange) else {"range": bounds}
+
+        def default_frame():
+            if frame:
+                return frame_mql()
+            if has_order_by and not use_full_partition:
+                return {"documents": ["unbounded", "current"]}
+            return {"documents": ["unbounded", "unbounded"]}
+
+        return expr.get_window_mql(self, self.connection, alias, idx, default_frame)
+
+    def _prepare_window_annotations_for_pipeline(self):
+        """
+        Build $setWindowFields pipeline stages for window annotations.
+
+        Return (stages, replacements) where stages is a list of pipeline dicts
+        and replacements maps Window sub-expressions and full over-clause
+        annotations to Ref objects for use in $project.
+        """
+        # Step 1: Collect all Window sub-expressions and their aliases. Process
+        # all annotations and any Window expressions used directly in the
+        # qualify (filter) clause.
+        seen_ids = set()
+        window_list = []  # list of (alias, window_expr)
+        idx = itertools.count(start=1)
+        window_replacements = {}  # {Window instance: Ref}
+
+        def _collect_windows_from_expr(expr, target=None):
+            for window in self._get_window_expressions(expr):
+                if id(window) in seen_ids:
+                    continue
+                seen_ids.add(id(window))
+                alias = target if (target and window is expr) else f"__window{next(idx)}"
+                window_list.append((alias, window))
+                window_replacements[window] = Ref(alias, window)
+
+        for target, expr in self.query.annotations.items():
+            if not expr.contains_over_clause:
+                continue
+            _collect_windows_from_expr(expr, target)
+        # Scan the qualify clause for Windows used directly in filters (e.g.,
+        # Employee.objects.filter(Exact(Window(...), 1))).
+        qualify = getattr(self, "qualify", None)
+        if qualify:
+            _collect_windows_from_expr(qualify)
+        if not window_list:
+            return [], {}
+        # Step 2: Group windows by (partition_key, sort_key) for
+        # $setWindowFields.
+        groups = {}
+        pre_add_fields = {}
+        sort_fields = {}  # shared across all windows, expr_mql_key: field_name
+        for alias, window in window_list:
+            partition_mql = self._compile_window_partition_by(window.partition_by)
+            sort_doc, pre_add_fields_ = self._compile_window_sort_by(window.order_by, sort_fields)
+            pre_add_fields.update(pre_add_fields_)
+            partition_key = json.dumps(partition_mql)
+            sort_key = json.dumps(sort_doc)
+            group_key = (partition_key, sort_key)
+            if group_key not in groups:
+                groups[group_key] = {"partition": partition_mql, "sort": sort_doc, "windows": []}
+            groups[group_key]["windows"].append((alias, window))
+        # Step 3: Build $setWindowFields stages with all outputs.
+        stages = []
+        if pre_add_fields:
+            stages.append({"$addFields": pre_add_fields})
+        post_add_fields = {}
+        for _group_key, group_info in groups.items():
+            set_window_fields_output = {}
+            # Determine if sort fields are covered by partition fields (all
+            # rows tied). In that case, use the full-partition window instead
+            # of current-row window.
+            use_full_partition = self._sort_subset_of_partition(
+                group_info["sort"],
+                pre_add_fields,
+                group_info["partition"],
+            )
+            for alias, window in group_info["windows"]:
+                output_entries, post_entries = self._window_function_output(
+                    alias, window, idx, use_full_partition
+                )
+                set_window_fields_output.update(output_entries)
+                post_add_fields.update(post_entries)
+            # $documentNumber, $rank, and $denseRank each require exactly one
+            # sortBy field; add a default when none is specified.
+            # $rank/$denseRank with no ORDER BY means all rows are tied (rank
+            # 1), so sort by a constant. $documentNumber needs unique row
+            # numbers, so sort by _id.
+            sort_doc = group_info["sort"]
+            if not sort_doc:
+                output_ops = {
+                    op for v in set_window_fields_output.values() if isinstance(v, dict) for op in v
+                }
+                if output_ops & {"$rank", "$denseRank"}:
+                    const_field = f"__wsort{len(sort_fields) + 1}"
+                    pre_add_fields[const_field] = {"$literal": 1}
+                    sort_doc = {const_field: 1}
+                elif "$documentNumber" in output_ops:
+                    sort_doc = {"_id": 1}
+            set_window_fields = {"output": set_window_fields_output}
+            if group_info["partition"]:
+                set_window_fields["partitionBy"] = group_info["partition"]
+            if sort_doc:
+                set_window_fields["sortBy"] = sort_doc
+            stages.append({"$setWindowFields": set_window_fields})
+        if post_add_fields:
+            stages.append({"$addFields": post_add_fields})
+        # Step 4: Compute all over-clause annotations in an intermediate
+        # $addFields so they're available for the qualify $match.
+        intermediate_add_fields = {}
+        annotation_replacements = {}
+        for target, expr in self.query.annotations.items():
+            if not expr.contains_over_clause:
+                continue
+            replaced_expr = expr.replace_expressions(window_replacements)
+            annotation_replacements[expr] = Ref(target, expr)
+            if isinstance(replaced_expr, Ref) and replaced_expr.refs == target:
+                continue  # $setWindowFields already wrote this field.
+            intermediate_add_fields[target] = replaced_expr.as_mql(
+                self, self.connection, as_expr=True
+            )
+        if intermediate_add_fields:
+            stages.append({"$addFields": intermediate_add_fields})
+        return stages, {**window_replacements, **annotation_replacements}
 
     def get_project_fields(self, columns=None, ordering=None, force_expression=False):
         if not columns:
@@ -922,6 +1184,11 @@ class SQLInsertCompiler(SQLCompiler):
                         f"You can't set {field.name} (a non-nullable field) to None."
                     )
                 if hasattr(value, "as_mql"):
+                    if getattr(value, "contains_over_clause", False):
+                        raise FieldError(
+                            f"Window expressions are not allowed in this query "
+                            f"({field.name}={value!r})."
+                        )
                     raise NotSupportedError(
                         f"MongoDB does not support creating models with "
                         f"expressions: got {value} for field {field.name}."
@@ -988,7 +1255,8 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
                     )
                 if value.contains_over_clause:
                     raise FieldError(
-                        f"Window expressions are not allowed in this query ({field.name}={value})."
+                        "Window expressions are not allowed in this query "
+                        f"({field.name}={value!r})."
                     )
             elif hasattr(value, "prepare_database_save"):
                 if field.remote_field:
