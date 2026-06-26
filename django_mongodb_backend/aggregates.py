@@ -184,17 +184,12 @@ class StringAggJoin(Expression):
 
 def string_agg(self, compiler, connection, resolve_inner_expression=False):
     agg_expression, *_ = self.get_source_expressions()
-    lhs_mql = None
     if self.filter is not None:
-        try:
-            lhs_mql = self.filter.as_mql(compiler, connection, as_expr=True)
-        except NotSupportedError:
-            agg_expression = Case(
-                When(self.filter.condition, then=agg_expression),
-                default=Remove(),
-            )
-    if lhs_mql is None:
-        lhs_mql = agg_expression.as_mql(compiler, connection, as_expr=True)
+        agg_expression = Case(
+            When(self.filter.condition, then=agg_expression),
+            default=Remove(),
+        )
+    lhs_mql = agg_expression.as_mql(compiler, connection, as_expr=True)
     if resolve_inner_expression:
         return lhs_mql
     if self.order_by:
