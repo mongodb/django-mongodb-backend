@@ -7,15 +7,16 @@ Django MongoDB Backend 5.1.x
 
 *August 13, 2025*
 
-- Backward-incompatible: Removed support for database caching as the MongoDB security
-  team considers the cache backend's ``pickle`` encoding of cached values a
-  vulnerability. If an attacker compromises the database, they could run arbitrary
-  commands on the application server.
+- Backward-incompatible: Removed support for database caching as the
+  MongoDB security team considers the cache backend's ``pickle`` encoding
+  of cached values a vulnerability. If an attacker compromises the
+  database, they could run arbitrary commands on the application server.
 - Fixed crash when loading models with a null value for ``ArrayField``\s where
   the ``base_field`` uses a database converter.
-- Fixed ``RecursionError`` when using ``Trunc`` database functions on non-MongoDB
-  databases.
-- Improved ``QuerySet`` performance by removing low limit on server-side chunking.
+- Fixed ``RecursionError`` when using ``Trunc`` database functions on
+  non-MongoDB databases.
+- Improved ``QuerySet`` performance by removing low limit on server-side
+  chunking.
 
 5.1.0 beta 3
 ============

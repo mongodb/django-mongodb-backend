@@ -50,8 +50,9 @@ For example, the project template includes ``<project_name>/apps.py``::
         default_auto_field = "django_mongodb_backend.fields.ObjectIdAutoField"
 
 Each app reference in the :setting:`INSTALLED_APPS` setting must point to the
-corresponding ``AppConfig``. For example, instead of ``'django.contrib.admin'``,
-the template uses ``'<project_name>.apps.MongoAdminConfig'``.
+corresponding ``AppConfig``. For example, instead of
+``'django.contrib.admin'``, the template uses
+``'<project_name>.apps.MongoAdminConfig'``.
 
 .. _configuring-migrations:
 

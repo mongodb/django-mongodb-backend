@@ -45,8 +45,8 @@ Model field options
 Some notes about model field options:
 
 - Dollar signs and periods (``$`` and ``.``) are not supported in
-  :attr:`Field.db_column <django.db.models.Field.db_column>` because these field
-  names are :doc:`discouraged by MongoDB
+  :attr:`Field.db_column <django.db.models.Field.db_column>` because
+  these field names are :doc:`discouraged by MongoDB
   <manual:core/dot-dollar-considerations>`. Querying fields with these
   characters requires the ``$getField`` operator, which prevents queries from
   using indexes.
@@ -56,7 +56,8 @@ MongoDB-specific model fields
 
 .. module:: django_mongodb_backend.fields
 
-Some MongoDB-specific fields are available in ``django_mongodb_backend.fields``.
+Some MongoDB-specific fields are available in
+``django_mongodb_backend.fields``.
 
 ``ArrayField``
 --------------

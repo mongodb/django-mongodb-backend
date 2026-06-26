@@ -38,7 +38,9 @@ Let's consider this example::
 
 The API is similar to that of Django's relational fields::
 
-    >>> bob = Customer.objects.create(name="Bob", address=Address(city="New York"))
+    >>> bob = Customer.objects.create(
+    ...     name="Bob", address=Address(city="New York"),
+    ... )
     >>> bob.address
     <Address: New York>
     >>> bob.address.city
@@ -456,24 +458,26 @@ Represented in BSON, Bob's structure looks like this:
       ]
     }
 
-The ``_label`` field tracks each model's :attr:`~django.db.models.Options.label`
-so that the models can be initialized properly.
+The ``_label`` field tracks each model's
+:attr:`~django.db.models.Options.label` so that the models can be
+initialized properly.
 
 Querying ``PolymorphicEmbeddedModelArrayField``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can query into an embedded model array using :ref:`the same syntax and operators
-<querying-embedded-model-array-field>` as :class:`~.fields.EmbeddedModelArrayField`.
+You can query into an embedded model array using :ref:`the same syntax
+and operators <querying-embedded-model-array-field>` as
+:class:`~.fields.EmbeddedModelArrayField`.
 
-Like :class:`~.fields.PolymorphicEmbeddedModelField`, if you filter on fields that aren't shared
-among the embedded models, you'll only get back objects that have embedded models with
-those fields.
+Like :class:`~.fields.PolymorphicEmbeddedModelField`, if you filter on
+fields that aren't shared among the embedded models, you'll only get
+back objects that have embedded models with those fields.
 
 Clashing field names
 ~~~~~~~~~~~~~~~~~~~~
 
-As with :class:`~.fields.PolymorphicEmbeddedModelField`, take care that your embedded
-models don't use :ref:`clashing field names
+As with :class:`~.fields.PolymorphicEmbeddedModelField`, take care that
+your embedded models don't use :ref:`clashing field names
 <polymorphic-embedded-model-field-clashing-field-names>`.
 
 .. _polymorphic-embedded-model-array-field-indexes:
