@@ -93,13 +93,23 @@ class SQLCompiler(compiler.SQLCompiler):
         # delimiter.
         elif isinstance(sub_expr, StringAgg):
             sort_spec = None
+            scalar_sort = None
             if sub_expr.order_by:
-                sort_spec = [
-                    (f"k{i}", -1 if isinstance(expr, OrderBy) and expr.descending else 1)
-                    for i, expr in enumerate(sub_expr.order_by.get_source_expressions())
-                ]
+                if getattr(sub_expr, "distinct", False):
+                    # The group stage used $addToSet, so the array holds plain
+                    # scalar values. Sort them using a scalar direction.
+                    first = sub_expr.order_by.get_source_expressions()[0]
+                    scalar_sort = -1 if isinstance(first, OrderBy) and first.descending else 1
+                else:
+                    sort_spec = [
+                        (f"k{i}", -1 if isinstance(expr, OrderBy) and expr.descending else 1)
+                        for i, expr in enumerate(sub_expr.order_by.get_source_expressions())
+                    ]
             replacing_expr = StringAggJoin(
-                inner_column, sub_expr.source_expressions[1], sort_spec=sort_spec
+                inner_column,
+                sub_expr.source_expressions[1],
+                sort_spec=sort_spec,
+                scalar_sort=scalar_sort,
             )
         return replacing_expr
 

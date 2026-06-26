@@ -97,13 +97,17 @@ class StringAggJoin(Expression):
     When sort_spec is provided (list of (field_name, direction) tuples), the
     pushed array contains {v: value, k0: key, ...} objects. This class then
     sorts by the key fields and extracts the values before joining.
+
+    When scalar_sort is provided (1 or -1), the array contains plain scalar
+    values (from $addToSet for DISTINCT) and is sorted directly.
     """
 
-    def __init__(self, array_expr, delimiter_wrapper, sort_spec=None):
+    def __init__(self, array_expr, delimiter_wrapper, sort_spec=None, scalar_sort=None):
         super().__init__(output_field=TextField())
         self.array_expr = array_expr
         self.delimiter_wrapper = delimiter_wrapper
         self.sort_spec = sort_spec  # e.g. [("k0", 1), ("k1", -1)] or None
+        self.scalar_sort = scalar_sort  # 1 or -1 for DISTINCT + ORDER BY, or None
 
     def get_source_expressions(self):
         return [self.array_expr, self.delimiter_wrapper]
@@ -140,6 +144,20 @@ class StringAggJoin(Expression):
                     "cond": {"$ne": ["$$this", None]},
                 }
             }
+        elif self.scalar_sort is not None:
+            # Array contains plain scalar values from $addToSet (DISTINCT
+            # case). Sort the values directly.
+            filtered = {
+                "$filter": {
+                    "input": {
+                        "$sortArray": {
+                            "input": {"$ifNull": [array_mql, []]},
+                            "sortBy": self.scalar_sort,
+                        }
+                    },
+                    "cond": {"$ne": ["$$this", None]},
+                }
+            }
         else:
             # Guard against null (missing field from wrapping empty-result
             # pipelines), and filter out null values (SQL STRING_AGG ignores
@@ -158,21 +176,9 @@ class StringAggJoin(Expression):
                         {"$gt": [{"$size": "$$arr"}, 0]},
                         {
                             "$reduce": {
-                                "input": "$$arr",
-                                "initialValue": "",
-                                "in": {
-                                    "$concat": [
-                                        "$$value",
-                                        {
-                                            "$cond": [
-                                                {"$eq": ["$$value", ""]},
-                                                "",
-                                                delimiter_mql,
-                                            ]
-                                        },
-                                        "$$this",
-                                    ]
-                                },
+                                "input": {"$slice": ["$$arr", 1, {"$size": "$$arr"}]},
+                                "initialValue": {"$arrayElemAt": ["$$arr", 0]},
+                                "in": {"$concat": ["$$value", delimiter_mql, "$$this"]},
                             }
                         },
                         None,
