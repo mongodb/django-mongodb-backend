@@ -355,7 +355,49 @@ def join(self, compiler, connection, pushed_filter_expression=None):
     return lookup_pipeline
 
 
+def _has_custom_negation(node):
+    """
+    Return whether the subtree contains a lookup with custom negation MQL.
+    """
+    for child in node.children:
+        if isinstance(child, WhereNode):
+            if _has_custom_negation(child):
+                return True
+        elif hasattr(child, "as_mql_negated"):
+            return True
+    return False
+
+
+def _negate_child(child, compiler, connection, as_expr):
+    """Return MQL equivalent to NOT(child)."""
+    if isinstance(child, WhereNode):
+        if child.negated:
+            # NOT(NOT(group)) == group; compile the group without negation.
+            positive = child.__class__(child.children, child.connector)
+            return positive.as_mql(compiler, connection, as_expr=as_expr)
+        return _negate_group(child, compiler, connection, as_expr)
+    negate = getattr(child, "as_mql_negated", None)
+    if negate is not None:
+        return negate(compiler, connection, as_expr=as_expr)
+    mql = child.as_mql(compiler, connection, as_expr=as_expr)
+    return {"$not": [mql]} if as_expr else {"$nor": [mql]}
+
+
+def _negate_group(node, compiler, connection, as_expr):
+    """
+    Return MQL for NOT(node) by pushing the negation down to the leaves
+    (De Morgan's laws). This lets lookups that require SQL three-valued
+    semantics (e.g. JSON key transforms) provide their own correct negation
+    instead of relying on $nor/$not, which mishandle missing values.
+    """
+    operator = "$or" if node.connector == AND else "$and"
+    parts = [_negate_child(child, compiler, connection, as_expr) for child in node.children]
+    return parts[0] if len(parts) == 1 else {operator: parts}
+
+
 def where_node(self, compiler, connection, as_expr=False):
+    if self.negated and self.connector in (AND, OR) and _has_custom_negation(self):
+        return _negate_group(self, compiler, connection, as_expr)
     if self.connector == AND:
         full_needed, empty_needed = len(self.children), 1
     else:

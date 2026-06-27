@@ -69,6 +69,11 @@ Bug fixes
   :class:`~django_mongodb_backend.fields.EmbeddedModelField` to a model with a
   :class:`~django_mongodb_backend.fields.EmbeddedModelArrayField`.
 
+- Fixed ``QuerySet.exclude()`` (and negated ``Q`` objects) on
+  :class:`~django.db.models.JSONField` key lookups so that documents which
+  don't contain the key are no longer included in the results, matching the
+  behavior of SQL databases.
+
 Backwards incompatible changes
 ------------------------------
 

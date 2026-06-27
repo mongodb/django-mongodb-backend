@@ -53,13 +53,10 @@ Querying
 - The :class:`~django.db.models.StringAgg` aggregation function isn't
   supported.
 
-- When querying :class:`~django.db.models.JSONField`:
-
-  - There is no way to distinguish between a JSON ``"null"`` (represented by
-    ``Value(None, JSONField())``) and a SQL ``null`` (queried using the
-    :lookup:`isnull` lookup). Both of these queries return both of these nulls.
-  - Using JSON keys in ``QuerySet.exclude()`` incorrectly treats objects with
-    absent keys as satisfying the exclusion.
+- When querying :class:`~django.db.models.JSONField` there is no way to
+  distinguish between a JSON ``"null"`` (represented by
+  ``Value(None, JSONField())``) and a SQL ``null`` (queried using the
+  :lookup:`isnull` lookup). Both of these queries return both of these nulls.
 
 Database functions
 ==================
