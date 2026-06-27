@@ -1,17 +1,38 @@
 from pymongo import GEOSPHERE
 from pymongo.operations import IndexModel
 
+from django_mongodb_backend.fields import EmbeddedModelField
+
 
 class GISSchemaEditor:
     def _create_model_indexes(self, model, column_prefix="", parent_model=None):
         super()._create_model_indexes(model, column_prefix, parent_model)
         for field in model._meta.local_fields:
-            if getattr(field, "spatial_index", False):
+            if isinstance(field, EmbeddedModelField):
+                new_path = f"{column_prefix}{field.column}."
+                self._create_embedded_spatial_indexes(
+                    field.embedded_model, parent_model=parent_model or model, column_prefix=new_path
+                )
+            elif getattr(field, "spatial_index", False):
                 self._add_spatial_index(parent_model or model, field, column_prefix)
+
+    def _create_embedded_spatial_indexes(self, model, parent_model, column_prefix=""):
+        for field in model._meta.local_fields:
+            if isinstance(field, EmbeddedModelField):
+                new_path = f"{column_prefix}{field.column}."
+                self._create_embedded_spatial_indexes(
+                    field.embedded_model, parent_model=parent_model, column_prefix=new_path
+                )
+            elif getattr(field, "spatial_index", False):
+                self._add_spatial_index(parent_model, field, column_prefix)
 
     def add_field(self, model, field):
         super().add_field(model, field)
-        if getattr(field, "spatial_index", False):
+        if isinstance(field, EmbeddedModelField):
+            self._create_embedded_spatial_indexes(
+                field.embedded_model, parent_model=model, column_prefix=f"{field.column}."
+            )
+        elif getattr(field, "spatial_index", False):
             self._add_spatial_index(model, field)
 
     def _alter_field(
