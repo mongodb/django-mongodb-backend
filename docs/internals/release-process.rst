@@ -74,6 +74,57 @@ request, a branch is created off of main to track the previous feature release.
 For example, the 5.1.x branch is created shortly after the release of Django
 5.2, and main starts tracking the Django 5.2.x series.
 
+Stable branches (e.g. ``5.2.x``) receive backported bug fixes and security
+fixes from ``main``. New features are only added to ``main``. If a fix on
+``main`` should also apply to a stable branch, note it in the pull request
+description. Whoever merges the ``main`` PR is responsible for opening the
+backport PR against the stable branch.
+
+While a new Django feature release is in development, a ``djangoXY`` branch
+(e.g. ``django61``, ``django62``) is used to track the work-in-progress "Update
+to Django X.Y" pull request. These branches are based on ``main`` and are
+deleted once the pull request is merged. The work in these branches consists
+primarily of adapting the backend to new or changed Django database backend
+interfaces introduced in that version — implementing new methods on
+``DatabaseFeatures``, ``DatabaseOperations``, ``DatabaseCreation``, and similar
+internal classes, as well as dropping support for APIs removed in that release.
+Each adaptation should have its own INTPYTHON ticket so that progress is
+visible and work can be distributed across the team.
+
+Typical commits in a ``djangoXY`` branch look like:
+
+- ``INTPYTHON-NNN Use DatabaseFeatures.supports_inspectdb`` — adopt a new
+  feature flag Django added so backends can declare support for a capability
+- ``INTPYTHON-NNN Add DatabaseCreation.destroy_test_db_connection_close_method``
+  — implement a new hook Django introduced in its test database lifecycle
+- ``INTPYTHON-NNN Use DatabaseOperations.adapt_durationfield_value()`` — switch
+  to a new Django API that replaced an older one
+- ``INTPYTHON-NNN Remove support for embedded indexes/constraints`` — drop
+  functionality that depended on a Django API removed in this release
+
+.. _keeping-branches-in-sync:
+
+Keeping branches in sync
+========================
+
+The following process keeps ``django-mongodb-backend`` aligned with upstream
+Django on a regular cadence:
+
+1. **Review the rebase PR.** A weekly workflow in ``mongodb-forks/django``
+   automatically rebases each active fork branch (e.g. ``mongodb-6.0.x``) onto
+   its upstream counterpart (e.g. ``upstream/stable/6.0.x``) and opens a pull
+   request. Review the incoming commits for anything that affects the backend.
+
+2. **Open INTPYTHON tickets and fix the affected branches.** If an upstream
+   commit changes a Django database backend interface, adds tests that require
+   MongoDB-specific handling, or removes an API the backend relies on, open an
+   INTPYTHON ticket and make the corresponding fix in the relevant
+   ``django-mongodb-backend`` branch (``main``, ``5.2.x``, or a ``djangoXY``
+   pre-release branch).
+
+3. **Merge the PRs.** Once fixes are in place, merge the rebase PR in
+   ``mongodb-forks/django`` and the fix PRs in ``django-mongodb-backend``.
+
 .. _django-fork:
 
 The Django fork
@@ -97,7 +148,8 @@ corresponding branch in the fork. For example, for Django 6.0, the branch is
 
 Periodically, each branch is rebased on the upstream Django branch to pickup
 the latest changes. For example, ``mongodb-6.0.x`` is rebased on Django's
-``stable/6.0.x`` branch.
+``stable/6.0.x`` branch. This rebasing is automated via a weekly GitHub Actions
+workflow in the fork repository.
 
 During the development of the next Django feature release, the fork's
 corresponding branch is rebased on Django's ``main`` branch. For example,
@@ -106,3 +158,25 @@ Django's ``main`` branch. The ``mongodb-6.1.x`` branch is used in the `"Update
 to Django 6.1" pull request
 <https://github.com/mongodb/django-mongodb-backend/pull/422>`_ to be merged
 upon the release of Django 6.1.
+
+The following table shows the current mapping between Django MongoDB Backend
+branches, the Django version they track, and the corresponding fork branch:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Django MongoDB Backend branch
+     - Django version
+     - Django fork branch
+   * - ``main``
+     - 6.0.x
+     - ``mongodb-6.0.x``
+   * - ``5.2.x``
+     - 5.2.x
+     - ``mongodb-5.2.x``
+   * - ``django61`` (in development)
+     - 6.1 pre-release
+     - ``mongodb-6.1.x``
+   * - ``django62`` (in development)
+     - 6.2 pre-release
+     - ``mongodb-6.2.x``
