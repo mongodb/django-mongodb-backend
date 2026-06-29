@@ -112,14 +112,14 @@ def trunc_convert_value(self, value, expression, connection):
 def trunc_date(self, compiler, connection):
     # Cast to date rather than truncate to date.
     lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
-    tzname = self.get_tzname()
-    if tzname and tzname != "UTC":
-        raise NotSupportedError(f"TruncDate with tzinfo ({tzname}) isn't supported on MongoDB.")
+    date_to_string = {"format": "%Y-%m-%d", "date": lhs_mql}
+    if tzname := self.get_tzname():
+        date_to_string["timezone"] = tzname
     return {
         "$dateFromString": {
             "dateString": {
                 "$concat": [
-                    {"$dateToString": {"format": "%Y-%m-%d", "date": lhs_mql}},
+                    {"$dateToString": date_to_string},
                     # Dates are stored with time(0, 0), so by replacing any
                     # existing time component with that, the result of
                     # TruncDate can be compared to DateField.
@@ -131,10 +131,10 @@ def trunc_date(self, compiler, connection):
 
 
 def trunc_time(self, compiler, connection):
-    tzname = self.get_tzname()
-    if tzname and tzname != "UTC":
-        raise NotSupportedError(f"TruncTime with tzinfo ({tzname}) isn't supported on MongoDB.")
     lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+    date_to_string = {"format": "%H:%M:%S.%L", "date": lhs_mql}
+    if tzname := self.get_tzname():
+        date_to_string["timezone"] = tzname
     return {
         "$dateFromString": {
             "dateString": {
@@ -143,7 +143,7 @@ def trunc_time(self, compiler, connection):
                     # replacing any existing date component with that, the
                     # result of TruncTime can be compared to TimeField.
                     "0001-01-01T",
-                    {"$dateToString": {"format": "%H:%M:%S.%L", "date": lhs_mql}},
+                    {"$dateToString": date_to_string},
                 ]
             }
         }

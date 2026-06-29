@@ -111,6 +111,10 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_mixed_scenario",
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_respects_mixed_manual_order",
         "contenttypes_tests.test_order_with_respect_to.OrderWithRespectToGFKTests.test_bulk_create_with_existing_children",
+        # Date/time truncation doesn't convert values from a non-UTC database
+        # connection TIME_ZONE before truncating:
+        # https://jira.mongodb.org/browse/INTPYTHON-1009
+        "timezones.tests.NewDatabaseTests.test_query_convert_timezones",
     }
 
     @cached_property
@@ -688,15 +692,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "backends.tests.BackendTestCase.test_cursor_executemany",
             "backends.tests.BackendTestCase.test_cursor_executemany_with_empty_params_list",
             "backends.tests.BackendTestCase.test_cursor_executemany_with_iterator",
-        },
-        (
-            NotSupportedError,
-            "TruncDate with tzinfo (America/Vancouver) isn't supported on MongoDB.",
-        ): {
-            "model_fields.test_datetimefield.DateTimeFieldTests.test_lookup_date_with_use_tz",
-        },
-        (NotSupportedError, "TruncDate with tzinfo (Africa/Nairobi) isn't supported on MongoDB."): {
-            "timezones.tests.NewDatabaseTests.test_query_convert_timezones",
         },
         (NotSupportedError, "StringAgg is not supported."): {
             "aggregation.tests.AggregateTestCase.test_distinct_on_stringagg",

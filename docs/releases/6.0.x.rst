@@ -25,6 +25,10 @@ New features
 - Added support for fixed-offset ``tzinfo`` in the
   :class:`~django.db.models.functions.Extract` database functions.
 
+- Added support for the ``tzinfo`` parameter of the
+  :class:`~django.db.models.functions.TruncDate` and
+  :class:`~django.db.models.functions.TruncTime` database functions.
+
 - Added support for Django's warning when performing import-time queries.
 
 - Added support for pattern matching lookups (:lookup:`iexact`,

@@ -73,11 +73,6 @@ Database functions
     :class:`~django.db.models.functions.SHA384`,
     :class:`~django.db.models.functions.SHA512`
 
-- The ``tzinfo`` parameter of the
-  :class:`~django.db.models.functions.TruncDate` and
-  :class:`~django.db.models.functions.TruncTime` database functions isn't
-  supported.
-
 Transaction management
 ======================
 
