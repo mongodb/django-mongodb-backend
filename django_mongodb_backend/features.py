@@ -16,6 +16,7 @@ except ImproperlyConfigured:
 class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     minimum_database_version = (7, 0)
     allow_sliced_subqueries_with_in = False
+    can_clone_databases = True
     allows_multiple_constraints_on_same_fields = False
     can_create_inline_fk = False
     can_introspect_foreign_keys = False

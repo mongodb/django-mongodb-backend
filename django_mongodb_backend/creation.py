@@ -45,6 +45,33 @@ class DatabaseCreation(BaseDatabaseCreation):
         if not keepdb:
             self._destroy_test_db(parameters["dbname"], verbosity=0)
 
+    def _clone_test_db(self, suffix, verbosity, keepdb=False):
+        source_database_name = self.connection.settings_dict["NAME"]
+        target_database_name = self.get_test_db_clone_settings(suffix)["NAME"]
+        self.connection.ensure_connection()
+        client = self.connection.connection
+        if keepdb and target_database_name in client.list_database_names():
+            return
+        client.drop_database(target_database_name)
+        source_db = client[source_database_name]
+        target_db = client[target_database_name]
+        for collection_name in source_db.list_collection_names():
+            if collection_name.startswith("system."):
+                continue
+            source_collection = source_db[collection_name]
+            # Copy documents to the target database.
+            source_collection.aggregate(
+                [{"$out": {"db": target_database_name, "coll": collection_name}}]
+            )
+            # Copy non-_id indexes ($out only creates the _id index).
+            target_collection = target_db[collection_name]
+            for index in source_collection.list_indexes():
+                if index["name"] == "_id_":
+                    continue
+                keys = list(index["key"].items())
+                options = {k: v for k, v in index.items() if k not in {"key", "v", "ns", "name"}}
+                target_collection.create_index(keys, name=index["name"], **options)
+
     def _destroy_test_db(self, test_database_name, verbosity):
         # At this point, settings still points to the non-test database. For
         # MongoDB, it must use the test database.
@@ -64,6 +91,13 @@ class DatabaseCreation(BaseDatabaseCreation):
             self.connection.settings_dict["OPTIONS"][
                 "auto_encryption_opts"
             ]._key_vault_namespace = opts._key_vault_namespace[len(TEST_DATABASE_PREFIX) :]
+
+    def setup_worker_connection(self, _worker_id):
+        super().setup_worker_connection(_worker_id)
+        # super() calls connection.close() which is a no-op for MongoDB.
+        # Instead, the connection pool that points to the non-test database is
+        # closed so that a connection to the test database can be established.
+        self.connection.close_pool()
 
     def mark_expected_failures_and_skips(self):
         super().mark_expected_failures_and_skips()

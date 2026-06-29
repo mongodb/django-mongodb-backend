@@ -172,7 +172,7 @@ else:
     test_apps.extend(["gis_tests", "gis_tests_"])
 
 runtests = pathlib.Path(__file__).parent.resolve() / "runtests.py"
-run_tests_cmd = f"python3 {runtests} %s --settings %s -v 2"
+run_tests_cmd = f"python3 {runtests} %s --settings %s -v 2 --parallel=3"
 
 shouldFail = False
 for app_name in test_apps:

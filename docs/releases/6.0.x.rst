@@ -43,6 +43,8 @@ New features
   :class:`~django_mongodb_backend.indexes.VectorSearchIndex`, which allows
   specifying ``"hnsw"`` (server default) or ``"flat"`` for each vector field.
 
+- Added support for running tests in parallel using :option:`test --parallel`.
+
 Bug fixes
 ---------
 
