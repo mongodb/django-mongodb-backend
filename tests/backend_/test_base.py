@@ -116,6 +116,7 @@ class DatabaseWrapperConnectionTests(TestCase):
 
     def test_close(self):
         """connection.close() doesn't close the connection."""
+        connection.ensure_connection()
         conn = connection.connection
         self.assertIsNotNone(conn)
         connection.close()
@@ -123,6 +124,7 @@ class DatabaseWrapperConnectionTests(TestCase):
 
     def test_close_pool(self):
         """connection.close_pool() closes the connection."""
+        connection.ensure_connection()
         self.assertIsNotNone(connection.connection)
         connection.close_pool()
         self.assertIsNone(connection.connection)
