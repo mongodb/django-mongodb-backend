@@ -333,8 +333,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             return
         # Remove all references to the connection.
         self.connection = None
-        with contextlib.suppress(AttributeError):
-            del self.database
+        for attr in ("database", "auto_encryption_opts", "client_encryption", "key_vault"):
+            with contextlib.suppress(AttributeError):
+                delattr(self, attr)
         del self._connection_pools[self.alias]
         # Then close it.
         connection.close()

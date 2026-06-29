@@ -97,6 +97,14 @@ class DatabaseCreation(BaseDatabaseCreation):
         # super() calls connection.close() which is a no-op for MongoDB.
         # Instead, the connection pool that points to the non-test database is
         # closed so that a connection to the test database can be established.
+        # For encrypted databases, update the key vault namespace to the clone
+        # database before reconnecting so the new MongoClient uses the correct
+        # key vault.
+        if opts := self.connection.settings_dict["OPTIONS"].get("auto_encryption_opts"):
+            _, key_vault_collection = opts._key_vault_namespace.split(".", 1)
+            opts._key_vault_namespace = (
+                f"{self.connection.settings_dict['NAME']}.{key_vault_collection}"
+            )
         self.connection.close_pool()
 
     def mark_expected_failures_and_skips(self):
