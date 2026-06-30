@@ -4,6 +4,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.db.migrations.autodetector import MigrationAutodetector as BaseMigrationAutodetector
 from django.db.migrations.autodetector import OperationDependency
+from django.db.migrations.operations import AddField as DjangoAddField
 
 from django_mongodb_backend.db.migrations.operations import (
     AddEmbeddedField,
@@ -12,6 +13,8 @@ from django_mongodb_backend.db.migrations.operations import (
     RenameEmbeddedField,
 )
 from django_mongodb_backend.indexes import FieldColumn
+
+_MISSING = object()
 
 
 class MigrationAutodetector(BaseMigrationAutodetector):
@@ -138,7 +141,12 @@ class MigrationAutodetector(BaseMigrationAutodetector):
         )
         if not preserve_default:
             field = field.clone()
-            if isinstance(field, time_fields) and field.auto_now_add:
+            default = self._get_add_field_default(app_label, model_name, field_name)
+            if default is not _MISSING:
+                # Reuse the default from the corresponding AddField operation
+                # to avoid prompting the user twice for the same field.
+                field.default = default
+            elif isinstance(field, time_fields) and field.auto_now_add:
                 field.default = self.questioner.ask_auto_now_add_addition(field_name, model_name)
             else:
                 field.default = self.questioner.ask_not_null_addition(field_name, model_name)
@@ -154,6 +162,33 @@ class MigrationAutodetector(BaseMigrationAutodetector):
             ),
             dependencies=dependencies,
         )
+
+    def _get_add_field_default(self, app_label, model_name, field_name):
+        """
+        Return the default from the AddField operation for the leaf field of
+        field_name, to avoid prompting the user twice for the same field.
+        Return _MISSING if no matching AddField operation is found.
+        """
+        *parents, leaf_field_name = field_name.split(".")
+        leaf_app_label = app_label
+        leaf_model_name = model_name
+        for part in parents:
+            parent_field = self.to_state.models[leaf_app_label, leaf_model_name].get_field(part)
+            if hasattr(parent_field, "embedded_model"):
+                label_parts = parent_field.embedded_model.split(".")
+                if len(label_parts) == 2:
+                    leaf_app_label, leaf_model_name = label_parts
+                else:
+                    leaf_model_name = label_parts[0]
+        for op in self.generated_operations.get(leaf_app_label, []):
+            if (
+                isinstance(op, DjangoAddField)
+                and op.model_name == leaf_model_name
+                and op.name == leaf_field_name
+                and not op.preserve_default
+            ):
+                return op.field.default
+        return _MISSING
 
     def generate_renamed_embedded_fields(self):
         """
