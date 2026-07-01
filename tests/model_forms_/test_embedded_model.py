@@ -183,7 +183,7 @@ class NestedFormTests(TestCase):
             </div>
             <div>
               <fieldset>
-                <legend for="id_publisher">Publisher:</legend>
+                <legend>Publisher:</legend>
                 <div>
                   <label for="id_publisher-name">Name:</label>
                   <input type="text" name="publisher-name" value="Random House!" maxlength="50"
@@ -191,7 +191,7 @@ class NestedFormTests(TestCase):
                 </div>
                 <div>
                   <fieldset>
-                    <legend for="id_publisher-address">Address:</legend>
+                    <legend>Address:</legend>
                     <div>
                       <label for="id_publisher-address-po_box">PO Box:</label>
                       <input type="text" name="publisher-address-po_box" maxlength="50"
@@ -255,7 +255,7 @@ class NestedFormTests(TestCase):
             </div>
             <div>
               <fieldset>
-                <legend for="id_publisher">Publisher:</legend>
+                <legend>Publisher:</legend>
                 <div>
                   <label for="id_publisher-name">Name:</label>
                   <input type="text" name="publisher-name" value="Random House!"
@@ -263,7 +263,7 @@ class NestedFormTests(TestCase):
                 </div>
                 <div>
                   <fieldset>
-                    <legend for="id_publisher-address">Address:</legend>
+                    <legend>Address:</legend>
                     <div>
                       <label for="id_publisher-address-po_box">PO Box:</label>
                       <input type="text" name="publisher-address-po_box"
@@ -327,7 +327,7 @@ class NestedFormTests(TestCase):
             </div>
             <div>
               <fieldset>
-                <legend for="id_publisher-address">Address:</legend>
+                <legend>Address:</legend>
                 <div>
                   <label for="id_publisher-address-po_box">PO Box:</label>
                   <input type="text" name="publisher-address-po_box" maxlength="50"
@@ -445,7 +445,7 @@ class NestedEmbeddedArrayFormTests(TestCase):
             </div>
             <div>
               <fieldset>
-                <legend for="id_product">Product:</legend>
+                <legend>Product:</legend>
                 <div>
                   <label for="id_product-name">Name:</label>
                   <input type="text" name="product-name" value="TV"
