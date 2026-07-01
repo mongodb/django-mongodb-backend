@@ -98,7 +98,7 @@ class SQLCompiler(compiler.SQLCompiler):
         if isinstance(sub_expr, Count):
             replacing_expr = Coalesce(replacing_expr, 0)
         # Variance = StdDev^2
-        if isinstance(sub_expr, Variance):
+        elif isinstance(sub_expr, Variance):
             replacing_expr = Power(replacing_expr, 2)
         return replacing_expr
 
