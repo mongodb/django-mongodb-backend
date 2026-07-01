@@ -47,6 +47,11 @@ New features
   :class:`~django_mongodb_backend.indexes.VectorSearchIndex`, which allows
   specifying ``"hnsw"`` (server default) or ``"flat"`` for each vector field.
 
+- Added schema change support for ``EmbeddedModelField``. Fields in embedded
+  models referenced by ``EmbeddedModelField``\s will now be added, altered,
+  and removed. You must have ``django_mongodb_backend`` in your
+  :setting:`INSTALLED_APPS` setting when running :djadmin:`makemigrations`.
+
 Bug fixes
 ---------
 
