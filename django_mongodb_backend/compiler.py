@@ -87,7 +87,8 @@ class SQLCompiler(compiler.SQLCompiler):
                 replacing_expr = NullSafeArraySum(inner_column)
             else:
                 replacing_expr = sub_expr.copy()
-                replacing_expr.set_source_expressions([inner_column, None])
+                original_exprs = sub_expr.get_source_expressions()
+                replacing_expr.set_source_expressions([inner_column, *original_exprs[1:]])
         else:
             group[alias] = sub_expr.as_mql(self, self.connection, as_expr=True)
             if isinstance(sub_expr, Sum):
