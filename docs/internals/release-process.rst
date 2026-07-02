@@ -74,6 +74,15 @@ request, a branch is created off of main to track the previous feature release.
 For example, the 5.1.x branch is created shortly after the release of Django
 5.2, and main starts tracking the Django 5.2.x series.
 
+Handling backports
+==================
+
+If a bug fix on ``main`` should be applied to one or more stable branches
+according to the :ref:`Supported versions policy <supported-versions-policy>`,
+note it in the pull request description. Whoever merges the PR to ``main`` is
+responsible for opening the backport PR against the stable branch(es). Prefix
+the PR title with the branch name (e.g. ``[5.2.x] ...``).
+
 .. _django-fork:
 
 The Django fork
