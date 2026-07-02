@@ -115,3 +115,20 @@ Django's ``main`` branch. The ``mongodb-6.1.x`` branch is used in the `"Update
 to Django 6.1" pull request
 <https://github.com/mongodb/django-mongodb-backend/pull/422>`_ to be merged
 upon the release of Django 6.1.
+
+Branch relationship summary
+===========================
+
+To summarize the relationship of each repositories' branches:
+
+==============  =======================  =============  ===============
+Django version  Django MongoDB Backend   Django fork    Django upstream
+==============  =======================  =============  ===============
+6.2.x           `PR 535`_                mongodb-6.2.x  main
+6.1.x           `PR 422`_                mongodb-6.1.x  stable/6.1.x
+6.0.x           main                     mongodb-6.0.x  stable/6.0.x
+5.2.x           5.2.x                    mongodb-5.2.x  stable/5.2.x
+==============  =======================  =============  ===============
+
+.. _PR 422: https://github.com/mongodb/django-mongodb-backend/pull/422
+.. _PR 535: https://github.com/mongodb/django-mongodb-backend/pull/535
