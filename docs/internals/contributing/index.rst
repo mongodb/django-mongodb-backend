@@ -11,4 +11,5 @@ Backend? Here are some resources:
    coding-style
    unit-tests
    performance-tests
+   prepare-feature-release
    writing-documentation
