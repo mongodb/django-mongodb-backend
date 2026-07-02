@@ -111,9 +111,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         # connection TIME_ZONE before truncating:
         # https://jira.mongodb.org/browse/INTPYTHON-1009
         "timezones.tests.NewDatabaseTests.test_query_convert_timezones",
-        # Test relies on SQL grouping behavior:
-        # https://github.com/django/django/pull/19489#discussion_r3462766505
-        "aggregation.tests.AggregateTestCase.test_string_agg_filter_outerref",
     }
 
     @cached_property
@@ -435,6 +432,11 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "prefetch_related.test_prefetch_related_objects.PrefetchRelatedObjectsTests.test_prefetch_related_objects_with_various_iterables",
             "prefetch_related.tests.CustomPrefetchTests.test_filter_deferred",
             "prefetch_related.tests.PrefetchRelatedTests.test_filter_deferred",
+        },
+        "Non-deterministic test may pass occasionally.": {
+            # Test relies on SQL grouping behavior:
+            # https://github.com/django/django/pull/19489#discussion_r3462766505
+            "aggregation.tests.AggregateTestCase.test_string_agg_filter_outerref",
         },
     }
 
