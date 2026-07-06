@@ -56,7 +56,8 @@ jobs:
   # and the check can be slow/flaky, so there's no need to block PRs on it.
   linkcheck:
     name: Docs Link Check
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # TODO: remove pull_request trigger once linkcheck debugging on this PR is done
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.0
