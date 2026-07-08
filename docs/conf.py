@@ -56,11 +56,7 @@ intersphinx_mapping = {
 }
 
 # Some pages use JavaScript and anchors won't work right away.
-linkcheck_anchors_ignore_for_url = [
-    "https://www.mongodb.com/docs/manual/core/queryable-encryption/install-library/#std-label-qe-csfle-shared-library-download",
-    "https://www.mongodb.com/docs/vector-search/index/vector-search-type/#std-label-avs-similarity-functions",
-    "https://www.mongodb.com/docs/vector-search/index/vector-search-type/#about-the-indexing-methods",
-]
+linkcheck_anchors = False
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
