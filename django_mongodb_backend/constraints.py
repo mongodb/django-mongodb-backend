@@ -61,7 +61,7 @@ def _get_partial_unique_filter(field, connection):
             return {"$type": db_type}
 
 
-def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefix=""):
+def get_pymongo_index_model(self, model, schema_editor, field=None):
     """Return a pymongo IndexModel for this UniqueConstraint."""
     if self.contains_expressions:
         return None
@@ -75,8 +75,7 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefi
         # be True or False for a UniqueConstraint, or None for
         # Field(unique=True) or Meta.unique_together.
         if field:
-            column = column_prefix + field.column
-            filter_expression[column].update(
+            filter_expression[field.column].update(
                 _get_partial_unique_filter(field, schema_editor.connection)
             )
         else:
@@ -88,12 +87,9 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefi
     if filter_expression:
         kwargs["partialFilterExpression"] = filter_expression
     index_orders = (
-        [(column_prefix + field.column, ASCENDING)]
+        [(field.column, ASCENDING)]
         if field
-        else [
-            (column_prefix + get_field(model, field_name).column, ASCENDING)
-            for field_name in self.fields
-        ]
+        else [(get_field(model, field_name).column, ASCENDING) for field_name in self.fields]
     )
     return IndexModel(index_orders, name=self.name, unique=True, **kwargs)
 
