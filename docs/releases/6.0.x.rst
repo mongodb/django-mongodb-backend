@@ -5,7 +5,7 @@ Django MongoDB Backend 6.0.x
 6.0.4
 =====
 
-*Unreleased*
+*July 14, 2026*
 
 New features
 ------------
