@@ -60,12 +60,6 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         # by Value(None, JSONField())) and a SQL null (queried using the
         # isnull lookup). Both of these queries return both nulls.
         "model_fields.test_jsonfield.TestSaveLoad.test_json_null_different_from_sql_null",
-        # Using JSONField keys in QuerySet.exclude() incorrectly treats
-        # documents with absent keys as satisfying the exclusion:
-        # https://jira.mongodb.org/browse/INTPYTHON-994.
-        "model_fields.test_jsonfield.TestQuerying.test_lookup_exclude",
-        "model_fields.test_jsonfield.TestQuerying.test_lookup_exclude_nonexistent_key",
-        "model_fields.test_jsonfield.TestQuerying.test_none_key_exclude",
         # $concat only supports strings, not int
         "db_functions.text.test_concat.ConcatTests.test_concat_non_str",
         # QuerySet.order_by() with annotation transform doesn't work:
