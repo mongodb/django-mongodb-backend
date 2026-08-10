@@ -18,9 +18,9 @@ project template:
 
 .. code-block:: bash
 
-    $ django-admin startproject mysite --template https://github.com/mongodb-labs/django-mongodb-project/archive/refs/heads/6.0.x.zip
+    $ django-admin startproject mysite --template https://github.com/mongodb-labs/django-mongodb-project/archive/refs/heads/6.1.x.zip
 
-(If you're using a version of Django other than 6.0.x, replace the two numbers
+(If you're using a version of Django other than 6.1.x, replace the two numbers
 to match the first two numbers from your version.)
 
 This template includes the following line in ``settings.py``::
