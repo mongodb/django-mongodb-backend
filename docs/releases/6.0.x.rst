@@ -67,6 +67,10 @@ Bug fixes
   :lookup:`iendswith`, :lookup:`contains`, :lookup:`icontains`,
   :lookup:`regex`, and :lookup:`iregex`) on non-string fields.
 
+- Fixed ``QuerySet.exclude()`` (and negated ``Q`` objects) on
+  :class:`~django.db.models.JSONField` key lookups so that documents which
+  don't contain the key are no longer included in the results.
+
 - Fixed form rendering of
   :class:`~django_mongodb_backend.fields.EmbeddedModelField`
   and :class:`~django_mongodb_backend.fields.EmbeddedModelArrayField` so that
