@@ -165,25 +165,6 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             elif self._field_should_have_unique(field):
                 self._remove_field_unique(model, field)
 
-    def _remove_model_indexes(self, model):
-        if not model._meta.managed or model._meta.proxy or model._meta.swapped:
-            return
-        # Field indexes and uniques
-        for field in model._meta.local_fields:
-            if self._field_should_be_indexed(model, field):
-                self._remove_field_index(model, field)
-            elif self._field_should_have_unique(field):
-                self._remove_field_unique(model, field)
-        # Meta.unique_together
-        if model._meta.unique_together:
-            self.alter_unique_together(model, model._meta.unique_together, [])
-        # Meta.constraints
-        for constraint in model._meta.constraints:
-            self.remove_constraint(model, constraint)
-        # Meta.indexes
-        for index in model._meta.indexes:
-            self.remove_index(model, index)
-
     @ignore_embedded_models
     def alter_index_together(self, model, old_index_together, new_index_together):
         olds = {tuple(fields) for fields in old_index_together}
