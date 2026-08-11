@@ -43,6 +43,12 @@ class GISFeatures(BaseSpatialFeatures):
                     # doesn't happen.
                     "gis_tests.gis_migrations.test_operations.NoRasterSupportTests",
                 },
+                "MongoDB doesn't support nested GeometryCollections.": {
+                    # The server rejects the insert with "GeometryCollections
+                    # cannot be nested" (error 16755).
+                    "gis_tests.geoapp.tests.SaveLoadTests."
+                    "test_geometrycollectionfield_default_max_ignored_on_read",
+                },
                 "GeoJSONSerializer doesn't support ObjectId.": {
                     "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_fields_option",
                     "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_geometry_field_option",
