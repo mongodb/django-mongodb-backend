@@ -69,6 +69,8 @@ Database functions
     :class:`~django.db.models.functions.SHA224`,
     :class:`~django.db.models.functions.SHA384`,
     :class:`~django.db.models.functions.SHA512`
+  - :class:`~django.db.models.functions.UUID4`,
+    :class:`~django.db.models.functions.UUID7`
 
 Transaction management
 ======================

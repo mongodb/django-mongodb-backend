@@ -1,8 +1,4 @@
-from datetime import datetime
-
-from django.conf import settings
 from django.db import NotSupportedError
-from django.db.models import DateField, DateTimeField, TimeField
 from django.db.models.functions.datetime import (
     Extract,
     ExtractDay,
@@ -79,36 +75,6 @@ def trunc(self, compiler, connection):
     return {"$dateTrunc": lhs_mql}
 
 
-_trunc_convert_value = TruncBase.convert_value
-
-
-def trunc_convert_value(self, value, expression, connection):
-    if connection.vendor == "mongodb":
-        # A custom TruncBase.convert_value() for MongoDB.
-        if value is None:
-            return None
-        convert_to_tz = settings.USE_TZ and self.get_tzname() != "UTC"
-        if isinstance(self.output_field, DateTimeField):
-            if convert_to_tz:
-                # Unlike other databases, MongoDB returns the value in UTC,
-                # so rather than setting the time zone equal to self.tzinfo,
-                # the value must be converted to tzinfo.
-                value = value.astimezone(self.tzinfo)
-        elif isinstance(value, datetime):
-            if isinstance(self.output_field, DateField):
-                if convert_to_tz:
-                    value = value.astimezone(self.tzinfo)
-                # Truncate for Trunc(..., output_field=DateField)
-                value = value.date()
-            elif isinstance(self.output_field, TimeField):
-                if convert_to_tz:
-                    value = value.astimezone(self.tzinfo)
-                # Truncate for Trunc(..., output_field=TimeField)
-                value = value.time()
-        return value
-    return _trunc_convert_value(self, value, expression, connection)
-
-
 def trunc_date(self, compiler, connection):
     # Cast to date rather than truncate to date.
     lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
@@ -155,6 +121,5 @@ def register_datetime():
     ExtractQuarter.as_mql_expr = extract_quarter
     Now.as_mql_expr = now
     TruncBase.as_mql_expr = trunc
-    TruncBase.convert_value = trunc_convert_value
     TruncDate.as_mql_expr = trunc_date
     TruncTime.as_mql_expr = trunc_time

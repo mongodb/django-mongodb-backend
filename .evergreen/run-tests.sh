@@ -22,7 +22,7 @@ else
 fi
 
 # Install django and test dependencies
-git clone --branch mongodb-6.0.x https://github.com/mongodb-forks/django django_repo
+git clone --branch mongodb-6.1.x https://github.com/mongodb-forks/django django_repo
 pushd django_repo/tests/
 pip install -e ..
 pip install -r requirements/py3.txt
