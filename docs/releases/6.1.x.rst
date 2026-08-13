@@ -5,12 +5,20 @@ Django MongoDB Backend 6.1.x
 6.1.0
 =====
 
-*Unreleased*
+*August 12, 2026*
 
-FIXME(replace x with latest version number): Initial release from the state of
-django-mongodb-backend 6.0.x.
+Initial release from the state of :ref:`django-mongodb-backend 6.0.4
+<django-mongodb-backend-6.0.4>`.
 
 Backwards incompatible changes
 ------------------------------
 
-- ...
+- Django 6.1 is now required. Django 6.0 is supported by the
+  ``django-mongodb-backend`` 6.0.x series.
+- Defining indexes and constraints on embedded models using ``unique=True``,
+  ``db_index=True``, ``Meta.constraints``, ``Meta.indexes``, and
+  ``Meta.unique_together`` is no longer supported, as per the
+  :ref:`deprecation timeline <inline-constraints-and-indexes-deprecation>`.
+  Use :class:`~django_mongodb_backend.indexes.EmbeddedFieldIndex` and
+  :class:`~django_mongodb_backend.constraints.EmbeddedFieldUniqueConstraint`
+  on the top-level model instead.
