@@ -8,7 +8,7 @@ from django.test.utils import isolate_apps
 from django_mongodb_backend.fields import PolymorphicEmbeddedModelArrayField
 from django_mongodb_backend.models import EmbeddedModel
 
-from .models import Bone, Cat, Dog, Owner
+from .models import Bone, Cat, ConcreteOwner, Dog, Owner
 
 
 class MethodTests(SimpleTestCase):
@@ -23,7 +23,7 @@ class MethodTests(SimpleTestCase):
         self.assertEqual(name, "field_name")
         self.assertEqual(path, "django_mongodb_backend.fields.PolymorphicEmbeddedModelArrayField")
         self.assertEqual(args, [])
-        self.assertEqual(kwargs, {"embedded_models": ["Dog"], "null": True})
+        self.assertEqual(kwargs, {"embedded_models": ("Dog",), "null": True})
 
     def test_size_not_supported(self):
         msg = "PolymorphicEmbeddedModelArrayField does not support size."
@@ -61,6 +61,15 @@ class ModelTests(TestCase):
         Owner.objects.create(name="Bob")
         owner = Owner.objects.get(name="Bob")
         self.assertIsNone(owner.pets)
+
+    def test_save_load_concrete(self):
+        pets = [Dog(name="Woofer"), Cat(name="Phoebe", weight="3.5")]
+        ConcreteOwner.objects.create(name="Bob", pets=pets)
+        owner = ConcreteOwner.objects.get(name="Bob")
+        self.assertEqual(owner.pets[0].name, "Woofer")
+        self.assertEqual(owner.pets[1].name, "Phoebe")
+        self.assertEqual(owner.pets[1].weight, Decimal("3.5"))
+        self.assertEqual(len(owner.pets), 2)
 
     def test_missing_field_in_data(self):
         """

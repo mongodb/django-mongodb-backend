@@ -53,6 +53,11 @@ class GISFeatures(BaseSpatialFeatures):
                     "gis_tests.geoapp.tests.GeoModelTest.test_gis_query_as_string",
                     "gis_tests.geoapp.tests.GeoLookupTest.test_gis_lookups_with_complex_expressions",
                 },
+                "MongoDB doesn't support nested GeometryCollections.": {
+                    # Error: Can't extract geo keys ...
+                    # GeometryCollections cannot be nested
+                    "gis_tests.geoapp.tests.SaveLoadTests.test_geometrycollectionfield_default_max_ignored_on_read",
+                },
                 "GeoJSONSerializer doesn't support ObjectId.": {
                     "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_fields_option",
                     "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_geometry_field_option",

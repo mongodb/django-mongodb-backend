@@ -251,6 +251,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "queries.test_qs_combinators.QuerySetSetOperationTests.test_order_raises_on_non_selected_column",
             "queries.tests.RelatedLookupTypeTests.test_values_queryset_lookup",
             "queries.tests.ValuesSubqueryTests.test_values_in_subquery",
+            "serializers.test_deserialization.TestDeserializer.test_crafted_xml_performance",
             "sites_tests.tests.CreateDefaultSiteTests.test_no_site_id",
         },
         "Cannot use QuerySet.delete() when querying across multiple collections on MongoDB.": {
