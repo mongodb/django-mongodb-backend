@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout django-mongodb-backend
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: install django-mongodb-backend
@@ -30,10 +30,10 @@ jobs:
           pip3 install --upgrade pip
           pip3 install -e .[encryption]
       - name: Checkout Django
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@v7.0.1
         with:
           repository: 'mongodb-forks/django'
-          ref: 'mongodb-6.0.x'
+          ref: 'mongodb-6.1.x'
           path: 'django_repo'
           persist-credentials: false
       - name: Install system packages for Django's Python test dependencies

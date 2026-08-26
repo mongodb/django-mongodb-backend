@@ -4,6 +4,7 @@ from .datetime import register_datetime
 from .json import register_json
 from .math import register_math
 from .text import register_text
+from .uuid import register_uuid
 from .window import register_window
 
 
@@ -14,4 +15,5 @@ def register_functions():
     register_json()
     register_math()
     register_text()
+    register_uuid()
     register_window()

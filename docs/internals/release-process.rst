@@ -74,6 +74,15 @@ request, a branch is created off of main to track the previous feature release.
 For example, the 5.1.x branch is created shortly after the release of Django
 5.2, and main starts tracking the Django 5.2.x series.
 
+Handling backports
+==================
+
+If a bug fix on ``main`` should be applied to one or more stable branches
+according to the :ref:`Supported versions policy <supported-versions-policy>`,
+note it in the pull request description. Whoever merges the PR to ``main`` is
+responsible for opening the backport PR against the stable branch(es). Prefix
+the PR title with the branch name (e.g. ``[5.2.x] ...``).
+
 .. _django-fork:
 
 The Django fork
@@ -106,3 +115,20 @@ Django's ``main`` branch. The ``mongodb-6.1.x`` branch is used in the `"Update
 to Django 6.1" pull request
 <https://github.com/mongodb/django-mongodb-backend/pull/422>`_ to be merged
 upon the release of Django 6.1.
+
+Branch relationship summary
+===========================
+
+To summarize the relationship of each repositories' branches:
+
+==============  =======================  =============  ===============
+Django version  Django MongoDB Backend   Django fork    Django upstream
+==============  =======================  =============  ===============
+6.2.x           `PR 535`_                mongodb-6.2.x  main
+6.1.x           `PR 422`_                mongodb-6.1.x  stable/6.1.x
+6.0.x           main                     mongodb-6.0.x  stable/6.0.x
+5.2.x           5.2.x                    mongodb-5.2.x  stable/5.2.x
+==============  =======================  =============  ===============
+
+.. _PR 422: https://github.com/mongodb/django-mongodb-backend/pull/422
+.. _PR 535: https://github.com/mongodb/django-mongodb-backend/pull/535

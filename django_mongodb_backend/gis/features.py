@@ -26,9 +26,6 @@ class GISFeatures(BaseSpatialFeatures):
         skips = super().django_test_skips
         skips.update(
             {
-                "inspectdb not supported.": {
-                    "gis_tests.inspectapp.tests.InspectDbTests",
-                },
                 "MongoDB doesn't support the SRID used in this test.": {
                     # Error messages:
                     # - Can't extract geo keys
@@ -45,6 +42,12 @@ class GISFeatures(BaseSpatialFeatures):
                     # MongoDB migrations don't need to call it, so the check
                     # doesn't happen.
                     "gis_tests.gis_migrations.test_operations.NoRasterSupportTests",
+                },
+                "MongoDB doesn't support nested GeometryCollections.": {
+                    # The server rejects the insert with "GeometryCollections
+                    # cannot be nested" (error 16755).
+                    "gis_tests.geoapp.tests.SaveLoadTests."
+                    "test_geometrycollectionfield_default_max_ignored_on_read",
                 },
                 "GeoJSONSerializer doesn't support ObjectId.": {
                     "gis_tests.geoapp.test_serializers.GeoJSONSerializerTests.test_fields_option",
