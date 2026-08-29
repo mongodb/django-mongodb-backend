@@ -249,6 +249,43 @@ buildvariants:
     tasks:
       - name: run-encryption-tests
 
+  # Variants that run against the latest MongoDB nightly server build to catch
+  # new server-side validations and behavior changes early. Scheduled daily
+  # rather than on every commit.
+  - name: tests-latest-auth-ssl
+    display_name: Run Tests Latest Auth SSL
+    run_on: rhel87-small
+    batchtime: 1440  # Daily
+    expansions:
+      MONGODB_VERSION: "latest"
+      TOPOLOGY: server
+      AUTH: "auth"
+      SSL: "ssl"
+    tasks:
+      - name: run-tests
+
+  - name: tests-latest-qe-local
+    display_name: Run Tests Latest QE local KMS
+    run_on: rhel87-small
+    batchtime: 1440  # Daily
+    expansions:
+      MONGODB_VERSION: "latest"
+      TOPOLOGY: replica_set
+      DJANGO_SETTINGS_MODULE: "encrypted_settings"
+    tasks:
+      - name: run-encryption-tests
+
+  - name: tests-latest-qe-aws
+    display_name: Run Tests Latest QE AWS KMS
+    run_on: rhel87-small
+    batchtime: 1440  # Daily
+    expansions:
+      MONGODB_VERSION: "latest"
+      TOPOLOGY: replica_set
+      DJANGO_SETTINGS_MODULE: "encrypted_aws_settings"
+    tasks:
+      - name: run-encryption-tests
+
   - name: performance-tests
     display_name: Performance Tests
     run_on:
