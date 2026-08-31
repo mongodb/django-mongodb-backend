@@ -693,6 +693,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "backends.tests.BackendTestCase.test_unicode_fetches",
             "backends.tests.EscapingChecks.test_parameter_escaping",
             "backends.tests.EscapingChecks.test_paramless_no_escaping",
+            "basic.tests.ModelFromDbTests.test_old_signature_raw",
             "composite_pk.tests.CompositePKTests.test_raw",
             "composite_pk.tests.CompositePKTests.test_raw_missing_PK_fields",
             "delete_regress.tests.DeleteLockingTest.test_concurrent_delete",
