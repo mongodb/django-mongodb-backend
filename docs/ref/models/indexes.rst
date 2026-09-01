@@ -28,7 +28,7 @@ minutes, depending on the size of the collection.
 
 .. class:: SearchIndex(fields=(), field_mappings=None, name=None, analyzer=None, search_analyzer=None)
 
-    Creates a basic :doc:`search index <search:index/index-definitions>` on the
+    Creates a basic :doc:`search index <search:indexes/index-definitions>` on the
     given field(s).
 
     Some fields such as :class:`~django.db.models.DecimalField` aren't
@@ -47,7 +47,7 @@ minutes, depending on the size of the collection.
     your model has multiple indexes).
 
     Use ``analyzer`` and ``search_analyzer`` to configure the indexing and
-    searching :doc:`analyzer <search:index/analyzers/overview>`. If these
+    searching :doc:`analyzer <search:indexes/analyzers/overview>`. If these
     options aren't provided, the server defaults to ``lucene.standard``. It
     corresponds to ``definition["analyzer"]`` and
     ``definition["searchAnalyzer"]`` in the
@@ -64,7 +64,7 @@ minutes, depending on the size of the collection.
 .. class:: VectorSearchIndex(*, fields=(), name=None, similarities)
 
     A subclass of :class:`SearchIndex` that creates a :doc:`vector search index
-    <vector-search:index/vector-search-type>` on the given field(s).
+    <vector-search:indexes/vector-search-type>` on the given field(s).
 
     The index must reference at least one vector field: an :class:`.ArrayField`
     with a :attr:`~.ArrayField.base_field` of
