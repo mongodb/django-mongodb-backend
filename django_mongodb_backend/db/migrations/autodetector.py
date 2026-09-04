@@ -7,16 +7,6 @@ from django.db.migrations.utils import resolve_relation
 
 
 class MigrationAutodetector(BaseMigrationAutodetector):
-    def generate_renamed_models(self):
-        # Treat unmanaged models like managed models so that all migration
-        # operations are generated for them, not just CreateModel/DeleteModel.
-        # Obsolete once https://code.djangoproject.com/ticket/35813 is fixed.
-        self.old_model_keys |= self.old_unmanaged_keys
-        self.old_unmanaged_keys = set()
-        self.new_model_keys |= self.new_unmanaged_keys
-        self.new_unmanaged_keys = set()
-        super().generate_renamed_models()
-
     def add_operation(self, app_label, operation, dependencies=None, beginning=False):
         # Unlike relational fields, embedded model fields don't get a
         # dependency on the referenced model's creation, since they have no
