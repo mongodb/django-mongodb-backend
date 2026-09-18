@@ -634,6 +634,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "delete_regress.tests.Ticket19102Tests.test_ticket_19102_extra",
             "extra_regress.tests.ExtraRegressTests",
             "filtered_relation.tests.FilteredRelationTests.test_extra",
+            "lookup.tests.LookupTests.test_in_bulk_values_extra_select_all_fields",
             "lookup.tests.LookupTests.test_values_extra",
             "lookup.tests.LookupTests.test_values_list_extra",
             "many_to_one.tests.ManyToOneTests.test_joined_extra",
