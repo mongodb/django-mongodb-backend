@@ -15,6 +15,7 @@ from django.db.models.fields.json import (
     KeyTransformIn,
     KeyTransformIsNull,
     KeyTransformNumericLookupMixin,
+    KeyTransformTextLookupMixin,
 )
 
 from django_mongodb_backend.lookups import builtin_lookup_expr, builtin_lookup_path
@@ -157,6 +158,38 @@ def key_transform_exact_path(self, compiler, connection):
     }
 
 
+def key_transform_negated(self, compiler, connection, as_expr=False):
+    """
+    Return MQL for NOT(<JSONField key lookup>) using SQL three-valued
+    semantics: a row matches only when the key exists and the positive lookup
+    is false. A missing key makes the comparison NULL in SQL (and NULL is not
+    true), so such rows must be excluded from the negated result; MongoDB's
+    $not/$nor alone would instead treat a missing key as satisfying the
+    negation and wrongly include those rows. None of the positive key lookups
+    match a missing key, so ANDing the key-existence check with the negated
+    positive MQL yields the correct result. Whole-field null handling is
+    contributed separately by the IsNull term Django adds to negated lookups.
+    """
+    if not as_expr and getattr(self, "can_use_path", False):
+        lhs_mql = process_lhs(self, compiler, connection)
+        positive = self.as_mql(compiler, connection)
+        return {"$and": [_has_key_predicate(lhs_mql, None), {"$nor": [positive]}]}
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+    # Traverse to the root column for the null check in _has_key_predicate().
+    previous = self.lhs
+    while isinstance(previous, KeyTransform):
+        previous = previous.lhs
+    root_column = previous.as_mql(compiler, connection, as_expr=True)
+    positive = self.as_mql(compiler, connection, as_expr=True)
+    expr = {
+        "$and": [
+            _has_key_predicate(lhs_mql, root_column, as_expr=True),
+            {"$not": [positive]},
+        ]
+    }
+    return expr if as_expr else {"$expr": expr}
+
+
 def key_transform_in_expr(self, compiler, connection):
     """
     Return MQL to check if a JSON path exists and that its values are in the
@@ -232,3 +265,8 @@ def register_json_field():
     KeyTransformIsNull.as_mql_expr = key_transform_is_null_expr
     KeyTransformIsNull.as_mql_path = key_transform_is_null_path
     KeyTransformNumericLookupMixin.as_mql_expr = key_transform_numeric_lookup_mixin_expr
+    # SQL three-valued negation for all comparison lookups on a JSON key.
+    KeyTransformExact.as_mql_negated = key_transform_negated
+    KeyTransformIn.as_mql_negated = key_transform_negated
+    KeyTransformNumericLookupMixin.as_mql_negated = key_transform_negated
+    KeyTransformTextLookupMixin.as_mql_negated = key_transform_negated
