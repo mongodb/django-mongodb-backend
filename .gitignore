@@ -45,6 +45,7 @@ __pycache__
 .pytest_cache/
 .benchmarks
 performance_tests/odm-data
+test-reports/
 
 # documentation build artifacts
 
