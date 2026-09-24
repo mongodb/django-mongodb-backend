@@ -454,6 +454,11 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             # https://github.com/django/django/pull/19489#discussion_r3462766505
             "aggregation.tests.AggregateTestCase.test_string_agg_filter_outerref",
         },
+        "pymongo leaves objects in an uncollectable reference cycle (gc.garbage)": {
+            # Remove once PYTHON-6117 is done and released:
+            # https://jira.mongodb.org/browse/PYTHON-6117
+            "select_related.tests.SelectRelatedTests.test_select_related_memory_leak",
+        },
     }
 
     @cached_property
@@ -634,6 +639,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             "delete_regress.tests.Ticket19102Tests.test_ticket_19102_extra",
             "extra_regress.tests.ExtraRegressTests",
             "filtered_relation.tests.FilteredRelationTests.test_extra",
+            "lookup.tests.LookupTests.test_in_bulk_values_extra_select_all_fields",
             "lookup.tests.LookupTests.test_values_extra",
             "lookup.tests.LookupTests.test_values_list_extra",
             "many_to_one.tests.ManyToOneTests.test_joined_extra",
