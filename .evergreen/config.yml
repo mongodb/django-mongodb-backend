@@ -171,18 +171,19 @@ pre:
 
 post:
   - func: teardown
-  - func: "upload test results"
 
 tasks:
   - name: run-tests
     commands:
       - func: "run unit tests"
+      - func: "upload test results"
 
   - name: run-encryption-tests
     commands:
       - func: "start csfle servers"
       - func: "run encryption tests"
       - func: "teardown csfle"
+      - func: "upload test results"
 
   - name: run-performance-tests
     patchable: false
