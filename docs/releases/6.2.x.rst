@@ -1,0 +1,16 @@
+============================
+Django MongoDB Backend 6.2.x
+============================
+
+6.2.0
+=====
+
+*Unreleased*
+
+FIXME(replace x with latest version number): Initial release from the state of
+django-mongodb-backend 6.1.x.
+
+Backwards incompatible changes
+------------------------------
+
+- ...
