@@ -60,6 +60,12 @@ functions:
         args:
           - ${DRIVERS_TOOLS}/.evergreen/teardown.sh
 
+  # Upload JUnit XML test results to Evergreen
+  "upload test results":
+    - command: attach.xunit_results
+      params:
+        file: src/test-reports/TEST-*.xml
+
   # Encryption-specific functions
   "start csfle servers":
     - command: ec2.assume_role
@@ -170,12 +176,14 @@ tasks:
   - name: run-tests
     commands:
       - func: "run unit tests"
+      - func: "upload test results"
 
   - name: run-encryption-tests
     commands:
       - func: "start csfle servers"
       - func: "run encryption tests"
       - func: "teardown csfle"
+      - func: "upload test results"
 
   - name: run-performance-tests
     patchable: false

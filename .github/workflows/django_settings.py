@@ -35,3 +35,8 @@ DEFAULT_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
 PASSWORD_HASHERS = ("django.contrib.auth.hashers.MD5PasswordHasher",)
 SECRET_KEY = "django_tests_secret_key"  # noqa: S105
 USE_TZ = False
+
+# On Evergreen, report the status of each test individually in JUnit XML files.
+if os.environ.get("EVERGREEN_TEST_RESULTS"):
+    TEST_RUNNER = "xml_test_runner.EvergreenXMLTestRunner"
+    TEST_OUTPUT_DIR = os.environ.get("TEST_OUTPUT_DIR", "test-reports")
