@@ -228,7 +228,14 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         # get_pymongo_index_model() returns None for untranslatable
         # expressions, so this skips indexes that add_index() never created.
         elif index.get_pymongo_index_model(model, schema_editor=self) is not None:
-            collection.drop_index(index.name)
+            # A translatable index may still be missing: AddIndex migrations
+            # applied by versions of the backend that skipped creating
+            # expression indexes left nothing behind (see the 6.1.1 release
+            # notes), and MongoDB raises IndexNotFound when dropping a
+            # nonexistent index.
+            index_names = [idx["name"] for idx in collection.list_indexes()]
+            if index.name in index_names:
+                collection.drop_index(index.name)
 
     def _remove_composed_index(self, model, field_names, constraint_kwargs):
         """

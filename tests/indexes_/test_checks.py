@@ -372,7 +372,7 @@ class ExpressionIndexCheckTests(TestCase):
             ],
         )
 
-    def test_warning_if_any_index_untranslatable(self):
+    def test_mixed_translatable_and_untranslatable_indexes(self):
         class Article(models.Model):
             number = models.IntegerField()
             headline = models.CharField(max_length=100)
@@ -383,6 +383,19 @@ class ExpressionIndexCheckTests(TestCase):
                     Index(Lower("headline"), name="lower_idx"),
                 ]
 
-        errors = Article.check(databases={"default"})
-        # W043 is kept once per index in Meta.
-        self.assertEqual([e.id for e in errors], ["models.W043", "models.W043"])
+        self.assertEqual(
+            Article.check(databases={"default"}),
+            [
+                # Only the untranslatable index warns: the ordering index is
+                # created, so W043 is filtered from its own errors.
+                checks.Warning(
+                    "MongoDB does not support indexes on expressions.",
+                    hint=(
+                        "An index won't be created. Silence this warning "
+                        "if you don't care about it."
+                    ),
+                    obj=Article,
+                    id="models.W043",
+                )
+            ],
+        )

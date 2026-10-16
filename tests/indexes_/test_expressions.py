@@ -60,6 +60,22 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
             )
             editor.remove_index(Article, index)
 
+    def test_remove_index_never_created(self):
+        # An AddIndex migration applied by a version of the backend that
+        # skipped creating expression indexes leaves no index to drop (the
+        # 6.1.1 release notes document that such indexes aren't
+        # retroactively created). A later RemoveIndex doesn't raise
+        # IndexNotFound.
+        index = Index(F("number").desc(), name="never_created_idx")
+        with connection.schema_editor() as editor:
+            editor.remove_index(Article, index)
+            self.assertNotIn(
+                index.name,
+                connection.introspection.get_constraints(
+                    cursor=None, table_name=Article._meta.db_table
+                ),
+            )
+
     def test_nulls_ordering_skipped(self):
         # MongoDB index keys can't express NULLS LAST.
         index = Index(F("number").desc(nulls_last=True), name="nulls_idx")
