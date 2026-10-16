@@ -225,11 +225,9 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             if self.connection.features.supports_search:
                 collection.drop_search_index(index.name)
                 self.wait_until_index_dropped(collection, index.name)
-        # get_pymongo_index_model() returns None for untranslatable
-        # expressions. A translatable index may still be missing: its
-        # AddIndex migration may have run under a backend version that
-        # skipped expression indexes (see the 6.1.1 release notes), and
-        # MongoDB raises IndexNotFound when dropping a nonexistent index.
+        # The index may not exist: its AddIndex migration can predate
+        # expression index support, and MongoDB raises when dropping a
+        # nonexistent index.
         elif index.get_pymongo_index_model(model, schema_editor=self) is not None:
             index_names = [idx["name"] for idx in collection.list_indexes()]
             if index.name in index_names:
