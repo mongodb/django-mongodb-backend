@@ -219,15 +219,15 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
 
     @ignore_embedded_models
     def remove_index(self, model, index):
-        if index.contains_expressions:
-            return
         collection = self.get_collection(model._meta.db_table)
         if isinstance(index, SearchIndex):
             # Drop the index if it's supported.
             if self.connection.features.supports_search:
                 collection.drop_search_index(index.name)
                 self.wait_until_index_dropped(collection, index.name)
-        else:
+        # get_pymongo_index_model() returns None for untranslatable
+        # expressions, so this skips indexes that add_index() never created.
+        elif index.get_pymongo_index_model(model, schema_editor=self) is not None:
             collection.drop_index(index.name)
 
     def _remove_composed_index(self, model, field_names, constraint_kwargs):

@@ -34,6 +34,8 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     supports_deferrable_unique_constraints = False
     supports_explaining_query_execution = True
     supports_expression_defaults = False
+    # Only ordering expressions (F, OrderBy) translate into MongoDB index
+    # keys; other expression indexes (e.g. Lower) are skipped.
     supports_expression_indexes = False
     supports_foreign_keys = False
     supports_frame_range_fixed_distance = True
@@ -170,6 +172,9 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
         "MongoDB doesn't rename an index when a field is renamed.": {
             "migrations.test_operations.OperationTests.test_rename_field_index_together",
             "migrations.test_operations.OperationTests.test_rename_field_unique_together",
+        },
+        "MongoDB creates F()/OrderBy() expression indexes.": {
+            "schema.tests.SchemaTests.test_func_index_unsupported",
         },
         "AutoField not supported.": {
             "bulk_create.tests.BulkCreateTests.test_bulk_insert_nullable_fields",

@@ -2,6 +2,8 @@ from unittest import mock
 
 from django.core import checks
 from django.db import connection, models
+from django.db.models import F, Index
+from django.db.models.functions import Lower
 from django.test import TestCase
 from django.test.utils import isolate_apps
 
@@ -335,3 +337,52 @@ class EmbeddedFieldIndexChecksTests(TestCase):
             errors[0].msg,
             "'indexes' refers to the nonexistent field 'thing.tags.xxx'.",
         )
+
+
+@isolate_apps("indexes_")
+class ExpressionIndexCheckTests(TestCase):
+    def test_no_warning_for_translatable_expressions(self):
+        class Article(models.Model):
+            number = models.IntegerField()
+
+            class Meta:
+                indexes = [Index(F("number").desc(), name="ordering_idx")]
+
+        self.assertEqual(Article.check(databases={"default"}), [])
+
+    def test_warning_for_untranslatable_expressions(self):
+        class Article(models.Model):
+            headline = models.CharField(max_length=100)
+
+            class Meta:
+                indexes = [Index(Lower("headline"), name="lower_idx")]
+
+        self.assertEqual(
+            Article.check(databases={"default"}),
+            [
+                checks.Warning(
+                    "MongoDB does not support indexes on expressions.",
+                    hint=(
+                        "An index won't be created. Silence this warning "
+                        "if you don't care about it."
+                    ),
+                    obj=Article,
+                    id="models.W043",
+                )
+            ],
+        )
+
+    def test_warning_if_any_index_untranslatable(self):
+        class Article(models.Model):
+            number = models.IntegerField()
+            headline = models.CharField(max_length=100)
+
+            class Meta:
+                indexes = [
+                    Index(F("number").desc(), name="ordering_idx"),
+                    Index(Lower("headline"), name="lower_idx"),
+                ]
+
+        errors = Article.check(databases={"default"})
+        # W043 is kept once per index in Meta.
+        self.assertEqual([e.id for e in errors], ["models.W043", "models.W043"])
