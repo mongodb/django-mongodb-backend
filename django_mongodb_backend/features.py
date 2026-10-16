@@ -34,8 +34,7 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
     supports_deferrable_unique_constraints = False
     supports_explaining_query_execution = True
     supports_expression_defaults = False
-    # Only ordering expressions (F, OrderBy) translate into MongoDB index
-    # keys; other expression indexes (e.g. Lower) are skipped.
+    # Only ordering expressions (F, OrderBy) translate into MongoDB index keys.
     supports_expression_indexes = False
     supports_foreign_keys = False
     supports_frame_range_fixed_distance = True

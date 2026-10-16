@@ -86,9 +86,8 @@ def get_field(model, field_name):
 
 def expression_index_orders(expressions, model):
     """
-    Return the MongoDB index keys for an Index's expressions as a list of
-    (column, direction) tuples, or None if they can't be translated. Only
-    F() and OrderBy() orderings translate.
+    Return the MongoDB index keys for expressions as (column, direction)
+    tuples, or None if they can't be translated: only F() and OrderBy().
     """
     orders = []
     for expression in expressions:

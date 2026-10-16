@@ -18,8 +18,7 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
         return list(idx.document["key"].items())
 
     def assertRemoveIndexDrops(self, index, keys):
-        # Set up an existing index the way an older backend version or a
-        # manual migration could have, then remove it.
+        # Create the index the way an older backend version could have.
         collection = connection.get_collection(Article._meta.db_table)
         collection.create_index(keys, name=index.name)
         try:
@@ -101,9 +100,8 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
             )
 
     def test_remove_index_collect_sql(self):
-        # Collecting migration SQL (e.g. sqlmigrate) records the drop
-        # without a live listIndexes() call: introspection isn't a
-        # collected operation, so it would bypass the OperationCollector.
+        # Collecting migration SQL (sqlmigrate) records the drop without a
+        # live listIndexes() call: introspection isn't a collected operation.
         index = Index(F("number").desc(), name="collect_sql_idx")
         with (
             mock.patch(
@@ -120,8 +118,7 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
 
     def test_untranslatable_expression_with_condition_skipped(self):
         # An untranslatable expression skips the index without raising,
-        # even when the condition is untranslatable too: the condition is
-        # only translated once the expressions prove translatable.
+        # even when the condition is untranslatable too.
         index = Index(
             Lower("headline"), name="lower_condition_idx", condition=Q(number__isnull=True)
         )
@@ -131,10 +128,8 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
             editor.remove_index(Article, index)
 
     def test_remove_index_with_unsupported_condition(self):
-        # Removal doesn't translate the partial-filter condition: an index
-        # whose condition can't be translated (e.g. an unsupported lookup)
-        # is dropped by name, since the backend might not have been the
-        # one to create it.
+        # Removal doesn't translate the partial-filter condition: the index
+        # is dropped by name even if its condition can't be translated.
         index = Index("headline", name="unsupported_cond_idx", condition=Q(number__isnull=True))
         self.assertRemoveIndexDrops(index, [("headline", ASCENDING)])
 
@@ -153,10 +148,8 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
             self.assertIsNone(index.get_pymongo_index_model(Article, schema_editor=editor))
 
     def test_contains_expressions_false(self):
-        # Some Index subclasses (e.g. django-tasks-db's
-        # ConditionalPartialIndex) report contains_expressions=False so that
-        # backends which under-report expression support still create the
-        # index.
+        # django-tasks-db's ConditionalPartialIndex and similar subclasses
+        # report contains_expressions=False so backends still create them.
         class ConditionalPartialIndex(Index):
             @property
             def contains_expressions(self):

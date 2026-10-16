@@ -225,19 +225,13 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             if self.connection.features.supports_search:
                 collection.drop_search_index(index.name)
                 self.wait_until_index_dropped(collection, index.name)
-        # The index may not exist: its AddIndex migration can predate
-        # expression index support, and MongoDB raises when dropping a
-        # nonexistent index. Only indexes with translatable expressions
-        # are created (the sole reason get_pymongo_index_model() returns
-        # None), so decide on the expressions alone: translating an
-        # unsupported partial-filter condition would raise
-        # NotSupportedError and block removing an index the backend
-        # didn't create.
+        # The index may not exist (its AddIndex can predate expression
+        # support), and deciding on the expressions alone keeps an
+        # untranslatable partial-filter condition from blocking removal.
         elif not index.expressions or expression_index_orders(index.expressions, model) is not None:
             if self.collect_sql:
-                # Collecting migration SQL doesn't introspect the database:
-                # listIndexes() isn't a collected operation, so it would
-                # bypass the OperationCollector with a live call.
+                # SQL collection doesn't introspect the database: that
+                # listIndexes() call would bypass the OperationCollector.
                 collection.drop_index(index.name)
             else:
                 index_names = [idx["name"] for idx in collection.list_indexes()]
