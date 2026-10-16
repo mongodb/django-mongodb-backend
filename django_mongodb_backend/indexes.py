@@ -130,12 +130,6 @@ def check(self, model, connection):
 
 def get_pymongo_index_model(self, model, schema_editor, field=None):
     """Return a pymongo IndexModel for this Django Index."""
-    kwargs = {}
-    filter_expression = defaultdict(dict)
-    if self.condition:
-        filter_expression.update(self._get_condition_mql(model, schema_editor))
-    if filter_expression:
-        kwargs["partialFilterExpression"] = filter_expression
     if field:
         index_orders = [(field.column, ASCENDING)]
     elif self.expressions:
@@ -143,6 +137,8 @@ def get_pymongo_index_model(self, model, schema_editor, field=None):
         # Index subclasses report contains_expressions=False.
         index_orders = expression_index_orders(self.expressions, model)
         if index_orders is None:
+            # Skip untranslatable expressions before translating the
+            # condition, which may raise for its own unsupported lookups.
             return None
     else:
         index_orders = [
@@ -154,6 +150,12 @@ def get_pymongo_index_model(self, model, schema_editor, field=None):
             )
             for field_name, order in self.fields_orders
         ]
+    kwargs = {}
+    filter_expression = defaultdict(dict)
+    if self.condition:
+        filter_expression.update(self._get_condition_mql(model, schema_editor))
+    if filter_expression:
+        kwargs["partialFilterExpression"] = filter_expression
     return IndexModel(index_orders, name=self.name, **kwargs)
 
 

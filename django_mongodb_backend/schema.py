@@ -229,9 +229,15 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         # expression index support, and MongoDB raises when dropping a
         # nonexistent index.
         elif index.get_pymongo_index_model(model, schema_editor=self) is not None:
-            index_names = [idx["name"] for idx in collection.list_indexes()]
-            if index.name in index_names:
+            if self.collect_sql:
+                # Collecting migration SQL doesn't introspect the database:
+                # listIndexes() isn't a collected operation, so it would
+                # bypass the OperationCollector with a live call.
                 collection.drop_index(index.name)
+            else:
+                index_names = [idx["name"] for idx in collection.list_indexes()]
+                if index.name in index_names:
+                    collection.drop_index(index.name)
 
     def _remove_composed_index(self, model, field_names, constraint_kwargs):
         """

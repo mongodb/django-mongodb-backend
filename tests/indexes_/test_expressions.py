@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.db import connection
 from django.db.models import F, Index, Q
 from django.db.models.functions import Lower
@@ -72,6 +74,36 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
                     cursor=None, table_name=Article._meta.db_table
                 ),
             )
+
+    def test_remove_index_collect_sql(self):
+        # Collecting migration SQL (e.g. sqlmigrate) records the drop
+        # without a live listIndexes() call: introspection isn't a
+        # collected operation, so it would bypass the OperationCollector.
+        index = Index(F("number").desc(), name="collect_sql_idx")
+        with (
+            mock.patch(
+                "pymongo.collection.Collection.list_indexes",
+                side_effect=AssertionError("unexpected live listIndexes() call"),
+            ),
+            connection.schema_editor(collect_sql=True, atomic=False) as editor,
+        ):
+            editor.remove_index(Article, index)
+        self.assertEqual(
+            editor.collected_sql,
+            [f"db.{Article._meta.db_table}.drop_index('{index.name}')"],
+        )
+
+    def test_untranslatable_expression_with_condition_skipped(self):
+        # An untranslatable expression skips the index without raising,
+        # even when the condition is untranslatable too: the condition is
+        # only translated once the expressions prove translatable.
+        index = Index(
+            Lower("headline"), name="lower_condition_idx", condition=Q(number__isnull=True)
+        )
+        with connection.schema_editor() as editor:
+            self.assertIsNone(index.get_pymongo_index_model(Article, schema_editor=editor))
+            editor.add_index(Article, index)
+            editor.remove_index(Article, index)
 
     def test_nulls_ordering_skipped(self):
         # MongoDB index keys can't express NULLS LAST.
