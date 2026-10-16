@@ -2,6 +2,8 @@ from unittest import mock
 
 from django.core import checks
 from django.db import connection, models
+from django.db.models import F, Index
+from django.db.models.functions import Lower
 from django.test import TestCase
 from django.test.utils import isolate_apps
 
@@ -334,4 +336,94 @@ class EmbeddedFieldIndexChecksTests(TestCase):
         self.assertEqual(
             errors[0].msg,
             "'indexes' refers to the nonexistent field 'thing.tags.xxx'.",
+        )
+
+
+@isolate_apps("indexes_")
+class ExpressionIndexCheckTests(TestCase):
+    def test_no_warning_for_translatable_expressions(self):
+        class Article(models.Model):
+            number = models.IntegerField()
+
+            class Meta:
+                indexes = [Index(F("number").desc(), name="ordering_idx")]
+
+        self.assertEqual(Article.check(databases={"default"}), [])
+
+    def test_warning_for_untranslatable_expressions(self):
+        class Article(models.Model):
+            headline = models.CharField(max_length=100)
+
+            class Meta:
+                indexes = [Index(Lower("headline"), name="lower_idx")]
+
+        self.assertEqual(
+            Article.check(databases={"default"}),
+            [
+                checks.Warning(
+                    "MongoDB does not support indexes on expressions.",
+                    hint=(
+                        "An index won't be created. Silence this warning "
+                        "if you don't care about it."
+                    ),
+                    obj=Article,
+                    id="models.W043",
+                )
+            ],
+        )
+
+    def test_warning_for_untranslatable_expressions_in_subclass(self):
+        # contains_expressions=False doesn't stop the backend from skipping
+        # this index, so untranslatable expressions must still warn.
+        class ConditionalPartialIndex(Index):
+            @property
+            def contains_expressions(self):
+                return False
+
+        class Article(models.Model):
+            headline = models.CharField(max_length=100)
+
+            class Meta:
+                indexes = [ConditionalPartialIndex(Lower("headline"), name="lower_idx")]
+
+        self.assertEqual(
+            Article.check(databases={"default"}),
+            [
+                checks.Warning(
+                    "MongoDB does not support indexes on expressions.",
+                    hint=(
+                        "An index won't be created. Silence this warning "
+                        "if you don't care about it."
+                    ),
+                    obj=Article,
+                    id="models.W043",
+                )
+            ],
+        )
+
+    def test_mixed_translatable_and_untranslatable_indexes(self):
+        class Article(models.Model):
+            number = models.IntegerField()
+            headline = models.CharField(max_length=100)
+
+            class Meta:
+                indexes = [
+                    Index(F("number").desc(), name="ordering_idx"),
+                    Index(Lower("headline"), name="lower_idx"),
+                ]
+
+        self.assertEqual(
+            Article.check(databases={"default"}),
+            [
+                # Only the untranslatable index warns.
+                checks.Warning(
+                    "MongoDB does not support indexes on expressions.",
+                    hint=(
+                        "An index won't be created. Silence this warning "
+                        "if you don't care about it."
+                    ),
+                    obj=Article,
+                    id="models.W043",
+                )
+            ],
         )
