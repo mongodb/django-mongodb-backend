@@ -115,17 +115,34 @@ _django_index_check = Index.check
 
 def check(self, model, connection):
     """
-    Wrap Index.check() to drop the models.W043 warning when this index's
-    expressions are translatable into MongoDB index keys.
+    Wrap Index.check() to make the models.W043 warning match this index's
+    own expressions: dropped when they're translatable into MongoDB index
+    keys, added when they're untranslatable but Django's check didn't emit
+    the warning (subclasses reporting contains_expressions=False).
     """
     errors = _django_index_check(self, model, connection)
-    if not any(e.id == "models.W043" for e in errors):
-        return errors
-    # Django adds W043 to every index's errors when any index in Meta
-    # contains expressions; keep it only for untranslatable expressions.
-    if expression_index_orders(self.expressions, model) is None:
-        return errors
-    return [e for e in errors if e.id != "models.W043"]
+    if expression_index_orders(self.expressions, model) is not None:
+        # Django adds W043 to every index's errors when any index in Meta
+        # contains expressions; the index is created, so drop it.
+        return [e for e in errors if e.id != "models.W043"]
+    # Untranslatable expressions: the index is skipped. Django emits W043
+    # only when some index reports contains_expressions=True, which
+    # subclasses that report False don't trigger. Honor the
+    # required_db_features opt-out, as Django's own emission does.
+    if "supports_expression_indexes" not in model._meta.required_db_features and not any(
+        e.id == "models.W043" for e in errors
+    ):
+        errors.append(
+            Warning(
+                f"{connection.display_name} does not support indexes on expressions.",
+                hint=(
+                    "An index won't be created. Silence this warning if you don't care about it."
+                ),
+                obj=model,
+                id="models.W043",
+            )
+        )
+    return errors
 
 
 def get_pymongo_index_model(self, model, schema_editor, field=None):

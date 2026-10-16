@@ -372,6 +372,38 @@ class ExpressionIndexCheckTests(TestCase):
             ],
         )
 
+    def test_warning_for_untranslatable_expressions_in_subclass(self):
+        # Django emits W043 only when an index reports
+        # contains_expressions=True, but the backend decides on
+        # self.expressions: a subclass that reports False (e.g.
+        # django-tasks-db's ConditionalPartialIndex) with untranslatable
+        # expressions must still warn instead of being skipped silently.
+        class ConditionalPartialIndex(Index):
+            @property
+            def contains_expressions(self):
+                return False
+
+        class Article(models.Model):
+            headline = models.CharField(max_length=100)
+
+            class Meta:
+                indexes = [ConditionalPartialIndex(Lower("headline"), name="lower_idx")]
+
+        self.assertEqual(
+            Article.check(databases={"default"}),
+            [
+                checks.Warning(
+                    "MongoDB does not support indexes on expressions.",
+                    hint=(
+                        "An index won't be created. Silence this warning "
+                        "if you don't care about it."
+                    ),
+                    obj=Article,
+                    id="models.W043",
+                )
+            ],
+        )
+
     def test_mixed_translatable_and_untranslatable_indexes(self):
         class Article(models.Model):
             number = models.IntegerField()
