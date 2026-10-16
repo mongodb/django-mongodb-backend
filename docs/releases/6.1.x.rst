@@ -2,6 +2,13 @@
 Django MongoDB Backend 6.1.x
 ============================
 
+6.1.1
+=====
+
+*Unreleased*
+
+This release confirms support for Python 3.15. No code changes were required.
+
 6.1.0
 =====
 
