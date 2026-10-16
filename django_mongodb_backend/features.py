@@ -442,6 +442,10 @@ class DatabaseFeatures(GISFeatures, BaseDatabaseFeatures):
             # django_test_expected_raises doesn't work with async def.
             "async.test_async_queryset.AsyncQuerySetTest.test_raw",
         },
+        "MongoDB does not support creating models with expressions.": {
+            # django_test_expected_raises doesn't work with subTest.
+            "model_fields.test_jsonfield.TestQuerying.test_in_json_whitespace",
+        },
         "QuerySet.prefetch_related() is not supported on MongoDB.": {
             # django_test_expected_raises doesn't work with subTest.
             "prefetch_related.test_prefetch_related_objects.PrefetchRelatedObjectsTests.test_m2m_forward",
