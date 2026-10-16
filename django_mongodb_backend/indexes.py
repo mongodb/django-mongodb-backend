@@ -115,20 +115,15 @@ _django_index_check = Index.check
 
 def check(self, model, connection):
     """
-    Wrap Index.check() to make the models.W043 warning match this index's
-    own expressions: dropped when they're translatable into MongoDB index
-    keys, added when they're untranslatable but Django's check didn't emit
-    the warning (subclasses reporting contains_expressions=False).
+    Wrap Index.check() to keep the models.W043 warning in sync with
+    whether this index is actually created.
     """
     errors = _django_index_check(self, model, connection)
     if expression_index_orders(self.expressions, model) is not None:
-        # Django adds W043 to every index's errors when any index in Meta
-        # contains expressions; the index is created, so drop it.
+        # Created: W043 is a false positive from Django's model-level emission.
         return [e for e in errors if e.id != "models.W043"]
-    # Untranslatable expressions: the index is skipped. Django emits W043
-    # only when some index reports contains_expressions=True, which
-    # subclasses that report False don't trigger. Honor the
-    # required_db_features opt-out, as Django's own emission does.
+    # Skipped: Django never emits W043 for subclasses that report
+    # contains_expressions=False, so add it.
     if "supports_expression_indexes" not in model._meta.required_db_features and not any(
         e.id == "models.W043" for e in errors
     ):

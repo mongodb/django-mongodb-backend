@@ -373,11 +373,8 @@ class ExpressionIndexCheckTests(TestCase):
         )
 
     def test_warning_for_untranslatable_expressions_in_subclass(self):
-        # Django emits W043 only when an index reports
-        # contains_expressions=True, but the backend decides on
-        # self.expressions: a subclass that reports False (e.g.
-        # django-tasks-db's ConditionalPartialIndex) with untranslatable
-        # expressions must still warn instead of being skipped silently.
+        # contains_expressions=False doesn't stop the backend from skipping
+        # this index, so untranslatable expressions must still warn.
         class ConditionalPartialIndex(Index):
             @property
             def contains_expressions(self):
