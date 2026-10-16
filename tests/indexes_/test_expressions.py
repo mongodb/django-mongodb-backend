@@ -61,11 +61,8 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
             editor.remove_index(Article, index)
 
     def test_remove_index_never_created(self):
-        # An AddIndex migration applied by a version of the backend that
-        # skipped creating expression indexes leaves no index to drop (the
-        # 6.1.1 release notes document that such indexes aren't
-        # retroactively created). A later RemoveIndex doesn't raise
-        # IndexNotFound.
+        # AddIndex ran under a backend version that skipped expression
+        # indexes (see the 6.1.1 release notes); RemoveIndex is a no-op.
         index = Index(F("number").desc(), name="never_created_idx")
         with connection.schema_editor() as editor:
             editor.remove_index(Article, index)
@@ -86,8 +83,7 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
         # Some Index subclasses (e.g. django-tasks-db's
         # ConditionalPartialIndex) report contains_expressions=False so that
         # backends which under-report expression support still create the
-        # index. This previously crashed with
-        # "ValueError: key_or_list must not be empty".
+        # index.
         class ConditionalPartialIndex(Index):
             @property
             def contains_expressions(self):

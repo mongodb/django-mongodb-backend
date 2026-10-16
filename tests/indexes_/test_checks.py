@@ -386,8 +386,7 @@ class ExpressionIndexCheckTests(TestCase):
         self.assertEqual(
             Article.check(databases={"default"}),
             [
-                # Only the untranslatable index warns: the ordering index is
-                # created, so W043 is filtered from its own errors.
+                # Only the untranslatable index warns.
                 checks.Warning(
                     "MongoDB does not support indexes on expressions.",
                     hint=(

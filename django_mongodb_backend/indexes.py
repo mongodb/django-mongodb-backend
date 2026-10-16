@@ -87,10 +87,8 @@ def get_field(model, field_name):
 def expression_index_orders(expressions, model):
     """
     Return the MongoDB index keys for an Index's expressions as a list of
-    (column, direction) tuples, or None if they can't be translated.
-
-    Only plain field references (F), optionally wrapped in OrderBy (e.g.
-    F("name").desc()), map to MongoDB index keys.
+    (column, direction) tuples, or None if they can't be translated. Only
+    F() and OrderBy() orderings translate.
     """
     orders = []
     for expression in expressions:
@@ -117,17 +115,14 @@ _django_index_check = Index.check
 
 def check(self, model, connection):
     """
-    Wrap Index.check() to drop the models.W043 warning ("does not support
-    indexes on expressions.") when this index's expressions are translatable
-    into MongoDB index keys.
+    Wrap Index.check() to drop the models.W043 warning when this index's
+    expressions are translatable into MongoDB index keys.
     """
     errors = _django_index_check(self, model, connection)
     if not any(e.id == "models.W043" for e in errors):
         return errors
     # Django adds W043 to every index's errors when any index in Meta
-    # contains expressions. Keep it only if this index's own expressions
-    # can't be translated into MongoDB index keys (those are the indexes
-    # that won't be created).
+    # contains expressions; keep it only for untranslatable expressions.
     if expression_index_orders(self.expressions, model) is None:
         return errors
     return [e for e in errors if e.id != "models.W043"]
