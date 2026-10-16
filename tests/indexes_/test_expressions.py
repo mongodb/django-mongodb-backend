@@ -17,6 +17,31 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
         self.assertIsNotNone(idx)
         return list(idx.document["key"].items())
 
+    def assertRemoveIndexDrops(self, index, keys):
+        # Set up an existing index the way an older backend version or a
+        # manual migration could have, then remove it.
+        collection = connection.get_collection(Article._meta.db_table)
+        collection.create_index(keys, name=index.name)
+        try:
+            with connection.schema_editor() as editor:
+                editor.remove_index(Article, index)
+            self.assertNotIn(
+                index.name,
+                connection.introspection.get_constraints(
+                    cursor=None, table_name=Article._meta.db_table
+                ),
+            )
+            with connection.schema_editor(collect_sql=True, atomic=False) as editor:
+                editor.remove_index(Article, index)
+            self.assertEqual(
+                editor.collected_sql,
+                [f"db.{Article._meta.db_table}.drop_index('{index.name}')"],
+            )
+        finally:
+            names = [idx["name"] for idx in collection.list_indexes()]
+            if index.name in names:
+                collection.drop_index(index.name)
+
     def test_descending_expression(self):
         index = Index(F("number").desc(), name="ordering_desc_idx")
         self.assertEqual(self.get_index_keys(index), [("number", DESCENDING)])
@@ -104,6 +129,22 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
             self.assertIsNone(index.get_pymongo_index_model(Article, schema_editor=editor))
             editor.add_index(Article, index)
             editor.remove_index(Article, index)
+
+    def test_remove_index_with_unsupported_condition(self):
+        # Removal doesn't translate the partial-filter condition: an index
+        # whose condition can't be translated (e.g. an unsupported lookup)
+        # is dropped by name, since the backend might not have been the
+        # one to create it.
+        index = Index("headline", name="unsupported_cond_idx", condition=Q(number__isnull=True))
+        self.assertRemoveIndexDrops(index, [("headline", ASCENDING)])
+
+    def test_remove_expression_index_with_unsupported_condition(self):
+        # Same as above, for an index with translatable expressions plus an
+        # untranslatable condition: removing doesn't rebuild the filter.
+        index = Index(
+            F("number").desc(), name="expr_unsupported_cond_idx", condition=Q(number__isnull=True)
+        )
+        self.assertRemoveIndexDrops(index, [("number", DESCENDING)])
 
     def test_nulls_ordering_skipped(self):
         # MongoDB index keys can't express NULLS LAST.

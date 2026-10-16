@@ -5,7 +5,7 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
 from pymongo.operations import SearchIndexModel
 
-from django_mongodb_backend.indexes import SearchIndex
+from django_mongodb_backend.indexes import SearchIndex, expression_index_orders
 
 from .fields import EmbeddedModelField
 from .gis.schema import GISSchemaEditor
@@ -227,8 +227,13 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                 self.wait_until_index_dropped(collection, index.name)
         # The index may not exist: its AddIndex migration can predate
         # expression index support, and MongoDB raises when dropping a
-        # nonexistent index.
-        elif index.get_pymongo_index_model(model, schema_editor=self) is not None:
+        # nonexistent index. Only indexes with translatable expressions
+        # are created (the sole reason get_pymongo_index_model() returns
+        # None), so decide on the expressions alone: translating an
+        # unsupported partial-filter condition would raise
+        # NotSupportedError and block removing an index the backend
+        # didn't create.
+        elif not index.expressions or expression_index_orders(index.expressions, model) is not None:
             if self.collect_sql:
                 # Collecting migration SQL doesn't introspect the database:
                 # listIndexes() isn't a collected operation, so it would
