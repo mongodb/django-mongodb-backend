@@ -32,25 +32,13 @@ to be merged upon the release of Django X.Y.
 Branch relationship summary
 ----------------------------
 
-To summarize the relationship of each repositories' branches:
+.. figure:: /_static/branch-relationships.svg
 
-==============  =======================  ===============  ===============
-Django version  Django MongoDB Backend   Django fork      Django upstream
-==============  =======================  ===============  ===============
-next (X.Y)      update PR                mongodb-X.Y.x    main
-X.Y-1.x         main                     mongodb-X.Y-1.x  stable/X.Y-1.x
-X.Y-2.x         X.Y-2.x                  mongodb-X.Y-2.x  stable/X.Y-2.x
-==============  =======================  ===============  ===============
-
-"next (X.Y)" is the feature release under development, e.g. 6.2 while Django
-6.2 is unreleased. "X.Y-1.x" is the previous feature release series (e.g.
-6.1.x), and "X.Y-2.x" the one before it (e.g. 6.0.x).
+   How each repository's branches relate across a Django release cycle.
 
 "update PR" is the open "Update to Django X.Y" pull request, e.g. `"Add
 support for Django 6.2"
-<https://github.com/mongodb/django-mongodb-backend/pulls>`_. When Django cuts
-``stable/X.Y.x``, a new row is added for the next version and the previous
-row's fork branch is repointed to the new stable branch.
+<https://github.com/mongodb/django-mongodb-backend/pulls>`_.
 
 Upstream sync automation
 -------------------------
