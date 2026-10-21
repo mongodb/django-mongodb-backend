@@ -13,4 +13,5 @@ how the project is managed.
     contributing/index
     security
     release-process
+    django-fork
     deprecation
