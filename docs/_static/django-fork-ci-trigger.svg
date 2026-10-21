@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="400" viewBox="0 0 780 400" font-family="Helvetica,Arial,sans-serif">
+  <rect width="780" height="400" fill="#ffffff"/>
+  <style>
+    .box { fill: #f8f9fa; stroke: #495057; stroke-width: 1.2; }
+    .lbl { fill: #212529; font-size: 13px; }
+    .mono { fill: #212529; font-size: 12px; font-family: ui-monospace,Menlo,Consolas,monospace; }
+    .dim { fill: #6c757d; font-size: 11px; }
+    .arrow { fill: none; stroke: #495057; stroke-width: 1.4; }
+    .ahead { fill: #495057; }
+    .kind { fill: #eef4fa; stroke: #5b7d9e; stroke-width: 1; }
+    .kindt { fill: #1f3a52; font-size: 12px; font-family: ui-monospace,Menlo,Consolas,monospace; }
+    .kindd { fill: #4a5b6a; font-size: 11px; }
+  </style>
+  <defs>
+    <marker id="m" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" class="ahead"/>
+    </marker>
+  </defs>
+
+  <!-- Column 1: upstream Django -->
+  <rect x="20" y="56" width="190" height="60" rx="6" class="box"/>
+  <text x="115" y="79" text-anchor="middle" class="lbl">upstream Django</text>
+  <text x="115" y="99" text-anchor="middle" class="mono">stable/X.Y.x</text>
+
+  <!-- Column 2: fork -->
+  <rect x="300" y="56" width="210" height="60" rx="6" class="box"/>
+  <text x="405" y="79" text-anchor="middle" class="lbl">mongodb-forks/django</text>
+  <text x="405" y="99" text-anchor="middle" class="mono">mongodb-X.Y.x</text>
+
+  <!-- Column 3: backend repo -->
+  <rect x="590" y="56" width="170" height="60" rx="6" class="box"/>
+  <text x="675" y="79" text-anchor="middle" class="lbl">backend repo</text>
+  <text x="675" y="99" text-anchor="middle" class="dim">branch pinned by ref</text>
+
+  <!-- rebase arrow -->
+  <line x1="212" y1="86" x2="296" y2="86" class="arrow" marker-end="url(#m)"/>
+  <text x="254" y="48" text-anchor="middle" class="lbl">rebase</text>
+  <text x="254" y="130" text-anchor="middle" class="dim">daily 09:00 UTC</text>
+
+  <!-- force-push arrow -->
+  <line x1="512" y1="86" x2="586" y2="86" class="arrow" marker-end="url(#m)"/>
+  <text x="549" y="48" text-anchor="middle" class="lbl">force-push</text>
+  <text x="549" y="130" text-anchor="middle" class="dim">history rewritten</text>
+
+  <!-- retrigger-ci box -->
+  <rect x="300" y="240" width="210" height="48" rx="6" class="box"/>
+  <text x="405" y="269" text-anchor="middle" class="lbl">retrigger-ci action</text>
+
+  <!-- arrow: fork -> retrigger-ci -->
+  <line x1="405" y1="118" x2="405" y2="236" class="arrow" marker-end="url(#m)"/>
+  <text x="412" y="150" class="dim">after a force-push</text>
+
+  <!-- backend CI box -->
+  <rect x="590" y="240" width="170" height="48" rx="6" class="box"/>
+  <text x="675" y="269" text-anchor="middle" class="lbl">backend CI runs</text>
+
+  <!-- arrow: retrigger-ci -> backend CI -->
+  <line x1="512" y1="264" x2="586" y2="264" class="arrow" marker-end="url(#m)"/>
+  <text x="549" y="228" text-anchor="middle" class="dim">ci_rerun</text>
+
+  <!-- ci_rerun kinds -->
+  <rect x="20" y="140" width="230" height="44" rx="6" class="kind"/>
+  <text x="135" y="158" text-anchor="middle" class="kindt">branch name</text>
+  <text x="135" y="176" text-anchor="middle" class="kindd">dispatch test workflows on that ref</text>
+  <line x1="252" y1="162" x2="296" y2="240" class="arrow" marker-end="url(#m)"/>
+
+  <rect x="20" y="242" width="230" height="44" rx="6" class="kind"/>
+  <text x="135" y="260" text-anchor="middle" class="kindt">{"pr": N}</text>
+  <text x="135" y="278" text-anchor="middle" class="kindd">re-run the PR's workflow runs</text>
+  <line x1="252" y1="264" x2="296" y2="264" class="arrow" marker-end="url(#m)"/>
+
+  <rect x="20" y="344" width="230" height="44" rx="6" class="kind"/>
+  <text x="135" y="362" text-anchor="middle" class="kindt">evergreen: true</text>
+  <text x="135" y="380" text-anchor="middle" class="kindd">retry the Evergreen patch</text>
+  <line x1="252" y1="366" x2="296" y2="288" class="arrow" marker-end="url(#m)"/>
+</svg>

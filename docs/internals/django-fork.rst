@@ -91,20 +91,6 @@ selects one of these kinds:
 The mapping is kept identical to the one the local sync tooling uses, so the
 two cannot drift.
 
-.. code-block:: text
+.. figure:: /_static/django-fork-ci-trigger.svg
 
-    upstream Django         mongodb-forks/django      backend repo
-    --------------         -------------------      ------------
-
-    stable/X.Y.x ─rebase─▶ mongodb-X.Y.x
-                             │
-                             │ force-push (history rewritten)
-                             ▼
-                       mongodb-X.Y.x ──retrigger-ci──▶ backend CI
-                                                      │
-                           ci_rerun entry:            ├─ branch name
-                           dispatch test workflows ──┤   on that ref
-                                                      ├─ {"pr": N}
-                           re-run PR workflow runs ──┤
-                           retry Evergreen patch ─────┘
-                                                      └─ evergreen: true
+   How a fork rebase re-triggers the backend's CI.
