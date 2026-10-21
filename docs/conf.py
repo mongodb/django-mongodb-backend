@@ -42,8 +42,10 @@ exclude_patterns = []
 
 intersphinx_mapping = {
     "django": (
-        "https://docs.djangoproject.com/en/6.1/",
-        "https://docs.djangoproject.com/en/6.1/_objects/",
+        # Django 6.2 is unreleased, so en/6.2/ has no objects.inv yet. Track
+        # en/dev/ until it ships, then switch back to the pinned version.
+        "https://docs.djangoproject.com/en/dev/",
+        "https://docs.djangoproject.com/en/dev/_objects/",
     ),
     "mongodb": ("https://www.mongodb.com/docs/languages/python/django-mongodb/v6.0/", None),
     "pymongo": ("https://www.mongodb.com/docs/languages/python/pymongo-driver/current/", None),
