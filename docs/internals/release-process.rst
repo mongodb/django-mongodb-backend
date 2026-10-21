@@ -188,7 +188,7 @@ two cannot drift.
                               mongodb-X.Y.x ── retrigger-ci ─▶ backend CI
                                                                 │
                               ci_rerun entry:                   ├─ branch name
-                              dispatch test workflows ─────────┤   on that ref
+                              dispatch test workflows ───────────┤   on that ref
                                                                 ├─ {"pr": N}
                               re-run PR workflow runs ──────────┤
                                                                 └─ evergreen: true
