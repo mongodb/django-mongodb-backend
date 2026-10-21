@@ -93,16 +93,18 @@ two cannot drift.
 
 .. code-block:: text
 
-    upstream Django     mongodb-forks/django    backend repo
-    ---------------     -------------------    ------------
+    upstream Django         mongodb-forks/django      backend repo
+    --------------         -------------------      ------------
 
-    stable/X.Y.x ─rebase─▶ mongodb-X.Y.x ─force-push─▶ pinned ref:
-                              │                        history rewritten
-                              │ retrigger-ci
-                              │ (ci_rerun entry)
-                              ▼
-                            backend CI
-                              ├─ branch name: dispatch test workflows
-                              │   on that ref
-                              ├─ {"pr": N}: re-run the PR's workflow runs
-                              └─ evergreen: true: retry the Evergreen patch
+    stable/X.Y.x ─rebase─▶ mongodb-X.Y.x
+                             │
+                             │ force-push (history rewritten)
+                             ▼
+                       mongodb-X.Y.x ──retrigger-ci──▶ backend CI
+                                                      │
+                           ci_rerun entry:            ├─ branch name
+                           dispatch test workflows ──┤   on that ref
+                                                      ├─ {"pr": N}
+                           re-run PR workflow runs ──┤
+                           retry Evergreen patch ─────┘
+                                                      └─ evergreen: true
