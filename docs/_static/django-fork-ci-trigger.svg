@@ -68,11 +68,12 @@
   <text x="398" y="150" text-anchor="end" class="dim">after a force-push</text>
 
   <!-- failure path: rebase conflict or rejected push opens an issue -->
-  <path d="M 470 118 V 150 H 560 V 162" class="fail" marker-end="url(#f)"/>
+  <path d="M 470 118 V 150 H 560 V 156" class="fail" marker-end="url(#f)"/>
   <text x="477" y="140" class="fnote">on failure</text>
-  <rect x="562" y="138" width="218" height="52" rx="6" class="failbox"/>
-  <text x="671" y="158" text-anchor="middle" class="ftitle">rebase conflict or rejected push</text>
-  <text x="671" y="177" text-anchor="middle" class="fnote">opens an issue in the fork</text>
+  <rect x="562" y="132" width="218" height="64" rx="6" class="failbox"/>
+  <text x="671" y="152" text-anchor="middle" class="ftitle">rebase conflict or rejected push</text>
+  <text x="671" y="170" text-anchor="middle" class="fnote">opens an issue in the fork</text>
+  <text x="671" y="186" text-anchor="middle" class="fnote">for manual rebase</text>
 
   <!-- Django MongoDB Backend CI box -->
   <rect x="545" y="240" width="235" height="48" rx="21" class="act"/>
