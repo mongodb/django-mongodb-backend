@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="780" height="400" viewBox="0 0 780 400" font-family="Helvetica,Arial,sans-serif">
-  <rect width="780" height="400" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400" viewBox="0 0 800 400" font-family="Helvetica,Arial,sans-serif">
+  <rect width="800" height="400" fill="#ffffff"/>
   <style>
     .box { fill: #f8f9fa; stroke: #495057; stroke-width: 1.2; }
     .lbl { fill: #212529; font-size: 13px; }
@@ -27,10 +27,10 @@
   <text x="405" y="79" text-anchor="middle" class="lbl">mongodb-forks/django</text>
   <text x="405" y="99" text-anchor="middle" class="mono">mongodb-X.Y.x</text>
 
-  <!-- Column 3: backend repo -->
-  <rect x="590" y="56" width="170" height="60" rx="6" class="box"/>
-  <text x="675" y="79" text-anchor="middle" class="lbl">backend repo</text>
-  <text x="675" y="99" text-anchor="middle" class="dim">branch pinned by ref</text>
+  <!-- Column 3: Django MongoDB Backend -->
+  <rect x="545" y="56" width="235" height="60" rx="6" class="box"/>
+  <text x="662" y="79" text-anchor="middle" class="lbl">Django MongoDB Backend</text>
+  <text x="662" y="99" text-anchor="middle" class="dim">pins fork branch by ref</text>
 
   <!-- rebase arrow -->
   <line x1="212" y1="86" x2="296" y2="86" class="arrow" marker-end="url(#m)"/>
@@ -42,7 +42,7 @@
   <text x="415" y="24" text-anchor="middle" class="lbl">force-push to origin</text>
 
   <!-- dashed: the backend's pinned ref now resolves to the new history -->
-  <line x1="512" y1="100" x2="586" y2="100" class="arrow" stroke-dasharray="5,4" marker-end="url(#m)"/>
+  <line x1="512" y1="100" x2="541" y2="100" class="arrow" stroke-dasharray="5,4" marker-end="url(#m)"/>
   <text x="549" y="128" text-anchor="middle" class="dim">pinned ref now resolves</text>
   <text x="549" y="142" text-anchor="middle" class="dim">to the new history</text>
 
@@ -54,12 +54,12 @@
   <line x1="405" y1="118" x2="405" y2="236" class="arrow" marker-end="url(#m)"/>
   <text x="412" y="150" class="dim">after a force-push</text>
 
-  <!-- backend CI box -->
-  <rect x="590" y="240" width="170" height="48" rx="6" class="box"/>
-  <text x="675" y="269" text-anchor="middle" class="lbl">backend CI runs</text>
+  <!-- Django MongoDB Backend CI box -->
+  <rect x="545" y="240" width="235" height="48" rx="6" class="box"/>
+  <text x="662" y="269" text-anchor="middle" class="lbl">Django MongoDB Backend CI</text>
 
-  <!-- arrow: retrigger-ci -> backend CI -->
-  <line x1="512" y1="264" x2="586" y2="264" class="arrow" marker-end="url(#m)"/>
+  <!-- arrow: retrigger-ci -> Django MongoDB Backend CI -->
+  <line x1="512" y1="264" x2="541" y2="264" class="arrow" marker-end="url(#m)"/>
   <text x="549" y="228" text-anchor="middle" class="dim">ci_rerun</text>
 
   <!-- ci_rerun kinds -->
