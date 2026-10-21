@@ -1,5 +1,8 @@
 .. _django-fork:
 
+The Django fork
+===============
+
 Since Django's test suite is designed for SQL backends, running the tests with
 Django MongoDB Backend requires some modifications that can't be incorporated
 upstream such as:
@@ -27,7 +30,7 @@ during the development of Django X.Y, ``mongodb-X.Y.x`` is rebased on Django's
 to be merged upon the release of Django X.Y.
 
 Branch relationship summary
-===========================
+----------------------------
 
 To summarize the relationship of each repositories' branches:
 
@@ -50,7 +53,7 @@ support for Django 6.2"
 row's fork branch is repointed to the new stable branch.
 
 Upstream sync automation
-========================
+-------------------------
 
 A scheduled workflow in the fork, `upstream-sync.yml
 <https://github.com/mongodb-forks/django/blob/master/.github/workflows/upstream-sync.yml>`_,
@@ -67,7 +70,7 @@ A rebase that conflicts is aborted. The workflow then opens an issue in the
 fork for manual resolution. A rejected force-push also opens an issue.
 
 CI trigger after a force-push
-================================
+-----------------------------
 
 The backend pins fork branches by ref. A force-push rewrites the branch
 history, so the backend builds against new code, but no event tells the
