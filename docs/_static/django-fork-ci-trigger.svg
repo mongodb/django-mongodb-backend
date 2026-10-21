@@ -37,10 +37,14 @@
   <text x="254" y="48" text-anchor="middle" class="lbl">rebase</text>
   <text x="254" y="130" text-anchor="middle" class="dim">daily 09:00 UTC</text>
 
-  <!-- force-push arrow -->
-  <line x1="512" y1="86" x2="586" y2="86" class="arrow" marker-end="url(#m)"/>
-  <text x="549" y="48" text-anchor="middle" class="lbl">force-push</text>
-  <text x="549" y="130" text-anchor="middle" class="dim">history rewritten</text>
+  <!-- force-push self-loop back into the fork branch -->
+  <path d="M 360 54 L 360 30 H 470 L 470 50" class="arrow" marker-end="url(#m)"/>
+  <text x="415" y="24" text-anchor="middle" class="lbl">force-push to origin</text>
+
+  <!-- dashed: the backend's pinned ref now resolves to the new history -->
+  <line x1="512" y1="100" x2="586" y2="100" class="arrow" stroke-dasharray="5,4" marker-end="url(#m)"/>
+  <text x="549" y="128" text-anchor="middle" class="dim">pinned ref now resolves</text>
+  <text x="549" y="142" text-anchor="middle" class="dim">to the new history</text>
 
   <!-- retrigger-ci box -->
   <rect x="300" y="240" width="210" height="48" rx="6" class="box"/>
