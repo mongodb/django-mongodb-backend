@@ -145,12 +145,12 @@ For each fork branch listed in the workflow's matrix, the workflow:
 
 1. Rebases the branch onto the upstream branch (``main`` or ``stable/X.Y.x``).
 2. Force-pushes the rebased branch.
-3. Re-triggers the backend's CI (see below).
+3. Triggers the backend's CI (see below).
 
 A rebase that conflicts is aborted. The workflow then opens an issue in the
 fork for manual resolution. A rejected force-push also opens an issue.
 
-CI re-trigger after a force-push
+CI trigger after a force-push
 ================================
 
 The backend pins fork branches by ref. A force-push rewrites the branch
