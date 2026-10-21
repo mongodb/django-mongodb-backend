@@ -30,21 +30,15 @@
   <!-- Column 3: Django MongoDB Backend -->
   <rect x="545" y="56" width="235" height="60" rx="6" class="box"/>
   <text x="662" y="79" text-anchor="middle" class="lbl">Django MongoDB Backend</text>
-  <text x="662" y="99" text-anchor="middle" class="dim">pins fork branch by ref</text>
 
   <!-- rebase arrow -->
   <line x1="212" y1="86" x2="296" y2="86" class="arrow" marker-end="url(#m)"/>
-  <text x="254" y="48" text-anchor="middle" class="lbl">rebase</text>
+  <text x="254" y="48" text-anchor="middle" class="lbl">rebase + force-push</text>
   <text x="254" y="130" text-anchor="middle" class="dim">daily 09:00 UTC</text>
 
-  <!-- force-push self-loop back into the fork branch -->
-  <path d="M 360 54 L 360 30 H 470 L 470 50" class="arrow" marker-end="url(#m)"/>
-  <text x="415" y="24" text-anchor="middle" class="lbl">force-push to origin</text>
-
-  <!-- dashed: the backend's pinned ref now resolves to the new history -->
-  <line x1="512" y1="100" x2="541" y2="100" class="arrow" stroke-dasharray="5,4" marker-end="url(#m)"/>
-  <text x="549" y="128" text-anchor="middle" class="dim">pinned ref now resolves</text>
-  <text x="549" y="142" text-anchor="middle" class="dim">to the new history</text>
+  <!-- dashed: the backend pins the fork branch by ref -->
+  <line x1="541" y1="70" x2="516" y2="70" class="arrow" stroke-dasharray="5,4" marker-end="url(#m)"/>
+  <text x="528" y="40" text-anchor="middle" class="lbl">pins branch by ref</text>
 
   <!-- retrigger-ci box -->
   <rect x="300" y="240" width="210" height="48" rx="6" class="box"/>
