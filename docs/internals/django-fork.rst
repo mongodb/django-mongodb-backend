@@ -96,7 +96,7 @@ two cannot drift.
     upstream Django     mongodb-forks/django    backend repo
     ---------------     -------------------    ------------
 
-    stable/X.Y.x ─rebase─▶ mongodb-X.Y.x ─force-push─▶ branch pinned by ref:
+    stable/X.Y.x ─rebase─▶ mongodb-X.Y.x ─force-push─▶ pinned ref:
                               │                        history rewritten
                               │ retrigger-ci
                               │ (ci_rerun entry)
