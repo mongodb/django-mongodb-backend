@@ -3,9 +3,10 @@ from time import monotonic, sleep
 from django.core.exceptions import ImproperlyConfigured
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
+from pymongo.errors import OperationFailure
 from pymongo.operations import SearchIndexModel
 
-from django_mongodb_backend.indexes import SearchIndex
+from django_mongodb_backend.indexes import SearchIndex, expression_index_orders
 
 from .fields import EmbeddedModelField
 from .gis.schema import GISSchemaEditor
@@ -219,16 +220,19 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
 
     @ignore_embedded_models
     def remove_index(self, model, index):
-        if index.contains_expressions:
-            return
         collection = self.get_collection(model._meta.db_table)
         if isinstance(index, SearchIndex):
             # Drop the index if it's supported.
             if self.connection.features.supports_search:
                 collection.drop_search_index(index.name)
                 self.wait_until_index_dropped(collection, index.name)
-        else:
-            collection.drop_index(index.name)
+        # Untranslatable indexes were never created, so removal is a no-op.
+        elif not index.expressions or expression_index_orders(index.expressions, model) is not None:
+            try:
+                collection.drop_index(index.name)
+            except OperationFailure as e:
+                if e.code != 27:  # IndexNotFound
+                    raise
 
     def _remove_composed_index(self, model, field_names, constraint_kwargs):
         """

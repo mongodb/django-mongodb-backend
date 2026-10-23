@@ -6,7 +6,8 @@ from django.core.checks import Error, Warning
 from django.core.exceptions import FieldDoesNotExist
 from django.db import NotSupportedError
 from django.db.backends.utils import names_digest, split_identifier
-from django.db.models import FloatField, Index, IntegerField
+from django.db.models import F, FloatField, Index, IntegerField
+from django.db.models.expressions import OrderBy
 from django.db.models.lookups import BuiltinLookup
 from django.db.models.sql.query import Query
 from django.db.models.sql.where import AND, XOR, WhereNode
@@ -83,20 +84,77 @@ def get_field(model, field_name):
     return FieldColumn(field, ".".join(path))
 
 
+def expression_index_orders(expressions, model):
+    """
+    Return the MongoDB index keys for expressions as (column, direction)
+    tuples, or None if they can't be translated. An expression is
+    translatable only if it's an F() that resolves to an existing model
+    field, optionally wrapped in OrderBy() without NULLS FIRST/LAST.
+    """
+    orders = []
+    for expression in expressions:
+        direction = ASCENDING
+        if isinstance(expression, OrderBy):
+            # MongoDB index keys can't express NULLS FIRST/LAST.
+            if expression.nulls_first or expression.nulls_last:
+                return None
+            direction = DESCENDING if expression.descending else ASCENDING
+            expression = expression.expression
+        if not isinstance(expression, F):
+            return None
+        try:
+            column = get_field(model, expression.name).column
+        except FieldDoesNotExist:
+            # e.g. F() with a transform ("name__lower") or nonexistent field.
+            return None
+        orders.append((column, direction))
+    return orders
+
+
+_django_index_check = Index.check
+
+
+def check(self, model, connection):
+    """
+    Wrap Index.check() to keep the models.W043 warning in sync with
+    whether this index is actually created.
+    """
+    errors = _django_index_check(self, model, connection)
+    if expression_index_orders(self.expressions, model) is not None:
+        # Created: W043 is a false positive from Django's model-level emission.
+        return [e for e in errors if e.id != "models.W043"]
+    # Skipped: Django never emits W043 for subclasses that report
+    # contains_expressions=False, so add it.
+    if "supports_expression_indexes" not in model._meta.required_db_features and not any(
+        e.id == "models.W043" for e in errors
+    ):
+        errors.append(
+            Warning(
+                f"{connection.display_name} does not support indexes on expressions.",
+                hint=(
+                    "An index won't be created. Silence this warning if you don't care about it."
+                ),
+                obj=model,
+                id="models.W043",
+            )
+        )
+    return errors
+
+
 def get_pymongo_index_model(self, model, schema_editor, field=None):
     """Return a pymongo IndexModel for this Django Index."""
-    if self.contains_expressions:
-        return None
-    kwargs = {}
-    filter_expression = defaultdict(dict)
-    if self.condition:
-        filter_expression.update(self._get_condition_mql(model, schema_editor))
-    if filter_expression:
-        kwargs["partialFilterExpression"] = filter_expression
-    index_orders = (
-        [(field.column, ASCENDING)]
-        if field
-        else [
+    if field:
+        index_orders = [(field.column, ASCENDING)]
+    elif self.expressions:
+        # Check self.expressions rather than self.contains_expressions: some
+        # Index subclasses report contains_expressions=False.
+        index_orders = expression_index_orders(self.expressions, model)
+        if index_orders is None:
+            # Skip untranslatable expressions before translating the
+            # condition, which may raise for its own unsupported lookups.
+            return None
+    else:
+        index_orders = [
             # order is "" if ASCENDING or "DESC" if DESCENDING (see
             # django.db.models.indexes.Index.fields_orders).
             (
@@ -105,7 +163,12 @@ def get_pymongo_index_model(self, model, schema_editor, field=None):
             )
             for field_name, order in self.fields_orders
         ]
-    )
+    kwargs = {}
+    filter_expression = defaultdict(dict)
+    if self.condition:
+        filter_expression.update(self._get_condition_mql(model, schema_editor))
+    if filter_expression:
+        kwargs["partialFilterExpression"] = filter_expression
     return IndexModel(index_orders, name=self.name, **kwargs)
 
 
@@ -461,5 +524,6 @@ class VectorSearchIndex(SearchIndex):
 def register_indexes():
     BuiltinLookup.as_mql_idx = builtin_lookup_idx
     Index._get_condition_mql = _get_condition_mql
+    Index.check = check
     Index.get_pymongo_index_model = get_pymongo_index_model
     WhereNode.as_mql_idx = where_node_idx
