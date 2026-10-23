@@ -16,6 +16,17 @@ from django_mongodb_backend.indexes import (
 from django_mongodb_backend.models import EmbeddedModel
 
 from .models import DataHolder, Movie, Owner, Person, Store
+from .test_base import ConditionalPartialIndex
+
+
+def w043_warning(model):
+    """Return the expected models.W043 warning for model."""
+    return checks.Warning(
+        "MongoDB does not support indexes on expressions.",
+        hint=("An index won't be created. Silence this warning if you don't care about it."),
+        obj=model,
+        id="models.W043",
+    )
 
 
 @isolate_apps("indexes_")
@@ -359,27 +370,11 @@ class ExpressionIndexCheckTests(TestCase):
 
         self.assertEqual(
             Article.check(databases={"default"}),
-            [
-                checks.Warning(
-                    "MongoDB does not support indexes on expressions.",
-                    hint=(
-                        "An index won't be created. Silence this warning "
-                        "if you don't care about it."
-                    ),
-                    obj=Article,
-                    id="models.W043",
-                )
-            ],
+            [w043_warning(Article)],
         )
 
     def test_warning_for_untranslatable_expressions_in_subclass(self):
-        # contains_expressions=False doesn't stop the backend from skipping
-        # this index, so untranslatable expressions must still warn.
-        class ConditionalPartialIndex(Index):
-            @property
-            def contains_expressions(self):
-                return False
-
+        # contains_expressions=False doesn't stop the skip, so W043 fires.
         class Article(models.Model):
             headline = models.CharField(max_length=100)
 
@@ -388,17 +383,7 @@ class ExpressionIndexCheckTests(TestCase):
 
         self.assertEqual(
             Article.check(databases={"default"}),
-            [
-                checks.Warning(
-                    "MongoDB does not support indexes on expressions.",
-                    hint=(
-                        "An index won't be created. Silence this warning "
-                        "if you don't care about it."
-                    ),
-                    obj=Article,
-                    id="models.W043",
-                )
-            ],
+            [w043_warning(Article)],
         )
 
     def test_mixed_translatable_and_untranslatable_indexes(self):
@@ -416,14 +401,6 @@ class ExpressionIndexCheckTests(TestCase):
             Article.check(databases={"default"}),
             [
                 # Only the untranslatable index warns.
-                checks.Warning(
-                    "MongoDB does not support indexes on expressions.",
-                    hint=(
-                        "An index won't be created. Silence this warning "
-                        "if you don't care about it."
-                    ),
-                    obj=Article,
-                    id="models.W043",
-                )
+                w043_warning(Article)
             ],
         )

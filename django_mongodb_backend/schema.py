@@ -3,6 +3,7 @@ from time import monotonic, sleep
 from django.core.exceptions import ImproperlyConfigured
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import Index, UniqueConstraint
+from pymongo.errors import OperationFailure
 from pymongo.operations import SearchIndexModel
 
 from django_mongodb_backend.indexes import SearchIndex, expression_index_orders
@@ -225,18 +226,13 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             if self.connection.features.supports_search:
                 collection.drop_search_index(index.name)
                 self.wait_until_index_dropped(collection, index.name)
-        # The index may not exist (its AddIndex can predate expression
-        # support), and deciding on the expressions alone keeps an
-        # untranslatable partial-filter condition from blocking removal.
+        # Untranslatable indexes were never created, so removal is a no-op.
         elif not index.expressions or expression_index_orders(index.expressions, model) is not None:
-            if self.collect_sql:
-                # SQL collection doesn't introspect the database: that
-                # listIndexes() call would bypass the OperationCollector.
+            try:
                 collection.drop_index(index.name)
-            else:
-                index_names = [idx["name"] for idx in collection.list_indexes()]
-                if index.name in index_names:
-                    collection.drop_index(index.name)
+            except OperationFailure as e:
+                if e.code != 27:  # IndexNotFound
+                    raise
 
     def _remove_composed_index(self, model, field_names, constraint_kwargs):
         """

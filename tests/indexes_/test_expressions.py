@@ -5,9 +5,10 @@ from django.db.models import F, Index, Q
 from django.db.models.functions import Lower
 from django.test import TestCase
 from pymongo import ASCENDING, DESCENDING
+from pymongo.errors import OperationFailure
 
 from .models import Article, DataHolder
-from .test_base import SchemaAssertionMixin
+from .test_base import ConditionalPartialIndex, SchemaAssertionMixin
 
 
 class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
@@ -87,17 +88,30 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
             editor.remove_index(Article, index)
 
     def test_remove_index_never_created(self):
-        # AddIndex ran under a backend version that skipped expression
-        # indexes (see the 6.1.1 release notes); RemoveIndex is a no-op.
+        # The index was never created (see the 6.1.1 release notes);
+        # RemoveIndex swallows IndexNotFound without a listIndexes() call.
         index = Index(F("number").desc(), name="never_created_idx")
-        with connection.schema_editor() as editor:
+        with (
+            mock.patch(
+                "pymongo.collection.Collection.list_indexes",
+                side_effect=AssertionError("unexpected listIndexes() call"),
+            ),
+            connection.schema_editor() as editor,
+        ):
             editor.remove_index(Article, index)
-            self.assertNotIn(
-                index.name,
-                connection.introspection.get_constraints(
-                    cursor=None, table_name=Article._meta.db_table
-                ),
-            )
+
+    def test_remove_index_only_swallows_index_not_found(self):
+        # Only IndexNotFound is swallowed; other errors surface.
+        index = Index(F("number").desc(), name="propagate_idx")
+        with (
+            mock.patch(
+                "pymongo.collection.Collection.drop_index",
+                side_effect=OperationFailure("unexpected failure", 1),
+            ),
+            connection.schema_editor() as editor,
+            self.assertRaises(OperationFailure),
+        ):
+            editor.remove_index(Article, index)
 
     def test_remove_index_collect_sql(self):
         # Collecting migration SQL (sqlmigrate) records the drop without a
@@ -150,11 +164,6 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
     def test_contains_expressions_false(self):
         # django-tasks-db's ConditionalPartialIndex and similar subclasses
         # report contains_expressions=False so backends still create them.
-        class ConditionalPartialIndex(Index):
-            @property
-            def contains_expressions(self):
-                return False
-
         index = ConditionalPartialIndex(F("number").desc(), name="conditional_idx")
         self.assertEqual(self.get_index_keys(index), [("number", DESCENDING)])
         with connection.schema_editor() as editor:
@@ -163,11 +172,6 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
     def test_contains_expressions_false_with_untranslatable_expression(self):
         # Even overriding contains_expressions can't force creation of an
         # index with untranslatable expressions.
-        class ConditionalPartialIndex(Index):
-            @property
-            def contains_expressions(self):
-                return False
-
         index = ConditionalPartialIndex(Lower("headline"), name="conditional_lower_idx")
         with connection.schema_editor() as editor:
             self.assertIsNone(index.get_pymongo_index_model(Article, schema_editor=editor))
