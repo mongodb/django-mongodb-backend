@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="360" viewBox="0 0 900 360" font-family="Helvetica,Arial,sans-serif">
+  <rect width="900" height="360" fill="#ffffff"/>
+  <style>
+    .lane { fill: #edf1f7; stroke: #4a5e8a; stroke-width: 1.2; }
+    .repol { fill: #253357; font-size: 13px; font-weight: bold; }
+    .mono { fill: #212529; font-size: 12.5px; font-family: ui-monospace,Menlo,Consolas,monospace; }
+    .dim { fill: #6c757d; font-size: 11px; }
+    .phase { fill: #00684a; font-size: 13px; font-weight: bold; }
+    .arrow { fill: none; stroke: #00684a; stroke-width: 1.4; }
+    .ahead { fill: #00684a; }
+  </style>
+  <defs>
+    <marker id="m" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" class="ahead"/>
+    </marker>
+  </defs>
+
+  <!-- phase titles -->
+  <text x="340" y="40" text-anchor="middle" class="phase">while Django X.Y is in development</text>
+  <text x="680" y="40" text-anchor="middle" class="phase">after Django X.Y is released</text>
+
+  <!-- lane headers -->
+  <rect x="20" y="70" width="160" height="60" rx="6" class="lane"/>
+  <text x="100" y="104" text-anchor="middle" class="repol">upstream Django</text>
+  <rect x="20" y="150" width="160" height="60" rx="6" class="lane"/>
+  <text x="100" y="184" text-anchor="middle" class="repol">mongodb-forks/django</text>
+  <rect x="20" y="230" width="160" height="60" rx="6" class="lane"/>
+  <text x="100" y="264" text-anchor="middle" class="repol">Django MongoDB Backend</text>
+
+  <!-- phase 1 cells -->
+  <rect x="210" y="70" width="240" height="60" rx="6" fill="none" stroke="#c9d2e0" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="330" y="104" text-anchor="middle" class="mono">main</text>
+  <rect x="210" y="150" width="240" height="60" rx="6" fill="none" stroke="#c9d2e0" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="330" y="176" text-anchor="middle" class="mono">mongodb-X.Y.x</text>
+  <text x="330" y="196" text-anchor="middle" class="dim">rebased on main, force-pushed</text>
+  <rect x="210" y="230" width="240" height="60" rx="6" fill="none" stroke="#c9d2e0" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="330" y="256" text-anchor="middle" class="mono">update PR</text>
+  <text x="330" y="276" text-anchor="middle" class="dim">head: mongodb-X.Y.x</text>
+
+  <!-- phase transitions -->
+  <line x1="454" y1="100" x2="538" y2="100" class="arrow" marker-end="url(#m)"/>
+  <text x="496" y="90" text-anchor="middle" class="dim">X.Y released</text>
+  <line x1="454" y1="180" x2="538" y2="180" class="arrow" marker-end="url(#m)"/>
+  <line x1="454" y1="260" x2="538" y2="260" class="arrow" marker-end="url(#m)"/>
+
+  <!-- phase 2 cells -->
+  <rect x="542" y="70" width="240" height="60" rx="6" fill="none" stroke="#c9d2e0" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="662" y="104" text-anchor="middle" class="mono">stable/X.Y.x</text>
+  <rect x="542" y="150" width="240" height="60" rx="6" fill="none" stroke="#c9d2e0" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="662" y="176" text-anchor="middle" class="mono">mongodb-X.Y.x</text>
+  <text x="662" y="196" text-anchor="middle" class="dim">rebased on stable/X.Y.x</text>
+  <rect x="542" y="230" width="240" height="60" rx="6" fill="none" stroke="#c9d2e0" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="662" y="256" text-anchor="middle" class="mono">main</text>
+  <text x="662" y="276" text-anchor="middle" class="dim">pins mongodb-X.Y.x by ref</text>
+
+  <!-- footnote -->
+  <text x="30" y="330" class="dim">Earlier series repeat the pattern: backend X.Y-1.x and X.Y-2.x build against mongodb-X.Y-1.x and</text>
+  <text x="30" y="348" class="dim">mongodb-X.Y-2.x, which are rebased on stable/X.Y-1.x and stable/X.Y-2.x.</text>
+</svg>
