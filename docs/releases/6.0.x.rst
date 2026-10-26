@@ -2,6 +2,28 @@
 Django MongoDB Backend 6.0.x
 ============================
 
+6.0.5
+=====
+
+*Unreleased*
+
+Bug fixes
+---------
+
+- Index definitions using ordering expressions (e.g.
+  ``Index(F("priority").desc(), name="...")``) are now created instead of
+  being silently skipped. Expressions that can't be translated into MongoDB
+  index keys (anything other than :class:`~django.db.models.F` and
+  :class:`~django.db.models.OrderBy` field orderings) are skipped without
+  raising an error.
+
+- Fixed a ``migrate`` crash when an ``Index`` subclass reports
+  ``contains_expressions=False`` for an index with expressions.
+
+- Indexes that earlier versions skipped aren't retroactively created by
+  already-applied ``AddIndex`` migrations: create a new migration or add the
+  index manually on upgraded deployments.
+
 6.0.4
 =====
 

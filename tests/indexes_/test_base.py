@@ -1,4 +1,16 @@
 from django.db import connection
+from django.db.models import Index
+
+
+class ConditionalPartialIndex(Index):
+    """Mimics django-tasks-db's ConditionalPartialIndex.
+
+    Reports contains_expressions=False so backends still create it.
+    """
+
+    @property
+    def contains_expressions(self):
+        return False
 
 
 class SchemaAssertionMixin:
