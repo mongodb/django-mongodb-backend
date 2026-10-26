@@ -226,13 +226,18 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             if self.connection.features.supports_search:
                 collection.drop_search_index(index.name)
                 self.wait_until_index_dropped(collection, index.name)
-        # Untranslatable indexes were never created, so removal is a no-op.
-        elif index_may_exist(index, model):
-            try:
-                collection.drop_index(index.name)
-            except OperationFailure as e:
-                if e.code != 27:  # IndexNotFound
-                    raise
+        elif index.expressions:
+            # Expression indexes may not exist.
+            if index_may_exist(index, model):
+                try:
+                    collection.drop_index(index.name)
+                except OperationFailure as e:
+                    if e.code != 27:  # IndexNotFound
+                        raise
+        else:
+            # Field-only indexes are always created by add_index(), so
+            # IndexNotFound is an error worth surfacing.
+            collection.drop_index(index.name)
 
     def _remove_composed_index(self, model, field_names, constraint_kwargs):
         """

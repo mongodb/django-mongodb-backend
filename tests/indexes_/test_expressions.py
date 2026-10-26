@@ -107,6 +107,16 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
         ):
             editor.remove_index(Article, index)
 
+    def test_remove_field_index_not_found_raises(self):
+        # Fields-only indexes are always created by add_index().
+        index = Index(fields=["headline"], name="missing_field_idx")
+        with (
+            connection.schema_editor() as editor,
+            self.assertRaises(OperationFailure) as cm,
+        ):
+            editor.remove_index(Article, index)
+        self.assertEqual(cm.exception.code, 27)  # IndexNotFound
+
     def test_remove_index_collect_sql(self):
         # Collecting migration SQL (sqlmigrate) records the drop: introspection
         # isn't a collected operation.
