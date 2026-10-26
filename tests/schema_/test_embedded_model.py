@@ -1,6 +1,7 @@
 import itertools
 
 from django.db import connection, models
+from django.db.models import F
 from django.test import TransactionTestCase, skipUnlessDBFeature
 from django.test.utils import isolate_apps
 
@@ -222,6 +223,37 @@ class SchemaTests(TestMixin, TransactionTestCase):
                 ["schema__add_indexed_b64972_idx"],
             )
             editor.delete_model(Author)
+        self.assertTableNotExists(Author)
+
+    @isolate_apps("schema_")
+    def test_expression_indexes(self):
+        """Meta.indexes with expressions on an embedded model."""
+
+        class Author(EmbeddedModel):
+            name = models.CharField(max_length=10)
+            age = models.IntegerField()
+
+            class Meta:
+                app_label = "schema_"
+                indexes = [models.Index("name", F("age").desc(), name="embedded_expr_idx")]
+
+        class Book(models.Model):
+            author = EmbeddedModelField(Author)
+
+            class Meta:
+                app_label = "schema_"
+
+        with connection.schema_editor() as editor:
+            editor.create_model(Book)
+            self.assertTableExists(Book)
+            # The expression index is created on the parent collection with
+            # the embedded field's column prefix applied to each key.
+            self.assertEqual(
+                self.get_constraints_for_columns(Book, ["author.name", "author.age"]),
+                ["embedded_expr_idx"],
+            )
+            self.assertIndexOrder(Book._meta.db_table, "embedded_expr_idx", ["ASC", "DESC"])
+            editor.delete_model(Book)
         self.assertTableNotExists(Author)
 
     @isolate_apps("schema_")
