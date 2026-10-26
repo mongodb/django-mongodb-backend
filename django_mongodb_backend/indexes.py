@@ -111,6 +111,11 @@ def expression_index_orders(expressions, model):
     return orders
 
 
+def index_may_exist(index, model):
+    """Return whether this index could exist on the server."""
+    return expression_index_orders(index.expressions, model) is not None
+
+
 _django_index_check = Index.check
 
 
@@ -120,7 +125,7 @@ def check(self, model, connection):
     whether this index is actually created.
     """
     errors = _django_index_check(self, model, connection)
-    if expression_index_orders(self.expressions, model) is not None:
+    if index_may_exist(self, model):
         # Created: W043 is a false positive from Django's model-level emission.
         return [e for e in errors if e.id != "models.W043"]
     # Skipped: Django never emits W043 for subclasses that report

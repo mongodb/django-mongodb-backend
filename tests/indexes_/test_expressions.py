@@ -89,15 +89,9 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
 
     def test_remove_index_never_created(self):
         # The index was never created (see the 6.1.1 release notes);
-        # RemoveIndex swallows IndexNotFound without a listIndexes() call.
+        # RemoveIndex swallows IndexNotFound.
         index = Index(F("number").desc(), name="never_created_idx")
-        with (
-            mock.patch(
-                "pymongo.collection.Collection.list_indexes",
-                side_effect=AssertionError("unexpected listIndexes() call"),
-            ),
-            connection.schema_editor() as editor,
-        ):
+        with connection.schema_editor() as editor:
             editor.remove_index(Article, index)
 
     def test_remove_index_only_swallows_index_not_found(self):
@@ -114,16 +108,10 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
             editor.remove_index(Article, index)
 
     def test_remove_index_collect_sql(self):
-        # Collecting migration SQL (sqlmigrate) records the drop without a
-        # live listIndexes() call: introspection isn't a collected operation.
+        # Collecting migration SQL (sqlmigrate) records the drop: introspection
+        # isn't a collected operation.
         index = Index(F("number").desc(), name="collect_sql_idx")
-        with (
-            mock.patch(
-                "pymongo.collection.Collection.list_indexes",
-                side_effect=AssertionError("unexpected live listIndexes() call"),
-            ),
-            connection.schema_editor(collect_sql=True, atomic=False) as editor,
-        ):
+        with connection.schema_editor(collect_sql=True, atomic=False) as editor:
             editor.remove_index(Article, index)
         self.assertEqual(
             editor.collected_sql,

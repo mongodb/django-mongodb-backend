@@ -6,7 +6,7 @@ from django.db.models import Index, UniqueConstraint
 from pymongo.errors import OperationFailure
 from pymongo.operations import SearchIndexModel
 
-from django_mongodb_backend.indexes import SearchIndex, expression_index_orders
+from django_mongodb_backend.indexes import SearchIndex, index_may_exist
 
 from .fields import EmbeddedModelField
 from .gis.schema import GISSchemaEditor
@@ -227,7 +227,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                 collection.drop_search_index(index.name)
                 self.wait_until_index_dropped(collection, index.name)
         # Untranslatable indexes were never created, so removal is a no-op.
-        elif not index.expressions or expression_index_orders(index.expressions, model) is not None:
+        elif index_may_exist(index, model):
             try:
                 collection.drop_index(index.name)
             except OperationFailure as e:
