@@ -84,7 +84,7 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefi
         else:
             for field_name in self.fields:
                 field_ = get_field(model, field_name)
-                filter_expression[field_.column].update(
+                filter_expression[column_prefix + field_.column].update(
                     _get_partial_unique_filter(field_.field, schema_editor.connection)
                 )
     if filter_expression:

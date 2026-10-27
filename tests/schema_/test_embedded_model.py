@@ -4,7 +4,7 @@ from django.db import connection, models
 from django.db.models import F, Q
 from django.test import TransactionTestCase, skipUnlessDBFeature
 from django.test.utils import isolate_apps
-from pymongo import DESCENDING
+from pymongo import ASCENDING, DESCENDING
 
 from django_mongodb_backend.fields import EmbeddedModelField
 from django_mongodb_backend.models import EmbeddedModel
@@ -270,6 +270,7 @@ class SchemaTests(TestMixin, TransactionTestCase):
         class Author(EmbeddedModel):
             name = models.CharField(max_length=10)
             age = models.IntegerField()
+            tags = models.JSONField(null=True)
 
             class Meta:
                 app_label = "schema_"
@@ -278,7 +279,13 @@ class SchemaTests(TestMixin, TransactionTestCase):
                         F("age").desc(),
                         condition=Q(age__gt=0),
                         name="embedded_cond_idx",
-                    )
+                    ),
+                    # A list-valued condition (exact match on a JSON field).
+                    models.Index(
+                        F("age"),
+                        condition=Q(tags=["red"]),
+                        name="embedded_list_cond_idx",
+                    ),
                 ]
 
         class Book(models.Model):
@@ -290,16 +297,27 @@ class SchemaTests(TestMixin, TransactionTestCase):
         with connection.schema_editor() as editor:
             editor.create_model(Book)
             self.assertTableExists(Book)
-            # The index is created on the parent collection with the embedded
-            # field's column prefix applied to each key and to the partial
-            # filter expression's field paths.
-            index = next(
-                index
+            # The indexes are created on the parent collection with the
+            # embedded field's column prefix applied to each key and to the
+            # partial filter expression's field paths.
+            indexes = {
+                index["name"]: index
                 for index in connection.get_collection(Book._meta.db_table).list_indexes()
-                if index["name"] == "embedded_cond_idx"
+            }
+            self.assertEqual(
+                list(indexes["embedded_cond_idx"]["key"].items()), [("author.age", DESCENDING)]
             )
-            self.assertEqual(list(index["key"].items()), [("author.age", DESCENDING)])
-            self.assertEqual(index["partialFilterExpression"], {"author.age": {"$gt": 0}})
+            self.assertEqual(
+                indexes["embedded_cond_idx"]["partialFilterExpression"],
+                {"author.age": {"$gt": 0}},
+            )
+            self.assertEqual(
+                list(indexes["embedded_list_cond_idx"]["key"].items()), [("author.age", ASCENDING)]
+            )
+            self.assertEqual(
+                indexes["embedded_list_cond_idx"]["partialFilterExpression"],
+                {"author.tags": {"$eq": ["red"]}},
+            )
             editor.delete_model(Book)
         self.assertTableNotExists(Author)
 
@@ -348,6 +366,39 @@ class SchemaTests(TestMixin, TransactionTestCase):
                 ["unique_one"],
             )
             editor.delete_model(Author)
+        self.assertTableNotExists(Author)
+
+    @isolate_apps("schema_")
+    def test_nullable_unique_constraints(self):
+        """Nullable unique constraint on an embedded model."""
+
+        class Author(EmbeddedModel):
+            name = models.CharField(max_length=10, null=True)
+
+            class Meta:
+                app_label = "schema_"
+                constraints = [models.UniqueConstraint(fields=["name"], name="embedded_uniq")]
+
+        class Book(models.Model):
+            author = EmbeddedModelField(Author)
+
+            class Meta:
+                app_label = "schema_"
+
+        with connection.schema_editor() as editor:
+            editor.create_model(Book)
+            self.assertTableExists(Book)
+            # The nullable field's unique index uses a partial filter
+            # expression that excludes nulls; its field path carries the
+            # embedded field's column prefix, matching the key.
+            index = next(
+                index
+                for index in connection.get_collection(Book._meta.db_table).list_indexes()
+                if index["name"] == "embedded_uniq"
+            )
+            self.assertEqual(list(index["key"].items()), [("author.name", ASCENDING)])
+            self.assertEqual(index["partialFilterExpression"], {"author.name": {"$gte": ""}})
+            editor.delete_model(Book)
         self.assertTableNotExists(Author)
 
     # SchemaEditor.add_field() / remove_field() tests

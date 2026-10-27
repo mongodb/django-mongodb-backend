@@ -31,14 +31,17 @@ FieldColumn = namedtuple("FieldColumn", ["field", "column"])
 
 
 def _prefix_mql_field_paths(mql, column_prefix):
-    """Prepend column_prefix to each field path in the MQL dict."""
+    """
+    Prepend column_prefix to each field path in the MQL dict. Only logical
+    operator values ($and/$or) nest field paths; operator dicts ($gte, $in,
+    ...) map operators to values that never contain field paths.
+    """
     prefixed = {}
     for key, value in mql.items():
-        if isinstance(value, dict):
-            value = _prefix_mql_field_paths(value, column_prefix)
-        elif isinstance(value, list):
-            value = [_prefix_mql_field_paths(item, column_prefix) for item in value]
-        if not key.startswith("$"):
+        if key.startswith("$"):
+            if isinstance(value, list):
+                value = [_prefix_mql_field_paths(item, column_prefix) for item in value]
+        else:
             key = column_prefix + key
         prefixed[key] = value
     return prefixed
@@ -106,9 +109,7 @@ def get_field(model, field_name):
 def expression_index_orders(expressions, model):
     """
     Return the MongoDB index keys for expressions as (column, direction)
-    tuples, or None if they can't be translated. An expression is
-    translatable only if it's a plain F() that resolves to an existing
-    model field, optionally wrapped in OrderBy() without NULLS FIRST/LAST.
+    tuples, or None if they can't be translated.
     """
     orders = []
     for expression in expressions:
@@ -119,9 +120,7 @@ def expression_index_orders(expressions, model):
                 return None
             direction = DESCENDING if expression.descending else ASCENDING
             expression = expression.expression
-        # Subclasses such as Sliced (F("headline")[1:5]) or OuterRef carry
-        # semantics that MongoDB index keys can't express; translating
-        # them would silently index the entire field.
+        # An F subclass (e.g. Sliced) would silently index the entire field.
         if type(expression) is not F:
             return None
         try:
