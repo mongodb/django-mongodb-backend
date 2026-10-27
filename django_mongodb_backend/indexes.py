@@ -88,8 +88,8 @@ def expression_index_orders(expressions, model):
     """
     Return the MongoDB index keys for expressions as (column, direction)
     tuples, or None if they can't be translated. An expression is
-    translatable only if it's an F() that resolves to an existing model
-    field, optionally wrapped in OrderBy() without NULLS FIRST/LAST.
+    translatable only if it's a plain F() that resolves to an existing
+    model field, optionally wrapped in OrderBy() without NULLS FIRST/LAST.
     """
     orders = []
     for expression in expressions:
@@ -100,7 +100,10 @@ def expression_index_orders(expressions, model):
                 return None
             direction = DESCENDING if expression.descending else ASCENDING
             expression = expression.expression
-        if not isinstance(expression, F):
+        # Subclasses such as Sliced (F("headline")[1:5]) or OuterRef carry
+        # semantics that MongoDB index keys can't express; translating
+        # them would silently index the entire field.
+        if type(expression) is not F:
             return None
         try:
             column = get_field(model, expression.name).column
@@ -124,6 +127,11 @@ def check(self, model, connection):
     Wrap Index.check() to keep the models.W043 warning in sync with
     whether this index is actually created.
     """
+    if connection.vendor != "mongodb":
+        # register_indexes() patches Index.check globally, so this wrapper
+        # also runs for other backends in multi-database projects. Leave
+        # their results alone.
+        return _django_index_check(self, model, connection)
     errors = _django_index_check(self, model, connection)
     if index_may_exist(self, model):
         # Created: W043 is a false positive from Django's model-level emission.
