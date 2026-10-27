@@ -30,12 +30,31 @@ MONGO_INDEX_OPERATORS = {
 FieldColumn = namedtuple("FieldColumn", ["field", "column"])
 
 
-def _get_condition_mql(self, model, schema_editor):
+def _prefix_mql_field_paths(mql, column_prefix):
+    """Prepend column_prefix to each field path in the MQL dict."""
+    prefixed = {}
+    for key, value in mql.items():
+        if isinstance(value, dict):
+            value = _prefix_mql_field_paths(value, column_prefix)
+        elif isinstance(value, list):
+            value = [_prefix_mql_field_paths(item, column_prefix) for item in value]
+        if not key.startswith("$"):
+            key = column_prefix + key
+        prefixed[key] = value
+    return prefixed
+
+
+def _get_condition_mql(self, model, schema_editor, column_prefix=""):
     """Analogous to Index._get_condition_sql()."""
     query = Query(model=model, alias_cols=False)
     where = query.build_where(self.condition)
     compiler = query.get_compiler(connection=schema_editor.connection)
-    return where.as_mql_idx(compiler, schema_editor.connection)
+    mql = where.as_mql_idx(compiler, schema_editor.connection)
+    if column_prefix:
+        # The condition's field paths are relative to `model`; an embedded
+        # model's index stores its data under the prefixed paths.
+        return _prefix_mql_field_paths(mql, column_prefix)
+    return mql
 
 
 def builtin_lookup_idx(self, compiler, connection):
@@ -180,7 +199,9 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefi
     kwargs = {}
     filter_expression = defaultdict(dict)
     if self.condition:
-        filter_expression.update(self._get_condition_mql(model, schema_editor))
+        filter_expression.update(
+            self._get_condition_mql(model, schema_editor, column_prefix=column_prefix)
+        )
     if filter_expression:
         kwargs["partialFilterExpression"] = filter_expression
     return IndexModel(index_orders, name=self.name, **kwargs)

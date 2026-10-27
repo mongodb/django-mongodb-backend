@@ -68,7 +68,9 @@ def get_pymongo_index_model(self, model, schema_editor, field=None, column_prefi
     kwargs = {}
     filter_expression = defaultdict(dict)
     if self.condition:
-        filter_expression.update(self._get_condition_mql(model, schema_editor))
+        filter_expression.update(
+            self._get_condition_mql(model, schema_editor, column_prefix=column_prefix)
+        )
     if self.nulls_distinct is None or self.nulls_distinct:
         # Indexing on $type matches the value of most SQL databases by allowing
         # multiple null values for the unique constraint. nulls_distinct will

@@ -1,9 +1,10 @@
 import itertools
 
 from django.db import connection, models
-from django.db.models import F
+from django.db.models import F, Q
 from django.test import TransactionTestCase, skipUnlessDBFeature
 from django.test.utils import isolate_apps
+from pymongo import DESCENDING
 
 from django_mongodb_backend.fields import EmbeddedModelField
 from django_mongodb_backend.models import EmbeddedModel
@@ -259,6 +260,46 @@ class SchemaTests(TestMixin, TransactionTestCase):
                 self.get_constraints_for_columns(Book, ["author.name", "author.age"]),
                 [],
             )
+            editor.delete_model(Book)
+        self.assertTableNotExists(Author)
+
+    @isolate_apps("schema_")
+    def test_conditional_expression_indexes(self):
+        """Meta.indexes with conditional expressions on an embedded model."""
+
+        class Author(EmbeddedModel):
+            name = models.CharField(max_length=10)
+            age = models.IntegerField()
+
+            class Meta:
+                app_label = "schema_"
+                indexes = [
+                    models.Index(
+                        F("age").desc(),
+                        condition=Q(age__gt=0),
+                        name="embedded_cond_idx",
+                    )
+                ]
+
+        class Book(models.Model):
+            author = EmbeddedModelField(Author)
+
+            class Meta:
+                app_label = "schema_"
+
+        with connection.schema_editor() as editor:
+            editor.create_model(Book)
+            self.assertTableExists(Book)
+            # The index is created on the parent collection with the embedded
+            # field's column prefix applied to each key and to the partial
+            # filter expression's field paths.
+            index = next(
+                index
+                for index in connection.get_collection(Book._meta.db_table).list_indexes()
+                if index["name"] == "embedded_cond_idx"
+            )
+            self.assertEqual(list(index["key"].items()), [("author.age", DESCENDING)])
+            self.assertEqual(index["partialFilterExpression"], {"author.age": {"$gt": 0}})
             editor.delete_model(Book)
         self.assertTableNotExists(Author)
 
