@@ -253,6 +253,12 @@ class SchemaTests(TestMixin, TransactionTestCase):
                 ["embedded_expr_idx"],
             )
             self.assertIndexOrder(Book._meta.db_table, "embedded_expr_idx", ["ASC", "DESC"])
+            # Removing the embedded field removes its expression index.
+            editor.remove_field(Book, Book._meta.get_field("author"))
+            self.assertEqual(
+                self.get_constraints_for_columns(Book, ["author.name", "author.age"]),
+                [],
+            )
             editor.delete_model(Book)
         self.assertTableNotExists(Author)
 

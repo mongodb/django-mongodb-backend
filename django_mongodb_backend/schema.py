@@ -221,7 +221,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             self.remove_constraint(parent_model or model, constraint)
         # Meta.indexes
         for index in model._meta.indexes:
-            self.remove_index(parent_model or model, index)
+            self.remove_index(parent_model or model, index, resolve_model=model)
 
     @ignore_embedded_models
     def alter_index_together(self, model, old_index_together, new_index_together, column_prefix=""):
@@ -291,7 +291,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
         self.add_index(model, index, field=field, column_prefix=column_prefix)
 
     @ignore_embedded_models
-    def remove_index(self, model, index):
+    def remove_index(self, model, index, resolve_model=None):
         collection = self.get_collection(model._meta.db_table)
         if isinstance(index, SearchIndex):
             # Drop the index if it's supported.
@@ -299,8 +299,9 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
                 collection.drop_search_index(index.name)
                 self.wait_until_index_dropped(collection, index.name)
         elif index.expressions:
-            # Expression indexes may not exist.
-            if index_may_exist(index, model):
+            # Expression indexes may not exist; their expressions resolve
+            # against the embedded model that declared the index.
+            if index_may_exist(index, resolve_model or model):
                 try:
                     collection.drop_index(index.name)
                 except OperationFailure as e:
