@@ -129,9 +129,7 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
         )
 
     def test_sliced_expression_skipped(self):
-        # A sliced F() can't be translated (the slice has no MongoDB
-        # index-key equivalent): the index is skipped rather than created
-        # on the entire field.
+        # A sliced F() can't be translated; the index is skipped.
         index = Index(F("headline")[1:5], name="slice_idx")
         with connection.schema_editor() as editor:
             self.assertIsNone(index.get_pymongo_index_model(Article, schema_editor=editor))

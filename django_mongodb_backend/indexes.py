@@ -100,9 +100,7 @@ def expression_index_orders(expressions, model):
                 return None
             direction = DESCENDING if expression.descending else ASCENDING
             expression = expression.expression
-        # Subclasses such as Sliced (F("headline")[1:5]) or OuterRef carry
-        # semantics that MongoDB index keys can't express; translating
-        # them would silently index the entire field.
+        # An F subclass (e.g. Sliced) would silently index the entire field.
         if type(expression) is not F:
             return None
         try:
@@ -128,9 +126,7 @@ def check(self, model, connection):
     whether this index is actually created.
     """
     if connection.vendor != "mongodb":
-        # register_indexes() patches Index.check globally, so this wrapper
-        # also runs for other backends in multi-database projects. Leave
-        # their results alone.
+        # register_indexes() patches Index.check globally.
         return _django_index_check(self, model, connection)
     errors = _django_index_check(self, model, connection)
     if index_may_exist(self, model):

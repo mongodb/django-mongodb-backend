@@ -375,9 +375,7 @@ class ExpressionIndexCheckTests(TestCase):
         )
 
     def test_warning_for_sliced_expression(self):
-        # Sliced subclasses F, but the slice has no MongoDB index-key
-        # equivalent: the index is skipped and W043 fires rather than
-        # silently creating an index on the entire field.
+        # Sliced subclasses F, but the slice can't translate, so W043 fires.
         class Article(models.Model):
             headline = models.CharField(max_length=100)
 
@@ -422,9 +420,7 @@ class ExpressionIndexCheckTests(TestCase):
         )
 
     def test_check_passes_through_on_non_mongodb_connections(self):
-        # The global Index.check patch must leave other backends' results
-        # untouched in multi-database projects (e.g. a PostgreSQL database
-        # supports expression indexes and shouldn't see models.W043).
+        # The global Index.check patch must not touch other backends' results.
         class Article(models.Model):
             number = models.IntegerField()
 
