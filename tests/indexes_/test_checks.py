@@ -7,6 +7,7 @@ from django.db.models.functions import Lower
 from django.test import TestCase
 from django.test.utils import isolate_apps
 
+import django_mongodb_backend.indexes
 from django_mongodb_backend.fields import ArrayField, ObjectIdField
 from django_mongodb_backend.indexes import (
     EmbeddedFieldIndex,
@@ -373,6 +374,19 @@ class ExpressionIndexCheckTests(TestCase):
             [w043_warning(Article)],
         )
 
+    def test_warning_for_sliced_expression(self):
+        # Sliced subclasses F, but the slice can't translate, so W043 fires.
+        class Article(models.Model):
+            headline = models.CharField(max_length=100)
+
+            class Meta:
+                indexes = [Index(F("headline")[1:5], name="slice_idx")]
+
+        self.assertEqual(
+            Article.check(databases={"default"}),
+            [w043_warning(Article)],
+        )
+
     def test_warning_for_untranslatable_expressions_in_subclass(self):
         # contains_expressions=False doesn't stop the skip, so W043 fires.
         class Article(models.Model):
@@ -404,3 +418,21 @@ class ExpressionIndexCheckTests(TestCase):
                 w043_warning(Article)
             ],
         )
+
+    def test_check_passes_through_on_non_mongodb_connections(self):
+        # The global Index.check patch must not touch other backends' results.
+        class Article(models.Model):
+            number = models.IntegerField()
+
+            class Meta:
+                indexes = [Index(F("number").desc(), name="ordering_idx")]
+
+        index = Article._meta.indexes[0]
+        other = mock.Mock()
+        other.vendor = "postgresql"
+        with mock.patch.object(
+            django_mongodb_backend.indexes, "_django_index_check", return_value=["sentinel"]
+        ) as django_check:
+            errors = index.check(Article, other)
+        self.assertEqual(errors, ["sentinel"])
+        django_check.assert_called_once_with(index, Article, other)

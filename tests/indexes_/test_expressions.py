@@ -128,6 +128,12 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
             [f"db.{Article._meta.db_table}.drop_index('{index.name}')"],
         )
 
+    def test_sliced_expression_skipped(self):
+        # A sliced F() can't be translated; the index is skipped.
+        index = Index(F("headline")[1:5], name="slice_idx")
+        with connection.schema_editor() as editor:
+            self.assertIsNone(index.get_pymongo_index_model(Article, schema_editor=editor))
+
     def test_untranslatable_expression_with_condition_skipped(self):
         # An untranslatable expression skips the index without raising,
         # even when the condition is untranslatable too.
