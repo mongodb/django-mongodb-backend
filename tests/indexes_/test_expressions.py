@@ -110,6 +110,12 @@ class ExpressionIndexTests(SchemaAssertionMixin, TestCase):
     def test_remove_field_index_not_found_raises(self):
         # Fields-only indexes are always created by add_index().
         index = Index(fields=["headline"], name="missing_field_idx")
+        # SERVER-90152 made dropIndex idempotent in MongoDB 8.3, so dropping a
+        # nonexistent index succeeds instead of raising IndexNotFound.
+        if connection.features.is_mongodb_8_3:
+            with connection.schema_editor() as editor:
+                editor.remove_index(Article, index)
+            return
         with (
             connection.schema_editor() as editor,
             self.assertRaises(OperationFailure) as cm,
