@@ -170,20 +170,19 @@ pre:
   - func: bootstrap mongo-orchestration
 
 post:
+  - func: upload test results
+  - func: teardown csfle
   - func: teardown
 
 tasks:
   - name: run-tests
     commands:
       - func: "run unit tests"
-      - func: "upload test results"
 
   - name: run-encryption-tests
     commands:
       - func: "start csfle servers"
       - func: "run encryption tests"
-      - func: "teardown csfle"
-      - func: "upload test results"
 
   - name: run-performance-tests
     patchable: false
