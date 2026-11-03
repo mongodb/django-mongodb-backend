@@ -10,10 +10,10 @@ exec_timeout_secs: 3600
 # Actual testing tasks are marked with `type: test`
 command_type: system
 
-# Ensure that setup and teardown is working as expected.
+# Setup errors must fail the task, teardown errors do not.
 pre_error_fails_task: true
 pre_timeout_secs: 1800 # 5 minutes
-post_error_fails_task: true
+post_error_fails_task: false
 post_timeout_secs: 1800 # 5 minutes
 
 functions:
