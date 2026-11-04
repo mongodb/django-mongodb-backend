@@ -185,7 +185,6 @@ tasks:
       - func: "run encryption tests"
 
   - name: run-performance-tests
-    patchable: false
     commands:
       - func: "run performance tests"
       - func: "attach performance test results"
