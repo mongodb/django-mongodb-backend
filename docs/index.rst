@@ -2,7 +2,7 @@
 Django MongoDB Backend
 ======================
 
-version 6.1.x for Django 6.1.x
+version 6.2.x for Django 6.2.x
 
 .. rubric:: Everything you need to know about Django MongoDB Backend.
 
