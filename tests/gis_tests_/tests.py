@@ -1,8 +1,10 @@
-from django.contrib.gis.geos import LineString, Point, Polygon
+from django.contrib.gis.geos import GEOSGeometry, LineString, Point, Polygon
 from django.contrib.gis.measure import Distance
 from django.db import NotSupportedError
 from django.db.models import Case, CharField, Value, When
-from django.test import TestCase, skipUnlessDBFeature
+from django.test import SimpleTestCase, TestCase, skipUnlessDBFeature
+
+from django_mongodb_backend.gis.adapter import Adapter
 
 from .models import City, Zipcode
 
@@ -120,3 +122,29 @@ class LookupTests(TestCase):
                     output_field=CharField(),
                 )
             ).first()
+
+
+@skipUnlessDBFeature("gis_enabled")
+class AdapterTests(SimpleTestCase):
+    def test_nested_geometrycollection(self):
+        # GeometryCollection() doesn't accept a nested GeometryCollection,
+        # but WKT does.
+        geom = GEOSGeometry(
+            "GEOMETRYCOLLECTION(POINT(0 0), GEOMETRYCOLLECTION(POINT(1 1), LINESTRING(0 0, 1 1)))"
+        )
+        self.assertEqual(
+            Adapter(geom),
+            {
+                "type": "GeometryCollection",
+                "geometries": [
+                    {"type": "Point", "coordinates": (0.0, 0.0)},
+                    {
+                        "type": "GeometryCollection",
+                        "geometries": [
+                            {"type": "Point", "coordinates": (1.0, 1.0)},
+                            {"type": "LineString", "coordinates": ((0.0, 0.0), (1.0, 1.0))},
+                        ],
+                    },
+                ],
+            },
+        )
