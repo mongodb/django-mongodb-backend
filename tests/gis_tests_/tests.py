@@ -2,7 +2,7 @@ from django.contrib.gis.geos import GEOSGeometry, LineString, Point, Polygon
 from django.contrib.gis.measure import Distance
 from django.db import NotSupportedError
 from django.db.models import Case, CharField, Value, When
-from django.test import SimpleTestCase, TestCase, skipUnlessDBFeature
+from django.test import TestCase, skipUnlessDBFeature
 
 from django_mongodb_backend.gis.adapter import Adapter
 
@@ -125,7 +125,7 @@ class LookupTests(TestCase):
 
 
 @skipUnlessDBFeature("gis_enabled")
-class AdapterTests(SimpleTestCase):
+class AdapterTests(TestCase):
     def test_nested_geometrycollection(self):
         # GeometryCollection() doesn't accept a nested GeometryCollection,
         # but WKT does.
