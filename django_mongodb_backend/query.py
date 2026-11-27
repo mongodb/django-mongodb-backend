@@ -361,7 +361,63 @@ def join(self, compiler, connection, pushed_filter_expression=None):
     return lookup_pipeline
 
 
+def _has_custom_negation(node):
+    """
+    Return whether the subtree contains a lookup with custom negation MQL.
+    """
+    return any(
+        _has_custom_negation(child)
+        if isinstance(child, WhereNode)
+        else hasattr(child, "as_mql_negated")
+        for child in node.children
+    )
+
+
+def _negate(node, compiler, connection, as_expr):
+    """
+    Return MQL for NOT(node), pushing the negation down to the leaves (De
+    Morgan's laws). This lets lookups that require SQL three-valued semantics
+    (e.g. JSON key transforms) provide their own correct negation instead of
+    relying on $nor/$not, which mishandle missing values.
+    """
+    if not isinstance(node, WhereNode):
+        negate = getattr(node, "as_mql_negated", None)
+        if negate is not None:
+            return negate(compiler, connection, as_expr=as_expr)
+        try:
+            mql = node.as_mql(compiler, connection, as_expr=as_expr)
+        except EmptyResultSet as exc:
+            raise FullResultSet from exc
+        except FullResultSet as exc:
+            raise EmptyResultSet from exc
+        return {"$not": [mql]} if as_expr else {"$nor": [mql]}
+    if node.negated:
+        # NOT(NOT(group)) == group; compile the group without negation.
+        node = node.__class__(node.children, node.connector)
+        return node.as_mql(compiler, connection, as_expr=as_expr)
+    operator = "$or" if node.connector == AND else "$and"
+    parts = []
+    for child in node.children:
+        try:
+            parts.append(_negate(child, compiler, connection, as_expr))
+        except FullResultSet:
+            if operator == "$or":
+                raise  # OR with an always-true term = always-true.
+            # AND with an always-true term: skip it.
+        except EmptyResultSet:
+            if operator == "$and":
+                raise  # AND with a never-true term = never-true.
+            # OR with a never-true term: skip it.
+    if not parts:
+        raise EmptyResultSet if operator == "$or" else FullResultSet
+    return parts[0] if len(parts) == 1 else {operator: parts}
+
+
 def where_node(self, compiler, connection, as_expr=False):
+    if self.negated and self.connector in (AND, OR) and _has_custom_negation(self):
+        # Negate a copy without the flag so _negate() applies De Morgan's laws.
+        positive = self.__class__(self.children, self.connector)
+        return _negate(positive, compiler, connection, as_expr)
     if self.connector == AND:
         full_needed, empty_needed = len(self.children), 1
     else:
